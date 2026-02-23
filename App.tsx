@@ -14,23 +14,42 @@ const VERSES = [
 const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"; 
 
 const App: React.FC = () => {
-  const [state, setState] = useState<AppState>({
-    currentView: 'inicio',
-    allPosts: [],
-    loading: true,
-    selectedPost: null,
-    searchTerm: '',
-    favorites: JSON.parse(localStorage.getItem('dg_favs') || '[]'),
-    selectedCategory: null,
+  const [state, setState] = useState<AppState>(() => {
+    let favs = [];
+    try {
+      favs = JSON.parse(localStorage.getItem('dg_favs') || '[]');
+      if (!Array.isArray(favs)) favs = [];
+    } catch (e) {
+      favs = [];
+    }
+    
+    return {
+      currentView: 'inicio',
+      allPosts: [],
+      loading: true,
+      selectedPost: null,
+      searchTerm: '',
+      favorites: favs,
+      selectedCategory: null,
+    };
   });
 
-  const [readingHistory, setReadingHistory] = useState<string[]>(
-    JSON.parse(localStorage.getItem('dg_history') || '[]')
-  );
+  const [readingHistory, setReadingHistory] = useState<string[]>(() => {
+    try {
+      const hist = JSON.parse(localStorage.getItem('dg_history') || '[]');
+      return Array.isArray(hist) ? hist : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
-  const [streak, setStreak] = useState<number>(
-    parseInt(localStorage.getItem('dg_streak') || '0')
-  );
+  const [streak, setStreak] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('dg_streak') || '0') || 0;
+    } catch (e) {
+      return 0;
+    }
+  });
 
   const [showSplash, setShowSplash] = useState(true);
   const [verse, setVerse] = useState(VERSES[0]);
@@ -45,18 +64,30 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // Safety timeout: hide splash after 6 seconds no matter what
+    const safetyTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 6000);
+
     const init = async () => {
       try {
         const posts = await fetchArsenalData();
         setState(prev => ({ ...prev, allPosts: posts, loading: false }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
       } catch (err) {
+        console.error("Init error:", err);
         setState(prev => ({ ...prev, loading: false }));
       } finally {
-        setTimeout(() => setShowSplash(false), 2000);
+        // If fetch was fast, hide splash after 2s
+        setTimeout(() => {
+          setShowSplash(false);
+          clearTimeout(safetyTimer);
+        }, 2000);
       }
     };
     init();
+    
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   useEffect(() => {
@@ -649,16 +680,18 @@ const App: React.FC = () => {
 
       {/* POPUP: FOLLOW THE ARMY */}
       {showFollowPopup && (
-        <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6 bg-slate-950/98 backdrop-blur-xl animate-fade-in">
-           <div className="bg-slate-900 border border-white/5 p-16 rounded-[5rem] max-w-2xl w-full text-center relative shadow-[0_0_150px_rgba(59,130,246,0.2)] overflow-hidden">
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4 md:p-6 bg-slate-950/98 backdrop-blur-xl animate-fade-in overflow-y-auto">
+           <div className="bg-slate-900 border border-white/5 p-8 md:p-16 rounded-[3rem] md:rounded-[5rem] max-w-2xl w-full text-center relative shadow-[0_0_150px_rgba(59,130,246,0.2)] overflow-hidden my-auto">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[120px] rounded-full"></div>
-              <button onClick={() => setShowFollowPopup(false)} className="absolute top-12 right-12 text-slate-600 hover:text-white transition-all"><i className="fas fa-times text-3xl"></i></button>
+              <button onClick={() => setShowFollowPopup(false)} className="absolute top-6 right-6 md:top-12 md:right-12 text-slate-600 hover:text-white transition-all z-50 p-2">
+                <i className="fas fa-times text-2xl md:text-3xl"></i>
+              </button>
               
-              <img src={LOGO_URL} className="w-56 mx-auto mb-12 drop-shadow-[0_0_30px_rgba(59,130,246,0.4)]" alt="Logo" />
-              <h3 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tighter uppercase italic">¡Únete a la Legión!</h3>
-              <p className="text-slate-500 mb-14 leading-relaxed font-light text-xl px-6">Sigue a la comunidad que entrena cuerpo y espíritu. Elige tu arsenal favorito:</p>
+              <img src={LOGO_URL} className="w-40 md:w-56 mx-auto mb-8 md:mb-12 drop-shadow-[0_0_30px_rgba(59,130,246,0.4)]" alt="Logo" />
+              <h3 className="text-3xl md:text-5xl font-black text-white mb-4 md:mb-6 tracking-tighter uppercase italic">¡Únete a la Legión!</h3>
+              <p className="text-slate-500 mb-8 md:mb-14 leading-relaxed font-light text-lg md:text-xl px-2 md:px-6">Sigue a la comunidad que entrena cuerpo y espíritu. Elige tu arsenal favorito:</p>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
                  <SocialPopupBtn onClick={() => window.open('https://instagram.com/diosmasgym', '_blank')} icon="fab fa-instagram" color="bg-gradient-to-tr from-purple-600 via-pink-600 to-orange-500" label="Instagram" />
                  <SocialPopupBtn onClick={() => window.open('https://tiktok.com/@diosmasgym', '_blank')} icon="fab fa-tiktok" color="bg-slate-950 border border-slate-800" label="TikTok" />
                  <SocialPopupBtn onClick={() => window.open('https://youtube.com/@diosmasgym', '_blank')} icon="fab fa-youtube" color="bg-red-600" label="YouTube" />
@@ -669,7 +702,7 @@ const App: React.FC = () => {
                  <SocialPopupBtn onClick={() => window.open('https://twitter.com/diosmasgym', '_blank')} icon="fab fa-x-twitter" color="bg-slate-800" label="X Twitter" />
               </div>
               
-              <button onClick={() => setShowFollowPopup(false)} className="text-[11px] text-slate-700 font-black uppercase tracking-widest hover:text-blue-500 transition-all underline underline-offset-8">Continuar solo por ahora</button>
+              <button onClick={() => setShowFollowPopup(false)} className="text-[10px] md:text-[11px] text-slate-700 font-black uppercase tracking-widest hover:text-blue-500 transition-all underline underline-offset-8">Continuar solo por ahora</button>
            </div>
         </div>
       )}
