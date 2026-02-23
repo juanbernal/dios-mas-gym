@@ -10,23 +10,34 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
   try {
     // Intentamos usar nuestro proxy interno primero
     let response = await fetch('/api/feed');
+    let data = null;
     
-    // Si falla (por ejemplo en un hosting estático como GitHub Pages), usamos un proxy público
-    if (!response.ok) {
+    // Verificamos si la respuesta es JSON válido y no el HTML de la app (SPA fallback)
+    if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+    }
+    
+    // Si no obtuvimos datos (porque falló el proxy o no es JSON), usamos el proxy público
+    if (!data) {
       console.warn('Internal proxy failed or not found, trying public proxy...');
       const blogId = "5031959192789589903";
       const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=50`;
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
       
       response = await fetch(proxyUrl);
+      if (response.ok) {
+        data = await response.json();
+      }
     }
     
-    if (!response.ok) {
-      console.error('Blogger Feed Error:', response.status, response.statusText);
+    if (!data) {
+      console.error('Blogger Feed Error: Could not fetch data from any source');
       return [];
     }
     
-    const data = await response.json();
     return processFeedData(data);
   } catch (error) {
     console.error('Error fetching Blogger feed:', error);
