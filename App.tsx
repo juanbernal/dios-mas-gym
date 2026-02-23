@@ -64,25 +64,36 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Safety timeout: hide splash after 6 seconds no matter what
+    // Safety timeout: hide splash after 4 seconds no matter what (reduced from 6)
     const safetyTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 6000);
+    }, 4000);
 
     const init = async () => {
       try {
         const posts = await fetchArsenalData();
+        
+        // Si ya tenemos posts (del caché), podemos quitar el splash más rápido
+        const hasCache = localStorage.getItem('dg_posts_cache');
+        
         setState(prev => ({ ...prev, allPosts: posts, loading: false }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
-      } catch (err) {
-        console.error("Init error:", err);
-        setState(prev => ({ ...prev, loading: false }));
-      } finally {
-        // If fetch was fast, hide splash after 2s
+        
+        // Si hay caché, el splash dura solo 0.5s. Si no, 1.5s.
         setTimeout(() => {
           setShowSplash(false);
           clearTimeout(safetyTimer);
-        }, 2000);
+        }, hasCache ? 500 : 1500);
+
+      } catch (err) {
+        console.error("Init error:", err);
+        setState(prev => ({ ...prev, loading: false }));
+        setShowSplash(false);
+      } finally {
+        // Garantizar que loading sea false pase lo que pase
+        setTimeout(() => {
+          setState(prev => ({ ...prev, loading: false }));
+        }, 5000);
       }
     };
     init();

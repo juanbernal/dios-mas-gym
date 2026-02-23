@@ -8,37 +8,105 @@ import { ContentPost } from '../types';
  */
 export const fetchArsenalData = async (): Promise<ContentPost[]> => {
   try {
-    // Intentamos usar nuestro proxy interno primero
-    let response = await fetch('/api/feed');
-    let data = null;
+    // 1. Intentar cargar desde caché local para velocidad instantánea
+    const cached = localStorage.getItem('dg_posts_cache');
+    const cacheTime = localStorage.getItem('dg_posts_cache_time');
+    const now = Date.now();
     
-    // Verificamos si la respuesta es JSON válido y no el HTML de la app (SPA fallback)
-    if (response.ok) {
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
+    // Si el caché existe, lo usamos para entrar INSTANTÁNEAMENTE
+    let cachedData: ContentPost[] = [];
+    if (cached) {
+      try {
+        cachedData = JSON.parse(cached);
+      } catch (e) {
+        console.error("Error parsing cache", e);
       }
     }
-    
-    // Si no obtuvimos datos (porque falló el proxy o no es JSON), usamos el proxy público
-    if (!data) {
-      console.warn('Internal proxy failed or not found, trying public proxy...');
-      const blogId = "5031959192789589903";
-      const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=50`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+    // 2. Determinar si estamos en GitHub Pages o local
+    const isGitHubPages = window.location.hostname.includes('github.io') || 
+                         window.location.hostname.includes('diosmasgym.com') ||
+                         window.location.hostname.includes('run.app');
+
+    const fetchFromSource = async () => {
+      let data = null;
       
-      response = await fetch(proxyUrl);
-      if (response.ok) {
-        data = await response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de timeout
+
+      try {
+        // Si no es GitHub Pages (es local con servidor Express), intentamos el proxy interno
+        if (!isGitHubPages) {
+          try {
+            const response = await fetch('/api/feed', { signal: controller.signal });
+            if (response.ok) {
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+              }
+            }
+          } catch (e) {
+            console.warn("Internal proxy fetch failed or timed out");
+          }
+        }
+        
+        // Si falla o estamos en producción estática, usamos el proxy público
+        if (!data) {
+          const blogId = "5031959192789589903";
+          const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=50`;
+          
+          // Intentamos con AllOrigins
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          
+          try {
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            if (response.ok) {
+              data = await response.json();
+            }
+          } catch (e) {
+            console.error("Public proxy 1 failed", e);
+            
+            // Intento 2: Otro proxy (CORS.sh o similar, pero AllOrigins suele ser el más abierto)
+            // Si falla el primero, intentamos uno secundario
+            try {
+              const proxyUrl2 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+              const response2 = await fetch(proxyUrl2, { signal: controller.signal });
+              if (response2.ok) {
+                data = await response2.json();
+              }
+            } catch (e2) {
+              console.error("Public proxy 2 failed", e2);
+            }
+          }
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
+      
+      if (data) {
+        const processed = processFeedData(data);
+        if (processed.length > 0) {
+          localStorage.setItem('dg_posts_cache', JSON.stringify(processed));
+          localStorage.setItem('dg_posts_cache_time', Date.now().toString());
+          return processed;
+        }
+      }
+      return null;
+    };
+
+    // Si tenemos caché (aunque sea viejo), lo devolvemos ya para que la app abra
+    if (cachedData.length > 0) {
+      // Si el caché tiene más de 5 minutos, disparamos el refresh en background
+      if (!cacheTime || (now - parseInt(cacheTime)) > 5 * 60 * 1000) {
+        fetchFromSource(); 
+      }
+      return cachedData;
     }
-    
-    if (!data) {
-      console.error('Blogger Feed Error: Could not fetch data from any source');
-      return [];
-    }
-    
-    return processFeedData(data);
+
+    // Si no hay caché, esperamos la carga inicial
+    const freshData = await fetchFromSource();
+    return freshData || [];
+
   } catch (error) {
     console.error('Error fetching Blogger feed:', error);
     return [];
