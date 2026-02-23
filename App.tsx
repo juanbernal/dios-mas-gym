@@ -71,29 +71,39 @@ const App: React.FC = () => {
 
     const init = async () => {
       try {
-        const posts = await fetchArsenalData();
+        // Etapa 1: Carga rápida de los primeros 12 posts
+        const initialPosts = await fetchArsenalData(12);
         
-        // Si ya tenemos posts (del caché), podemos quitar el splash más rápido
         const hasCache = localStorage.getItem('dg_posts_cache');
         
-        setState(prev => ({ ...prev, allPosts: posts, loading: false }));
+        setState(prev => ({ ...prev, allPosts: initialPosts, loading: false }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         
-        // Si hay caché, el splash dura solo 0.5s. Si no, 1.5s.
+        // Quitar splash rápido
         setTimeout(() => {
           setShowSplash(false);
           clearTimeout(safetyTimer);
-        }, hasCache ? 500 : 1500);
+        }, hasCache ? 400 : 1000);
+
+        // Etapa 2: Carga en segundo plano del resto (50 posts)
+        // Solo si no estamos usando un caché que ya sea grande
+        if (!hasCache || initialPosts.length < 20) {
+          setTimeout(async () => {
+            const allPosts = await fetchArsenalData(50);
+            if (allPosts.length > initialPosts.length) {
+              setState(prev => ({ ...prev, allPosts: allPosts }));
+            }
+          }, 2000);
+        }
 
       } catch (err) {
         console.error("Init error:", err);
         setState(prev => ({ ...prev, loading: false }));
         setShowSplash(false);
       } finally {
-        // Garantizar que loading sea false pase lo que pase
         setTimeout(() => {
           setState(prev => ({ ...prev, loading: false }));
-        }, 5000);
+        }, 4000);
       }
     };
     init();

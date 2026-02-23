@@ -6,7 +6,7 @@ import { ContentPost } from '../types';
  * Recuperación de datos desde el feed JSON público de Blogger.
  * No requiere API Key.
  */
-export const fetchArsenalData = async (): Promise<ContentPost[]> => {
+export const fetchArsenalData = async (maxResults: number = 50): Promise<ContentPost[]> => {
   try {
     // 1. Intentar cargar desde caché local para velocidad instantánea
     const cached = localStorage.getItem('dg_posts_cache');
@@ -28,7 +28,7 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
                          window.location.hostname.includes('diosmasgym.com') ||
                          window.location.hostname.includes('run.app');
 
-    const fetchFromSource = async () => {
+    const fetchFromSource = async (limit: number) => {
       let data = null;
       
       const controller = new AbortController();
@@ -38,7 +38,7 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
         // Si no es GitHub Pages (es local con servidor Express), intentamos el proxy interno
         if (!isGitHubPages) {
           try {
-            const response = await fetch('/api/feed', { signal: controller.signal });
+            const response = await fetch(`/api/feed?maxResults=${limit}`, { signal: controller.signal });
             if (response.ok) {
               const contentType = response.headers.get('content-type');
               if (contentType && contentType.includes('application/json')) {
@@ -53,7 +53,7 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
         // Si falla o estamos en producción estática, usamos el proxy público
         if (!data) {
           const blogId = "5031959192789589903";
-          const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=50`;
+          const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=${limit}`;
           
           // Intentamos con AllOrigins
           const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
@@ -66,8 +66,7 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
           } catch (e) {
             console.error("Public proxy 1 failed", e);
             
-            // Intento 2: Otro proxy (CORS.sh o similar, pero AllOrigins suele ser el más abierto)
-            // Si falla el primero, intentamos uno secundario
+            // Intento 2: Otro proxy
             try {
               const proxyUrl2 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
               const response2 = await fetch(proxyUrl2, { signal: controller.signal });
@@ -86,8 +85,11 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
       if (data) {
         const processed = processFeedData(data);
         if (processed.length > 0) {
-          localStorage.setItem('dg_posts_cache', JSON.stringify(processed));
-          localStorage.setItem('dg_posts_cache_time', Date.now().toString());
+          // Solo guardamos en caché si pedimos el set completo (o si es mayor al caché actual)
+          if (limit >= 40) {
+            localStorage.setItem('dg_posts_cache', JSON.stringify(processed));
+            localStorage.setItem('dg_posts_cache_time', Date.now().toString());
+          }
           return processed;
         }
       }
@@ -98,13 +100,13 @@ export const fetchArsenalData = async (): Promise<ContentPost[]> => {
     if (cachedData.length > 0) {
       // Si el caché tiene más de 5 minutos, disparamos el refresh en background
       if (!cacheTime || (now - parseInt(cacheTime)) > 5 * 60 * 1000) {
-        fetchFromSource(); 
+        fetchFromSource(maxResults); 
       }
       return cachedData;
     }
 
-    // Si no hay caché, esperamos la carga inicial
-    const freshData = await fetchFromSource();
+    // Si no hay caché, esperamos la carga inicial (con el límite solicitado)
+    const freshData = await fetchFromSource(maxResults);
     return freshData || [];
 
   } catch (error) {
