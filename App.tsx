@@ -55,6 +55,8 @@ const App: React.FC = () => {
   const [verse, setVerse] = useState(VERSES[0]);
   const [showFollowPopup, setShowFollowPopup] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [readProgress, setReadProgress] = useState(0);
 
   const readerRef = useRef<HTMLDivElement>(null);
 
@@ -71,30 +73,42 @@ const App: React.FC = () => {
 
     const init = async () => {
       try {
-        // Etapa 1: Carga rápida de los primeros 12 posts
-        const initialPosts = await fetchArsenalData(12);
+        // Etapa 1: Carga relámpago de los primeros 20 posts (suficiente para llenar la pantalla inicial)
+        const result20 = await fetchArsenalData(20);
+        const initialPosts = result20.posts;
         
         const hasCache = localStorage.getItem('dg_posts_cache');
         
-        setState(prev => ({ ...prev, allPosts: initialPosts, loading: false }));
+        setState(prev => ({ 
+          ...prev, 
+          allPosts: initialPosts, 
+          loading: false,
+          nextPageToken: result20.nextPageToken 
+        }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         
-        // Quitar splash rápido
+        // Quitar splash casi de inmediato si hay datos
         setTimeout(() => {
           setShowSplash(false);
           clearTimeout(safetyTimer);
-        }, hasCache ? 400 : 1000);
+        }, hasCache ? 200 : 800);
 
-        // Etapa 2: Carga en segundo plano del resto (50 posts)
-        // Solo si no estamos usando un caché que ya sea grande
-        if (!hasCache || initialPosts.length < 20) {
-          setTimeout(async () => {
-            const allPosts = await fetchArsenalData(50);
-            if (allPosts.length > initialPosts.length) {
-              setState(prev => ({ ...prev, allPosts: allPosts }));
+        // Etapa 2: Carga masiva en segundo plano (500 posts)
+        // Esto llena todo el arsenal sin bloquear la vista del usuario
+        setTimeout(async () => {
+          try {
+            const result500 = await fetchArsenalData(500);
+            if (result500.posts.length > initialPosts.length) {
+              setState(prev => ({ 
+                ...prev, 
+                allPosts: result500.posts,
+                nextPageToken: result500.nextPageToken
+              }));
             }
-          }, 2000);
-        }
+          } catch (e) {
+            console.warn("Background bulk load failed, but user already has initial data.");
+          }
+        }, 3000);
 
       } catch (err) {
         console.error("Init error:", err);
@@ -113,8 +127,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!showSplash) {
-      const timer = setTimeout(() => setShowFollowPopup(true), 15000);
-      return () => clearTimeout(timer);
+      const lastShown = localStorage.getItem('dg_popup_last_shown');
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (!lastShown || (now - parseInt(lastShown)) > oneDay) {
+        const timer = setTimeout(() => {
+          setShowFollowPopup(true);
+          localStorage.setItem('dg_popup_last_shown', now.toString());
+        }, 30000); // Show after 30 seconds instead of 15
+        return () => clearTimeout(timer);
+      }
     }
   }, [showSplash]);
 
@@ -139,13 +162,15 @@ const App: React.FC = () => {
     return posts;
   }, [state.allPosts, state.searchTerm, state.selectedCategory, state.currentView, state.favorites]);
 
+  const [shuffleKey, setShuffleKey] = useState(0);
+
   const trendingPosts = useMemo(() => {
     return [...state.allPosts].sort(() => 0.5 - Math.random()).slice(0, 4);
-  }, [state.allPosts]);
+  }, [state.allPosts, shuffleKey]);
 
   const randomDiscovery = useMemo(() => {
     return [...state.allPosts].sort(() => 0.5 - Math.random()).slice(0, 6);
-  }, [state.allPosts]);
+  }, [state.allPosts, shuffleKey]);
 
   const warriorChallenge = useMemo(() => {
     if (state.allPosts.length === 0) return null;
@@ -153,7 +178,7 @@ const App: React.FC = () => {
     const filtered = state.allPosts.filter(p => p.labels?.some(l => l.toLowerCase().includes('reflexion') || l.toLowerCase().includes('ejercicio')));
     const source = filtered.length > 0 ? filtered : state.allPosts;
     return source[Math.floor(Math.random() * source.length)];
-  }, [state.allPosts]);
+  }, [state.allPosts, shuffleKey]);
 
   const testimoniosPosts = useMemo(() => {
     return state.allPosts.filter(p => p.labels?.some(l => l.toLowerCase().includes('testimonio')));
@@ -180,7 +205,7 @@ const App: React.FC = () => {
   const recommendedPost = useMemo(() => {
     if (state.allPosts.length === 0) return null;
     return state.allPosts[Math.floor(Math.random() * state.allPosts.length)];
-  }, [state.allPosts]);
+  }, [state.allPosts, shuffleKey]);
 
   const toggleFavorite = (postId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -191,8 +216,27 @@ const App: React.FC = () => {
     });
   };
 
+  const loadMorePosts = async () => {
+    if (!state.nextPageToken || state.loading) return;
+    
+    setState(prev => ({ ...prev, loading: true }));
+    try {
+      const result = await fetchArsenalData(50, state.nextPageToken);
+      setState(prev => ({
+        ...prev,
+        allPosts: [...prev.allPosts, ...result.posts],
+        nextPageToken: result.nextPageToken,
+        loading: false
+      }));
+    } catch (e) {
+      console.error("Error loading more posts:", e);
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const handleSelectPost = (post: ContentPost) => {
     setState(prev => ({ ...prev, selectedPost: post }));
+    setReadProgress(0);
     if (!readingHistory.includes(post.id)) {
       setReadingHistory(prev => [post.id, ...prev].slice(0, 30));
       setStreak(s => s + 1);
@@ -251,9 +295,24 @@ const App: React.FC = () => {
       
       {/* SIDEBAR (Desktop) */}
       <aside className="hidden lg:flex flex-col w-80 bg-slate-950 border-r border-slate-800/60 p-8 z-50 overflow-y-auto no-scrollbar">
-        <div className="mb-14 cursor-pointer flex flex-col items-center group" onClick={() => changeView('inicio')}>
+        <div className="mb-10 cursor-pointer flex flex-col items-center group" onClick={() => changeView('inicio')}>
           <img src={LOGO_URL} className="w-48 mb-4 group-hover:scale-105 transition-transform drop-shadow-[0_0_20px_rgba(59,130,246,0.2)]" alt="Logo" />
           <div className="h-0.5 w-16 bg-blue-600 rounded-full group-hover:w-32 transition-all"></div>
+        </div>
+
+        {/* Search Bar Sidebar */}
+        <div className="mb-10 relative group">
+           <input 
+              type="text" 
+              value={state.searchTerm}
+              onChange={(e) => {
+                 setState(prev => ({ ...prev, searchTerm: e.target.value }));
+                 if (state.currentView !== 'reflexiones') changeView('reflexiones');
+              }}
+              placeholder="Buscar en el arsenal..." 
+              className="w-full bg-slate-900/40 border border-slate-800 rounded-2xl py-4 px-6 text-[10px] focus:outline-none focus:border-blue-500 transition-all text-white placeholder-slate-700 font-black uppercase tracking-widest" 
+           />
+           <i className="fas fa-search absolute right-6 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-blue-500 transition-colors"></i>
         </div>
         
         <nav className="flex-1 space-y-4">
@@ -314,14 +373,68 @@ const App: React.FC = () => {
         
         {/* MOBILE HEADER */}
         <header className="lg:hidden bg-slate-950 border-b border-slate-800 px-6 py-4 flex justify-between items-center z-50">
-          <img src={LOGO_URL} className="h-10 drop-shadow-lg" alt="Logo" />
+          <img src={LOGO_URL} className="h-10 drop-shadow-lg" alt="Logo" onClick={() => changeView('inicio')} />
           <div className="flex items-center gap-4">
+             <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all"
+             >
+                <i className="fas fa-search"></i>
+             </button>
              <div className="flex items-center gap-2 bg-blue-500/10 px-4 py-2 rounded-full border border-blue-500/20 shadow-lg">
                 <i className="fas fa-fire text-orange-500 text-xs animate-pulse"></i>
                 <span className="text-xs font-black text-white">{streak}</span>
              </div>
           </div>
         </header>
+
+        {/* MOBILE SEARCH OVERLAY */}
+        {isSearchOpen && (
+           <div className="fixed inset-0 z-[6000] bg-slate-950/95 backdrop-blur-xl p-8 animate-fade-in">
+              <div className="flex items-center justify-between mb-12">
+                 <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Buscador</h3>
+                 <button onClick={() => setIsSearchOpen(false)} className="text-slate-500 text-2xl"><i className="fas fa-times"></i></button>
+              </div>
+              <div className="relative">
+                 <input 
+                    autoFocus
+                    type="text" 
+                    value={state.searchTerm}
+                    onChange={(e) => {
+                       setState(prev => ({ ...prev, searchTerm: e.target.value }));
+                       if (state.currentView !== 'reflexiones') changeView('reflexiones');
+                    }}
+                    placeholder="¿Qué buscas, guerrero?" 
+                    className="w-full bg-slate-900 border-2 border-slate-800 rounded-3xl py-6 px-8 text-lg focus:outline-none focus:border-blue-500 transition-all text-white placeholder-slate-700 font-black uppercase tracking-widest" 
+                 />
+                 <i className="fas fa-search absolute right-8 top-1/2 -translate-y-1/2 text-slate-700"></i>
+              </div>
+              <div className="mt-12">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-6">Sugerencias</p>
+                 <div className="flex flex-wrap gap-3">
+                    {['Oración', 'Fuerza', 'Disciplina', 'Ayuno', 'Mentalidad'].map(s => (
+                       <button 
+                          key={s}
+                          onClick={() => {
+                             setState(prev => ({ ...prev, searchTerm: s }));
+                             changeView('reflexiones');
+                             setIsSearchOpen(false);
+                          }}
+                          className="px-6 py-3 bg-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-800"
+                       >
+                          {s}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+              <button 
+                 onClick={() => setIsSearchOpen(false)}
+                 className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest"
+              >
+                 Ver Resultados
+              </button>
+           </div>
+        )}
 
         <main className="flex-1 overflow-y-auto no-scrollbar p-6 lg:p-14 pb-32 lg:pb-14 bg-[#020617] relative">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 blur-[120px] rounded-full -z-10 translate-x-1/2 -translate-y-1/2"></div>
@@ -342,8 +455,13 @@ const App: React.FC = () => {
                  <button 
                    onClick={() => {
                      setState(prev => ({ ...prev, loading: true }));
-                     fetchArsenalData().then(posts => {
-                       setState(prev => ({ ...prev, allPosts: posts, loading: false }));
+                     fetchArsenalData().then(res => {
+                       setState(prev => ({ 
+                         ...prev, 
+                         allPosts: res.posts, 
+                         loading: false,
+                         nextPageToken: res.nextPageToken
+                       }));
                      });
                    }}
                    className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all"
@@ -500,9 +618,7 @@ const App: React.FC = () => {
                              <i className="fas fa-dice text-blue-500"></i> Descubrimiento Aleatorio
                           </h2>
                           <button 
-                             onClick={() => {
-                                window.scrollTo({ top: window.scrollY + 1 });
-                             }} 
+                             onClick={() => setShuffleKey(prev => prev + 1)} 
                              className="text-[10px] font-black uppercase text-slate-500 tracking-widest hover:text-blue-500 transition-colors"
                           >
                              <i className="fas fa-redo-alt mr-2"></i> Mezclar
@@ -573,11 +689,27 @@ const App: React.FC = () => {
                            </div>
                         )}
                      </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-32">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-20">
                         {filteredPosts.map(p => (
                            <PostCard key={p.id} post={p} onClick={() => handleSelectPost(p)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => toggleFavorite(p.id, e)} />
                         ))}
                      </div>
+
+                     {state.nextPageToken && state.currentView === 'reflexiones' && !state.searchTerm && (
+                        <div className="flex justify-center pb-32">
+                           <button 
+                              onClick={loadMorePosts}
+                              disabled={state.loading}
+                              className="bg-slate-900 border border-slate-800 text-white px-12 py-6 rounded-[2.5rem] font-black uppercase text-[11px] tracking-widest hover:bg-blue-600 hover:border-blue-500 transition-all shadow-2xl disabled:opacity-50 flex items-center gap-4"
+                           >
+                              {state.loading ? (
+                                 <><i className="fas fa-spinner animate-spin"></i> Cargando Munición...</>
+                              ) : (
+                                 <><i className="fas fa-plus"></i> Cargar más del Arsenal</>
+                              )}
+                           </button>
+                        </div>
+                     )}
                   </div>
                 )}
               </>
@@ -652,6 +784,7 @@ const App: React.FC = () => {
       {state.selectedPost && (
         <div className="fixed inset-0 bg-[#020617] z-[2000] flex flex-col animate-slide-up">
            <header className="bg-slate-950 border-b border-slate-800/60 px-6 py-6 flex items-center justify-between sticky top-0 z-[2100]">
+              <div className="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-200 z-[2200]" style={{ width: `${readProgress}%` }}></div>
               <button onClick={() => setState(prev => ({ ...prev, selectedPost: null }))} className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white border border-slate-800 hover:text-blue-500 transition-all active:scale-90">
                   <i className="fas fa-chevron-left text-xl"></i>
               </button>
@@ -661,14 +794,31 @@ const App: React.FC = () => {
               </button>
            </header>
            
-           <div ref={readerRef} className="flex-1 overflow-y-auto px-6 py-16 no-scrollbar max-w-5xl mx-auto w-full">
+           <div 
+              ref={readerRef} 
+              onScroll={(e) => {
+                 const target = e.currentTarget;
+                 const progress = (target.scrollTop / (target.scrollHeight - target.clientHeight)) * 100;
+                 setReadProgress(progress);
+              }}
+              className="flex-1 overflow-y-auto px-6 py-16 no-scrollbar max-w-5xl mx-auto w-full"
+           >
               {state.selectedPost.images?.[0]?.url && (
                 <div className="relative mb-16 group">
                    <img src={state.selectedPost.images[0].url} className="w-full h-auto rounded-[4rem] shadow-2xl border border-white/5 transition-all group-hover:scale-[1.01]" alt="" />
                    <div className="absolute inset-0 rounded-[4rem] shadow-[inset_0_0_120px_rgba(0,0,0,0.6)]"></div>
                 </div>
               )}
-              <h1 className="text-4xl md:text-8xl font-black text-white mb-14 leading-[0.9] tracking-tighter uppercase">{state.selectedPost.title}</h1>
+              <h1 className="text-4xl md:text-8xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">{state.selectedPost.title}</h1>
+              <div className="flex items-center gap-6 mb-14 text-slate-500 text-xs font-black uppercase tracking-widest">
+                 <div className="flex items-center gap-2">
+                    <i className="far fa-clock text-blue-500"></i> {state.selectedPost.readingTime || 5} min de lectura
+                 </div>
+                 <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
+                 <div className="flex items-center gap-2">
+                    <i className="far fa-calendar text-blue-500"></i> {new Date(state.selectedPost.published).toLocaleDateString()}
+                 </div>
+              </div>
               <div className="blogger-body pb-64" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
            </div>
 
@@ -803,7 +953,9 @@ const PostCard: React.FC<{ post: ContentPost, onClick: () => void, isFav: boolea
       </div>
       <h4 className="font-black text-white text-2xl lg:text-3xl leading-[1.1] mb-10 line-clamp-2 tracking-tighter group-hover:text-blue-400 transition-colors uppercase">{post.title}</h4>
       <div className="mt-auto flex items-center justify-between pt-8 border-t border-slate-800/50">
-        <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">{new Date(post.published).toLocaleDateString()}</span>
+        <div className="flex items-center gap-2 text-slate-500 text-[10px] font-black uppercase tracking-widest">
+           <i className="far fa-clock text-blue-500"></i> {post.readingTime || 5} min
+        </div>
         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg">
            <i className="fas fa-arrow-right text-sm"></i>
         </div>

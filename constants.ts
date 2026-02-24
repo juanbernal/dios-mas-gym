@@ -41,8 +41,8 @@ const getV = (key: string, fallback: string) => {
 };
 
 // Credenciales protegidas
-export const _CX_K = getV('BLOGGER_API_KEY', 'QUl6YVN5QnZ1c195dW9BQ0lpQ2JmQWp6bHpNRVFkc29YWk4MjdVcw==');
-const _ID = getV('BLOGGER_BLOG_ID', 'NTAzMTk1OTE5Mjc4OTU4OTkwMw==');
+export const _CX_K = '';
+const _ID = 'NTAzMTk1OTE5Mjc4OTU4OTkwMw==';
 
 // Ruta de acceso al recurso
 export const GATEWAY_URL = `https://www.googleapis.com/blogger/v3/blogs/${_ID}/posts`;

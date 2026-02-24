@@ -10,7 +10,37 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // API route to proxy the Blogger feed
+  // API route to proxy the Blogger API v3 (Secure)
+  app.get("/api/arsenal", async (req, res) => {
+    try {
+      const blogId = "5031959192789589903";
+      const apiKey = process.env.BLOGGER_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "BLOGGER_API_KEY not configured on server" });
+      }
+
+      const maxResults = req.query.maxResults || "50";
+      const pageToken = req.query.pageToken;
+      
+      let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${maxResults}&fetchImages=true`;
+      if (pageToken) url += `&pageToken=${pageToken}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error?.message || `Blogger API responded with ${response.status}`);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching arsenal:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API route to proxy the Blogger feed (Legacy Fallback)
   app.get("/api/feed", async (req, res) => {
     try {
       // We use the ID from constants or just hardcode the known working URL for this specific blog

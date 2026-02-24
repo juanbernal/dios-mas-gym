@@ -13,6 +13,7 @@ export interface ContentPost {
     };
   };
   labels?: string[];
+  readingTime?: number;
 }
 
 export interface ContentApiResponse {
@@ -30,4 +31,5 @@ export interface AppState {
   searchTerm: string;
   favorites: string[];
   selectedCategory: string | null;
+  nextPageToken?: string;
 }
