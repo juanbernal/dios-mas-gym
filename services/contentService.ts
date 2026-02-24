@@ -17,6 +17,13 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
       try {
         const response = await fetch(url.toString(), { signal: controller.signal });
+        
+        // Si el servidor responde 404, es probable que estemos en un entorno estático (GitHub Pages)
+        if (response.status === 404) {
+          console.warn("Server API not found (404). Switching to client-side fetch.");
+          return { posts: await fetchFromPublicFeed(limit) };
+        }
+
         if (!response.ok) throw new Error(`Server API error: ${response.status}`);
         
         const data = await response.json();
@@ -71,23 +78,35 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
 const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
   const blogId = "5031959192789589903";
-  const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=${limit}`;
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  // Intentamos varios proxies para mayor fiabilidad
+  const proxies = [
+    (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
 
-  try {
-    const response = await fetch(proxyUrl, { signal: controller.signal });
-    if (response.ok) {
-      const data = await response.json();
-      return processPublicFeedData(data);
+  const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=${limit}`;
+  
+  for (const getProxyUrl of proxies) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const proxyUrl = getProxyUrl(targetUrl);
+      const response = await fetch(proxyUrl, { signal: controller.signal });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // allorigins devuelve { contents: "..." } si no se usa /raw
+        const finalData = data.contents ? JSON.parse(data.contents) : data;
+        return processPublicFeedData(finalData);
+      }
+    } catch (e) {
+      console.error(`Proxy failed: ${getProxyUrl(targetUrl)}`, e);
+    } finally {
+      clearTimeout(timeoutId);
     }
-  } catch (e) {
-    console.error("Public feed fallback failed", e);
-  } finally {
-    clearTimeout(timeoutId);
   }
+
   return [];
 };
 
