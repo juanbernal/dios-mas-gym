@@ -17,6 +17,7 @@ async function startServer() {
       const apiKey = process.env.BLOGGER_API_KEY;
       
       if (!apiKey) {
+        console.error("CRITICAL: BLOGGER_API_KEY is not defined in environment variables.");
         return res.status(500).json({ error: "BLOGGER_API_KEY not configured on server" });
       }
 
@@ -26,13 +27,17 @@ async function startServer() {
       let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${maxResults}&fetchImages=true`;
       if (pageToken) url += `&pageToken=${pageToken}`;
 
+      console.log(`Blogger API Request: maxResults=${maxResults}, pageToken=${pageToken || 'none'}`);
+
       const response = await fetch(url);
       if (!response.ok) {
         const errData = await response.json();
+        console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));
         throw new Error(errData.error?.message || `Blogger API responded with ${response.status}`);
       }
       
       const data = await response.json();
+      console.log(`Blogger API Success: Found ${data.items?.length || 0} posts.`);
       res.json(data);
     } catch (error: any) {
       console.error("Error fetching arsenal:", error);

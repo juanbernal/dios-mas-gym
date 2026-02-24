@@ -72,33 +72,47 @@ const App: React.FC = () => {
     }, 4000);
 
     const init = async () => {
+      // Safety timeout: force loading to false after 5 seconds
+      const forceLoadTimer = setTimeout(() => {
+        setState(prev => ({ ...prev, loading: false }));
+        setShowSplash(false);
+      }, 5000);
+
+      // 0. Carga inmediata desde caché si existe
+      const cached = localStorage.getItem('dg_posts_cache');
+      let initialPosts: ContentPost[] = [];
+      if (cached) {
+        try {
+          initialPosts = JSON.parse(cached);
+          if (initialPosts.length > 0) {
+            setState(prev => ({ ...prev, allPosts: initialPosts, loading: false }));
+            setShowSplash(false);
+          }
+        } catch (e) {
+          console.error("Cache parse error", e);
+        }
+      }
+
       try {
-        // Etapa 1: Carga relámpago de los primeros 20 posts (suficiente para llenar la pantalla inicial)
+        // Etapa 1: Carga relámpago de los primeros 20 posts
         const result20 = await fetchArsenalData(20);
-        const initialPosts = result20.posts;
-        
-        const hasCache = localStorage.getItem('dg_posts_cache');
+        const freshPosts = result20.posts;
         
         setState(prev => ({ 
           ...prev, 
-          allPosts: initialPosts, 
+          allPosts: freshPosts.length > 0 ? freshPosts : prev.allPosts, 
           loading: false,
           nextPageToken: result20.nextPageToken 
         }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
-        
-        // Quitar splash casi de inmediato si hay datos
-        setTimeout(() => {
-          setShowSplash(false);
-          clearTimeout(safetyTimer);
-        }, hasCache ? 200 : 800);
+        setShowSplash(false);
+        clearTimeout(forceLoadTimer);
 
         // Etapa 2: Carga masiva en segundo plano (500 posts)
-        // Esto llena todo el arsenal sin bloquear la vista del usuario
         setTimeout(async () => {
           try {
             const result500 = await fetchArsenalData(500);
-            if (result500.posts.length > initialPosts.length) {
+            if (result500.posts.length > 0) {
               setState(prev => ({ 
                 ...prev, 
                 allPosts: result500.posts,
@@ -106,18 +120,14 @@ const App: React.FC = () => {
               }));
             }
           } catch (e) {
-            console.warn("Background bulk load failed, but user already has initial data.");
+            console.warn("Background bulk load failed.");
           }
-        }, 3000);
+        }, 2000);
 
       } catch (err) {
         console.error("Init error:", err);
         setState(prev => ({ ...prev, loading: false }));
         setShowSplash(false);
-      } finally {
-        setTimeout(() => {
-          setState(prev => ({ ...prev, loading: false }));
-        }, 4000);
       }
     };
     init();

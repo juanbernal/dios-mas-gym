@@ -13,7 +13,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       if (token) url.searchParams.append('pageToken', token);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
         const response = await fetch(url.toString(), { signal: controller.signal });
@@ -74,14 +74,19 @@ const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
   const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=${limit}`;
   const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
   
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
-    const response = await fetch(proxyUrl);
+    const response = await fetch(proxyUrl, { signal: controller.signal });
     if (response.ok) {
       const data = await response.json();
       return processPublicFeedData(data);
     }
   } catch (e) {
     console.error("Public feed fallback failed", e);
+  } finally {
+    clearTimeout(timeoutId);
   }
   return [];
 };
