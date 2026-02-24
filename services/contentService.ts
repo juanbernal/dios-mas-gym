@@ -29,10 +29,18 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         const data = await response.json();
         const processed = processApiV3Data(data);
         
-        // Guardar en caché solo si es la carga principal
-        if (processed.posts.length > 0 && !token && limit >= 40) {
-          localStorage.setItem('dg_posts_cache', JSON.stringify(processed.posts));
-          localStorage.setItem('dg_posts_cache_time', Date.now().toString());
+        // Guardar en caché solo si es la carga principal y comprimir para evitar cuota excedida
+        if (processed.posts.length > 0 && !token && limit >= 20) {
+          const lightPosts = processed.posts.map(({ content, ...rest }) => ({
+            ...rest,
+            content: content.substring(0, 200) + '...' // Solo un snippet para el caché
+          }));
+          try {
+            localStorage.setItem('dg_posts_cache', JSON.stringify(lightPosts));
+            localStorage.setItem('dg_posts_cache_time', Date.now().toString());
+          } catch (e) {
+            console.warn("Could not save to cache (quota likely exceeded)", e);
+          }
         }
         
         return processed;
@@ -78,7 +86,23 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
 const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
   const blogId = "5031959192789589903";
-  // Intentamos varios proxies para mayor fiabilidad
+  const apiKey = (process.env as any).BLOGGER_API_KEY;
+
+  // Si tenemos API Key, intentamos usar la API v3 directamente (más rápido y confiable)
+  if (apiKey) {
+    try {
+      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        return processApiV3Data(data).posts;
+      }
+    } catch (e) {
+      console.error("Direct Blogger API fetch failed", e);
+    }
+  }
+
+  // Fallback a proxies si no hay API Key o falla la directa
   const proxies = [
     (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -88,7 +112,7 @@ const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
   
   for (const getProxyUrl of proxies) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
 
     try {
       const proxyUrl = getProxyUrl(targetUrl);
@@ -96,7 +120,6 @@ const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
       
       if (response.ok) {
         const data = await response.json();
-        // allorigins devuelve { contents: "..." } si no se usa /raw
         const finalData = data.contents ? JSON.parse(data.contents) : data;
         return processPublicFeedData(finalData);
       }
