@@ -66,6 +66,21 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // Deep Linking: Check if there's a post ID in the URL
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    
+    if (postId && state.allPosts.length > 0) {
+      const post = state.allPosts.find(p => p.id === postId);
+      if (post) {
+        setState(prev => ({ ...prev, selectedPost: post, currentView: 'reader' }));
+        // Clean URL without refreshing
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [state.allPosts]);
+
+  useEffect(() => {
     // Safety timeout: hide splash after 4 seconds no matter what (reduced from 6)
     const safetyTimer = setTimeout(() => {
       setShowSplash(false);
