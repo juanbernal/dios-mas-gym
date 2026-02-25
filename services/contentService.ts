@@ -20,8 +20,8 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         
         // Si el servidor responde 404, es probable que estemos en un entorno estático (GitHub Pages)
         if (response.status === 404) {
-          console.warn("Server API not found (404). Switching to client-side fetch.");
-          return { posts: await fetchFromPublicFeed(limit) };
+          console.warn("Server API not found (404). Switching to direct Blogger API fetch.");
+          return await fetchDirectlyFromBlogger(limit, token);
         }
 
         if (!response.ok) throw new Error(`Server API error: ${response.status}`);
@@ -46,9 +46,8 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         return processed;
       } catch (e) {
         console.error("Fetch from server failed", e);
-        // Fallback al feed público si el servidor falla (solo para carga inicial)
-        if (!token) return { posts: await fetchFromPublicFeed(limit) };
-        return { posts: [] };
+        // Fallback directo a Blogger API si el servidor falla
+        return await fetchDirectlyFromBlogger(limit, token);
       } finally {
         clearTimeout(timeoutId);
       }
@@ -84,53 +83,28 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
   }
 };
 
-const fetchFromPublicFeed = async (limit: number): Promise<ContentPost[]> => {
+const fetchDirectlyFromBlogger = async (limit: number, token?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   const blogId = "5031959192789589903";
   const apiKey = (process.env as any).BLOGGER_API_KEY;
 
-  // Si tenemos API Key, intentamos usar la API v3 directamente (más rápido y confiable)
-  if (apiKey) {
-    try {
-      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        return processApiV3Data(data).posts;
-      }
-    } catch (e) {
-      console.error("Direct Blogger API fetch failed", e);
-    }
+  if (!apiKey) {
+    console.error("No BLOGGER_API_KEY found for direct fetch.");
+    return { posts: [] };
   }
 
-  // Fallback a proxies si no hay API Key o falla la directa
-  const proxies = [
-    (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  ];
+  try {
+    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
+    if (token) url += `&pageToken=${token}`;
 
-  const targetUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=${limit}`;
-  
-  for (const getProxyUrl of proxies) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10s
-
-    try {
-      const proxyUrl = getProxyUrl(targetUrl);
-      const response = await fetch(proxyUrl, { signal: controller.signal });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const finalData = data.contents ? JSON.parse(data.contents) : data;
-        return processPublicFeedData(finalData);
-      }
-    } catch (e) {
-      console.error(`Proxy failed: ${getProxyUrl(targetUrl)}`, e);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Blogger API direct error: ${response.status}`);
+    
+    const data = await response.json();
+    return processApiV3Data(data);
+  } catch (e) {
+    console.error("Direct Blogger API fetch failed", e);
+    return { posts: [] };
   }
-
-  return [];
 };
 
 const processApiV3Data = (data: any): { posts: ContentPost[], nextPageToken?: string } => {
@@ -162,40 +136,4 @@ const processApiV3Data = (data: any): { posts: ContentPost[], nextPageToken?: st
   });
 
   return { posts, nextPageToken: data.nextPageToken };
-};
-
-const processPublicFeedData = (data: any): ContentPost[] => {
-  if (!data || !data.feed || !data.feed.entry) return [];
-  const entries = data.feed.entry;
-  return entries.map((entry: any): ContentPost => {
-    const rawId = entry.id?.$t || Math.random().toString();
-    const idParts = rawId.split('.post-');
-    const id = idParts.length > 1 ? idParts[1] : rawId;
-    const alternateLink = entry.link?.find((l: any) => l.rel === 'alternate');
-    const url = alternateLink ? alternateLink.href : '';
-    const labels = entry.category ? entry.category.map((c: any) => c.term) : [];
-    const content = entry.content?.$t || entry.summary?.$t || '';
-    let imageUrl = entry.media$thumbnail?.url || '';
-    if (!imageUrl && content) {
-      const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-      if (imgMatch) imageUrl = imgMatch[1];
-    }
-    if (imageUrl && imageUrl.includes('/s72-c/')) {
-      imageUrl = imageUrl.replace('/s72-c/', '/s1600/');
-    }
-    return {
-      id,
-      title: entry.title?.$t || 'Sin título',
-      content,
-      published: entry.published?.$t || new Date().toISOString(),
-      url,
-      images: imageUrl ? [{ url: imageUrl }] : [],
-      author: {
-        displayName: entry.author?.[0]?.name?.$t || 'DiosMasGym',
-        image: { url: entry.author?.[0]?.gd$image?.src || '' }
-      },
-      labels,
-      readingTime: Math.max(1, Math.ceil(content.split(/\s+/).length / 200))
-    };
-  });
 };

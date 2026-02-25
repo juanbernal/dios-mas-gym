@@ -45,29 +45,6 @@ async function startServer() {
     }
   });
 
-  // API route to proxy the Blogger feed (Legacy Fallback)
-  app.get("/api/feed", async (req, res) => {
-    try {
-      // We use the ID from constants or just hardcode the known working URL for this specific blog
-      // Based on previous turns, the blog ID is 5031959192789589903
-      const blogId = "5031959192789589903";
-      const feedUrl = `https://www.blogger.com/feeds/${blogId}/posts/default?alt=json&max-results=50`;
-      
-      console.log(`Fetching feed from: ${feedUrl}`);
-      
-      const response = await fetch(feedUrl);
-      if (!response.ok) {
-        throw new Error(`Blogger responded with ${response.status}`);
-      }
-      
-      const data = await response.json();
-      res.json(data);
-    } catch (error: any) {
-      console.error("Error proxying feed:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
