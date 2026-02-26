@@ -300,12 +300,25 @@ const App: React.FC = () => {
     setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
   };
 
-  const sharePost = async (platform: 'wa' | 'fb' | 'ig' | 'tg' | 'x' | 'pi' | 'li' | 'em' | 'copy') => {
+  const sharePost = async (platform: 'wa' | 'fb' | 'ig' | 'tg' | 'x' | 'pi' | 'li' | 'em' | 'copy' | 'native') => {
     if (!state.selectedPost) return;
     const url = state.selectedPost.url;
     const title = state.selectedPost.title;
     const text = `💪 Forjando mi fe en DiosMasGym: ${title}`;
     
+    if (platform === 'native' && navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url,
+        });
+        return;
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    }
+
     const actions = {
       wa: () => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank'),
       fb: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank'),
@@ -321,6 +334,12 @@ const App: React.FC = () => {
       },
       copy: async () => {
         await navigator.clipboard.writeText(url);
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 2000);
+      },
+      native: () => {
+        // Fallback if navigator.share fails or is not available
+        navigator.clipboard.writeText(url);
         setCopyFeedback(true);
         setTimeout(() => setCopyFeedback(false), 2000);
       }
@@ -979,33 +998,67 @@ const App: React.FC = () => {
                         <i className="far fa-calendar text-blue-500"></i> {new Date(state.selectedPost.published).toLocaleDateString()}
                      </div>
                   </div>
-                  <div className="blogger-body pb-64 min-h-[400px]" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '<p class="text-slate-500 italic">Cargando contenido del arsenal...</p>' }}></div>
+                  <div className="blogger-body pb-16 min-h-[400px]" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '<p class="text-slate-500 italic">Cargando contenido del arsenal...</p>' }}></div>
+
+                  {/* RELATED POSTS SECTION */}
+                  <div className="mt-20 pt-20 border-t border-slate-800/60 pb-40">
+                    <div className="flex items-center justify-between mb-10">
+                      <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Más del Arsenal</h3>
+                      <div className="h-[1px] flex-1 bg-slate-800/60 mx-8 hidden md:block"></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {state.allPosts
+                        .filter(p => p.id !== state.selectedPost!.id && 
+                          (p.labels?.some(l => state.selectedPost!.labels?.includes(l)) || true))
+                        .slice(0, 4)
+                        .map(post => (
+                          <div 
+                            key={post.id} 
+                            onClick={() => {
+                              setState(prev => ({ ...prev, selectedPost: post }));
+                              navigate(`/post/${getSlugFromUrl(post.url)}`);
+                              readerRef.current?.scrollTo(0, 0);
+                            }}
+                            className="group cursor-pointer bg-slate-900/40 border border-white/5 rounded-[2.5rem] p-6 hover:bg-blue-600/10 hover:border-blue-500/30 transition-all active:scale-[0.98]"
+                          >
+                            <div className="flex gap-6 items-center">
+                              {post.images?.[0]?.url && (
+                                <img src={post.images[0].url} className="w-24 h-24 rounded-3xl object-cover shadow-lg border border-white/5" alt="" />
+                              )}
+                              <div className="flex-1">
+                                <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] mb-2 block">Siguiente Palabra</span>
+                                <h4 className="text-white font-black text-lg leading-tight line-clamp-2 uppercase tracking-tighter">{post.title}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </>
               )}
            </div>
 
-           {/* SHARE PANEL */}
+           {/* NEW FLOATING SHARE PANEL */}
            {state.selectedPost && (
-             <div className="absolute bottom-6 left-0 w-full px-6 md:px-12 z-[2200]">
-                <div className="max-w-4xl mx-auto glass-card rounded-[3rem] p-4 border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden">
-                   <div className="flex flex-col gap-4">
-                      <div className="flex items-center justify-between px-6 pt-2">
-                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">Compartir Palabra</span>
-                         {copyFeedback && <span className="text-[9px] font-black text-green-500 uppercase tracking-widest animate-pulse">¡Enlace Copiado!</span>}
-                      </div>
+             <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-[3000] animate-slide-up">
+                <div className="glass-card rounded-[3rem] p-3 border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden">
+                   <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => sharePost('native')}
+                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-4 shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
+                      >
+                        <i className="fas fa-share-nodes text-lg"></i>
+                        Compartir Palabra
+                      </button>
                       
-                      <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-2">
-                         <ShareActionBtn onClick={() => sharePost('wa')} icon="fab fa-whatsapp" color="bg-[#25D366]" label="WhatsApp" />
-                         <ShareActionBtn onClick={() => sharePost('tg')} icon="fab fa-telegram-plane" color="bg-[#0088cc]" label="Telegram" />
-                         <ShareActionBtn onClick={() => sharePost('fb')} icon="fab fa-facebook-f" color="bg-[#1877F2]" label="Facebook" />
-                         <ShareActionBtn onClick={() => sharePost('x')} icon="fab fa-x-twitter" color="bg-black" label="X Twitter" />
-                         <ShareActionBtn onClick={() => sharePost('ig')} icon="fab fa-instagram" color="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" label="InstaStory" />
-                         <ShareActionBtn onClick={() => sharePost('li')} icon="fab fa-linkedin-in" color="bg-[#0077b5]" label="LinkedIn" />
-                         <ShareActionBtn onClick={() => sharePost('pi')} icon="fab fa-pinterest" color="bg-[#E60023]" label="Pinterest" />
-                         <ShareActionBtn onClick={() => sharePost('em')} icon="fas fa-envelope" color="bg-slate-700" label="Email" />
-                         <div className="min-w-[1px] h-10 bg-white/10 mx-2"></div>
-                         <ShareActionBtn onClick={() => sharePost('copy')} icon={copyFeedback ? "fas fa-check" : "fas fa-link"} color={copyFeedback ? "bg-green-600" : "bg-blue-600"} label="Copiar" />
-                      </div>
+                      <button 
+                        onClick={() => sharePost('copy')} 
+                        className={`w-16 h-16 min-w-[4rem] rounded-full flex items-center justify-center transition-all active:scale-90 ${copyFeedback ? 'bg-green-600 text-white' : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'}`}
+                        title="Copiar Enlace"
+                      >
+                        <i className={copyFeedback ? "fas fa-check" : "fas fa-link"}></i>
+                      </button>
                    </div>
                 </div>
              </div>
@@ -1173,13 +1226,13 @@ const SocialPopupBtn = ({ onClick, icon, color, label }: { onClick: () => void, 
    </button>
 );
 
-const ShareActionBtn = ({ onClick, icon, color, label }: { onClick: () => void, icon: string, color: string, label: string }) => (
-   <button onClick={onClick} className="flex flex-col items-center gap-2 group active:scale-90 transition-transform flex-shrink-0">
-      <div className={`w-12 h-12 md:w-14 md:h-14 ${color} rounded-2xl flex items-center justify-center text-white shadow-lg border border-white/5 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all`}>
-         <i className={`${icon} text-xl md:text-2xl`}></i>
-      </div>
-      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">{label}</span>
-   </button>
+const ShareIconBtn: React.FC<{ onClick: () => void, icon: string, color: string }> = ({ onClick, icon, color }) => (
+  <button 
+    onClick={onClick} 
+    className={`w-12 h-12 min-w-[3rem] rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all active:scale-90 hover:bg-white/10 ${color}`}
+  >
+    <i className={`${icon} text-xl`}></i>
+  </button>
 );
 
 const CommunityCard = ({ icon, label, color, url }: { icon: string, label: string, color: string, url: string }) => (
