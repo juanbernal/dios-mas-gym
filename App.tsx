@@ -327,62 +327,6 @@ const App: React.FC = () => {
     actions[platform]?.();
   };
 
-  const PostView = () => {
-    const { slug } = useParams();
-    const [loadingPost, setLoadingPost] = useState(false);
-    
-    useEffect(() => {
-      const loadPost = async () => {
-        if (!slug) return;
-        
-        // 1. Buscar en los posts ya cargados
-        const existingPost = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
-        if (existingPost) {
-          setState(prev => ({ ...prev, selectedPost: existingPost }));
-          return;
-        }
-
-        // 2. Si no está, buscarlo específicamente en la API
-        setLoadingPost(true);
-        const fetchedPost = await fetchPostBySlug(slug);
-        if (fetchedPost) {
-          setState(prev => ({ 
-            ...prev, 
-            selectedPost: fetchedPost,
-            // Opcional: añadirlo a allPosts si no está para evitar recargas
-            allPosts: prev.allPosts.some(p => p.id === fetchedPost.id) ? prev.allPosts : [fetchedPost, ...prev.allPosts]
-          }));
-        }
-        setLoadingPost(false);
-      };
-
-      loadPost();
-    }, [slug, state.allPosts.length > 0]); // Re-run when posts are loaded or slug changes
-
-    useEffect(() => {
-      if (state.selectedPost) {
-        setReadProgress(0);
-        if (!readingHistory.includes(state.selectedPost.id)) {
-          setReadingHistory(prev => [state.selectedPost!.id, ...prev].slice(0, 30));
-          setStreak(s => s + 1);
-          localStorage.setItem('dg_last_read', new Date().toDateString());
-        }
-        setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
-      }
-    }, [state.selectedPost?.id]);
-
-    if (loadingPost) {
-      return (
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
-          <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Cargando Entrada...</p>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   if (showSplash) {
     return (
       <div className="bg-[#020617] fixed inset-0 z-[10000] flex flex-col items-center justify-center p-10">
@@ -787,7 +731,18 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 } />
-                <Route path="/post/:slug" element={<PostView />} />
+                <Route path="/post/:slug" element={
+                  <PostView 
+                    state={state} 
+                    setState={setState} 
+                    readingHistory={readingHistory} 
+                    setReadingHistory={setReadingHistory} 
+                    setStreak={setStreak} 
+                    readerRef={readerRef} 
+                    setReadProgress={setReadProgress} 
+                    getSlugFromUrl={getSlugFromUrl} 
+                  />
+                } />
                 <Route path="/reflexiones" element={
                   <div className="animate-slide-up">
                      <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20">
@@ -949,8 +904,8 @@ const App: React.FC = () => {
         )}
 
         {/* BOTTOM NAV (Mobile) */}
-        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] pb-[env(safe-area-inset-bottom,0px)]">
-          <nav className="bg-slate-950/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] px-2 py-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] px-6 pb-8 pt-4 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent">
+          <nav className="bg-slate-900/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] px-2 py-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,1)]">
             <MobileNavItem active={state.currentView === 'inicio'} onClick={() => changeView('inicio')} icon="fa-bolt" label="Inicio" />
             <MobileNavItem active={state.currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} icon="fa-book-bible" label="Arsenal" />
             <MobileNavItem active={state.currentView === 'favoritos'} onClick={() => changeView('favoritos')} icon="fa-star" label="Favoritos" />
@@ -960,7 +915,7 @@ const App: React.FC = () => {
       </div>
 
       {/* READER OVERLAY */}
-      {state.selectedPost && (
+      {(state.selectedPost || location.pathname.startsWith('/post/')) && (
         <div className="fixed inset-0 bg-[#020617] z-[2000] flex flex-col animate-slide-up">
            <header className="bg-slate-950 border-b border-slate-800/60 px-6 py-6 flex items-center justify-between sticky top-0 z-[2100]">
               <div className="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-200 z-[2200]" style={{ width: `${readProgress}%` }}></div>
@@ -970,9 +925,9 @@ const App: React.FC = () => {
               }} className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white border border-slate-800 hover:text-blue-500 transition-all active:scale-90">
                   <i className="fas fa-chevron-left text-xl"></i>
               </button>
-              <h2 className="font-black text-white text-base md:text-xl truncate flex-1 mx-8 tracking-tighter text-center uppercase">{state.selectedPost.title}</h2>
-              <button onClick={() => toggleFavorite(state.selectedPost!.id)} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl active:scale-90 ${state.favorites.includes(state.selectedPost.id) ? 'bg-blue-600 text-white shadow-blue-600/40 border border-blue-400' : 'bg-slate-900 text-slate-500 border border-slate-800'}`}>
-                  <i className={`${state.favorites.includes(state.selectedPost.id) ? 'fas' : 'far'} fa-star text-xl`}></i>
+              <h2 className="font-black text-white text-base md:text-xl truncate flex-1 mx-8 tracking-tighter text-center uppercase">{state.selectedPost?.title || 'Cargando...'}</h2>
+              <button onClick={() => state.selectedPost && toggleFavorite(state.selectedPost.id)} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl active:scale-90 ${state.selectedPost && state.favorites.includes(state.selectedPost.id) ? 'bg-blue-600 text-white shadow-blue-600/40 border border-blue-400' : 'bg-slate-900 text-slate-500 border border-slate-800'}`}>
+                  <i className={`${state.selectedPost && state.favorites.includes(state.selectedPost.id) ? 'fas' : 'far'} fa-star text-xl`}></i>
               </button>
            </header>
            
@@ -985,49 +940,60 @@ const App: React.FC = () => {
               }}
               className="flex-1 overflow-y-auto px-6 py-16 no-scrollbar max-w-5xl mx-auto w-full"
            >
-              {state.selectedPost.images?.[0]?.url && (
-                <div className="relative mb-16 group">
-                   <img src={state.selectedPost.images[0].url} className="w-full h-auto rounded-[4rem] shadow-2xl border border-white/5 transition-all group-hover:scale-[1.01]" alt="" />
-                   <div className="absolute inset-0 rounded-[4rem] shadow-[inset_0_0_120px_rgba(0,0,0,0.6)]"></div>
+              {!state.selectedPost ? (
+                <div className="flex flex-col items-center justify-center py-40">
+                  <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
+                  <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Recuperando del Arsenal...</p>
                 </div>
+              ) : (
+                <>
+                  {state.selectedPost.images?.[0]?.url && (
+                    <div className="relative mb-16 group">
+                       <img src={state.selectedPost.images[0].url} className="w-full h-auto rounded-[4rem] shadow-2xl border border-white/5 transition-all group-hover:scale-[1.01]" alt="" />
+                       <div className="absolute inset-0 rounded-[4rem] shadow-[inset_0_0_120px_rgba(0,0,0,0.6)]"></div>
+                    </div>
+                  )}
+                  <h1 className="text-4xl md:text-8xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">{state.selectedPost.title}</h1>
+                  <div className="flex items-center gap-6 mb-14 text-slate-500 text-xs font-black uppercase tracking-widest">
+                     <div className="flex items-center gap-2">
+                        <i className="far fa-clock text-blue-500"></i> {state.selectedPost.readingTime || 5} min de lectura
+                     </div>
+                     <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
+                     <div className="flex items-center gap-2">
+                        <i className="far fa-calendar text-blue-500"></i> {new Date(state.selectedPost.published).toLocaleDateString()}
+                     </div>
+                  </div>
+                  <div className="blogger-body pb-64 min-h-[400px]" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '<p class="text-slate-500 italic">Cargando contenido del arsenal...</p>' }}></div>
+                </>
               )}
-              <h1 className="text-4xl md:text-8xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">{state.selectedPost.title}</h1>
-              <div className="flex items-center gap-6 mb-14 text-slate-500 text-xs font-black uppercase tracking-widest">
-                 <div className="flex items-center gap-2">
-                    <i className="far fa-clock text-blue-500"></i> {state.selectedPost.readingTime || 5} min de lectura
-                 </div>
-                 <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
-                 <div className="flex items-center gap-2">
-                    <i className="far fa-calendar text-blue-500"></i> {new Date(state.selectedPost.published).toLocaleDateString()}
-                 </div>
-              </div>
-              <div className="blogger-body pb-64" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
            </div>
 
            {/* SHARE PANEL */}
-           <div className="absolute bottom-6 left-0 w-full px-6 md:px-12 z-[2200]">
-              <div className="max-w-4xl mx-auto glass-card rounded-[3rem] p-4 border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden">
-                 <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between px-6 pt-2">
-                       <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">Compartir Palabra</span>
-                       {copyFeedback && <span className="text-[9px] font-black text-green-500 uppercase tracking-widest animate-pulse">¡Enlace Copiado!</span>}
-                    </div>
-                    
-                    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-2">
-                       <ShareActionBtn onClick={() => sharePost('wa')} icon="fab fa-whatsapp" color="bg-[#25D366]" label="WhatsApp" />
-                       <ShareActionBtn onClick={() => sharePost('tg')} icon="fab fa-telegram-plane" color="bg-[#0088cc]" label="Telegram" />
-                       <ShareActionBtn onClick={() => sharePost('fb')} icon="fab fa-facebook-f" color="bg-[#1877F2]" label="Facebook" />
-                       <ShareActionBtn onClick={() => sharePost('x')} icon="fab fa-x-twitter" color="bg-black" label="X Twitter" />
-                       <ShareActionBtn onClick={() => sharePost('ig')} icon="fab fa-instagram" color="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" label="InstaStory" />
-                       <ShareActionBtn onClick={() => sharePost('li')} icon="fab fa-linkedin-in" color="bg-[#0077b5]" label="LinkedIn" />
-                       <ShareActionBtn onClick={() => sharePost('pi')} icon="fab fa-pinterest" color="bg-[#E60023]" label="Pinterest" />
-                       <ShareActionBtn onClick={() => sharePost('em')} icon="fas fa-envelope" color="bg-slate-700" label="Email" />
-                       <div className="min-w-[1px] h-10 bg-white/10 mx-2"></div>
-                       <ShareActionBtn onClick={() => sharePost('copy')} icon={copyFeedback ? "fas fa-check" : "fas fa-link"} color={copyFeedback ? "bg-green-600" : "bg-blue-600"} label="Copiar" />
-                    </div>
-                 </div>
-              </div>
-           </div>
+           {state.selectedPost && (
+             <div className="absolute bottom-6 left-0 w-full px-6 md:px-12 z-[2200]">
+                <div className="max-w-4xl mx-auto glass-card rounded-[3rem] p-4 border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden">
+                   <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between px-6 pt-2">
+                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">Compartir Palabra</span>
+                         {copyFeedback && <span className="text-[9px] font-black text-green-500 uppercase tracking-widest animate-pulse">¡Enlace Copiado!</span>}
+                      </div>
+                      
+                      <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-2">
+                         <ShareActionBtn onClick={() => sharePost('wa')} icon="fab fa-whatsapp" color="bg-[#25D366]" label="WhatsApp" />
+                         <ShareActionBtn onClick={() => sharePost('tg')} icon="fab fa-telegram-plane" color="bg-[#0088cc]" label="Telegram" />
+                         <ShareActionBtn onClick={() => sharePost('fb')} icon="fab fa-facebook-f" color="bg-[#1877F2]" label="Facebook" />
+                         <ShareActionBtn onClick={() => sharePost('x')} icon="fab fa-x-twitter" color="bg-black" label="X Twitter" />
+                         <ShareActionBtn onClick={() => sharePost('ig')} icon="fab fa-instagram" color="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" label="InstaStory" />
+                         <ShareActionBtn onClick={() => sharePost('li')} icon="fab fa-linkedin-in" color="bg-[#0077b5]" label="LinkedIn" />
+                         <ShareActionBtn onClick={() => sharePost('pi')} icon="fab fa-pinterest" color="bg-[#E60023]" label="Pinterest" />
+                         <ShareActionBtn onClick={() => sharePost('em')} icon="fas fa-envelope" color="bg-slate-700" label="Email" />
+                         <div className="min-w-[1px] h-10 bg-white/10 mx-2"></div>
+                         <ShareActionBtn onClick={() => sharePost('copy')} icon={copyFeedback ? "fas fa-check" : "fas fa-link"} color={copyFeedback ? "bg-green-600" : "bg-blue-600"} label="Copiar" />
+                      </div>
+                   </div>
+                </div>
+             </div>
+           )}
         </div>
       )}
 
@@ -1065,6 +1031,82 @@ const App: React.FC = () => {
 };
 
 // HELPERS
+const PostView: React.FC<{
+  state: AppState;
+  setState: React.Dispatch<React.SetStateAction<AppState>>;
+  readingHistory: string[];
+  setReadingHistory: React.Dispatch<React.SetStateAction<string[]>>;
+  setStreak: React.Dispatch<React.SetStateAction<number>>;
+  readerRef: React.RefObject<HTMLDivElement>;
+  setReadProgress: React.Dispatch<React.SetStateAction<number>>;
+  getSlugFromUrl: (url: string) => string;
+}> = ({ state, setState, readingHistory, setReadingHistory, setStreak, readerRef, setReadProgress, getSlugFromUrl }) => {
+  const { slug } = useParams();
+  const [loadingPost, setLoadingPost] = useState(false);
+  
+  useEffect(() => {
+    const loadPost = async () => {
+      if (!slug) return;
+      
+      // 1. Buscar en los posts ya cargados
+      const existingPost = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
+      
+      // Verificar si el post existe y si NO es un snippet (truncado por el caché)
+      const isFullPost = existingPost && existingPost.content && !existingPost.content.endsWith('...');
+
+      if (existingPost && isFullPost) {
+        if (state.selectedPost?.id !== existingPost.id) {
+          setState(prev => ({ ...prev, selectedPost: existingPost }));
+        }
+        return;
+      }
+
+      // 2. Si no está o es un snippet, buscarlo específicamente en la API para tener el contenido completo
+      setLoadingPost(true);
+      const fetchedPost = await fetchPostBySlug(slug);
+      if (fetchedPost) {
+        setState(prev => ({ 
+          ...prev, 
+          selectedPost: fetchedPost,
+          allPosts: prev.allPosts.map(p => p.id === fetchedPost.id ? fetchedPost : p)
+        }));
+        
+        // Si no estaba en la lista, lo añadimos
+        if (!state.allPosts.some(p => p.id === fetchedPost.id)) {
+          setState(prev => ({ ...prev, allPosts: [fetchedPost, ...prev.allPosts] }));
+        }
+      }
+      setLoadingPost(false);
+    };
+
+    loadPost();
+  }, [slug, state.allPosts.length > 0]);
+
+  useEffect(() => {
+    if (state.selectedPost) {
+      setReadProgress(0);
+      if (!readingHistory.includes(state.selectedPost.id)) {
+        setReadingHistory(prev => [state.selectedPost!.id, ...prev].slice(0, 30));
+        setStreak(s => s + 1);
+        localStorage.setItem('dg_last_read', new Date().toDateString());
+      }
+      // Solo hacemos scroll al inicio si el post acaba de cambiar
+      setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
+    }
+  }, [state.selectedPost?.id]);
+
+  if (loadingPost) {
+    return (
+      <div className="flex flex-col items-center justify-center py-40">
+        <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
+        <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Cargando Entrada...</p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const NavItem: React.FC<{ active: boolean, onClick: () => void, icon: string, label: string }> = ({ active, onClick, icon, label }) => (
   <button 
     onClick={onClick} 

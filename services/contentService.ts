@@ -33,7 +33,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         if (processed.posts.length > 0 && !token && limit >= 20) {
           const lightPosts = processed.posts.map(({ content, ...rest }) => ({
             ...rest,
-            content: content.substring(0, 200) + '...' // Solo un snippet para el caché
+            content: content.length > 1000 ? content.substring(0, 1000) + '...' : content
           }));
           try {
             localStorage.setItem('dg_posts_cache', JSON.stringify(lightPosts));
