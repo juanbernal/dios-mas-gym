@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
-import { fetchArsenalData } from './services/contentService';
+import { fetchArsenalData, fetchPostBySlug } from './services/contentService';
 import { ContentPost, AppState, AppView } from './types';
 
 const VERSES = [
@@ -57,6 +57,7 @@ const App: React.FC = () => {
   const [showFollowPopup, setShowFollowPopup] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
 
   const readerRef = useRef<HTMLDivElement>(null);
@@ -328,24 +329,58 @@ const App: React.FC = () => {
 
   const PostView = () => {
     const { slug } = useParams();
+    const [loadingPost, setLoadingPost] = useState(false);
     
     useEffect(() => {
-      if (slug && state.allPosts.length > 0) {
-        const post = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
-        if (post) {
-          setState(prev => ({ ...prev, selectedPost: post }));
-          setReadProgress(0);
-          if (!readingHistory.includes(post.id)) {
-            setReadingHistory(prev => [post.id, ...prev].slice(0, 30));
-            setStreak(s => s + 1);
-            localStorage.setItem('dg_last_read', new Date().toDateString());
-          }
-          setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
+      const loadPost = async () => {
+        if (!slug) return;
+        
+        // 1. Buscar en los posts ya cargados
+        const existingPost = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
+        if (existingPost) {
+          setState(prev => ({ ...prev, selectedPost: existingPost }));
+          return;
         }
-      }
-    }, [slug, state.allPosts]);
 
-    return null; // The reader overlay handles the actual rendering
+        // 2. Si no está, buscarlo específicamente en la API
+        setLoadingPost(true);
+        const fetchedPost = await fetchPostBySlug(slug);
+        if (fetchedPost) {
+          setState(prev => ({ 
+            ...prev, 
+            selectedPost: fetchedPost,
+            // Opcional: añadirlo a allPosts si no está para evitar recargas
+            allPosts: prev.allPosts.some(p => p.id === fetchedPost.id) ? prev.allPosts : [fetchedPost, ...prev.allPosts]
+          }));
+        }
+        setLoadingPost(false);
+      };
+
+      loadPost();
+    }, [slug, state.allPosts.length > 0]); // Re-run when posts are loaded or slug changes
+
+    useEffect(() => {
+      if (state.selectedPost) {
+        setReadProgress(0);
+        if (!readingHistory.includes(state.selectedPost.id)) {
+          setReadingHistory(prev => [state.selectedPost!.id, ...prev].slice(0, 30));
+          setStreak(s => s + 1);
+          localStorage.setItem('dg_last_read', new Date().toDateString());
+        }
+        setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
+      }
+    }, [state.selectedPost?.id]);
+
+    if (loadingPost) {
+      return (
+        <div className="flex flex-col items-center justify-center py-40">
+          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
+          <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Cargando Entrada...</p>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   if (showSplash) {
@@ -860,14 +895,66 @@ const App: React.FC = () => {
           </div>
         </main>
 
+        {/* MOBILE DRAWER MENU */}
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-[6000] lg:hidden animate-fade-in">
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setIsMenuOpen(false)}></div>
+            <aside className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-slate-950 border-l border-white/5 p-8 flex flex-col animate-slide-left">
+              <div className="flex items-center justify-between mb-12">
+                <img src={LOGO_URL} className="h-10" alt="Logo" />
+                <button onClick={() => setIsMenuOpen(false)} className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-500">
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+
+              <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
+                <NavItem active={state.currentView === 'inicio'} onClick={() => { changeView('inicio'); setIsMenuOpen(false); }} icon="fa-bolt" label="Inicio" />
+                <NavItem active={state.currentView === 'reflexiones' && !state.selectedCategory} onClick={() => { changeView('reflexiones'); setIsMenuOpen(false); }} icon="fa-book-bible" label="Biblioteca" />
+                
+                <div className="pt-6 pb-2 px-7">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500/50">Categorías</h4>
+                </div>
+                {categories.map(cat => (
+                  <NavItem 
+                    key={cat}
+                    active={state.currentView === 'reflexiones' && state.selectedCategory === cat} 
+                    onClick={() => {
+                      setState(prev => ({ ...prev, selectedCategory: cat }));
+                      changeView('reflexiones');
+                      setIsMenuOpen(false);
+                    }} 
+                    icon="fa-tag" 
+                    label={cat} 
+                  />
+                ))}
+
+                <div className="pt-6 pb-2 px-7">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500/50">Personal</h4>
+                </div>
+                <NavItem active={state.currentView === 'favoritos'} onClick={() => { changeView('favoritos'); setIsMenuOpen(false); }} icon="fa-star" label="Favoritos" />
+                <NavItem active={state.currentView === 'testimonios'} onClick={() => { changeView('testimonios'); setIsMenuOpen(false); }} icon="fa-comment-dots" label="Testimonios" />
+                <NavItem active={state.currentView === 'comunidad'} onClick={() => { changeView('comunidad'); setIsMenuOpen(false); }} icon="fa-users" label="Comunidad" />
+                <NavItem active={state.currentView === 'musica'} onClick={() => { changeView('musica'); setIsMenuOpen(false); }} icon="fa-music" label="Radio" />
+              </nav>
+
+              <div className="mt-8 p-6 bg-blue-600/5 rounded-3xl border border-blue-500/10 flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black uppercase text-slate-500">Racha</span>
+                  <span className="font-black text-white text-lg">{streak} Días</span>
+                </div>
+                <i className="fas fa-fire text-orange-500 text-2xl"></i>
+              </div>
+            </aside>
+          </div>
+        )}
+
         {/* BOTTOM NAV (Mobile) */}
-        <div className="lg:hidden fixed bottom-4 left-4 right-4 z-[100] pb-[env(safe-area-inset-bottom,0px)]">
-          <nav className="bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] px-2 py-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-[100] pb-[env(safe-area-inset-bottom,0px)]">
+          <nav className="bg-slate-950/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] px-2 py-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
             <MobileNavItem active={state.currentView === 'inicio'} onClick={() => changeView('inicio')} icon="fa-bolt" label="Inicio" />
             <MobileNavItem active={state.currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} icon="fa-book-bible" label="Arsenal" />
             <MobileNavItem active={state.currentView === 'favoritos'} onClick={() => changeView('favoritos')} icon="fa-star" label="Favoritos" />
-            <MobileNavItem active={state.currentView === 'testimonios'} onClick={() => changeView('testimonios')} icon="fa-comment-dots" label="Historias" />
-            <MobileNavItem active={state.currentView === 'comunidad'} onClick={() => changeView('comunidad')} icon="fa-users" label="Legión" />
+            <MobileNavItem active={false} onClick={() => setIsMenuOpen(true)} icon="fa-bars" label="Menú" />
           </nav>
         </div>
       </div>

@@ -83,6 +83,35 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
   }
 };
 
+export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
+  const blogId = "5031959192789589903";
+  const apiKey = (process.env as any).BLOGGER_API_KEY;
+
+  if (!apiKey) return null;
+
+  try {
+    // Intentamos buscar por el slug (que es parte del título o URL en Blogger)
+    // La búsqueda de Blogger API es bastante flexible
+    const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?q=${encodeURIComponent(slug)}&key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const processed = processApiV3Data(data);
+    
+    // Buscamos el post exacto que coincida con el slug en su URL
+    const exactMatch = processed.posts.find(p => {
+      const pSlug = p.url.split('/').pop()?.replace('.html', '');
+      return pSlug === slug;
+    });
+
+    return exactMatch || processed.posts[0] || null;
+  } catch (e) {
+    console.error("Fetch post by slug failed", e);
+    return null;
+  }
+};
+
 const fetchDirectlyFromBlogger = async (limit: number, token?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   const blogId = "5031959192789589903";
   const apiKey = (process.env as any).BLOGGER_API_KEY;
