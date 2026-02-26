@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { fetchArsenalData } from './services/contentService';
 import { ContentPost, AppState, AppView } from './types';
 
@@ -59,26 +60,51 @@ const App: React.FC = () => {
   const [readProgress, setReadProgress] = useState(0);
 
   const readerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const getSlugFromUrl = (url: string) => {
+    if (!url) return '';
+    const parts = url.split('/');
+    const lastPart = parts[parts.length - 1];
+    return lastPart.replace('.html', '');
+  };
 
   const changeView = (view: AppView) => {
-    setState(prev => ({ ...prev, currentView: view }));
+    setState(prev => ({ ...prev, currentView: view, selectedPost: null }));
+    navigate(`/${view === 'inicio' ? '' : view}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
-    // Deep Linking: Check if there's a post ID in the URL
+    // Sync state with URL on initial load or navigation
+    const path = location.pathname;
+    if (path === '/' || path === '') {
+      setState(prev => ({ ...prev, currentView: 'inicio', selectedPost: null }));
+    } else if (path.startsWith('/post/')) {
+      // Handled by the Route element below
+    } else {
+      const view = path.substring(1) as AppView;
+      const validViews: AppView[] = ['inicio', 'reflexiones', 'categorias', 'favoritos', 'musica', 'testimonios', 'comunidad', 'acerca'];
+      if (validViews.includes(view)) {
+        setState(prev => ({ ...prev, currentView: view, selectedPost: null }));
+      }
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Deep Linking: Check if there's a post ID in the URL (Legacy support)
     const params = new URLSearchParams(window.location.search);
     const postId = params.get('post');
     
     if (postId && state.allPosts.length > 0) {
       const post = state.allPosts.find(p => p.id === postId);
       if (post) {
-        setState(prev => ({ ...prev, selectedPost: post, currentView: 'reader' }));
-        // Clean URL without refreshing
-        window.history.replaceState({}, document.title, window.location.pathname);
+        const slug = getSlugFromUrl(post.url);
+        navigate(`/post/${slug}`, { replace: true });
       }
     }
-  }, [state.allPosts]);
+  }, [state.allPosts, navigate]);
 
   useEffect(() => {
     // Safety timeout: hide splash after 4 seconds no matter what (reduced from 6)
@@ -260,7 +286,9 @@ const App: React.FC = () => {
   };
 
   const handleSelectPost = (post: ContentPost) => {
-    setState(prev => ({ ...prev, selectedPost: post }));
+    const slug = getSlugFromUrl(post.url);
+    navigate(`/post/${slug}`);
+    
     setReadProgress(0);
     if (!readingHistory.includes(post.id)) {
       setReadingHistory(prev => [post.id, ...prev].slice(0, 30));
@@ -296,6 +324,28 @@ const App: React.FC = () => {
       }
     };
     actions[platform]?.();
+  };
+
+  const PostView = () => {
+    const { slug } = useParams();
+    
+    useEffect(() => {
+      if (slug && state.allPosts.length > 0) {
+        const post = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
+        if (post) {
+          setState(prev => ({ ...prev, selectedPost: post }));
+          setReadProgress(0);
+          if (!readingHistory.includes(post.id)) {
+            setReadingHistory(prev => [post.id, ...prev].slice(0, 30));
+            setStreak(s => s + 1);
+            localStorage.setItem('dg_last_read', new Date().toDateString());
+          }
+          setTimeout(() => readerRef.current?.scrollTo(0, 0), 50);
+        }
+      }
+    }, [slug, state.allPosts]);
+
+    return null; // The reader overlay handles the actual rendering
   };
 
   if (showSplash) {
@@ -397,16 +447,22 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col relative overflow-hidden">
         
         {/* MOBILE HEADER */}
-        <header className="lg:hidden bg-slate-950 border-b border-slate-800 px-6 py-4 flex justify-between items-center z-50">
-          <img src={LOGO_URL} className="h-10 drop-shadow-lg" alt="Logo" onClick={() => changeView('inicio')} />
-          <div className="flex items-center gap-4">
+        <header className="lg:hidden bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center z-50 sticky top-0">
+          <div className="flex items-center gap-3" onClick={() => navigate('/')}>
+            <img src={LOGO_URL} className="h-10 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" alt="Logo" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-white uppercase tracking-tighter leading-none">DiosMasGym</span>
+              <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest leading-none mt-1">Arsenal de Fe</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
              <button 
                 onClick={() => setIsSearchOpen(true)}
-                className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all"
+                className="w-11 h-11 rounded-2xl bg-slate-900/50 border border-white/5 flex items-center justify-center text-slate-400 active:scale-90 transition-all"
              >
-                <i className="fas fa-search"></i>
+                <i className="fas fa-search text-sm"></i>
              </button>
-             <div className="flex items-center gap-2 bg-blue-500/10 px-4 py-2 rounded-full border border-blue-500/20 shadow-lg">
+             <div className="flex items-center gap-2 bg-blue-600/10 px-4 py-2.5 rounded-2xl border border-blue-500/20 shadow-lg">
                 <i className="fas fa-fire text-orange-500 text-xs animate-pulse"></i>
                 <span className="text-xs font-black text-white">{streak}</span>
              </div>
@@ -495,8 +551,8 @@ const App: React.FC = () => {
                  </button>
               </div>
             ) : (
-              <>
-                {state.currentView === 'inicio' && (
+              <Routes>
+                <Route path="/" element={
                   <div className="animate-slide-up space-y-24">
                     {/* Hero Section */}
                     <div className="flex flex-col lg:flex-row gap-12 items-center">
@@ -568,7 +624,8 @@ const App: React.FC = () => {
                                 <button 
                                    key={cat}
                                    onClick={() => {
-                                      setState(prev => ({ ...prev, selectedCategory: cat, currentView: 'reflexiones' }));
+                                      setState(prev => ({ ...prev, selectedCategory: cat }));
+                                      navigate('/reflexiones');
                                    }}
                                    className="px-8 py-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:border-blue-500 hover:text-white hover:bg-blue-600/10 transition-all"
                                 >
@@ -576,7 +633,10 @@ const App: React.FC = () => {
                                 </button>
                              ))}
                              <button 
-                                onClick={() => setState(prev => ({ ...prev, selectedCategory: null, currentView: 'reflexiones' }))}
+                                onClick={() => {
+                                  setState(prev => ({ ...prev, selectedCategory: null }));
+                                  navigate('/reflexiones');
+                                }}
                                 className="px-8 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:scale-105 transition-all"
                              >
                                 Ver Todo
@@ -674,7 +734,7 @@ const App: React.FC = () => {
                           <h2 className="text-2xl font-black text-white tracking-tighter flex items-center gap-4 uppercase">
                              <span className="w-2.5 h-12 bg-blue-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.5)]"></span> Arsenal de Fe
                           </h2>
-                          <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase text-blue-500 tracking-widest hover:underline">Explorar todo</button>
+                          <button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase text-blue-500 tracking-widest hover:underline">Explorar todo</button>
                        </div>
 
                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
@@ -691,28 +751,25 @@ const App: React.FC = () => {
                        </div>
                     </div>
                   </div>
-                )}
-
-                {/* VIEWS REMAINING (Reflexiones, Favorites) */}
-                {(state.currentView === 'reflexiones' || state.currentView === 'favoritos') && (
+                } />
+                <Route path="/post/:slug" element={<PostView />} />
+                <Route path="/reflexiones" element={
                   <div className="animate-slide-up">
                      <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20">
                         <div>
-                           <h3 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-3 capitalize">{state.currentView === 'reflexiones' ? 'Biblioteca' : 'Favoritos'}</h3>
+                           <h3 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-3 capitalize">Biblioteca</h3>
                            <p className="text-slate-500 text-xs font-black uppercase tracking-[0.5em] ml-2">Equipo de combate espiritual</p>
                         </div>
-                        {state.currentView === 'reflexiones' && (
-                           <div className="relative w-full md:w-[400px]">
-                              <input 
-                                 type="text" 
-                                 value={state.searchTerm}
-                                 onChange={(e) => setState(prev => ({ ...prev, searchTerm: e.target.value }))}
-                                 placeholder="Buscar en el arsenal..." 
-                                 className="w-full bg-slate-900/40 border-2 border-slate-800 rounded-[2rem] py-5 px-8 text-sm focus:outline-none focus:border-blue-500 transition-all text-white placeholder-slate-700 shadow-xl" 
-                              />
-                              <i className="fas fa-search absolute right-8 top-1/2 -translate-y-1/2 text-slate-700"></i>
-                           </div>
-                        )}
+                        <div className="relative w-full md:w-[400px]">
+                           <input 
+                              type="text" 
+                              value={state.searchTerm}
+                              onChange={(e) => setState(prev => ({ ...prev, searchTerm: e.target.value }))}
+                              placeholder="Buscar en el arsenal..." 
+                              className="w-full bg-slate-900/40 border-2 border-slate-800 rounded-[2rem] py-5 px-8 text-sm focus:outline-none focus:border-blue-500 transition-all text-white placeholder-slate-700 shadow-xl" 
+                           />
+                           <i className="fas fa-search absolute right-8 top-1/2 -translate-y-1/2 text-slate-700"></i>
+                        </div>
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-20">
                         {filteredPosts.map(p => (
@@ -720,7 +777,7 @@ const App: React.FC = () => {
                         ))}
                      </div>
 
-                     {state.nextPageToken && state.currentView === 'reflexiones' && !state.searchTerm && (
+                     {state.nextPageToken && !state.searchTerm && (
                         <div className="flex justify-center pb-32">
                            <button 
                               onClick={loadMorePosts}
@@ -736,73 +793,83 @@ const App: React.FC = () => {
                         </div>
                      )}
                   </div>
-                )}
-              </>
-            )}
-
-            {state.currentView === 'musica' && (
-              <div className="h-[75vh] rounded-[4rem] overflow-hidden border-2 border-slate-800/60 shadow-2xl bg-black relative animate-slide-up">
-                 <iframe className="w-full h-full border-none" src="https://musica.diosmasgym.com/" allow="autoplay"></iframe>
-              </div>
-            )}
-
-            {state.currentView === 'comunidad' && (
-               <div className="animate-slide-up space-y-16">
-                  <div className="text-center max-w-2xl mx-auto">
-                     <h2 className="text-6xl font-black text-white mb-6 tracking-tighter uppercase">Comunidad</h2>
-                     <p className="text-slate-500 text-lg">Únete a la legión en nuestras redes sociales y no te pierdas nada.</p>
+                } />
+                <Route path="/favoritos" element={
+                  <div className="animate-slide-up">
+                     <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20">
+                        <div>
+                           <h3 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-3 capitalize">Favoritos</h3>
+                           <p className="text-slate-500 text-xs font-black uppercase tracking-[0.5em] ml-2">Tu arsenal personalizado</p>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-20">
+                        {filteredPosts.map(p => (
+                           <PostCard key={p.id} post={p} onClick={() => handleSelectPost(p)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => toggleFavorite(p.id, e)} />
+                        ))}
+                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                     <CommunityCard icon="fab fa-instagram" label="Instagram" color="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" url="https://www.instagram.com/diosmasgym" />
-                     <CommunityCard icon="fab fa-facebook" label="Facebook" color="bg-[#1877F2]" url="https://www.facebook.com/diosmasgym" />
-                     <CommunityCard icon="fab fa-youtube" label="YouTube" color="bg-[#FF0000]" url="https://www.youtube.com/@diosmasgym" />
-                     <CommunityCard icon="fab fa-tiktok" label="TikTok" color="bg-black" url="https://www.tiktok.com/@diosmasgym" />
+                } />
+                <Route path="/musica" element={
+                  <div className="h-[75vh] rounded-[4rem] overflow-hidden border-2 border-slate-800/60 shadow-2xl bg-black relative animate-slide-up">
+                     <iframe className="w-full h-full border-none" src="https://musica.diosmasgym.com/" allow="autoplay"></iframe>
                   </div>
-
-                  <div className="bg-blue-600/10 border border-blue-500/20 rounded-[4rem] p-12 lg:p-20 text-center">
-                     <h3 className="text-4xl font-black text-white uppercase tracking-tighter mb-6">¿Quieres ser parte activa?</h3>
-                     <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Comparte tus progresos usando el hashtag <span className="text-blue-500 font-black">#DiosMasGym</span> y etiquétanos para aparecer en nuestras historias.</p>
-                     <button onClick={() => window.open('https://wa.me/tu_numero', '_blank')} className="bg-blue-600 text-white px-12 py-6 rounded-[2.5rem] font-black uppercase text-xs tracking-widest shadow-2xl shadow-blue-600/30 hover:scale-105 transition-all">
-                        <i className="fab fa-whatsapp mr-3"></i> Contacto Directo
-                     </button>
-                  </div>
-               </div>
-            )}
-
-            {state.currentView === 'testimonios' && (
-               <div className="animate-slide-up space-y-16">
-                  <div className="text-center max-w-2xl mx-auto">
-                     <h2 className="text-6xl font-black text-white mb-6 tracking-tighter uppercase">Testimonios</h2>
-                     <p className="text-slate-500 text-lg">Historias reales de transformación física y espiritual compartidas por la legión DiosMasGym.</p>
-                  </div>
-                  
-                  {testimoniosPosts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-32">
-                       {testimoniosPosts.map(p => (
-                          <PostCard key={p.id} post={p} onClick={() => handleSelectPost(p)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => toggleFavorite(p.id, e)} />
-                       ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-20 bg-slate-900/20 rounded-[4rem] border border-slate-800">
-                       <i className="fas fa-comment-slash text-5xl text-slate-700 mb-6"></i>
-                       <p className="text-slate-500 font-black uppercase tracking-widest">Aún no hay testimonios publicados</p>
-                    </div>
-                  )}
-               </div>
+                } />
+                <Route path="/comunidad" element={
+                   <div className="animate-slide-up space-y-16">
+                      <div className="text-center max-w-2xl mx-auto">
+                         <h2 className="text-6xl font-black text-white mb-6 tracking-tighter uppercase">Comunidad</h2>
+                         <p className="text-slate-500 text-lg">Únete a la legión en nuestras redes sociales y no te pierdas nada.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                         <CommunityCard icon="fab fa-instagram" label="Instagram" color="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" url="https://www.instagram.com/diosmasgym" />
+                         <CommunityCard icon="fab fa-facebook" label="Facebook" color="bg-[#1877F2]" url="https://www.facebook.com/diosmasgym" />
+                         <CommunityCard icon="fab fa-youtube" label="YouTube" color="bg-[#FF0000]" url="https://www.youtube.com/@diosmasgym" />
+                         <CommunityCard icon="fab fa-tiktok" label="TikTok" color="bg-black" url="https://www.tiktok.com/@diosmasgym" />
+                      </div>
+                      <div className="bg-blue-600/10 border border-blue-500/20 rounded-[4rem] p-12 lg:p-20 text-center">
+                         <h3 className="text-4xl font-black text-white uppercase tracking-tighter mb-6">¿Quieres ser parte activa?</h3>
+                         <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Comparte tus progresos usando el hashtag <span className="text-blue-500 font-black">#DiosMasGym</span> y etiquétanos para aparecer en nuestras historias.</p>
+                         <button onClick={() => window.open('https://wa.me/tu_numero', '_blank')} className="bg-blue-600 text-white px-12 py-6 rounded-[2.5rem] font-black uppercase text-xs tracking-widest shadow-2xl shadow-blue-600/30 hover:scale-105 transition-all">
+                            <i className="fab fa-whatsapp mr-3"></i> Contacto Directo
+                         </button>
+                      </div>
+                   </div>
+                } />
+                <Route path="/testimonios" element={
+                   <div className="animate-slide-up space-y-16">
+                      <div className="text-center max-w-2xl mx-auto">
+                         <h2 className="text-6xl font-black text-white mb-6 tracking-tighter uppercase">Testimonios</h2>
+                         <p className="text-slate-500 text-lg">Historias reales de transformación física y espiritual compartidas por la legión DiosMasGym.</p>
+                      </div>
+                      {testimoniosPosts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-32">
+                           {testimoniosPosts.map(p => (
+                              <PostCard key={p.id} post={p} onClick={() => handleSelectPost(p)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => toggleFavorite(p.id, e)} />
+                           ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-20 bg-slate-900/20 rounded-[4rem] border border-slate-800">
+                           <i className="fas fa-comment-slash text-5xl text-slate-700 mb-6"></i>
+                           <p className="text-slate-500 font-black uppercase tracking-widest">Aún no hay testimonios publicados</p>
+                        </div>
+                      )}
+                   </div>
+                } />
+              </Routes>
             )}
           </div>
         </main>
 
         {/* BOTTOM NAV (Mobile) */}
-        <nav className="lg:hidden bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/60 px-6 py-6 flex justify-around items-center z-[100] shadow-[0_-20px_50px_rgba(0,0,0,1)] absolute bottom-0 w-full overflow-x-auto no-scrollbar">
-           <NavItem active={state.currentView === 'inicio'} onClick={() => changeView('inicio')} icon="fa-bolt" label="" />
-           <NavItem active={state.currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} icon="fa-book-bible" label="" />
-           <NavItem active={state.currentView === 'favoritos'} onClick={() => changeView('favoritos')} icon="fa-star" label="" />
-           <NavItem active={state.currentView === 'testimonios'} onClick={() => changeView('testimonios')} icon="fa-comment-dots" label="" />
-           <NavItem active={state.currentView === 'comunidad'} onClick={() => changeView('comunidad')} icon="fa-users" label="" />
-           <NavItem active={state.currentView === 'musica'} onClick={() => changeView('musica')} icon="fa-music" label="" />
-        </nav>
+        <div className="lg:hidden fixed bottom-4 left-4 right-4 z-[100] pb-[env(safe-area-inset-bottom,0px)]">
+          <nav className="bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] px-2 py-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+            <MobileNavItem active={state.currentView === 'inicio'} onClick={() => changeView('inicio')} icon="fa-bolt" label="Inicio" />
+            <MobileNavItem active={state.currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} icon="fa-book-bible" label="Arsenal" />
+            <MobileNavItem active={state.currentView === 'favoritos'} onClick={() => changeView('favoritos')} icon="fa-star" label="Favoritos" />
+            <MobileNavItem active={state.currentView === 'testimonios'} onClick={() => changeView('testimonios')} icon="fa-comment-dots" label="Historias" />
+            <MobileNavItem active={state.currentView === 'comunidad'} onClick={() => changeView('comunidad')} icon="fa-users" label="Legión" />
+          </nav>
+        </div>
       </div>
 
       {/* READER OVERLAY */}
@@ -810,7 +877,10 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-[#020617] z-[2000] flex flex-col animate-slide-up">
            <header className="bg-slate-950 border-b border-slate-800/60 px-6 py-6 flex items-center justify-between sticky top-0 z-[2100]">
               <div className="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-200 z-[2200]" style={{ width: `${readProgress}%` }}></div>
-              <button onClick={() => setState(prev => ({ ...prev, selectedPost: null }))} className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white border border-slate-800 hover:text-blue-500 transition-all active:scale-90">
+              <button onClick={() => {
+                setState(prev => ({ ...prev, selectedPost: null }));
+                navigate(-1);
+              }} className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white border border-slate-800 hover:text-blue-500 transition-all active:scale-90">
                   <i className="fas fa-chevron-left text-xl"></i>
               </button>
               <h2 className="font-black text-white text-base md:text-xl truncate flex-1 mx-8 tracking-tighter text-center uppercase">{state.selectedPost.title}</h2>
@@ -918,6 +988,18 @@ const NavItem: React.FC<{ active: boolean, onClick: () => void, icon: string, la
   </button>
 );
 
+const MobileNavItem: React.FC<{ active: boolean, onClick: () => void, icon: string, label: string }> = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick} 
+    className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-2xl transition-all min-w-[64px] ${active ? 'text-blue-500' : 'text-slate-500 active:scale-90'}`}
+  >
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-900/50 text-slate-500'}`}>
+      <i className={`fas ${icon} text-sm`}></i>
+    </div>
+    <span className={`text-[8px] font-black uppercase tracking-widest transition-colors ${active ? 'text-blue-500' : 'text-slate-600'}`}>{label}</span>
+  </button>
+);
+
 const SocialIcon = ({ icon, color, url }: { icon: string, color: string, url: string }) => (
   <button onClick={() => window.open(url, '_blank')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${color} hover:scale-115 active:scale-90 transition-all shadow-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]`}>
      <i className={`${icon} text-lg`}></i>
@@ -953,7 +1035,7 @@ const CommunityCard = ({ icon, label, color, url }: { icon: string, label: strin
 
 const PostCard: React.FC<{ post: ContentPost, onClick: () => void, isFav: boolean, isRead: boolean, onFav: (e: React.MouseEvent) => void }> = ({ post, onClick, isFav, isRead, onFav }) => (
   <div 
-    className="card-tap bg-slate-900/40 border-2 border-slate-800/40 rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col relative group h-full hover:border-blue-500/30 transition-all backdrop-blur-sm" 
+    className="card-tap bg-slate-900/40 border-2 border-slate-800/40 rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col relative group h-full hover:border-blue-500/30 transition-all backdrop-blur-sm" 
     onClick={onClick}
   >
     <div className="relative h-72 overflow-hidden">
