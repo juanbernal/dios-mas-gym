@@ -32,4 +32,5 @@ export interface AppState {
   favorites: string[];
   selectedCategory: string | null;
   nextPageToken?: string;
+  error?: string | null;
 }

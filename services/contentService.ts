@@ -83,6 +83,27 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
   }
 };
 
+export const fetchPostById = async (postId: string): Promise<ContentPost | null> => {
+  const blogId = "5031959192789589903";
+  const apiKey = (process.env as any).BLOGGER_API_KEY;
+
+  if (!apiKey) return null;
+
+  try {
+    const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}?key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    // processApiV3Data expects a list, so we wrap it
+    const processed = processApiV3Data({ items: [data] });
+    return processed.posts[0] || null;
+  } catch (e) {
+    console.error("Fetch post by ID failed", e);
+    return null;
+  }
+};
+
 export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
   const blogId = "5031959192789589903";
   const apiKey = (process.env as any).BLOGGER_API_KEY;

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
-import { fetchArsenalData, fetchPostBySlug } from './services/contentService';
+import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { ContentPost, AppState, AppView } from './types';
 
 const VERSES = [
@@ -32,6 +32,7 @@ const App: React.FC = () => {
       searchTerm: '',
       favorites: favs,
       selectedCategory: null,
+      error: null,
     };
   });
 
@@ -941,9 +942,24 @@ const App: React.FC = () => {
               className="flex-1 overflow-y-auto px-6 py-16 no-scrollbar max-w-5xl mx-auto w-full"
            >
               {!state.selectedPost ? (
-                <div className="flex flex-col items-center justify-center py-40">
-                  <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
-                  <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Recuperando del Arsenal...</p>
+                <div className="flex flex-col items-center justify-center py-40 text-center">
+                  {state.error ? (
+                    <>
+                      <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-6"></i>
+                      <p className="text-white font-black uppercase text-sm tracking-widest mb-4">{state.error}</p>
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest"
+                      >
+                        Reintentar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8"></div>
+                      <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.6em]">Recuperando del Arsenal...</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
@@ -1047,6 +1063,7 @@ const PostView: React.FC<{
   useEffect(() => {
     const loadPost = async () => {
       if (!slug) return;
+      setState(prev => ({ ...prev, error: null }));
       
       // 1. Buscar en los posts ya cargados
       const existingPost = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
@@ -1063,18 +1080,30 @@ const PostView: React.FC<{
 
       // 2. Si no está o es un snippet, buscarlo específicamente en la API para tener el contenido completo
       setLoadingPost(true);
-      const fetchedPost = await fetchPostBySlug(slug);
+      
+      let fetchedPost: ContentPost | null = null;
+      
+      // Si tenemos el post existente (snippet), usamos su ID que es más fiable que el slug
+      if (existingPost) {
+        fetchedPost = await fetchPostById(existingPost.id);
+      } else {
+        // Si entramos por URL directa y no tenemos nada, buscamos por slug
+        fetchedPost = await fetchPostBySlug(slug);
+      }
+
       if (fetchedPost) {
         setState(prev => ({ 
           ...prev, 
           selectedPost: fetchedPost,
-          allPosts: prev.allPosts.map(p => p.id === fetchedPost.id ? fetchedPost : p)
+          allPosts: prev.allPosts.map(p => p.id === fetchedPost!.id ? fetchedPost! : p)
         }));
         
         // Si no estaba en la lista, lo añadimos
-        if (!state.allPosts.some(p => p.id === fetchedPost.id)) {
-          setState(prev => ({ ...prev, allPosts: [fetchedPost, ...prev.allPosts] }));
+        if (!state.allPosts.some(p => p.id === fetchedPost!.id)) {
+          setState(prev => ({ ...prev, allPosts: [fetchedPost!, ...prev.allPosts] }));
         }
+      } else {
+        setState(prev => ({ ...prev, error: "No se pudo encontrar el artículo en el arsenal." }));
       }
       setLoadingPost(false);
     };
