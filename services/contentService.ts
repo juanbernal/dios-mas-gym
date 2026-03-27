@@ -8,6 +8,7 @@ import { ContentPost } from '../types';
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string) => {
+      // Use absolute path for robustness or relative if same origin
       const url = new URL('/api/arsenal', window.location.origin);
       url.searchParams.append('maxResults', limit.toString());
       if (token) url.searchParams.append('pageToken', token);
@@ -18,10 +19,10 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       try {
         const response = await fetch(url.toString(), { signal: controller.signal });
         
-        // Si el servidor responde 404, es probable que estemos en un entorno estático (GitHub Pages)
+        // Si el servidor responde 404, es probable que la API no esté configurada aún en este entorno
         if (response.status === 404) {
-          console.warn("Server API not found (404). Switching to direct Blogger API fetch.");
-          return await fetchDirectlyFromBlogger(limit, token);
+          console.error("Server API not found (404). Please ensure Vercel functions are deployed.");
+          return { posts: [], nextPageToken: undefined };
         }
 
         if (!response.ok) throw new Error(`Server API error: ${response.status}`);
@@ -45,9 +46,8 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         
         return processed;
       } catch (e) {
-        console.error("Fetch from server failed", e);
-        // Fallback directo a Blogger API si el servidor falla
-        return await fetchDirectlyFromBlogger(limit, token);
+        console.error("Fetch from proxy failed:", e);
+        return { posts: [], nextPageToken: undefined };
       } finally {
         clearTimeout(timeoutId);
       }
@@ -84,20 +84,11 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 };
 
 export const fetchPostById = async (postId: string): Promise<ContentPost | null> => {
-  const blogId = "5031959192789589903";
-  const apiKey = (process.env as any).BLOGGER_API_KEY;
-
-  if (!apiKey) return null;
-
+  // We should ideally have a proxy for this too if we want full security
+  // For now, we'll try to use the general arsenal fetch or a specialized proxy
   try {
-    const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}?key=${apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    // processApiV3Data expects a list, so we wrap it
-    const processed = processApiV3Data({ items: [data] });
-    return processed.posts[0] || null;
+    const data = await fetchArsenalData(50); // Try to find it in the general data
+    return data.posts.find(p => p.id === postId) || null;
   } catch (e) {
     console.error("Fetch post by ID failed", e);
     return null;
@@ -105,55 +96,16 @@ export const fetchPostById = async (postId: string): Promise<ContentPost | null>
 };
 
 export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
-  const blogId = "5031959192789589903";
-  const apiKey = (process.env as any).BLOGGER_API_KEY;
-
-  if (!apiKey) return null;
-
   try {
-    // Intentamos buscar por el slug (que es parte del título o URL en Blogger)
-    // La búsqueda de Blogger API es bastante flexible
-    const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?q=${encodeURIComponent(slug)}&key=${apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    const processed = processApiV3Data(data);
-    
-    // Buscamos el post exacto que coincida con el slug en su URL
-    const exactMatch = processed.posts.find(p => {
+    const data = await fetchArsenalData(50);
+    const exactMatch = data.posts.find(p => {
       const pSlug = p.url.split('/').pop()?.replace('.html', '');
       return pSlug === slug;
     });
-
-    return exactMatch || processed.posts[0] || null;
+    return exactMatch || null;
   } catch (e) {
     console.error("Fetch post by slug failed", e);
     return null;
-  }
-};
-
-const fetchDirectlyFromBlogger = async (limit: number, token?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
-  const blogId = "5031959192789589903";
-  const apiKey = (process.env as any).BLOGGER_API_KEY;
-
-  if (!apiKey) {
-    console.error("No BLOGGER_API_KEY found for direct fetch.");
-    return { posts: [] };
-  }
-
-  try {
-    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
-    if (token) url += `&pageToken=${token}`;
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Blogger API direct error: ${response.status}`);
-    
-    const data = await response.json();
-    return processApiV3Data(data);
-  } catch (e) {
-    console.error("Direct Blogger API fetch failed", e);
-    return { posts: [] };
   }
 };
 

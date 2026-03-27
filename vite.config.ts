@@ -14,7 +14,8 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.BLOGGER_API_KEY': JSON.stringify(env.BLOGGER_API_KEY || 'AIzaSyDA0Aruc7oYRf4K1tbwtKEfLy2dsTllxwU')
+        // BLOGGER_API_KEY removed from here to ensure security. 
+        // It is now strictly handled by the /api/arsenal serverless function.
       },
       resolve: {
         alias: {
