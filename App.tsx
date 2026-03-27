@@ -1,20 +1,20 @@
-/** Version: 3.0.0 - Tactical War-Room & Unified Diagnostic **/
+/** Version: 4.0.0 - Zen-Warrior Ultra-Premium **/
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { ContentPost, AppState, AppView } from './types';
 
-// Tactical Components
+// Zen Components
 import Sidebar from './components/Sidebar';
 import Hero from './components/Hero';
 import PostCard from './components/PostCard';
 import CategoryBar from './components/CategoryBar';
 
 const VERSES = [
-  { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
-  { t: "NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.", r: "ISAÍAS 41:10" },
-  { t: "TODO LO PUEDO EN CRISTO QUE ME FORTALECE.", r: "FILIPENSES 4:13" },
-  { t: "JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?", r: "SALMOS 27:1" }
+  { t: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes.", r: "Josué 1:9" },
+  { t: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios.", r: "Isaías 41:10" },
+  { t: "Todo lo puedo en Cristo que me fortalece.", r: "Filipenses 4:13" },
+  { t: "Jehová es mi luz y mi salvación; ¿de quién temeré?", r: "Salmos 27:1" }
 ];
 
 const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
@@ -50,9 +50,7 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [verse, setVerse] = useState(VERSES[0]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
-  const [logoClicks, setLogoClicks] = useState(0);
-
+  
   const navigate = useNavigate();
 
   const getSlugFromUrl = (url: string) => {
@@ -84,12 +82,12 @@ const App: React.FC = () => {
           ...prev, 
           allPosts: result20.posts.length > 0 ? result20.posts : prev.allPosts, 
           loading: false,
-          error: result20.posts.length === 0 && prev.allPosts.length === 0 ? "SINCRONIZACIÓN DE ARSENAL FALLIDA" : null
+          error: result20.posts.length === 0 && prev.allPosts.length === 0 ? "No se pudo cargar el arsenal." : null
         }));
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         setShowSplash(false);
-      } catch (err: any) {
-        setState(prev => ({ ...prev, loading: false, error: err.message || "ERROR DE TRANSMISIÓN" }));
+      } catch (err) {
+        setState(prev => ({ ...prev, loading: false, error: "Error de conexión." }));
         setShowSplash(false);
       }
     };
@@ -101,15 +99,6 @@ const App: React.FC = () => {
     localStorage.setItem('dg_history', JSON.stringify(readingHistory));
     localStorage.setItem('dg_streak', streak.toString());
   }, [state.favorites, readingHistory, streak]);
-
-  const onLogoClick = () => {
-    const newCount = logoClicks + 1;
-    setLogoClicks(newCount);
-    if (newCount >= 5) {
-      setShowDiagnostic(true);
-      setLogoClicks(0);
-    }
-  };
 
   const filteredPosts = useMemo(() => {
     let posts = state.allPosts;
@@ -130,24 +119,18 @@ const App: React.FC = () => {
 
   if (showSplash) {
     return (
-      <div className="bg-bg-deep fixed inset-0 z-[10000] flex flex-col items-center justify-center p-10 font-['Rajdhani']">
-        <div className="scanline"></div>
-        <img src={LOGO_URL} className="w-64 md:w-80 relative z-10 animate-pulse contrast-150" alt="Logo" />
-        <div className="mt-20 flex flex-col items-center gap-6 relative z-10 w-full max-w-sm">
-           <div className="h-[1px] w-full bg-white/5 relative">
-             <div className="absolute inset-0 bg-accent-blue shadow-[0_0_20px_var(--accent-blue)] animate-[loading_2s_infinite]"></div>
-           </div>
-           <p className="tech-text text-[10px] tracking-[1em] text-accent-blue-bright">INICIALIZANDO COMANDO TÁCTICO</p>
+      <div className="bg-bg-deep fixed inset-0 z-[10000] flex flex-col items-center justify-center p-10 animate-zen">
+        <img src={LOGO_URL} className="w-48 md:w-64 opacity-20 contrast-0 grayscale" alt="Logo" />
+        <div className="mt-20 w-48 h-[1px] bg-white/5 relative overflow-hidden">
+           <div className="absolute inset-0 bg-white/40 animate-[load_1.5s_infinite]"></div>
         </div>
-        <style>{`@keyframes loading { 0% { left: 0%; width: 0%; } 50% { left: 0%; width: 100%; } 100% { left: 100%; width: 0%; } }`}</style>
+        <style>{`@keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen bg-bg-deep text-text-primary overflow-hidden font-['Poppins'] relative">
-      <div className="scanline"></div>
-      
+    <div className="flex h-screen w-screen bg-bg-deep text-text-primary overflow-hidden font-['Inter']">
       <Sidebar 
         currentView={state.currentView} 
         setSelectedCategory={(cat) => setState(prev => ({ ...prev, selectedCategory: cat }))}
@@ -155,74 +138,58 @@ const App: React.FC = () => {
         changeView={changeView}
         topCategories={categories.slice(0, 5)}
         streak={streak}
-        onLogoClick={onLogoClick}
       />
 
-      <div className="flex-1 flex flex-col relative overflow-hidden backdrop-blur-sm">
-        <header className="lg:hidden bg-bg-panel border-b border-white/5 px-8 py-6 flex justify-between items-center z-50">
-          <img src={LOGO_URL} className="h-8" alt="Logo" onClick={() => navigate('/')} />
-          <div className="flex items-center gap-4">
-             <span className="status-light online h-2 w-2"></span>
-             <button onClick={() => setIsSearchOpen(true)} className="text-accent-blue text-xl"><i className="fas fa-search"></i></button>
-          </div>
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="lg:hidden bg-bg-deep border-b border-white/5 px-8 py-6 flex justify-between items-center z-50">
+          <img src={LOGO_URL} className="h-6" alt="Logo" onClick={() => navigate('/')} />
+          <button onClick={() => setIsSearchOpen(true)} className="text-white text-lg"><i className="fas fa-search"></i></button>
         </header>
 
         <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-          <div className="max-w-[1400px] mx-auto p-6 md:p-16">
+          <div className="max-w-[1200px] mx-auto p-10 md:p-20">
             <Routes>
               <Route path="/" element={
-                 <div className="space-y-32">
+                 <div className="space-y-40">
                     <Hero verse={verse} onEntrenar={() => changeView('reflexiones')} onAleatorio={() => {
                         const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)];
                         if (r) navigate(`/post/${getSlugFromUrl(r.url)}`);
                     }} />
 
-                    {state.error && state.allPosts.length === 0 && (
-                      <div className="tactical-box p-12 text-center border-red-500/30">
-                        <i className="fas fa-satellite-dish text-6xl text-red-500/50 mb-8 animate-pulse"></i>
-                        <h2 className="tech-text text-3xl mb-4 text-red-500">ERROR DE ENLACE</h2>
-                        <p className="text-text-dim tech-text text-[11px] mb-8">NO SE DETECTA ARSENAL EN LA NUBE. VERIFICA DIAGNÓSTICO (5 CLICKS EN LOGO).</p>
-                        <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-black tech-text text-xs font-bold hover:bg-accent-blue hover:text-white transition-all">REINTENTAR</button>
-                      </div>
-                    )}
-
-                    <section>
-                      <div className="flex items-center gap-8 mb-16 tech-text">
-                        <span className="h-4 w-1.5 bg-accent-blue"></span>
-                        <h2 className="text-3xl font-bold tracking-widest text-accent-blue-bright">BASE DE DATOS // ENTRADAS RECIENTES</h2>
-                        <div className="h-[1px] flex-1 bg-white/5"></div>
+                    <section className="animate-zen">
+                      <div className="flex items-center justify-between mb-16 px-4">
+                        <h2 className="text-3xl font-extrabold tracking-tight">Recientes</h2>
+                        <button onClick={() => changeView('reflexiones')} className="text-xs font-bold uppercase tracking-widest text-text-secondary hover:text-white transition-all">Ver todo</button>
                       </div>
                       
-                      <div className="tactical-grid">
-                        {state.allPosts.slice(0, 12).map((p, idx) => (
-                           <div key={p.id} className={idx % 7 === 0 ? 'span-2 row-2 hidden md:block' : ''}>
-                             <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
-                               isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ 
-                                 ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] 
-                               })); }} />
-                           </div>
+                      <div className="zen-grid px-4">
+                        {state.allPosts.slice(0, 9).map((p) => (
+                           <PostCard key={p.id} post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
+                             isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ 
+                               ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] 
+                             })); }} />
                         ))}
                       </div>
                     </section>
                  </div>
               } />
               <Route path="/post/:slug" element={
-                <PostView state={state} setState={setState} readingHistory={readingHistory} setReadingHistory={setReadingHistory} />
+                <PostView state={state} setState={setState} />
               } />
               <Route path="/reflexiones" element={
-                <div className="space-y-16 animate-fade-in-up">
-                  <div className="flex flex-col gap-10">
-                    <h1 className="h1-tactical opacity-10 select-none absolute top-10 right-10">DATABASE</h1>
-                    <CategoryBar categories={categories} selectedCategory={state.selectedCategory} onSelect={(cat) => setState(prev => ({ ...prev, selectedCategory: cat }))} />
-                    <div className="max-w-xl w-full">
+                <div className="space-y-16 animate-zen">
+                  <div className="flex flex-col gap-10 px-4">
+                    <h1 className="text-6xl font-extrabold tracking-tight">Arsenal</h1>
+                    <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                       <CategoryBar categories={categories} selectedCategory={state.selectedCategory} onSelect={(cat) => setState(prev => ({ ...prev, selectedCategory: cat }))} />
                        <input 
                          type="text" value={state.searchTerm} onChange={e => setState(p => ({ ...p, searchTerm: e.target.value }))}
-                         placeholder="BUSCAR EN EL ARCHIVO..." 
-                         className="w-full bg-white/5 border border-white/10 p-5 tech-text text-sm focus:border-accent-blue outline-none transition-all placeholder-white/20"
+                         placeholder="Buscar..." 
+                         className="bg-white/5 border border-white/5 p-3 rounded-xl text-sm focus:border-white/10 outline-none transition-all w-full md:w-64"
                        />
                     </div>
                   </div>
-                  <div className="tactical-grid">
+                  <div className="zen-grid px-4">
                      {filteredPosts.map(p => (
                         <PostCard key={p.id} post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
                           isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ 
@@ -237,34 +204,13 @@ const App: React.FC = () => {
         </main>
       </div>
 
-      {showDiagnostic && (
-        <div className="fixed inset-0 z-[11000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-10 font-['Rajdhani']">
-           <div className="tactical-box max-w-2xl w-full p-12 bg-bg-panel animate-fade-in">
-              <div className="flex justify-between items-center mb-10">
-                 <h2 className="text-3xl font-bold text-accent-blue-bright tech-text tracking-widest">DIAGNÓSTICO DEL SISTEMA</h2>
-                 <button onClick={() => setShowDiagnostic(false)} className="text-white hover:text-red-500 transition-colors"><i className="fas fa-times text-2xl"></i></button>
-              </div>
-              <div className="space-y-6 tech-text text-sm mb-12 border-y border-white/5 py-8">
-                 <div className="flex justify-between"><span>MODO:</span> <span className="text-blue-400">OPERACIONES TÁCTICAS</span></div>
-                 <div className="flex justify-between"><span>VERCEL PROXY:</span> <span className={state.allPosts.length > 0 ? "text-green-500" : "text-red-500"}>{state.allPosts.length > 0 ? "ENLAZADO" : "DESCONECTADO (404/500)"}</span></div>
-                 <div className="flex justify-between"><span>ARSENAL CACHE:</span> <span>{state.allPosts.length} ITEMS</span></div>
-                 <div className="flex justify-between"><span>ESTADO API:</span> <span className="text-orange-500">{state.error || "SIN ERRORES"}</span></div>
-              </div>
-              <p className="text-[11px] text-text-dim leading-relaxed mb-10 opacity-70">
-                 DATO CRÍTICO: SI LOS ARTÍCULOS NO APARECEN, ASEGÚRESE QUE 'BLOGGER_API_KEY' Y 'BLOG_ID' ESTÉN CONFIGURADAS EN VERCEL. SI TRABAJA CON VITE, RECUERDE QUE EL PROXY SOLO FUNCIONA EN PRODUCCIÓN.
-              </p>
-              <button onClick={() => window.location.reload()} className="w-full bg-accent-blue py-5 tech-text font-bold tracking-widest hover:bg-white hover:text-black transition-all">REINICIAR ESCANEO</button>
-           </div>
-        </div>
-      )}
-
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[12000] bg-bg-deep/95 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in">
-           <div className="w-full max-w-4xl">
+        <div className="fixed inset-0 z-[12000] bg-bg-deep/98 flex items-center justify-center p-10 animate-fade-in">
+           <div className="w-full max-w-4xl text-center">
              <input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }}
-               placeholder="IDENTIFIQUE OBJETIVO..." 
-               className="w-full bg-transparent border-b-4 border-accent-blue py-10 tech-text text-5xl md:text-8xl focus:outline-none placeholder-white/5 italic" />
-             <button onClick={() => setIsSearchOpen(false)} className="mt-10 tech-text text-accent-blue hover:text-white transition-all text-xs tracking-widest">[ CERRAR RASTREO ]</button>
+               placeholder="Buscar..." 
+               className="w-full bg-transparent border-b border-white/20 py-8 text-6xl md:text-8xl focus:outline-none placeholder-white/5" />
+             <button onClick={() => setIsSearchOpen(false)} className="mt-12 text-xs font-bold uppercase tracking-[0.4em] opacity-40 hover:opacity-100 transition-all">Cerrar</button>
            </div>
         </div>
       )}
@@ -272,8 +218,7 @@ const App: React.FC = () => {
   );
 };
 
-// Simplified PostView for Tactical Look
-const PostView: React.FC<{ state: AppState; setState: any; readingHistory: string[]; setReadingHistory: any }> = ({ state, setState, readingHistory, setReadingHistory }) => {
+const PostView: React.FC<{ state: AppState; setState: any }> = ({ state, setState }) => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const getSlug = (url: string) => url.split('/').pop()?.replace('.html', '') || '';
@@ -292,24 +237,24 @@ const PostView: React.FC<{ state: AppState; setState: any; readingHistory: strin
     load();
   }, [slug]);
 
-  if (!state.selectedPost) return <div className="py-80 text-center tech-text text-accent-blue animate-pulse">CARGANDO TRANSMISIÓN...</div>;
+  if (!state.selectedPost) return <div className="py-80 text-center opacity-30 animate-pulse">Cargando...</div>;
 
   return (
-    <div className="animate-fade-in-up pb-40">
-      <button onClick={() => navigate(-1)} className="mb-12 tech-text text-[10px] text-accent-blue hover:text-white transition-all"> <i className="fas fa-angle-left"></i> VOLVER A LA BASE </button>
+    <div className="animate-zen pb-40 px-4">
+      <button onClick={() => navigate(-1)} className="mb-12 text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-all"> <i className="fas fa-arrow-left"></i> Volver </button>
       
-      <div className="tactical-box relative h-96 md:h-[500px] mb-16 overflow-hidden">
-         <img src={state.selectedPost.images?.[0]?.url || ''} className="w-full h-full object-cover opacity-30 grayscale" alt="" />
-         <div className="absolute inset-x-8 bottom-8">
-            <h1 className="tech-text text-4xl md:text-7xl font-bold italic tracking-tighter leading-tight">{state.selectedPost.title}</h1>
-            <div className="flex gap-6 mt-6 tech-text text-[10px] opacity-40">
-               <span>FECHA: {new Date(state.selectedPost.published).toLocaleDateString()}</span>
-               <span>ID: {state.selectedPost.id}</span>
+      <div className="zen-card relative h-[500px] mb-16 overflow-hidden">
+         <img src={state.selectedPost.images?.[0]?.url || ''} className="w-full h-full object-cover" alt="" />
+         <div className="absolute inset-0 bg-gradient-to-t from-bg-deep via-transparent to-transparent"></div>
+         <div className="absolute inset-x-12 bottom-12">
+            <h1 className="text-5xl md:text-8xl font-black mb-6 tracking-tight">{state.selectedPost.title}</h1>
+            <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest opacity-60">
+               <span>PUESTA: {new Date(state.selectedPost.published).toLocaleDateString()}</span>
             </div>
          </div>
       </div>
 
-      <div className="max-w-4xl mx-auto blogger-body opacity-90 leading-relaxed text-lg pb-40" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
+      <div className="max-w-4xl mx-auto blogger-body opacity-90 leading-relaxed text-xl font-light pb-40" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
     </div>
   );
 };

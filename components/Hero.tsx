@@ -8,53 +8,35 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
   return (
-    <div className="relative flex flex-col items-center justify-center py-24 lg:py-40 animate-fade-in-up overflow-hidden">
-      {/* Radar Pulse Background */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] pointer-events-none opacity-20">
-         <div className="radar w-full h-full" style={{ animationDelay: '0s' }}></div>
-         <div className="radar w-full h-full" style={{ animationDelay: '1.3s' }}></div>
-         <div className="radar w-full h-full" style={{ animationDelay: '2.6s' }}></div>
-      </div>
-
-      <div className="max-w-5xl w-full text-center relative z-10">
-        <div className="flex justify-center mb-10">
-           <div className="px-6 py-2 border border-accent-blue/40 bg-accent-blue/5 text-[10px] tech-text tracking-[0.5em] text-accent-blue-bright flex items-center gap-4">
-              <span className="status-light online"></span>
-              ESTADO: OPERATIVO // MISIÓN EN CURSO
-           </div>
-        </div>
-        
-        <h1 className="h1-tactical mb-12 tech-text">
-          <span className="opacity-40">DIOS</span> MÁS <span className="text-accent-blue shadow-blue-500/20">GYM</span>
-        </h1>
-        
-        <p className="text-xl md:text-2xl font-black uppercase italic tracking-tighter mb-16 text-text-dim max-w-2xl mx-auto border-x border-white/5 px-10">
-          "{verse.t}"
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-          <button 
-            onClick={onEntrenar} 
-            className="tactical-box px-12 py-6 flex flex-col items-center gap-3 group hover:border-accent-blue transition-all"
-          >
-             <span className="tech-text text-[9px] tracking-[0.3em] opacity-50 group-hover:text-accent-blue transition-colors">INICIAR ENTRENAMIENTO</span>
-             <span className="text-xl font-bold uppercase italic tracking-widest text-white group-hover:text-accent-blue">ESPÍRITU GUERRERO</span>
-          </button>
-          <button 
-            onClick={onAleatorio} 
-            className="tactical-box px-12 py-6 flex flex-col items-center gap-3 group hover:border-accent-blue transition-all"
-          >
-             <span className="tech-text text-[9px] tracking-[0.3em] opacity-50 group-hover:text-accent-blue transition-colors">OBJETIVO AL AZAR</span>
-             <span className="text-xl font-bold uppercase italic tracking-widest text-white group-hover:text-accent-blue">SELECCIÓN ALPHA</span>
-          </button>
-        </div>
+    <div className="flex flex-col items-center justify-center py-20 lg:py-40 text-center animate-zen px-6">
+      <div className="mb-12">
+        <span className="subtitle-zen">DIOS MÁS GYM // Misión Alpha</span>
       </div>
       
-      <div className="absolute top-10 left-10 tech-text text-[10px] text-white/5 rotate-90 origin-top-left flex gap-10">
-         <span>COORD: 31.633 -106.485</span>
-         <span>AUTH: DIOSMASGYM-ADMIN</span>
-         <span>VER: 3.0.0</span>
+      <h1 className="h1-hero mb-16 max-w-6xl">
+        Transforma <br /> Tu Espíritu.
+      </h1>
+      
+      <p className="text-xl md:text-2xl font-light text-text-secondary max-w-3xl mb-20 leading-relaxed italic">
+        "{verse.t}"
+      </p>
+
+      <div className="flex flex-wrap justify-center gap-6">
+        <button 
+          onClick={onEntrenar} 
+          className="btn-premium"
+        >
+          Entrenar Ahora
+        </button>
+        <button 
+          onClick={onAleatorio} 
+          className="px-10 py-4 border border-white/10 text-white rounded-full font-bold uppercase tracking-widest text-[11px] hover:bg-white/5 transition-all"
+        >
+          Explorar Arsenal
+        </button>
       </div>
+
+      <div className="mt-32 w-[1px] h-20 bg-gradient-to-b from-accent-blue to-transparent opacity-50"></div>
     </div>
   );
 };
