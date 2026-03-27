@@ -20,12 +20,12 @@ export default async function handler(
   }
 
   try {
-    const blogId = "5031959192789589903";
+    const blogId = process.env.BLOG_ID || "5031959192789589903";
     const apiKey = process.env.BLOGGER_API_KEY;
     
     if (!apiKey) {
-      console.error("CRITICAL: BLOGGER_API_KEY is not defined in environment variables.");
-      return res.status(500).json({ error: "Server configuration error" });
+      console.error("CRITICAL: BLOGGER_API_KEY is not defined.");
+      return res.status(500).json({ error: "Missing BLOGGER_API_KEY in server environment" });
     }
 
     let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;

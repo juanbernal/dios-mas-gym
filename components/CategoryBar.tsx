@@ -8,13 +8,13 @@ interface CategoryBarProps {
 
 const CategoryBar: React.FC<CategoryBarProps> = ({ categories, selectedCategory, onSelect }) => {
   return (
-    <div className="flex flex-wrap gap-4 items-center">
+    <div className="flex flex-wrap gap-3 items-center">
       <button 
         onClick={() => onSelect(null)}
-        className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all italic ${
+        className={`px-6 py-3 tech-text text-[9px] font-black tracking-[0.2em] transition-all ${
           !selectedCategory 
-            ? 'bg-accent-blue text-white shadow-[4px_4px_0px_white]' 
-            : 'border-2 border-white/10 text-text-secondary hover:border-accent-blue hover:text-white'
+            ? 'bg-accent-blue-bright text-white shadow-[0_0_15px_var(--accent-blue-dim)]' 
+            : 'border border-white/10 text-text-dim hover:text-white hover:border-accent-blue/40'
         }`}
       >
         ARCHIVO COMPLETO
@@ -24,10 +24,10 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ categories, selectedCategory,
         <button 
           key={cat}
           onClick={() => onSelect(cat)}
-          className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all italic ${
+          className={`px-6 py-3 tech-text text-[9px] font-black tracking-[0.2em] transition-all ${
             selectedCategory === cat 
-              ? 'bg-accent-blue text-white shadow-[4px_4px_0px_white]' 
-              : 'border-2 border-white/10 text-text-secondary hover:border-accent-blue hover:text-white'
+              ? 'bg-accent-blue-bright text-white shadow-[0_0_15px_var(--accent-blue-dim)]' 
+              : 'border border-white/10 text-text-dim hover:text-white hover:border-accent-blue/40'
           }`}
         >
           {cat}

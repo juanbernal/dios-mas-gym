@@ -8,71 +8,53 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
   return (
-    <div className="flex flex-col lg:flex-row gap-20 items-center animate-fade-in-up py-10 lg:py-20">
-      <div className="flex-1 text-center lg:text-left z-10">
-        <div className="inline-flex items-center gap-4 mb-10 overflow-hidden group">
-           <div className="h-px w-12 bg-accent-blue group-hover:w-24 transition-all"></div>
-           <span className="text-[10px] font-black uppercase tracking-[0.5em] text-accent-blue animate-pulse">
-              FORJANDO GUERREROS
-           </span>
+    <div className="relative flex flex-col items-center justify-center py-24 lg:py-40 animate-fade-in-up overflow-hidden">
+      {/* Radar Pulse Background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] pointer-events-none opacity-20">
+         <div className="radar w-full h-full" style={{ animationDelay: '0s' }}></div>
+         <div className="radar w-full h-full" style={{ animationDelay: '1.3s' }}></div>
+         <div className="radar w-full h-full" style={{ animationDelay: '2.6s' }}></div>
+      </div>
+
+      <div className="max-w-5xl w-full text-center relative z-10">
+        <div className="flex justify-center mb-10">
+           <div className="px-6 py-2 border border-accent-blue/40 bg-accent-blue/5 text-[10px] tech-text tracking-[0.5em] text-accent-blue-bright flex items-center gap-4">
+              <span className="status-light online"></span>
+              ESTADO: OPERATIVO // MISIÓN EN CURSO
+           </div>
         </div>
         
-        <h1 className="h1-brutal text-7xl md:text-[12rem] mb-12 relative">
-          D•M•G <br />
-          <span className="text-stroke">ARSENAL</span>
+        <h1 className="h1-tactical mb-12 tech-text">
+          <span className="opacity-40">DIOS</span> MÁS <span className="text-accent-blue shadow-blue-500/20">GYM</span>
         </h1>
         
-        <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-20">
+        <p className="text-xl md:text-2xl font-black uppercase italic tracking-tighter mb-16 text-text-dim max-w-2xl mx-auto border-x border-white/5 px-10">
+          "{verse.t}"
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
           <button 
             onClick={onEntrenar} 
-            className="group relative px-12 py-6 bg-accent-blue text-white font-black uppercase text-xs tracking-[0.3em] clip-path-warrior-small overflow-hidden transition-all hover:translate-x-2 active:scale-95"
+            className="tactical-box px-12 py-6 flex flex-col items-center gap-3 group hover:border-accent-blue transition-all"
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            <span className="relative flex items-center gap-4">
-               Entrenar Espíritu <i className="fas fa-arrow-right"></i>
-            </span>
+             <span className="tech-text text-[9px] tracking-[0.3em] opacity-50 group-hover:text-accent-blue transition-colors">INICIAR ENTRENAMIENTO</span>
+             <span className="text-xl font-bold uppercase italic tracking-widest text-white group-hover:text-accent-blue">ESPÍRITU GUERRERO</span>
           </button>
-          
           <button 
             onClick={onAleatorio} 
-            className="px-12 py-6 border-2 border-white/10 text-white font-black uppercase text-xs tracking-[0.3em] hover:border-accent-blue hover:text-accent-blue transition-all"
+            className="tactical-box px-12 py-6 flex flex-col items-center gap-3 group hover:border-accent-blue transition-all"
           >
-            Aleatorio
+             <span className="tech-text text-[9px] tracking-[0.3em] opacity-50 group-hover:text-accent-blue transition-colors">OBJETIVO AL AZAR</span>
+             <span className="text-xl font-bold uppercase italic tracking-widest text-white group-hover:text-accent-blue">SELECCIÓN ALPHA</span>
           </button>
         </div>
       </div>
-
-      <div className="lg:w-[40rem] relative">
-         <div className="absolute -inset-10 bg-accent-blue/10 blur-[100px] rounded-full pointer-events-none animate-pulse"></div>
-         <div className="warrior-frame p-12 md:p-20 relative z-20 group">
-            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-blue"></div>
-            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-blue"></div>
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-blue"></div>
-            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-blue"></div>
-
-            <i className="fas fa-shield-halved text-5xl text-accent-blue/40 mb-12"></i>
-            <p className="text-3xl md:text-5xl font-black italic text-white leading-tight mb-12 tracking-tighter">
-              "{verse.t}"
-            </p>
-            
-            <div className="flex items-center gap-6">
-               <span className="h-px flex-1 bg-white/10"></span>
-               <span className="font-black text-accent-blue uppercase tracking-widest text-[11px] bg-accent-blue/5 px-6 py-2 border border-accent-blue/20">
-                 {verse.r}
-               </span>
-            </div>
-         </div>
-         
-         <div className="absolute -bottom-10 -left-10 text-white/5 text-[20rem] font-black -z-10 pointer-events-none select-none">
-            WAR
-         </div>
-      </div>
       
-      <style>{`
-        .clip-path-warrior-small {
-          clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 85% 100%, 0% 100%);
-        }
-      `}</style>
+      <div className="absolute top-10 left-10 tech-text text-[10px] text-white/5 rotate-90 origin-top-left flex gap-10">
+         <span>COORD: 31.633 -106.485</span>
+         <span>AUTH: DIOSMASGYM-ADMIN</span>
+         <span>VER: 3.0.0</span>
+      </div>
     </div>
   );
 };
