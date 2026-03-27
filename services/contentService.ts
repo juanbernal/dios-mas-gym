@@ -8,8 +8,12 @@ import { ContentPost } from '../types';
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string) => {
-      // Use absolute path for robustness or relative if same origin
-      const url = new URL('/api/arsenal', window.location.origin);
+      // PRO TIP: Si estamos en GitHub Pages (app.diosmasgym.com), 
+      // forzamos la llamada a Vercel donde reside la API.
+      const isVercel = window.location.hostname.includes('vercel');
+      const apiBase = isVercel ? window.location.origin : 'https://dios-mas-gym.vercel.app';
+      
+      const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());
       if (token) url.searchParams.append('pageToken', token);
 
