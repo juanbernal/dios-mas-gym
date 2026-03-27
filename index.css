@@ -1,22 +1,25 @@
-/* DiosMasGym - Cyber-Warrior Design System */
+/* DiosMasGym - Warrior Brutalism Design System */
 
 :root {
   --bg-deep: #020617;
-  --bg-slate: #0f172a;
+  --bg-slate: #0b1120;
   --accent-blue: #3b82f6;
   --accent-blue-glow: rgba(59, 130, 246, 0.4);
-  --accent-cyan: #06b6d4;
+  --accent-neon: #00f2ff;
   --accent-orange: #f97316;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: #64748b;
+  --glass-bg: rgba(7, 10, 20, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --font-main: 'Poppins', sans-serif;
 }
 
 body {
   font-family: var(--font-main);
   background-color: var(--bg-deep);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   color: var(--text-primary);
   margin: 0;
   padding: 0;
@@ -26,115 +29,77 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Smooth Scrolling & Scrollbars --- */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-deep);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-blue);
-}
-
-/* --- Animations --- */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes glowPulse {
-  0% { box-shadow: 0 0 5px var(--accent-blue-glow); }
-  50% { box-shadow: 0 0 20px var(--accent-blue-glow); }
-  100% { box-shadow: 0 0 5px var(--accent-blue-glow); }
-}
-
-@keyframes rotateBorder {
-  0% { border-color: var(--glass-border); }
-  50% { border-color: var(--accent-blue); }
-  100% { border-color: var(--glass-border); }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* --- Modern Glassmorphism --- */
-.cyber-glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-.cyber-glass-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.cyber-glass-hover:hover {
-  border-color: var(--accent-blue);
-  background: rgba(30, 41, 59, 0.8);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px -10px var(--accent-blue-glow);
-}
-
-/* --- Buttons & Interactive --- */
-.btn-cyber {
+/* --- Warrior Sharp Frames --- */
+.warrior-frame {
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  z-index: 1;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
-.btn-cyber::after {
+
+.warrior-frame::before {
   content: '';
   position: absolute;
-  top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  transition: 0.5s;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  background: linear-gradient(135deg, var(--accent-blue) 0%, transparent 30%, transparent 70%, var(--accent-blue) 100%);
   z-index: -1;
-}
-.btn-cyber:hover::after {
-  left: 100%;
-}
-
-.glow-blue {
-  text-shadow: 0 0 10px var(--accent-blue-glow);
+  opacity: 0.3;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
 }
 
-/* --- Card Styles --- */
-.post-card-premium {
-  border-radius: 2.5rem;
-  overflow: hidden;
-  background: var(--glass-bg);
+.warrior-card {
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);
+  background: var(--bg-slate);
   border: 1px solid var(--glass-border);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s ease;
 }
-.post-card-premium:hover {
+
+.warrior-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0px var(--accent-blue);
   border-color: var(--accent-blue);
-  transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
 }
 
 /* --- Typography --- */
-.h1-cyber {
+.h1-brutal {
   font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
   text-transform: uppercase;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+  font-style: italic;
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.3));
 }
 
-.subtitle-cyber {
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--accent-blue);
+.text-stroke {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+  color: transparent;
 }
+
+/* --- Grid & Layout --- */
+.warrior-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+/* --- Animations --- */
+@keyframes flicker {
+  0% { opacity: 0.9; }
+  5% { opacity: 0.4; }
+  10% { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+
+.flicker-on-hover:hover {
+  animation: flicker 0.2s infinite;
+}
+
+/* Custom Scroll --- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent-blue); }
+
+/* Magazine Layout Helpers */
+.magazine-span-2 { grid-column: span 2; }
+.magazine-row-2 { grid-row: span 2; }

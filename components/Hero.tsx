@@ -8,56 +8,71 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
   return (
-    <div className="flex flex-col lg:flex-row gap-16 items-center animate-fade-in-up">
-      <div className="flex-1 text-center lg:text-left">
-        <span className="subtitle-cyber mb-8 inline-block drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
-          Cuerpo y Espíritu • El Arsenal de Fe
-        </span>
-        <h1 className="h1-cyber text-6xl md:text-9xl mb-12 leading-[0.8] tracking-[-0.06em]">
-          Forja tu <br />
-          <span className="text-accent-blue italic relative">
-            Destino
-            <svg className="absolute -bottom-4 left-0 w-full h-4 text-accent-blue/40" viewBox="0 0 200 20" preserveAspectRatio="none">
-              <path d="M0,10 Q50,0 100,10 T200,10" fill="none" stroke="currentColor" strokeWidth="4" />
-            </svg>
-          </span>
+    <div className="flex flex-col lg:flex-row gap-20 items-center animate-fade-in-up py-10 lg:py-20">
+      <div className="flex-1 text-center lg:text-left z-10">
+        <div className="inline-flex items-center gap-4 mb-10 overflow-hidden group">
+           <div className="h-px w-12 bg-accent-blue group-hover:w-24 transition-all"></div>
+           <span className="text-[10px] font-black uppercase tracking-[0.5em] text-accent-blue animate-pulse">
+              FORJANDO GUERREROS
+           </span>
+        </div>
+        
+        <h1 className="h1-brutal text-7xl md:text-[12rem] mb-12 relative">
+          D•M•G <br />
+          <span className="text-stroke">ARSENAL</span>
         </h1>
         
-        <div className="flex flex-wrap justify-center lg:justify-start gap-6 mt-16">
+        <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-20">
           <button 
             onClick={onEntrenar} 
-            className="btn-cyber bg-accent-blue text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-[0_20px_40px_-10px_rgba(59,130,246,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
+            className="group relative px-12 py-6 bg-accent-blue text-white font-black uppercase text-xs tracking-[0.3em] clip-path-warrior-small overflow-hidden transition-all hover:translate-x-2 active:scale-95"
           >
-            <i className="fas fa-dumbbell group-hover:rotate-12 transition-transform"></i>
-            Entrenar Hoy
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+            <span className="relative flex items-center gap-4">
+               Entrenar Espíritu <i className="fas fa-arrow-right"></i>
+            </span>
           </button>
+          
           <button 
             onClick={onAleatorio} 
-            className="btn-cyber bg-glass-bg border border-glass-border px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:border-accent-blue hover:bg-slate-900 transition-all flex items-center gap-4"
+            className="px-12 py-6 border-2 border-white/10 text-white font-black uppercase text-xs tracking-[0.3em] hover:border-accent-blue hover:text-accent-blue transition-all"
           >
-            <i className="fas fa-shuffle"></i>
             Aleatorio
           </button>
         </div>
       </div>
 
-      <div className="lg:w-[35rem] cyber-glass p-12 md:p-16 rounded-[4rem] relative overflow-hidden group">
-        <div className="absolute -top-10 -right-10 text-accent-blue/5 text-[15rem] group-hover:scale-110 group-hover:rotate-6 transition-transform pointer-events-none">
-          <i className="fas fa-cross"></i>
-        </div>
-        
-        <i className="fas fa-quote-left text-4xl text-accent-blue mb-10 opacity-50"></i>
-        <p className="text-2xl md:text-3xl italic text-white leading-relaxed font-bold mb-10 relative z-10">
-          "{verse.t}"
-        </p>
-        
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="h-px flex-1 bg-glass-border"></div>
-          <span className="text-[10px] font-black text-accent-blue uppercase tracking-widest bg-accent-blue/5 px-6 py-2.5 rounded-2xl border border-accent-blue/10">
-            {verse.r}
-          </span>
-        </div>
+      <div className="lg:w-[40rem] relative">
+         <div className="absolute -inset-10 bg-accent-blue/10 blur-[100px] rounded-full pointer-events-none animate-pulse"></div>
+         <div className="warrior-frame p-12 md:p-20 relative z-20 group">
+            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-blue"></div>
+            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-blue"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-blue"></div>
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-blue"></div>
+
+            <i className="fas fa-shield-halved text-5xl text-accent-blue/40 mb-12"></i>
+            <p className="text-3xl md:text-5xl font-black italic text-white leading-tight mb-12 tracking-tighter">
+              "{verse.t}"
+            </p>
+            
+            <div className="flex items-center gap-6">
+               <span className="h-px flex-1 bg-white/10"></span>
+               <span className="font-black text-accent-blue uppercase tracking-widest text-[11px] bg-accent-blue/5 px-6 py-2 border border-accent-blue/20">
+                 {verse.r}
+               </span>
+            </div>
+         </div>
+         
+         <div className="absolute -bottom-10 -left-10 text-white/5 text-[20rem] font-black -z-10 pointer-events-none select-none">
+            WAR
+         </div>
       </div>
+      
+      <style>{`
+        .clip-path-warrior-small {
+          clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 85% 100%, 0% 100%);
+        }
+      `}</style>
     </div>
   );
 };
