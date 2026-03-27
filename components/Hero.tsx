@@ -8,36 +8,49 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-20 lg:py-40 text-center animate-zen px-6">
-      <div className="mb-12">
-        <span className="subtitle-zen">DIOS MÁS GYM // Misión Alpha</span>
+    <header className="relative h-screen flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/5">
+      {/* Background Glows */}
+      <div className="gradient-glow w-[600px] h-[600px] bg-blue-900/10 top-[-200px] left-[-200px]"></div>
+      <div className="gradient-glow w-[800px] h-[800px] bg-indigo-900/10 bottom-[-200px] right-[-200px]"></div>
+
+      <div className="section-container relative z-10 animate-fade-in">
+        <div className="mb-10 text-[11px] font-extrabold uppercase tracking-[0.6em] text-accent-blue opacity-50">
+           DIOS MÁS GYM // REFLECTIONS HUB
+        </div>
+        
+        <h1 className="h1-display mb-16 text-white drop-shadow-2xl">
+          Forjando el <br /> 
+          <span className="serif-italic pr-4 text-accent-blue">Espíritu</span> 
+          Valiente.
+        </h1>
+        
+        <div className="max-w-3xl mx-auto mb-20">
+           <p className="text-2xl md:text-3xl font-light leading-relaxed text-white/80 italic serif-italic border-l-2 border-accent-blue pl-8 italic mb-6">
+             "{verse.t}"
+           </p>
+           <span className="block text-[12px] font-black tracking-widest text-accent-blue uppercase">— {verse.r}</span>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-8">
+          <button 
+            onClick={onEntrenar} 
+            className="px-12 py-5 bg-white text-black font-extrabold uppercase text-[11px] tracking-[0.3em] hover:bg-accent-blue hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-2xl"
+          >
+            Sumergirse en el Arsenal
+          </button>
+          <button 
+            onClick={onAleatorio} 
+            className="px-12 py-5 border border-white/10 text-white font-extrabold uppercase text-[11px] tracking-[0.3em] hover:bg-white/5 transition-all"
+          >
+            Inspiración Aleatoria
+          </button>
+        </div>
       </div>
       
-      <h1 className="h1-hero mb-16 max-w-6xl">
-        Transforma <br /> Tu Espíritu.
-      </h1>
-      
-      <p className="text-xl md:text-2xl font-light text-text-secondary max-w-3xl mb-20 leading-relaxed italic">
-        "{verse.t}"
-      </p>
-
-      <div className="flex flex-wrap justify-center gap-6">
-        <button 
-          onClick={onEntrenar} 
-          className="btn-premium"
-        >
-          Entrenar Ahora
-        </button>
-        <button 
-          onClick={onAleatorio} 
-          className="px-10 py-4 border border-white/10 text-white rounded-full font-bold uppercase tracking-widest text-[11px] hover:bg-white/5 transition-all"
-        >
-          Explorar Arsenal
-        </button>
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
+         <i className="fas fa-arrow-down text-2xl"></i>
       </div>
-
-      <div className="mt-32 w-[1px] h-20 bg-gradient-to-b from-accent-blue to-transparent opacity-50"></div>
-    </div>
+    </header>
   );
 };
 

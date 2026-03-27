@@ -8,26 +8,26 @@ interface CategoryBarProps {
 
 const CategoryBar: React.FC<CategoryBarProps> = ({ categories, selectedCategory, onSelect }) => {
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-4 items-center">
       <button 
         onClick={() => onSelect(null)}
-        className={`px-6 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all ${
+        className={`px-8 py-3 text-[11px] font-black uppercase tracking-[0.4em] border-b-2 transition-all ${
           !selectedCategory 
-            ? 'bg-white text-black' 
-            : 'text-text-secondary hover:text-white hover:bg-white/5'
+            ? 'border-accent-blue text-white' 
+            : 'border-transparent text-white/40 hover:text-white'
         }`}
       >
-        Todo
+        ARCHIVO COMPLETO
       </button>
       
       {categories.map(cat => (
         <button 
           key={cat}
           onClick={() => onSelect(cat)}
-          className={`px-6 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all ${
+          className={`px-8 py-3 text-[11px] font-black uppercase tracking-[0.4em] border-b-2 transition-all ${
             selectedCategory === cat 
-              ? 'bg-white text-black' 
-              : 'text-text-secondary hover:text-white hover:bg-white/5'
+              ? 'border-accent-blue text-white' 
+              : 'border-transparent text-white/40 hover:text-white'
           }`}
         >
           {cat}

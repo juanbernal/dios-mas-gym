@@ -12,23 +12,23 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav }) => {
   return (
     <div 
-      className="zen-card group relative flex flex-col h-full animate-zen overflow-hidden" 
+      className="magazine-card group relative flex flex-col h-full overflow-hidden cursor-pointer" 
       onClick={onClick}
     >
-      <div className="relative h-72 overflow-hidden">
+      <div className="relative h-[450px] overflow-hidden">
         <img 
-          src={post.images?.[0]?.url || 'https://placehold.co/800x600/1e293b/3b82f6?text=DiosMasGym'} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+          src={post.images?.[0]?.url || 'https://placehold.co/800x1200/02040a/3b82f6?text=Reflections'} 
+          className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000" 
           alt={post.title} 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent opacity-60"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/80 via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
         
         <button 
           onClick={onFav} 
-          className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full transition-all ${
+          className={`absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full transition-all ${
             isFav 
-              ? 'bg-white text-black shadow-lg scale-110' 
-              : 'bg-black/20 text-white/50 backdrop-blur-md border border-white/10 hover:text-white hover:bg-black/40'
+              ? 'bg-accent-blue text-white shadow-2xl scale-125' 
+              : 'bg-black/40 text-white/50 border border-white/10 backdrop-blur-md hover:bg-white hover:text-black'
           }`}
         >
           <i className={`${isFav ? 'fas' : 'far'} fa-star`}></i>
@@ -36,24 +36,25 @@ const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav
       </div>
 
       <div className="p-10 flex-1 flex flex-col">
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-4 mb-6">
            {post.labels?.slice(0, 1).map(l => (
-              <span key={l} className="text-[10px] font-bold uppercase tracking-widest text-accent-blue/60">
+              <span key={l} className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-blue/80">
                 {l}
               </span>
            ))}
         </div>
         
-        <h4 className="font-bold text-xl mb-12 group-hover:text-white transition-colors line-clamp-2 leading-snug">
+        <h4 className="font-serif text-3xl font-bold mb-10 group-hover:text-accent-blue transition-colors leading-tight serif-italic pr-4">
           {post.title}
         </h4>
 
-        <div className="mt-auto flex items-center justify-between pt-6 border-t border-white/5">
-          <div className="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-             <i className="far fa-clock"></i> {post.readingTime || 5} MIN
+        <div className="mt-auto flex items-center justify-between pt-8 border-t border-white/5">
+          <div className="text-[11px] font-extrabold uppercase tracking-widest text-white/30 flex items-center gap-3">
+             <span className="h-1.5 w-1.5 bg-accent-blue rounded-full animate-pulse"></span>
+             Reflexión Activa
           </div>
-          <div className="flex items-center gap-2 text-white font-bold uppercase text-[10px] tracking-widest opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
-             LEER MÁS <i className="fas fa-chevron-right text-[8px]"></i>
+          <div className="flex items-center gap-2 text-white font-black uppercase text-[10px] tracking-widest opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
+             Acceder <i className="fas fa-arrow-right text-[8px] text-accent-blue"></i>
           </div>
         </div>
       </div>

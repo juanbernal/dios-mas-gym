@@ -1,102 +1,96 @@
-/* DiosMasGym - Zen-Warrior Ultra-Premium (v4.0) */
+/* DiosMasGym - Reflections Hub (v5.0) Magazine Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
 
 :root {
-  --bg-deep: #020617;
-  --bg-card: #0b1120;
+  --bg-deep: #02040a;
+  --bg-accent: #0a0c14;
   --accent-blue: #3b82f6;
   --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --text-dim: rgba(255, 255, 255, 0.6);
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Inter', sans-serif;
+  --section-spacing: clamp(4rem, 10vw, 10rem);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
 body {
-  font-family: var(--font-main);
+  font-family: var(--font-sans);
   background-color: var(--bg-deep);
   color: var(--text-primary);
   margin: 0; padding: 0;
-  height: 100vh; width: 100vw;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.6;
 }
 
-/* --- Clean Modern Shapes --- */
-.zen-glass {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
+/* --- Sectioning --- */
+.section-wrapper {
+  padding: var(--section-spacing) 0;
+  position: relative;
 }
 
-.zen-card {
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.zen-card:hover {
-  transform: translateY(-8px);
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+.section-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
 /* --- Typography --- */
-.h1-hero {
-  font-weight: 800;
-  font-size: clamp(4rem, 10vw, 8rem);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.h1-display {
+  font-family: var(--font-serif);
+  font-size: clamp(3.5rem, 12vw, 10rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
 }
 
-.subtitle-zen {
-  font-size: 1.1rem;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  font-weight: 600;
+.h2-display {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1.1;
+  margin-bottom: 2rem;
 }
 
-/* --- Layout --- */
-.zen-grid {
+.serif-italic { font-family: var(--font-serif); font-style: italic; }
+
+/* --- Special Effects --- */
+.magazine-card {
+  background: var(--bg-accent);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.magazine-card:hover {
+  transform: translateY(-10px);
+}
+
+.gradient-glow {
+  position: absolute;
+  filter: blur(120px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Navbar */
+.nav-blur {
+  background: rgba(2, 4, 10, 0.7);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Grid Magazine Layout */
+.magazine-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(12, 1fr);
   gap: 2.5rem;
 }
 
-/* --- Buttons --- */
-.btn-premium {
-  padding: 1rem 2.5rem;
-  background: #ffffff;
-  color: #000000;
-  border-radius: 9999px;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.1em;
-  transition: all 0.3s ease;
+.grid-col-8 { grid-column: span 8; }
+.grid-col-4 { grid-column: span 4; }
+.grid-col-6 { grid-column: span 6; }
+.grid-col-12 { grid-column: span 12; }
+
+@media (max-width: 1024px) {
+  .grid-col-8, .grid-col-4, .grid-col-6 { grid-column: span 12; }
 }
 
-.btn-premium:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-}
-
-/* Animations --- */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-zen {
-  animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
