@@ -1,4 +1,4 @@
-/** Version: 5.0.0 - Reflections Hub Magazine **/
+/** Version: 5.0.1 - Reflections Hub Magazine (Refinement) **/
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
