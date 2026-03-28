@@ -38,6 +38,7 @@ export interface AppState {
   allPosts: ContentPost[];
   musicDiosmasgym: MusicItem[];
   musicJuan614: MusicItem[];
+  activeSong: MusicItem | null;
   loading: boolean;
   selectedPost: ContentPost | null;
   searchTerm: string;

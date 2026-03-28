@@ -6,6 +6,8 @@ import Hero from './components/Hero';
 import PostCard from './components/PostCard';
 import MusicCard from './components/MusicCard';
 import CategoryBar from './components/CategoryBar';
+import GlobalPlayer from './components/GlobalPlayer';
+import ArtistPromo from './components/ArtistPromo';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -30,6 +32,7 @@ const App: React.FC = () => {
       allPosts: [],
       musicDiosmasgym: [],
       musicJuan614: [],
+      activeSong: null,
       loading: true,
       selectedPost: null,
       searchTerm: '',
@@ -134,6 +137,25 @@ const App: React.FC = () => {
     state.allPosts.forEach(p => p.labels?.forEach(label => labelCounts[label] = (labelCounts[label] || 0) + 1));
     return Object.entries(labelCounts).sort((a, b) => b[1] - a[1]).map(([label]) => label).slice(0, 10);
   }, [state.allPosts]);
+  
+  // SEO & Redirección de URLs antiguas (Blogger/Google)
+  useEffect(() => {
+    const path = location.pathname;
+    
+    // 1. Manejar formato de Blogger: /YYYY/MM/slug.html
+    const bloggerPathMatch = path.match(/\/\d{4}\/\d{2}\/(.+)\.html/);
+    if (bloggerPathMatch && bloggerPathMatch[1]) {
+      const slug = bloggerPathMatch[1];
+      navigate(`/post/${slug}`, { replace: true });
+      return;
+    }
+
+    // 2. Manejar parámetros de móviles antiguos (?m=1)
+    if (location.search.includes('m=1') && path === '/') {
+      // Limpiar el parámetro m=1 para una URL más limpia
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
 
   if (showSplash) {
     return (
@@ -217,14 +239,12 @@ const App: React.FC = () => {
                              </div>
                              <h5 className="font-serif text-xl font-bold mb-1 truncate">{randomMusicSong.name}</h5>
                              <p className="text-[9px] text-white/40 uppercase tracking-widest mb-4">Sugerencia Aleatoria</p>
-                             <a 
-                                href={randomMusicSong.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
+                             <button 
+                                onClick={() => setState(p => ({ ...p, activeSong: randomMusicSong }))}
                                 className="inline-block w-full text-center py-3 bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.3em] hover:bg-white transition-colors"
                              >
                                Reproducir Ahora
-                             </a>
+                             </button>
                            </div>
                          )}
                       </div>
@@ -232,7 +252,10 @@ const App: React.FC = () => {
                       <div className="grid grid-cols-12 gap-6">
                          {state.musicDiosmasgym.slice(0, 6).map(item => (
                             <div key={item.id} className="col-span-12 md:col-span-6 lg:col-span-4">
-                               <MusicCard item={item} />
+                               <MusicCard 
+                                 item={item} 
+                                 onPlay={() => setState(p => ({ ...p, activeSong: item }))} 
+                               />
                             </div>
                          ))}
                       </div>
@@ -268,7 +291,10 @@ const App: React.FC = () => {
                       <div className="grid grid-cols-12 gap-6">
                          {state.musicJuan614.slice(0, 6).map(item => (
                             <div key={item.id} className="col-span-12 md:col-span-6 lg:col-span-4">
-                               <MusicCard item={item} />
+                               <MusicCard 
+                                 item={item} 
+                                 onPlay={() => setState(p => ({ ...p, activeSong: item }))} 
+                               />
                             </div>
                          ))}
                       </div>
@@ -419,6 +445,11 @@ const App: React.FC = () => {
         </Routes>
       </main>
 
+      <GlobalPlayer 
+        activeSong={state.activeSong} 
+        onClear={() => setState(p => ({ ...p, activeSong: null }))} 
+      />
+
       {/* Footer */}
       <footer className="py-40 bg-[#05070a] relative overflow-hidden border-t border-white/5">
          <div className="section-container text-center relative z-10">
@@ -491,6 +522,9 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
       <article className="py-24 md:py-40 bg-white">
          <div className="max-w-4xl mx-auto px-8 md:px-0">
             <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light selection:bg-[#c5a059]/30" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
+            
+            {/* Promotional Banner (Randomized Artist) */}
+            <ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} />
          </div>
       </article>
 

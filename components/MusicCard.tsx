@@ -3,11 +3,12 @@ import { MusicItem } from '../types';
 
 interface MusicCardProps {
   item: MusicItem;
+  onPlay: () => void;
 }
 
-const MusicCard: React.FC<MusicCardProps> = ({ item }) => {
-  const isYouTube = item.url.includes('youtube.com') || item.url.includes('youtu.be');
-  const isSpotify = item.url.includes('spotify.com');
+const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
+  const isJuan = item.artist.toLowerCase().includes('juan');
+  const artistUrl = isJuan ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/';
 
   return (
     <div className="group relative bg-[#0f111a] border border-white/5 rounded-sm p-4 hover:border-[#c5a059]/30 transition-all duration-500 overflow-hidden">
@@ -16,7 +17,10 @@ const MusicCard: React.FC<MusicCardProps> = ({ item }) => {
       
       <div className="flex gap-6 items-center">
         {/* Cover Image */}
-        <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-700">
+        <div 
+          className="relative w-24 h-24 flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-700 cursor-pointer"
+          onClick={onPlay}
+        >
           <img 
             src={item.cover} 
             alt={item.name} 
@@ -54,14 +58,22 @@ const MusicCard: React.FC<MusicCardProps> = ({ item }) => {
           </p>
           
           <div className="flex gap-4 mt-3">
-            <a 
-              href={item.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <button 
+              onClick={onPlay}
               className="text-[#c5a059] text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 hover:text-white transition-colors"
             >
-              <i className={`${isYouTube ? 'fab fa-youtube' : isSpotify ? 'fab fa-spotify' : 'fas fa-link'} text-xs`}></i>
+              <i className="fas fa-play text-[10px]"></i>
               Reproducir
+            </button>
+            
+            <a 
+              href={artistUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white/20 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 hover:text-[#c5a059] transition-colors ml-auto"
+            >
+              Ver más
+              <i className="fas fa-external-link-alt text-[8px]"></i>
             </a>
           </div>
         </div>
