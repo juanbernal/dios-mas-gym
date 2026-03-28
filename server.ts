@@ -2,6 +2,9 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.local" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +31,13 @@ async function startServer() {
       if (pageToken) url += `&pageToken=${pageToken}`;
 
       console.log(`Blogger API Request: maxResults=${maxResults}, pageToken=${pageToken || 'none'}`);
-
-      const response = await fetch(url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Referer': 'https://dios-mas-gym.vercel.app',
+          'Accept': 'application/json'
+        }
+      });
       if (!response.ok) {
         const errData = await response.json();
         console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));

@@ -40,7 +40,12 @@ export default async function handler(
 
     console.log(`API Proxy Request: limit=${limit}, pageToken=${pageToken || 'none'}`);
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Referer': 'https://dios-mas-gym.vercel.app',
+        'Accept': 'application/json'
+      }
+    });
     if (!response.ok) {
       const errData = await response.json();
       console.error("Blogger API Error Status:", response.status);
