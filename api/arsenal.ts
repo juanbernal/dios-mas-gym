@@ -44,15 +44,21 @@ export default async function handler(
       headers: {
         'Referer': 'https://app.diosmasgym.com',
         'Origin': 'https://app.diosmasgym.com',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'User-Agent': 'Vercel-Server-Function'
       }
     });
+    
     if (!response.ok) {
-      const errData = await response.json();
-      console.error("Blogger API Error Status:", response.status);
+      const errData: any = await response.json().catch(() => ({}));
+      console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));
+      
+      // Pass-through the exact error message from Google to the frontend for debugging
+      const errorMessage = errData.error?.message || `Blogger API responded with ${response.status}`;
       return res.status(response.status).json({ 
-        error: "Failed to fetch data from source",
-        message: process.env.NODE_ENV === 'development' ? errData.error?.message : undefined
+        error: errorMessage,
+        details: errData.error || null,
+        debug_url: url.replace(apiKey || '', 'HIDDEN')
       });
     }
     
