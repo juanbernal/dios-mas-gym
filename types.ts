@@ -23,9 +23,21 @@ export interface ContentApiResponse {
 
 export type AppView = 'inicio' | 'reflexiones' | 'categorias' | 'favoritos' | 'musica' | 'testimonios' | 'comunidad' | 'acerca';
 
+export interface MusicItem {
+  id: string;
+  name: string;
+  artist: string;
+  url: string;
+  cover: string;
+  type: string;
+  date: string;
+}
+
 export interface AppState {
   currentView: AppView;
   allPosts: ContentPost[];
+  musicDiosmasgym: MusicItem[];
+  musicJuan614: MusicItem[];
   loading: boolean;
   selectedPost: ContentPost | null;
   searchTerm: string;
