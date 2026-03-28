@@ -57,13 +57,13 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     headers.forEach((header, index) => {
       let val = (values[index] || '').replace(/^"|"$/g, '').trim();
       
-      // Map common header variations
-      if (header.includes('nombre')) entry.name = val;
-      if (header.includes('artista')) entry.artist = val;
-      if (header.includes('url')) entry.url = val;
+      // Map common header variations specifically
+      if (header === 'nombre') entry.name = val;
+      if (header === 'artista') entry.artist = val;
+      if (header === 'url spotify' || header === 'url youtube' || (header === 'url' && !entry.url)) entry.url = val;
       if (header.includes('portada')) entry.cover = val;
-      if (header.includes('tipo')) entry.type = val;
-      if (header.includes('fecha')) entry.date = val;
+      if (header === 'tipo') entry.type = val;
+      if (header === 'fecha') entry.date = val;
     });
 
     if (entry.name && entry.url) {

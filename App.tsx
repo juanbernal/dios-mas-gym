@@ -490,20 +490,40 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
   const { slug } = useParams();
   const navigate = useNavigate();
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const load = async () => {
       if (!slug) return;
+      setError(null);
+      
       const cached = state.allPosts.find(p => getSlugFromUrl(p.url) === slug);
       if (cached && cached.content && !cached.content.endsWith('...')) {
         setState((p: any) => ({ ...p, selectedPost: cached }));
         return;
       }
+      
       const fetched = cached ? await fetchPostById(cached.id) : await fetchPostBySlug(slug);
-      if (fetched) setState((p: any) => ({ ...p, selectedPost: fetched }));
+      if (fetched) {
+        setState((p: any) => ({ ...p, selectedPost: fetched }));
+      } else {
+        setError("Lo sentimos, no pudimos encontrar esta reflexión en El Arsenal.");
+      }
     };
     load();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
+
+  if (error) {
+    return (
+      <div className="py-80 bg-[#05070a] text-center px-8">
+        <h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2>
+        <button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-[#c5a059] transition-colors">
+          Explorar otras reflexiones
+        </button>
+      </div>
+    );
+  }
 
   if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Cargando la inspiración...</div>;
 

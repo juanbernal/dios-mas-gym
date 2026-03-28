@@ -5,6 +5,11 @@ import { ContentPost } from '../types';
  * Recuperación de datos desde nuestro servidor (Proxy Seguro).
  * Esto protege la API Key y permite cargar grandes cantidades de datos.
  */
+const getSlugFromUrl = (url: string) => {
+  if (!url) return '';
+  return url.split('/').pop()?.replace('.html', '') || '';
+};
+
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string) => {
@@ -118,10 +123,10 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
     const processed = processApiV3Data(data);
     
     const exactMatch = processed.posts.find(p => {
-      const pSlug = p.url.split('/').pop()?.replace('.html', '');
-      return pSlug === slug;
+      const pSlug = getSlugFromUrl(p.url).toLowerCase();
+      return pSlug === slug.toLowerCase() || pSlug.includes(slug.toLowerCase()) || slug.toLowerCase().includes(pSlug);
     });
-    return exactMatch || null;
+    return exactMatch || processed.posts[0] || null;
   } catch (e) {
     console.error("Fetch post by slug failed", e);
     return null;
