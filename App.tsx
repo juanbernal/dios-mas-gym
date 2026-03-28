@@ -114,7 +114,7 @@ const App: React.FC = () => {
 
   if (showSplash) {
     return (
-      <div className="bg-bg-deep fixed inset-0 z-[10000] flex items-center justify-center font-serif italic text-white/10 text-9xl select-none">
+      <div className="bg-bg-deep fixed inset-0 z-[10000] flex items-center justify-center font-serif italic text-white/40 text-9xl select-none">
         Reflections
       </div>
     );

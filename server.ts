@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config({ path: ".env.local" });
 
@@ -11,7 +12,13 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 3099;
+
+  // Logging middleware
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
 
   // API route to proxy the Blogger API v3 (Secure)
   app.get("/api/arsenal", async (req, res) => {
@@ -34,7 +41,8 @@ async function startServer() {
       
       const response = await fetch(url, {
         headers: {
-          'Referer': 'https://dios-mas-gym.vercel.app',
+          'Referer': 'https://app.diosmasgym.com',
+          'Origin': 'https://app.diosmasgym.com',
           'Accept': 'application/json'
         }
       });
@@ -60,16 +68,35 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+
+    app.use(async (req, res, next) => {
+      const url = req.originalUrl;
+      // Skip API and internal
+      if (url.startsWith('/api/') || url.includes('@vite') || url.includes('node_modules')) {
+        return next();
+      }
+
+      try {
+        const indexPath = path.join(__dirname, 'index.html');
+        let template = fs.readFileSync(indexPath, 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
-    // Serve static files in production
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+    // Production
+    const distPath = path.join(__dirname, "dist");
+    app.use(express.static(distPath));
+    app.get("/*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Server running at http://localhost:${PORT}`);
   });
 }
 

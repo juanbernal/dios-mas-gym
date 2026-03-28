@@ -12,7 +12,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       // forzamos la llamada a Vercel donde reside la API.
       const isVercel = window.location.hostname.includes('vercel');
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://dios-mas-gym.vercel.app');
+      const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
       
       const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());

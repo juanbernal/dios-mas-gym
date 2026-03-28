@@ -42,7 +42,8 @@ export default async function handler(
 
     const response = await fetch(url, {
       headers: {
-        'Referer': 'https://dios-mas-gym.vercel.app',
+        'Referer': 'https://app.diosmasgym.com',
+        'Origin': 'https://app.diosmasgym.com',
         'Accept': 'application/json'
       }
     });
