@@ -53,13 +53,19 @@ export default async function handler(
       const errData: any = await response.json().catch(() => ({}));
       console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));
       
-      // Pass-through the exact error message from Google to the frontend for debugging
-      const errorMessage = errData.error?.message || `Blogger API responded with ${response.status}`;
-      return res.status(response.status).json({ 
-        error: errorMessage,
-        details: errData.error || null,
-        debug_url: url.replace(apiKey || '', 'HIDDEN')
-      });
+        // Pass-through the exact error message from Google to the frontend for debugging
+        const errorMessage = errData.error?.message || `Blogger API responded with ${response.status}`;
+        return res.status(response.status).json({ 
+          error: errorMessage,
+          key_info: {
+            present: !!apiKey,
+            length: apiKey?.length,
+            start: apiKey?.substring(0, 5),
+            end: apiKey?.substring((apiKey?.length || 0) - 5)
+          },
+          details: errData.error || null,
+          debug_url: url.replace(apiKey || '', 'HIDDEN')
+        });
     }
     
     const data = await response.json();
