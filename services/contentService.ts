@@ -35,14 +35,10 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         const data = await response.json();
         const processed = processApiV3Data(data);
         
-        // Guardar en caché solo si es la carga principal y comprimir para evitar cuota excedida
+        // Guardar en caché solo si es la carga principal
         if (processed.posts.length > 0 && !token && limit >= 20) {
-          const lightPosts = processed.posts.map(({ content, ...rest }) => ({
-            ...rest,
-            content: content.length > 1000 ? content.substring(0, 1000) + '...' : content
-          }));
           try {
-            localStorage.setItem('dg_posts_cache', JSON.stringify(lightPosts));
+            localStorage.setItem('dg_posts_cache', JSON.stringify(processed.posts));
             localStorage.setItem('dg_posts_cache_time', Date.now().toString());
           } catch (e) {
             console.warn("Could not save to cache (quota likely exceeded)", e);
@@ -89,11 +85,19 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 };
 
 export const fetchPostById = async (postId: string): Promise<ContentPost | null> => {
-  // We should ideally have a proxy for this too if we want full security
-  // For now, we'll try to use the general arsenal fetch or a specialized proxy
   try {
-    const data = await fetchArsenalData(50); // Try to find it in the general data
-    return data.posts.find(p => p.id === postId) || null;
+    const isVercel = window.location.hostname.includes('vercel');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+    
+    // We fetch via the proxy but we could also have a specialized endpoint if needed.
+    // For now, we'll just use the arsenal list and find it, but skip cache.
+    const url = new URL('/api/arsenal', apiBase);
+    url.searchParams.append('maxResults', '50');
+    const response = await fetch(url.toString());
+    const data = await response.json();
+    const processed = processApiV3Data(data);
+    return processed.posts.find(p => p.id === postId) || null;
   } catch (e) {
     console.error("Fetch post by ID failed", e);
     return null;
@@ -102,8 +106,18 @@ export const fetchPostById = async (postId: string): Promise<ContentPost | null>
 
 export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
   try {
-    const data = await fetchArsenalData(50);
-    const exactMatch = data.posts.find(p => {
+    const isVercel = window.location.hostname.includes('vercel');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+
+    const url = new URL('/api/arsenal', apiBase);
+    url.searchParams.append('maxResults', '20');
+    url.searchParams.append('q', slug.replace(/-/g, ' '));
+    const response = await fetch(url.toString());
+    const data = await response.json();
+    const processed = processApiV3Data(data);
+    
+    const exactMatch = processed.posts.find(p => {
       const pSlug = p.url.split('/').pop()?.replace('.html', '');
       return pSlug === slug;
     });

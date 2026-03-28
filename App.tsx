@@ -224,7 +224,10 @@ const App: React.FC = () => {
                             </div>
                             <div>
                                <h2 className="font-serif italic text-5xl md:text-7xl">Diosmasgym <span className="text-[#c5a059]">Records</span></h2>
-                               <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mt-2">Catálogo Musical Oficial</p>
+                               <div className="flex items-center gap-4 mt-2">
+                                  <span className="px-3 py-1 bg-[#c5a059] text-black text-[8px] font-black uppercase tracking-widest">Música Urbana</span>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Catálogo Oficial</p>
+                               </div>
                             </div>
                          </div>
                          
@@ -282,7 +285,10 @@ const App: React.FC = () => {
                          <div>
                             <span className="bg-[#c5a059] text-black text-[9px] font-black px-4 py-1 tracking-[0.3em] uppercase mb-4 inline-block">Misión Especial</span>
                             <h2 className="font-serif text-5xl md:text-8xl italic">Juan 614</h2>
-                            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mt-4">Discografía Estratégica</p>
+                            <div className="flex items-center gap-4 mt-4">
+                               <span className="px-3 py-1 border border-[#c5a059] text-[#c5a059] text-[8px] font-black uppercase tracking-widest">Corridos Tumbados</span>
+                               <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Discografía Estratégica</p>
+                            </div>
                          </div>
                          <p className="text-[#94a3b8] max-w-sm text-xs leading-relaxed font-medium italic">
                             Reportes tácticos y enseñanzas directas bajo la frecuencia 6:14 para el fortalecimiento del espíritu.
@@ -524,7 +530,17 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
             <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light selection:bg-[#c5a059]/30" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
             
             {/* Promotional Banner (Randomized Artist) */}
-            <ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} />
+            {(() => {
+               const promoArtist = Math.random() > 0.5 ? 'diosmasgym' : 'juan614';
+               const catalog = promoArtist === 'diosmasgym' ? state.musicDiosmasgym : state.musicJuan614;
+               return (
+                  <ArtistPromo 
+                    artist={promoArtist} 
+                    musicCatalog={catalog}
+                    onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))}
+                  />
+               );
+            })()}
          </div>
       </article>
 

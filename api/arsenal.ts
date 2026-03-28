@@ -12,6 +12,7 @@ export default async function handler(
   // 2. Security: Input Validation
   const maxResults = req.query.maxResults || '50';
   const pageToken = req.query.pageToken;
+  const q = req.query.q;
 
   // Validate maxResults is a number and within range 1-50
   const limit = parseInt(maxResults as string, 10);
@@ -29,6 +30,10 @@ export default async function handler(
     }
 
     let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
+    
+    if (q) {
+      url += `&q=${encodeURIComponent(q as string)}`;
+    }
     if (pageToken) {
       // Basic sanitization for pageToken (alphanumeric check)
       if (typeof pageToken === 'string' && /^[a-zA-Z0-9_-]+$/.test(pageToken)) {
