@@ -588,10 +588,16 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
          <div className="section-container">
             <h3 className="font-serif italic text-4xl mb-16 text-white/40">Continuar el Entrenamiento</h3>
             <div className="grid grid-cols-12 gap-8">
-               {state.allPosts
-                  .filter(p => p.id !== state.selectedPost?.id && p.labels?.some(l => state.selectedPost?.labels?.includes(l)))
-                  .slice(0, 3)
-                  .map(p => (
+               {(() => {
+                  const related = state.allPosts
+                    .filter(p => p.id !== state.selectedPost?.id && p.labels?.some(l => state.selectedPost?.labels?.includes(l)))
+                    .slice(0, 3);
+                  
+                  const displayPosts = related.length > 0 
+                    ? related 
+                    : state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3);
+
+                  return displayPosts.map(p => (
                      <div key={p.id} className="col-span-12 lg:col-span-4">
                         <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
                           isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} 
@@ -599,7 +605,8 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
                             ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] 
                           })); }} />
                      </div>
-                  ))}
+                  ));
+               })()}
             </div>
          </div>
       </section>
