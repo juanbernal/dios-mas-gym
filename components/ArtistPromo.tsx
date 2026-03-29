@@ -17,20 +17,73 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
   const isDios = artist === 'diosmasgym';
   const name = isDios ? 'Diosmasgym' : 'Juan 614';
   const genre = isDios ? 'Música Urbana' : 'Corridos Tumbados';
-  const url = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
   
-  const socialLinks = isDios ? {
-    youtube: 'https://www.youtube.com/@DiosmasgymRecords',
-    instagram: 'https://www.instagram.com/diosmasgym/'
+  const links = isDios ? {
+    youtube: 'https://www.youtube.com/@Diosmasgym',
+    tiktok: 'https://www.tiktok.com/@diosmasgym',
+    spotify: 'https://open.spotify.com/artist/4X9R7E7v1u8V2zG9I5X0A6',
+    apple: 'https://music.apple.com/us/artist/diosmasgym/1570950669'
   } : {
-    youtube: 'https://www.youtube.com/@Juan614',
-    instagram: 'https://www.instagram.com/juan614_oficial/'
+    youtube: 'https://www.youtube.com/@Juan614oficial',
+    tiktok: 'https://www.tiktok.com/@juan614_oficial',
+    spotify: 'https://open.spotify.com/search/Juan%20614',
+    apple: 'https://music.apple.com/us/search?term=Juan%20614'
   };
 
-  // Pick a random song from the catalog for recommendation
+  const platforms = [
+    { id: 'youtube', name: 'YouTube', icon: 'fa-youtube', color: '#ff0000', link: links.youtube, text: 'Suscríbete al Canal' },
+    { id: 'tiktok', name: 'TikTok', icon: 'fa-tiktok', color: '#000000', link: links.tiktok, text: 'Síguenos en TikTok' },
+    { id: 'spotify', name: 'Spotify', icon: 'fa-spotify', color: '#1DB954', link: links.spotify, text: 'Escucha en Spotify' },
+    { id: 'apple', name: 'Apple Music', icon: 'fa-apple', color: '#fc3c44', link: links.apple, text: 'Apple Music' }
+  ];
+
+  // Pick a random song from the catalog for recommendation (only in 'full' mode)
   const recommendedSong = musicCatalog.length > 0 
     ? musicCatalog[Math.floor(Math.random() * musicCatalog.length)] 
     : null;
+
+  if (mode === 'social') {
+    return (
+      <div className="my-16">
+        <div className="text-center mb-10">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] mb-4">Conecta con el Artista</h4>
+          <h3 className="font-serif italic text-4xl text-black">Únete a la familia <span className="text-[#c5a059]">{name}</span></h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {platforms.map(p => (
+            <a 
+              key={p.id}
+              href={p.link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden bg-white border border-black/5 p-6 rounded-xl transition-all hover:shadow-2xl hover:-translate-y-1 block"
+            >
+              <div 
+                className="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 opacity-[0.03] transition-transform group-hover:scale-150 duration-700"
+                style={{ color: p.color }}
+              >
+                <i className={`fab ${p.icon} text-8xl`}></i>
+              </div>
+              
+              <div className="flex items-center gap-6 relative z-10">
+                <div 
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-lg transition-transform group-hover:rotate-12"
+                  style={{ backgroundColor: p.color }}
+                >
+                  <i className={`fab ${p.icon} text-xl`}></i>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">{p.name}</div>
+                  <div className="text-xs font-bold text-black uppercase tracking-wider">{p.text}</div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="my-24 p-8 md:p-16 bg-[#0a0c14] border border-[#c5a059]/10 rounded-xl relative overflow-hidden group shadow-2xl">
@@ -46,34 +99,44 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
              <span className="px-4 py-1 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                {genre}
              </span>
-             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">{mode === 'social' ? 'Sigue al Artista' : 'Promoción Oficial'}</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 text-black">Promoción Oficial</span>
           </div>
 
           <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-8 leading-tight">
-            {mode === 'social' ? `Únete a la familia de` : `Escucha a`} <br /> <span className="text-[#c5a059]">{name}</span>
+            Escucha a <br /> <span className="text-[#c5a059]">{name}</span>
           </h3>
           
-          <div className="flex items-center justify-center lg:justify-start gap-6 mb-12">
-             <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-red-500 hover:border-red-500/30 transition-all hover:scale-110">
-                <i className="fab fa-youtube text-xl"></i>
-             </a>
-             <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-pink-500 hover:border-pink-500/30 transition-all hover:scale-110">
-                <i className="fab fa-instagram text-xl"></i>
-             </a>
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-12">
+             {platforms.map(p => (
+               <a 
+                 key={p.id}
+                 href={p.link} 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 title={p.name}
+                 className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all hover:scale-110"
+                 style={{ '--hover-bg': p.color } as any}
+                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = p.color}
+                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+               >
+                  <i className={`fab ${p.icon} text-lg`}></i>
+               </a>
+             ))}
           </div>
 
-          <a 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.4em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_40px_rgba(197,160,89,0.2)] rounded-full"
-          >
-            Portal de {name}
-          </a>
+          <div className="flex flex-col sm:flex-row gap-6">
+            <a 
+              href={isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/'} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.4em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_40px_rgba(197,160,89,0.2)] rounded-full text-center"
+            >
+              Portal de {name}
+            </a>
+          </div>
         </div>
         
         {/* Right Side: Recommendation */}
-        {mode === 'full' && (
         <div className="w-full lg:w-96">
            {recommendedSong ? (
              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative group/card">
@@ -95,7 +158,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
                    </div>
                    
                    <h4 className="font-serif text-xl font-bold text-white text-center mb-1 group-hover/card:text-[#c5a059] transition-colors">{recommendedSong.name}</h4>
-                   <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Escucha esta canción ahora</p>
+                   <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6 text-center">Escucha esta canción ahora</p>
                    
                    <button 
                       onClick={() => onPlaySong?.(recommendedSong)}
@@ -112,7 +175,6 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
              </div>
            )}
         </div>
-        )}
       </div>
     </div>
   );
