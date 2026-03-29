@@ -25,9 +25,9 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
     apple: 'https://music.apple.com/us/artist/diosmasgym/1789494422'
   } : {
     youtube: 'https://www.youtube.com/@Juan614oficial',
-    tiktok: 'https://www.tiktok.com/@juan614_oficial',
-    spotify: 'https://open.spotify.com/search/Juan%20614',
-    apple: 'https://music.apple.com/us/search?term=Juan%20614'
+    tiktok: 'https://www.tiktok.com/@juan614oficial',
+    spotify: 'https://open.spotify.com/intl-es/artist/0vEKa5AOcBkQVXNfGb2FNh',
+    apple: 'https://music.apple.com/us/artist/juan-614/1870721488'
   };
 
   const platforms = [
