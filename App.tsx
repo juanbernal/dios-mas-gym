@@ -554,6 +554,7 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
                return (
                   <ArtistPromo 
                     artist={promoArtist} 
+                    mode="social"
                     musicCatalog={catalog}
                     onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))}
                   />

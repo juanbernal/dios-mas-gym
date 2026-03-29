@@ -3,11 +3,17 @@ import { MusicItem } from '../types';
 
 interface ArtistPromoProps {
   artist: 'diosmasgym' | 'juan614';
+  mode?: 'full' | 'social';
   musicCatalog?: MusicItem[];
   onPlaySong?: (song: MusicItem) => void;
 }
 
-const ArtistPromo: React.FC<ArtistPromoProps> = ({ artist, musicCatalog = [], onPlaySong }) => {
+const ArtistPromo: React.FC<ArtistPromoProps> = ({ 
+  artist, 
+  mode = 'full', 
+  musicCatalog = [], 
+  onPlaySong 
+}) => {
   const isDios = artist === 'diosmasgym';
   const name = isDios ? 'Diosmasgym' : 'Juan 614';
   const genre = isDios ? 'Música Urbana' : 'Corridos Tumbados';
@@ -40,11 +46,11 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({ artist, musicCatalog = [], on
              <span className="px-4 py-1 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                {genre}
              </span>
-             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Promoción Oficial</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">{mode === 'social' ? 'Sigue al Artista' : 'Promoción Oficial'}</span>
           </div>
 
           <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-8 leading-tight">
-            Escucha a <br /> <span className="text-[#c5a059]">{name}</span>
+            {mode === 'social' ? `Únete a la familia de` : `Escucha a`} <br /> <span className="text-[#c5a059]">{name}</span>
           </h3>
           
           <div className="flex items-center justify-center lg:justify-start gap-6 mb-12">
@@ -67,6 +73,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({ artist, musicCatalog = [], on
         </div>
         
         {/* Right Side: Recommendation */}
+        {mode === 'full' && (
         <div className="w-full lg:w-96">
            {recommendedSong ? (
              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative group/card">
@@ -105,6 +112,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({ artist, musicCatalog = [], on
              </div>
            )}
         </div>
+        )}
       </div>
     </div>
   );
