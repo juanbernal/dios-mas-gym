@@ -266,7 +266,7 @@ const App: React.FC = () => {
                       {state.musicDiosmasgym.length > 6 && (
                         <div className="mt-16 text-center">
                           <button 
-                            onClick={() => navigate('/musica')}
+                            onClick={() => window.open('https://musica.diosmasgym.com/', '_blank')}
                             className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] border-b border-[#c5a059]/30 pb-2 hover:text-white hover:border-white transition-all"
                           >
                             Ver Todo el Catálogo ({state.musicDiosmasgym.length})
@@ -307,7 +307,7 @@ const App: React.FC = () => {
                       {state.musicJuan614.length > 6 && (
                         <div className="mt-16 text-center">
                           <button 
-                            onClick={() => navigate('/musica')}
+                            onClick={() => window.open('https://juan614.diosmasgym.com/', '_blank')}
                             className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 border-b border-white/10 pb-2 hover:text-white hover:border-white transition-all"
                           >
                             Ver Discografía Completa ({state.musicJuan614.length})

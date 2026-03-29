@@ -21,8 +21,8 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
   const links = isDios ? {
     youtube: 'https://www.youtube.com/@Diosmasgym',
     tiktok: 'https://www.tiktok.com/@diosmasgym',
-    spotify: 'https://open.spotify.com/artist/4X9R7E7v1u8V2zG9I5X0A6',
-    apple: 'https://music.apple.com/us/artist/diosmasgym/1570950669'
+    spotify: 'https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do?si=2JpjEi2hScmQTuMQQtGt4Q',
+    apple: 'https://music.apple.com/us/artist/diosmasgym/1789494422'
   } : {
     youtube: 'https://www.youtube.com/@Juan614oficial',
     tiktok: 'https://www.tiktok.com/@juan614_oficial',
