@@ -73,5 +73,6 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     }
   }
 
-  return music;
+  // Return newest first (those at the bottom of the CSV)
+  return music.reverse();
 };
