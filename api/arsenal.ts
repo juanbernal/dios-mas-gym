@@ -29,7 +29,8 @@ export default async function handler(
       return res.status(500).json({ error: "Missing BLOGGER_API_KEY in server environment" });
     }
 
-    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
+    let endpoint = q ? 'posts/search' : 'posts';
+    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/${endpoint}?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
     
     if (q) {
       url += `&q=${encodeURIComponent(q as string)}`;

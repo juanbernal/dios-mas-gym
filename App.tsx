@@ -546,10 +546,8 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
       </div>
 
       <article className="py-24 md:py-40 bg-white">
-         <div className="max-w-4xl mx-auto px-8 md:px-0">
-            <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light selection:bg-[#c5a059]/30" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
-            
-            {/* Promotional Banner (Randomized Artist) */}
+          <div className="max-w-4xl mx-auto px-8 md:px-0">
+            {/* Promo Banner - TOP (Social Media & Music) */}
             {(() => {
                const promoArtist = Math.random() > 0.5 ? 'diosmasgym' : 'juan614';
                const catalog = promoArtist === 'diosmasgym' ? state.musicDiosmasgym : state.musicJuan614;
@@ -561,7 +559,27 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
                   />
                );
             })()}
-         </div>
+
+            <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light selection:bg-[#c5a059]/30" dangerouslySetInnerHTML={{ __html: state.selectedPost.content }}></div>
+            
+            {/* Promo Banner - BOTTOM (Alternative Artist) */}
+            {(() => {
+               // Show the OTHER artist at the bottom for maximum exposure
+               const topArtistWasDios = state.selectedPost?.labels?.some(l => l.toLowerCase().includes('urbana')); // Not really reliable
+               // Just pick at random for now but different from top if possible (not keeping state here so just random is fine)
+               const promoArtist = Math.random() > 0.5 ? 'juan614' : 'diosmasgym';
+               const catalog = promoArtist === 'diosmasgym' ? state.musicDiosmasgym : state.musicJuan614;
+               return (
+                  <div className="mt-32 border-t border-black/5 pt-20">
+                    <ArtistPromo 
+                      artist={promoArtist} 
+                      musicCatalog={catalog}
+                      onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))}
+                    />
+                  </div>
+               );
+            })()}
+          </div>
       </article>
 
       {/* Related Content */}
