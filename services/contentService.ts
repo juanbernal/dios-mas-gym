@@ -117,16 +117,16 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
 
     const url = new URL('/api/arsenal', apiBase);
     url.searchParams.append('maxResults', '20');
-    url.searchParams.append('q', slug.replace(/-/g, ' '));
+    url.searchParams.append('q', `"${slug.replace(/-/g, ' ')}"`);
     const response = await fetch(url.toString());
     const data = await response.json();
     const processed = processApiV3Data(data);
     
     const exactMatch = processed.posts.find(p => {
       const pSlug = getSlugFromUrl(p.url).toLowerCase();
-      return pSlug === slug.toLowerCase() || pSlug.includes(slug.toLowerCase()) || slug.toLowerCase().includes(pSlug);
+      return pSlug === slug.toLowerCase();
     });
-    return exactMatch || processed.posts[0] || null;
+    return exactMatch || null;
   } catch (e) {
     console.error("Fetch post by slug failed", e);
     return null;
