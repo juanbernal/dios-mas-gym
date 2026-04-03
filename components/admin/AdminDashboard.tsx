@@ -1,8 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isInstalled, setIsInstalled] = useState(false);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+
+        const appInstalledHandler = () => {
+            setIsInstalled(true);
+            setDeferredPrompt(null);
+        };
+        window.addEventListener('appinstalled', appInstalledHandler);
+
+        // Check if already in standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setIsInstalled(true);
+        }
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            window.removeEventListener('appinstalled', appInstalledHandler);
+        };
+    }, []);
+
+    const handleInstall = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     const tools = [
         {
@@ -28,7 +63,42 @@ const AdminDashboard: React.FC = () => {
             <div className="max-w-6xl mx-auto">
                 <div className="mb-20 text-center">
                     <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Panel de <span className="text-[#c5a059]">Control</span></h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Herramientas Estratégicas de Creación</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-10">Herramientas Estratégicas de Creación</p>
+                    
+                    {/* PWA INSTALL BANNER */}
+                    {!isInstalled && (
+                        <div className="max-w-md mx-auto bg-[#c5a059]/10 border border-[#c5a059]/30 p-6 rounded-2xl backdrop-blur-md animate-fade-in">
+                            <div className="flex items-center justify-center gap-4 mb-4">
+                                <div className="w-10 h-10 bg-[#c5a059] text-black rounded-full flex items-center justify-center animate-bounce">
+                                    <i className="fas fa-mobile-screen-button"></i>
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-[#c5a059]">Diosmasgym records App</h3>
+                                    <p className="text-[9px] text-white/60 font-bold uppercase">Disponible para instalar en tu celular</p>
+                                </div>
+                            </div>
+                            
+                            {deferredPrompt ? (
+                                <button 
+                                    onClick={handleInstall}
+                                    className="w-full py-3 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-white transition-all shadow-lg shadow-[#c5a059]/10"
+                                >
+                                    📲 INSTALAR APLICACIÓN
+                                </button>
+                            ) : (
+                                <div className="text-[9px] text-white/40 italic font-medium px-4">
+                                    Para instalar: Toca "Añadir a pantalla de inicio" en el menú de tu navegador (Safari / Chrome).
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {isInstalled && (
+                        <div className="max-w-md mx-auto text-[#22c55e] text-[9px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2">
+                             <i className="fas fa-check-circle"></i>
+                             Aplicación Instalada correctamente
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
