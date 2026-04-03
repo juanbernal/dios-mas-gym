@@ -8,9 +8,10 @@ import MusicCard from './components/MusicCard';
 import CategoryBar from './components/CategoryBar';
 import GlobalPlayer from './components/GlobalPlayer';
 import ArtistPromo from './components/ArtistPromo';
-import AdminDashboard from './components/admin/AdminDashboard';
-import PromoImageApp from './components/admin/PromoImageApp';
-import LyricStudio from './components/admin/LyricStudio';
+import AdminDashboard from "./components/admin/AdminDashboard";
+import PromoImageApp from "./components/admin/PromoImageApp";
+import LyricStudio from "./components/admin/LyricStudio";
+import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -452,9 +453,9 @@ const App: React.FC = () => {
             <PostView state={state} setState={setState} getSlugFromUrl={getSlugFromUrl} readingHistory={readingHistory} />
           } />
 
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/promo-image" element={<PromoImageApp />} />
-          <Route path="/admin/lyric-studio" element={<LyricStudio />} />
+          <Route path="/admin" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
+          <Route path="/admin/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
+          <Route path="/admin/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
         </Routes>
       </main>
 

@@ -55,13 +55,21 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-clapperboard',
             color: '#00ffcc',
             route: '/admin/lyric-studio'
+        },
+        {
+            id: 'proximos-lanzamientos',
+            title: 'Próximos Lanzamientos',
+            description: 'Gestión y programación de estrenos directamente desde la base de datos centralizada de Google.',
+            icon: 'fa-rocket',
+            color: '#ff4b2b',
+            url: 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec'
         }
     ];
 
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8">
             <div className="max-w-6xl mx-auto">
-                <div className="mb-20 text-center relative">
+                <div className="mb-20 text-center relative font-['Poppins']">
                     <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Panel de <span className="text-[#c5a059]">Control</span></h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-10">Herramientas Estratégicas de Creación</p>
                     
@@ -105,11 +113,17 @@ const AdminDashboard: React.FC = () => {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 font-['Poppins']">
                     {tools.map(tool => (
                         <div 
                             key={tool.id}
-                            onClick={() => navigate(tool.route)}
+                            onClick={() => {
+                                if (tool.url) {
+                                    window.open(tool.url, '_blank');
+                                } else if (tool.route) {
+                                    navigate(tool.route);
+                                }
+                            }}
                             className="group relative bg-[#0f111a] border border-white/5 p-12 rounded-2xl cursor-pointer hover:border-[#c5a059]/30 transition-all hover:scale-[1.02] shadow-2xl overflow-hidden"
                         >
                             <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
@@ -129,7 +143,7 @@ const AdminDashboard: React.FC = () => {
                             </p>
 
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest group-hover:gap-6 transition-all" style={{ color: tool.color }}>
-                                Abrir Herramienta 
+                                {tool.url ? 'Abrir Base de Datos' : 'Abrir Herramienta'} 
                                 <i className="fas fa-arrow-right"></i>
                             </div>
                         </div>
