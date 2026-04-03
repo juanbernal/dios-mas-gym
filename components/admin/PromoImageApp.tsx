@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 
 const sizes = {
@@ -8,6 +9,7 @@ const sizes = {
 };
 
 const PromoImageApp: React.FC = () => {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("¿DUDAS QUÉ ES AMOR?");
   const [artist, setArtist] = useState("Diosmasgym");
   const [bg, setBg] = useState<string | null>(null);
@@ -100,8 +102,22 @@ const PromoImageApp: React.FC = () => {
   };
 
   return (
-    <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-[#020617] min-h-screen text-white">
-      {/* PANEL */}
+    <div className="flex flex-col bg-[#020617] min-h-screen text-white">
+      {/* APP HEADER */}
+      <div className="sticky top-0 z-[100] bg-black/80 backdrop-blur-md border-b border-white/10 p-4 flex items-center justify-between">
+        <button 
+          onClick={() => navigate('/admin')}
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-[#c5a059] transition-all"
+        >
+          <i className="fas fa-arrow-left"></i>
+          Volver al Panel
+        </button>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator</h1>
+        <div className="w-20"></div> {/* Spacer */}
+      </div>
+
+      <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* PANEL */}
       <div className="p-6 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl h-fit sticky top-24">
         <h2 className="text-xl font-bold mb-6 text-[#c5a059]">Configuración de Imagen</h2>
         <div className="flex flex-col gap-4">
@@ -314,6 +330,7 @@ const PromoImageApp: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

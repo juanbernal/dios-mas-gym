@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 const brandingData = {
   none: { name: "", link: "" },
@@ -20,6 +21,7 @@ interface LyricLine {
 }
 
 const LyricStudio: React.FC = () => {
+  const navigate = useNavigate();
   const [apiKey, setApiKey] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -415,6 +417,14 @@ const LyricStudio: React.FC = () => {
 
       {/* CONTROL SIDEBAR */}
       <aside className="w-full md:w-[420px] h-full overflow-y-auto bg-[#0a0a0f] border-l border-white/5 p-8 custom-scrollbar">
+        <button 
+          onClick={() => navigate('/admin')}
+          className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-[#00ffcc] transition-all"
+        >
+          <i className="fas fa-arrow-left"></i>
+          Volver al Panel
+        </button>
+
         <div className="flex items-center gap-3 mb-10">
             <div className="w-2.5 h-2.5 rounded-full bg-[#00ffcc] shadow-[0_0_15px_#00ffcc]"></div>
             <h1 className="text-xl font-black italic tracking-tighter uppercase">Lyric Studio <span className="text-[9px] not-italic text-zinc-600 font-bold ml-1">Modern FX / V2</span></h1>
