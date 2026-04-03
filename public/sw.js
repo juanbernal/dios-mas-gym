@@ -1,8 +1,23 @@
+const CACHE_NAME = 'diosmasgym-v1';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      );
+    })
+  );
+  self.clients.claim();
+});
+
 self.addEventListener('fetch', (event) => {
-  // Simple pass-through for basic PWA functionality
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
 });
