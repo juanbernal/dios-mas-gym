@@ -2,7 +2,7 @@
   "name": "Diosmasgym records",
   "short_name": "Diosmasgym",
   "description": "El Arsenal de Fe - Panel de Control",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#05070a",
   "theme_color": "#05070a",
