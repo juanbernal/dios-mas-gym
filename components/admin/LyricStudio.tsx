@@ -68,16 +68,21 @@ const LyricStudio: React.FC = () => {
 
     const updateScale = () => {
         if (containerRef.current) {
-            const containerWidth = containerRef.current.offsetWidth - 32; // padding
+            const isMobile = window.innerWidth < 768;
+            const containerWidth = containerRef.current.offsetWidth - 32;
+            const containerHeight = isMobile ? window.innerHeight * 0.4 : containerRef.current.offsetHeight - 100;
+            
             const targetWidth = 720;
-            if (containerWidth < targetWidth) {
-                setScale(containerWidth / targetWidth);
+            const targetHeight = 1280;
+            
+            const scaleW = containerWidth / targetWidth;
+            const scaleH = containerHeight / targetHeight;
+            
+            // On mobile, we prioritize fitting the width but also respect a max height
+            if (isMobile) {
+                setScale(Math.min(scaleW, scaleH * 1.2)); // Allow slightly more height on mobile
             } else {
-                // Limit scale on desktop too so it fits the viewport height
-                const containerHeight = containerRef.current.offsetHeight - 100;
-                const targetHeight = 1280;
-                const scaleH = containerHeight / targetHeight;
-                setScale(Math.min(1, scaleH));
+                setScale(Math.min(1, scaleW, scaleH));
             }
         }
     };
@@ -408,12 +413,12 @@ const LyricStudio: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#030305] text-white">
+    <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-[#030305] text-white">
       {/* PREVIEW AREA */}
       <main 
         ref={containerRef}
-        className="flex-none md:flex-1 flex flex-col items-center justify-center bg-black p-4 relative sticky top-0 z-[50] md:relative shadow-2xl shadow-black"
-        style={{ height: window.innerWidth < 768 ? (1280 * scale) + 120 : 'auto' }}
+        className="flex-none md:flex-1 flex flex-col items-center justify-center bg-black p-4 relative sticky top-0 z-[50] md:relative shadow-2xl shadow-black border-b border-white/5"
+        style={{ height: window.innerWidth < 768 ? '45vh' : 'auto' }}
       >
         <div 
             className="relative bg-black rounded-[24px] shadow-2xl overflow-hidden shadow-cyan-500/10"
@@ -435,7 +440,7 @@ const LyricStudio: React.FC = () => {
           />
         </div>
         
-        <div className="mt-4 flex flex-col items-center gap-4 w-full scale-90 md:scale-100">
+        <div className="mt-2 flex flex-col items-center gap-2 w-full scale-75 md:scale-100">
           <div className="flex items-center justify-between w-full max-w-xs bg-white/5 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 shadow-lg">
             <button 
                 onClick={handlePlayToggle}
