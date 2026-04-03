@@ -8,6 +8,9 @@ import MusicCard from './components/MusicCard';
 import CategoryBar from './components/CategoryBar';
 import GlobalPlayer from './components/GlobalPlayer';
 import ArtistPromo from './components/ArtistPromo';
+import AdminDashboard from './components/admin/AdminDashboard';
+import PromoImageApp from './components/admin/PromoImageApp';
+import LyricStudio from './components/admin/LyricStudio';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -448,6 +451,10 @@ const App: React.FC = () => {
           <Route path="/post/:slug" element={
             <PostView state={state} setState={setState} getSlugFromUrl={getSlugFromUrl} readingHistory={readingHistory} />
           } />
+
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/promo-image" element={<PromoImageApp />} />
+          <Route path="/admin/lyric-studio" element={<LyricStudio />} />
         </Routes>
       </main>
 
@@ -468,7 +475,15 @@ const App: React.FC = () => {
                <span>Disciplina</span>
             </div>
             <div className="mt-24 h-px w-40 bg-gradient-to-r from-transparent via-white/10 to-transparent mx-auto"></div>
-            <p className="mt-16 text-[9px] font-bold tracking-[0.4em] text-white/20 uppercase">&copy; 2026 REFLECTIONS HUB PRO // COMANDO TÁCTICO</p>
+            <div className="mt-12 flex flex-col items-center gap-6">
+                <p className="text-[9px] font-bold tracking-[0.4em] text-white/20 uppercase">&copy; 2026 REFLECTIONS HUB PRO // COMANDO TÁCTICO</p>
+                <button 
+                    onClick={() => navigate('/admin')}
+                    className="text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.03] hover:text-[#c5a059]/40 transition-all"
+                >
+                    [ MODO OPERADOR ]
+                </button>
+            </div>
          </div>
       </footer>
 

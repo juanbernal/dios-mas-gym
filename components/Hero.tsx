@@ -8,48 +8,51 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
   return (
-    <header className="relative h-screen flex flex-col items-center justify-center text-center overflow-hidden border-b border-white/5">
-      {/* Background Glows */}
-      <div className="gradient-glow w-[600px] h-[600px] bg-blue-900/10 top-[-200px] left-[-200px]"></div>
-      <div className="gradient-glow w-[800px] h-[800px] bg-indigo-900/10 bottom-[-200px] right-[-200px]"></div>
+    <header className="relative h-[95vh] flex flex-col items-center justify-center text-center overflow-hidden">
+      {/* Background Decor */}
+      <div className="gradient-glow w-[800px] h-[800px] bg-[#c5a059]/5 top-[-300px] left-[-200px]"></div>
+      <div className="gradient-glow w-[800px] h-[800px] bg-[#c5a059]/5 bottom-[-300px] right-[-200px]"></div>
 
-      <div className="section-container relative z-10 animate-zen">
-        <div className="mb-10 text-[11px] font-extrabold uppercase tracking-[0.8em] text-accent-blue opacity-50 animate-pulse">
-           DIOS MÁS GYM // REFLECTIONS HUB
+      <div className="section-container relative z-10 animate-zen px-4">
+        <div className="mb-8 text-[9px] font-black uppercase tracking-[1em] text-[#c5a059] opacity-80 decoration-gold">
+           — DIOS MÁS GYM // REFLECTIONS HUB —
         </div>
         
-        <h1 className="h1-display mb-16 text-white drop-shadow-2xl">
-          Forjando el <br /> 
-          <span className="serif-italic pr-4 text-accent-blue drop-shadow-[0_0_30px_rgba(59,130,246,0.2)]">Espíritu</span> 
-          Valiente.
+        <h1 className="h1-display mb-12 text-white drop-shadow-2xl">
+          Templando el <br /> 
+          <span className="serif-italic pr-4 text-[#c5a059] drop-shadow-[0_0_40px_rgba(197,160,89,0.3)]">Espíritu</span> 
         </h1>
         
-        <div className="max-w-3xl mx-auto mb-20 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-           <p className="text-2xl md:text-3xl font-light leading-relaxed text-white/80 italic serif-italic border-l-2 border-accent-blue pl-8 italic mb-6">
-             "{verse.t}"
-           </p>
-           <span className="block text-[12px] font-black tracking-widest text-accent-blue uppercase">— {verse.r}</span>
+        <div className="max-w-3xl mx-auto mb-16 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <div className="relative group">
+               <p className="text-3xl md:text-5xl font-serif italic text-white/95 leading-tight mb-8 drop-shadow-lg">
+                 "{verse.t}"
+               </p>
+               <span className="inline-block px-4 py-1.5 border-l-2 border-[#c5a059] text-[11px] font-black tracking-[0.5em] text-[#c5a059] uppercase">
+                 {verse.r}
+               </span>
+            </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-8 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+        <div className="flex flex-wrap justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
           <button 
             onClick={onEntrenar} 
-            className="px-14 py-6 bg-white text-black font-extrabold uppercase text-[11px] tracking-[0.4em] hover:bg-accent-blue hover:text-white transition-all transform hover:scale-110 active:scale-95 shadow-2xl"
+            className="px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(197,160,89,0.2)] rounded-sm"
           >
-            Sumergirse en el Arsenal
+            Explorar el Arsenal
           </button>
           <button 
             onClick={onAleatorio} 
-            className="px-14 py-6 border border-white/10 text-white font-extrabold uppercase text-[11px] tracking-[0.4em] hover:bg-white/5 transition-all rounded-full"
+            className="px-12 py-5 border border-white/10 text-white/60 font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white/5 hover:text-white transition-all backdrop-blur-md"
           >
-            Inspiración Aleatoria
+            Inspiración Divina
           </button>
         </div>
       </div>
       
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center gap-4 opacity-30">
-         <span className="text-[10px] font-black uppercase tracking-widest">Scroll</span>
-         <i className="fas fa-chevron-down text-xl"></i>
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-20">
+         <span className="text-[8px] font-black uppercase tracking-[0.4em]">Descubrir</span>
+         <div className="w-0.5 h-12 bg-gradient-to-b from-white to-transparent"></div>
       </div>
     </header>
   );
