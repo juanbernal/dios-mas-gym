@@ -40,8 +40,10 @@ const LyricStudio: React.FC = () => {
   const [lyricsInput, setLyricsInput] = useState("");
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [scale, setScale] = useState(1);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const imgRef = useRef<HTMLImageElement>(new Image());
   const particlesRef = useRef<any[]>([]);
@@ -63,6 +65,26 @@ const LyricStudio: React.FC = () => {
       opacity: 0.1 + Math.random() * 0.3,
       char: ""
     }));
+
+    const updateScale = () => {
+        if (containerRef.current) {
+            const containerWidth = containerRef.current.offsetWidth - 32; // padding
+            const targetWidth = 720;
+            if (containerWidth < targetWidth) {
+                setScale(containerWidth / targetWidth);
+            } else {
+                // Limit scale on desktop too so it fits the viewport height
+                const containerHeight = containerRef.current.offsetHeight - 100;
+                const targetHeight = 1280;
+                const scaleH = containerHeight / targetHeight;
+                setScale(Math.min(1, scaleH));
+            }
+        }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
   }, []);
 
   const setupAudio = useCallback(() => {
@@ -386,23 +408,43 @@ const LyricStudio: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#030305] text-white overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-[#030305] text-white">
       {/* PREVIEW AREA */}
-      <main className="flex-1 flex flex-col items-center justify-center bg-black p-4 relative">
-        <div className="relative w-full max-w-[320px] aspect-[9/16] bg-black rounded-[24px] shadow-2xl overflow-hidden shadow-cyan-500/10">
-          <canvas ref={canvasRef} width="720" height="1280" className="w-full h-full block" />
+      <main 
+        ref={containerRef}
+        className="flex-none md:flex-1 flex flex-col items-center justify-center bg-black p-4 relative sticky top-0 z-[50] md:relative shadow-2xl shadow-black"
+        style={{ height: window.innerWidth < 768 ? (1280 * scale) + 120 : 'auto' }}
+      >
+        <div 
+            className="relative bg-black rounded-[24px] shadow-2xl overflow-hidden shadow-cyan-500/10"
+            style={{ 
+                width: 720 * scale, 
+                height: 1280 * scale 
+            }}
+        >
+          <canvas 
+            ref={canvasRef} 
+            width="720" 
+            height="1280" 
+            className="block origin-top-left"
+            style={{ 
+                width: 720, 
+                height: 1280,
+                transform: `scale(${scale})`
+            }} 
+          />
         </div>
         
-        <div className="mt-6 flex flex-col items-center gap-4 w-full max-w-xs">
-          <div className="flex items-center justify-between w-full bg-white/5 backdrop-blur-xl px-6 py-3 rounded-full border border-white/10 shadow-lg">
+        <div className="mt-4 flex flex-col items-center gap-4 w-full scale-90 md:scale-100">
+          <div className="flex items-center justify-between w-full max-w-xs bg-white/5 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 shadow-lg">
             <button 
                 onClick={handlePlayToggle}
-                className="text-[10px] font-black uppercase tracking-[0.2em] hover:text-[#00ffcc] transition-all"
+                className="text-[9px] font-black uppercase tracking-[0.2em] hover:text-[#00ffcc] transition-all"
             >
                 {isPlaying ? "Pausar" : "Vista Previa"}
             </button>
             <div className="w-[1px] h-4 bg-white/10 mx-2"></div>
-            <span className="text-[10px] font-mono text-zinc-400">
+            <span className="text-[9px] font-mono text-zinc-400">
                 {currentTime.toFixed(1)}s / {duration.toFixed(1)}s
             </span>
           </div>
@@ -416,7 +458,7 @@ const LyricStudio: React.FC = () => {
       </main>
 
       {/* CONTROL SIDEBAR */}
-      <aside className="w-full md:w-[420px] h-full overflow-y-auto bg-[#0a0a0f] border-l border-white/5 p-8 custom-scrollbar">
+      <aside className="flex-1 md:flex-none md:w-[420px] bg-[#0a0a0f] border-l border-white/5 p-8 custom-scrollbar overflow-y-auto">
         <button 
           onClick={() => navigate('/admin')}
           className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-[#00ffcc] transition-all"

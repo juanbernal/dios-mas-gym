@@ -23,6 +23,33 @@ const PromoImageApp: React.FC = () => {
   const [glow, setGlow] = useState(true);
   const [stroke, setStroke] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  const website = artist === "Diosmasgym"
+    ? "🔥 BUSCA AQUÍ: musica.diosmasgym.com"
+    : "🔥 BUSCA AQUÍ: juan614.diosmasgym.com";
+
+  const trackList = tracks.split("\n");
+  const config = sizes[size];
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const targetWidth = config.w;
+        if (containerWidth < targetWidth) {
+          setScale(containerWidth / targetWidth);
+        } else {
+          setScale(1);
+        }
+      }
+    };
+    
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [size, config.w]);
 
   useEffect(() => {
     if (!bg) return;
@@ -83,13 +110,6 @@ const PromoImageApp: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const website = artist === "Diosmasgym"
-    ? "🔥 BUSCA AQUÍ: musica.diosmasgym.com"
-    : "🔥 BUSCA AQUÍ: juan614.diosmasgym.com";
-
-  const trackList = tracks.split("\n");
-  const config = sizes[size];
-
   const formatDate = () => {
     try {
       const d = new Date(date);
@@ -118,7 +138,7 @@ const PromoImageApp: React.FC = () => {
 
       <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* PANEL */}
-      <div className="p-6 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl h-fit sticky top-24">
+        <div className="p-6 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl h-fit order-2 lg:order-1">
         <h2 className="text-xl font-bold mb-6 text-[#c5a059]">Configuración de Imagen</h2>
         <div className="flex flex-col gap-4">
           <div className="space-y-1">
@@ -235,12 +255,30 @@ const PromoImageApp: React.FC = () => {
       </div>
 
       {/* PREVIEW */}
-      <div className="flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-6 order-1 lg:order-2 overflow-hidden" ref={containerRef}>
         <h2 className="text-xs font-black uppercase tracking-[0.5em] text-white/20">Vista Previa (Master)</h2>
         <div 
-          ref={canvasRef} 
-          style={{ width: config.w, height: config.h, borderRadius: 30, position: "relative", overflow: "hidden", display: 'block' }}
+          style={{ 
+            width: config.w * scale, 
+            height: config.h * scale, 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'baseline' 
+          }}
         >
+          <div 
+            ref={canvasRef} 
+            style={{ 
+              width: config.w, 
+              height: config.h, 
+              borderRadius: 30, 
+              position: "relative", 
+              overflow: "hidden", 
+              display: 'block',
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left'
+            }}
+          >
           {bg && (
             <img src={bg} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
           )}
@@ -327,6 +365,7 @@ const PromoImageApp: React.FC = () => {
               </div>
             </div>
 
+          </div>
           </div>
         </div>
       </div>
