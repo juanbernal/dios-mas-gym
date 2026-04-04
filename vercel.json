@@ -22,6 +22,10 @@
       "destination": "/api/arsenal.ts"
     },
     {
+      "source": "/api/verify-password",
+      "destination": "/api/verify-password.ts"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

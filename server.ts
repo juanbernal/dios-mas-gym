@@ -14,6 +14,8 @@ async function startServer() {
   const app = express();
   const PORT = 3099;
 
+  app.use(express.json());
+
   // Logging middleware
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -58,6 +60,17 @@ async function startServer() {
     } catch (error: any) {
       console.error("Error fetching arsenal:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/verify-password", (req, res) => {
+    const { password } = req.body;
+    const MASTER_KEY = process.env.ADMIN_PASSWORD;
+    
+    if (password && password === MASTER_KEY) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ success: false });
     }
   });
 
