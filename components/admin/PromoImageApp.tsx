@@ -345,6 +345,22 @@ const PromoImageApp: React.FC = () => {
               pointer-events: none;
               z-index: 5;
             }
+            .scanlines {
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%);
+              background-size: 100% 4px;
+              pointer-events: none;
+              z-index: 6;
+            }
+            .corner-br {
+                position: absolute;
+                width: 40px;
+                height: 40px;
+                border: 2px solid rgba(197, 160, 89, 0.4);
+                z-index: 8;
+                pointer-events: none;
+            }
           `}</style>
           {bg && (
             <img src={bg} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
@@ -354,36 +370,77 @@ const PromoImageApp: React.FC = () => {
           <div style={{ 
             position: "absolute", 
             inset: 0, 
-            background: `radial-gradient(circle, transparent 20%, rgba(0,0,0,${overlay + 0.1}) 100%), rgba(0,0,0,${overlay})` 
+            background: `radial-gradient(circle, transparent 0%, rgba(0,0,0,${overlay + 0.2}) 100%), rgba(0,0,0,${overlay})` 
           }} />
 
-          {/* LAYER 2: TEXTURE */}
+          {/* LAYER 2: SCANLINES & GRAIN */}
+          <div className="scanlines" />
           <div className="grain" />
 
-          <div style={{ position: "relative", padding: config.title * 0.8, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+          {/* LAYER 3: TACTICAL BRACKETS */}
+          <div className="corner-br" style={{ top: 20, left: 20, borderRight: 0, borderBottom: 0 }}></div>
+          <div className="corner-br" style={{ top: 20, right: 20, borderLeft: 0, borderBottom: 0 }}></div>
+          <div className="corner-br" style={{ bottom: 20, left: 20, borderRight: 0, borderTop: 0 }}></div>
+          <div className="corner-br" style={{ bottom: 20, right: 20, borderLeft: 0, borderTop: 0 }}></div>
+
+          {/* LAYER 4: BRANDING STAMP */}
+          <div style={{
+              position: 'absolute',
+              top: '12%',
+              right: '8%',
+              width: config.title * 2,
+              height: config.title * 2,
+              borderRadius: '50%',
+              border: '2px dashed rgba(197, 160, 89, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 15,
+              opacity: 0.6,
+              transform: 'rotate(-15deg)'
+          }}>
+              <div style={{
+                  fontSize: config.title * 0.12,
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 900,
+                  color: '#c5a059',
+                  textAlign: 'center',
+                  letterSpacing: '0.1em'
+              }}>
+                  MASTERED FOR<br />THE SPIRIT<br />6:14
+              </div>
+          </div>
+
+          <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
 
             {/* HEADER: ARTIST BADGE */}
-            <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'center', gap: 10 }}>
-              <div style={{ 
-                fontSize: config.title * 0.25, 
-                fontWeight: 900, 
-                letterSpacing: '0.4em', 
-                color: '#c5a059',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                {artist.toUpperCase()} RECORDS
+            <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ 
+                    fontSize: config.title * 0.28, 
+                    fontWeight: 900, 
+                    letterSpacing: '0.5em', 
+                    color: '#c5a059',
+                    fontFamily: 'Inter, sans-serif'
+                  }}>
+                    {artist.toUpperCase()} RECORDS
+                  </div>
+                  <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>
+                    REFLECTIONS // HUB PRO V5
+                  </div>
               </div>
               <div style={{ 
-                padding: "6px 15px", 
-                borderRadius: 4, 
-                border: '1px solid #c5a059/30',
-                background: "rgba(197, 160, 89, 0.1)",
+                padding: "8px 20px", 
+                borderRadius: 2, 
+                border: '1px solid rgba(197, 160, 89, 0.6)',
+                background: "rgba(0, 0, 0, 0.4)",
                 backdropFilter: 'blur(10px)',
                 color: '#c5a059',
-                fontSize: config.title * 0.2,
-                fontWeight: 'bold',
-                letterSpacing: '0.1em',
-                fontFamily: 'Inter, sans-serif'
+                fontSize: config.title * 0.22,
+                fontWeight: '900',
+                letterSpacing: '0.2em',
+                fontFamily: 'Inter, sans-serif',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
               }}>
                 {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
               </div>
@@ -393,102 +450,110 @@ const PromoImageApp: React.FC = () => {
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
               {bg && (
-                <div style={{ position: "relative", marginBottom: config.title * 0.6 }}>
+                <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
                   {/* GLOW BEHIND COVER */}
                   {glow && (
                     <div style={{ 
                         position: 'absolute', 
-                        inset: -20, 
+                        inset: -40, 
                         background: contrastColor, 
-                        filter: 'blur(60px)', 
-                        opacity: 0.3,
+                        filter: 'blur(80px)', 
+                        opacity: 0.25,
                         borderRadius: '50%'
                     }} />
                   )}
                   
                   <div style={{ 
                     position: 'relative',
-                    padding: 4,
+                    padding: 6,
                     background: 'linear-gradient(135deg, #c5a059 0%, transparent 50%, #c5a059 100%)',
-                    borderRadius: 12,
-                    boxShadow: "0 30px 100px rgba(0,0,0,0.9)"
+                    borderRadius: 4,
+                    boxShadow: "0 40px 120px rgba(0,0,0,1)"
                   }}>
                     <img
                         src={bg}
                         style={{
-                        width: config.title * 5.5,
-                        height: config.title * 5.5,
-                        borderRadius: 8,
+                        width: config.title * 6,
+                        height: config.title * 6,
+                        borderRadius: 2,
                         objectFit: 'cover',
                         display: 'block'
                         }}
                     />
+                    {/* OPTIONAL: SCANLINE OVER COVER */}
+                    <div className="scanlines" style={{ opacity: 0.2, zIndex: 1 }} />
                   </div>
                 </div>
               )}
 
-              <div style={{ marginBottom: 15 }}>
+              <div style={{ marginBottom: 20 }}>
                 <h4 style={{ 
-                    fontSize: config.title * 0.22, 
+                    fontSize: config.title * 0.25, 
                     color: '#c5a059', 
                     fontWeight: 900, 
-                    letterSpacing: '0.6em', 
-                    marginBottom: 10,
+                    letterSpacing: '0.8em', 
+                    marginBottom: 15,
                     fontFamily: 'Inter, sans-serif' 
                 }}>
-                    NUEVO LANZAMIENTO
+                    ESTRENO GLOBAL
                 </h4>
                 <h1 style={{
-                    fontSize: config.title * 1.5,
+                    fontSize: config.title * 1.8,
                     fontWeight: 400,
-                    lineHeight: 0.85,
+                    lineHeight: 0.8,
                     fontFamily: "'Bebas Neue', sans-serif",
                     color: textColor,
-                    letterSpacing: '-0.02em',
-                    textShadow: stroke || glow ? `2px 2px 0px ${contrastColor}, -2px -2px 0px ${contrastColor}, 2px -2px 0px ${contrastColor}, -2px 2px 0px ${contrastColor}, 0px 10px 30px ${contrastColor}80` : "none",
+                    letterSpacing: '-2px',
+                    WebkitTextStroke: stroke ? `2px ${contrastColor}` : 'none',
+                    textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}99` : "none",
                 }}>{title}</h1>
               </div>
 
               {mode === "proximamente" && (
                 <div style={{ 
-                    fontSize: config.title * 0.4, 
+                    marginTop: 10,
+                    fontSize: config.title * 0.5, 
                     color: textColor, 
                     fontFamily: "'DM Serif Display', serif",
                     fontStyle: 'italic',
-                    opacity: 0.9 
+                    opacity: 1,
+                    textShadow: '0 5px 15px rgba(0,0,0,0.5)' 
                 }}>
-                  {formatDate()}
+                   {formatDate()}
                 </div>
               )}
 
               {mode === "disponible" && (
                 <div style={{ 
+                    marginTop: 10,
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: 15,
-                    fontSize: config.title * 0.35, 
-                    color: textColor,
-                    fontWeight: 'bold',
-                    fontFamily: 'Inter, sans-serif'
+                    fontSize: config.title * 0.3, 
+                    color: '#c5a059',
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: 900,
+                    letterSpacing: '0.3em'
                 }}>
-                   <div style={{ height: 1, flex: 1, background: 'rgba(255,255,255,0.1)', width: 40 }}></div>
+                   <div style={{ height: 2, flex: 1, background: 'linear-gradient(to right, transparent, #c5a059)', width: 60 }}></div>
                    <span>PLATAFORMAS DIGITALES</span>
-                   <div style={{ height: 1, flex: 1, background: 'rgba(255,255,255,0.1)', width: 40 }}></div>
+                   <div style={{ height: 2, flex: 1, background: 'linear-gradient(to left, transparent, #c5a059)', width: 60 }}></div>
                 </div>
               )}
 
               {mode === "album" && (
-                <div style={{ marginTop: 25, color: textColor, fontSize: config.title * 0.28, textAlign: 'left', width: '85%', margin: '20px auto' }}>
+                <div style={{ marginTop: 30, color: textColor, fontSize: config.title * 0.25, textAlign: 'left', width: '90%', margin: '20px auto' }}>
                   {trackList.map((t,i)=>(
                     <div key={i} style={{ 
                         display:"flex", 
                         justifyContent:"space-between", 
-                        borderBottom: '1px solid rgba(255,255,255,0.1)', 
-                        padding: '6px 0',
-                        fontFamily: 'Inter, sans-serif'
+                        borderBottom: '1px solid rgba(255,255,255,0.05)', 
+                        padding: '8px 0',
+                        fontFamily: 'Inter, sans-serif',
+                        textTransform: 'uppercase'
                     }}>
-                      <span style={{ color: '#c5a059', fontWeight: 'bold', fontSize: config.title * 0.18 }}>{String(i+1).padStart(2,"0")}</span>
-                      <span style={{ fontWeight: 'bold', letterSpacing: '0.05em' }}>{t}</span>
+                      <span style={{ color: '#c5a059', fontWeight: 900, fontSize: config.title * 0.15, opacity: 0.6 }}>PROX TRACK {String(i+1).padStart(2,"0")}</span>
+                      <span style={{ fontWeight: 700, letterSpacing: '0.1em', fontSize: config.title * 0.28 }}>{t}</span>
                     </div>
                   ))}
                 </div>
@@ -497,30 +562,33 @@ const PromoImageApp: React.FC = () => {
             </div>
 
             {/* FOOTER: WEBSITE & CTA */}
-            <div style={{ textAlign: "center", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div style={{ 
-                  height: 1, 
-                  width: '100%', 
-                  background: 'linear-gradient(90deg, transparent, #c5a059 50%, transparent)',
-                  opacity: 0.4
-              }}></div>
-              <div style={{
-                display: "inline-block",
-                padding: "10px 24px",
-                borderRadius: 2,
-                fontWeight: "900",
-                fontSize: config.title * 0.25,
-                color: '#000',
-                background: "#c5a059",
-                letterSpacing: '0.3em',
-                fontFamily: 'Inter, sans-serif',
-                boxShadow: glow ? `0 0 30px #c5a05940` : "none"
-              }}>
-                {artist === "Diosmasgym" ? "MUSICA.DIOSMASGYM.COM" : "JUAN614.DIOSMASGYM.COM"}
-              </div>
-              <div style={{ fontSize: config.title * 0.15, letterSpacing: '0.2em', opacity: 0.3, fontWeight: 'bold' }}>
-                &copy; 2026 REFLECTIONS HUB PRO / STUDIO SESSION
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', pt: 15 }}>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>STUDIO SESSION</div>
+                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>&copy; 2026 RECORDS HUB PRO</div>
+               </div>
+               
+               <div style={{ textAlign: "center" }}>
+                 <div style={{
+                   display: "inline-block",
+                   padding: "12px 30px",
+                   borderRadius: 2,
+                   fontWeight: "900",
+                   fontSize: config.title * 0.3,
+                   color: '#000',
+                   background: "#c5a059",
+                   letterSpacing: '0.4em',
+                   fontFamily: 'Inter, sans-serif',
+                   boxShadow: "0 10px 40px rgba(197,160,89,0.3)"
+                 }}>
+                   {artist.toUpperCase().split(' ')[0]}.HUB
+                 </div>
+               </div>
+
+               <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>MASTERED HIGH DEF</div>
+                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>BPM: 128 // ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</div>
+               </div>
             </div>
 
           </div>
