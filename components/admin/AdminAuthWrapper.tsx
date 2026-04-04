@@ -5,25 +5,41 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
 
-  // Simple obfuscation of "DiosMasAdmin777"
-  const MASTER_KEY = atob("RGlvc01hc0FkbWluNzc3"); 
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
-    if (session === MASTER_KEY) {
+    if (session === "true") {
       setIsAuthenticated(true);
     }
-  }, [MASTER_KEY]);
+  }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === MASTER_KEY) {
-      localStorage.setItem("admin_session", MASTER_KEY);
-      setIsAuthenticated(true);
-      setError(false);
-    } else {
+    setIsVerifying(true);
+    setError(false);
+
+    try {
+      const response = await fetch('/api/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem("admin_session", "true");
+        setIsAuthenticated(true);
+      } else {
+        setError(true);
+        setPassword("");
+      }
+    } catch (err) {
+      console.error("Auth error:", err);
       setError(true);
-      setPassword("");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -33,7 +49,7 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-2xl text-center">
             <div className="w-16 h-16 bg-[#c5a264]/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_20px_rgba(197,162,100,0.2)] border border-[#c5a264]/30">
-              <i className="fas fa-lock text-[#c5a264] text-3xl"></i>
+              <i className={`fas ${isVerifying ? 'fa-spinner fa-spin' : 'fa-lock'} text-[#c5a264] text-3xl`}></i>
             </div>
             <h1 className="text-2xl font-black uppercase tracking-tighter text-white mb-2 italic">
               Modo <span className="text-[#c5a264]">Operador</span>
@@ -48,13 +64,15 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
                 placeholder="Introduzca la clave maestra..."
                 className={`w-full bg-black/40 border ${error ? 'border-red-500/50' : 'border-white/10'} p-4 rounded-xl text-center outline-none focus:border-[#c5a264]/50 transition-all text-sm font-bold tracking-widest`}
                 autoFocus
+                disabled={isVerifying}
               />
               {error && <p className="text-red-500 text-[10px] uppercase font-black animate-bounce">Clave Incorrecta</p>}
               <button 
                 type="submit"
-                className="w-full bg-[#c5a264] text-black font-black uppercase py-4 rounded-xl text-xs tracking-widest hover:bg-white transition-all shadow-lg shadow-[#c5a264]/10"
+                disabled={isVerifying}
+                className="w-full bg-[#c5a264] text-black font-black uppercase py-4 rounded-xl text-xs tracking-widest hover:bg-white transition-all shadow-lg shadow-[#c5a264]/10 disabled:opacity-50"
               >
-                Desbloquear Consola
+                {isVerifying ? 'Verificando...' : 'Desbloquear Consola'}
               </button>
             </form>
           </div>

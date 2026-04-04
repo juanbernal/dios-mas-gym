@@ -12,6 +12,7 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import PromoImageApp from "./components/admin/PromoImageApp";
 import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -463,6 +464,8 @@ const App: React.FC = () => {
         activeSong={state.activeSong} 
         onClear={() => setState(p => ({ ...p, activeSong: null }))} 
       />
+
+      <PWAInstallPrompt />
 
       {/* Footer */}
       <footer className="py-40 bg-[#05070a] relative overflow-hidden border-t border-white/5">

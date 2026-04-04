@@ -7,36 +7,14 @@ const AdminDashboard: React.FC = () => {
     const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
-        const handler = (e: any) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handler);
-
-        const appInstalledHandler = () => {
-            setIsInstalled(true);
-            setDeferredPrompt(null);
-        };
-        window.addEventListener('appinstalled', appInstalledHandler);
-
-        // Check if already in standalone mode
+        // Simple standalone check for dashboard specific adjustments if needed
         if (window.matchMedia('(display-mode: standalone)').matches) {
             setIsInstalled(true);
         }
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handler);
-            window.removeEventListener('appinstalled', appInstalledHandler);
-        };
     }, []);
 
     const handleInstall = async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
-        }
+        // Redundant, now managed by global PWAInstallPrompt
     };
 
     const tools = [
@@ -72,45 +50,6 @@ const AdminDashboard: React.FC = () => {
                 <div className="mb-20 text-center relative font-['Poppins']">
                     <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Panel de <span className="text-[#c5a059]">Control</span></h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-10">Herramientas Estratégicas de Creación</p>
-                    
-                    {/* PWA INSTALL BANNER (Sticky on mobile) */}
-                    {!isInstalled && (
-                        <div className="sticky top-0 z-[100] md:relative mb-12">
-                            <div className="max-w-md mx-auto bg-[#c5a059] border border-[#c5a059]/30 p-5 rounded-2xl md:rounded-3xl shadow-2xl shadow-[#c5a059]/20 animate-fade-in group pointer-events-auto">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-black text-[#c5a059] rounded-full flex items-center justify-center animate-pulse border-2 border-black/10">
-                                            <i className="fas fa-download text-lg"></i>
-                                        </div>
-                                        <div className="text-left">
-                                            <h3 className="text-[11px] font-black uppercase tracking-widest text-black">Instalar App Oficial</h3>
-                                            <p className="text-[8px] text-black/60 font-bold uppercase leading-tight">Diosmasgym Records</p>
-                                        </div>
-                                    </div>
-                                    
-                                    {deferredPrompt ? (
-                                        <button 
-                                            onClick={handleInstall}
-                                            className="px-6 py-3 bg-black text-[#c5a059] font-black uppercase text-[10px] tracking-widest rounded-xl hover:scale-105 transition-all shadow-xl active:scale-95"
-                                        >
-                                            DESCARGAR
-                                        </button>
-                                    ) : (
-                                        <div className="text-[8px] text-black/70 font-black uppercase text-right max-w-[120px] leading-tight">
-                                            Menú → Añadir a Inicio
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isInstalled && (
-                        <div className="max-w-md mx-auto text-[#22c55e] text-[9px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2 bg-white/5 py-4 rounded-full border border-white/5">
-                             <i className="fas fa-check-circle"></i>
-                             Aplicación Oficial Activa
-                        </div>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 font-['Poppins']">

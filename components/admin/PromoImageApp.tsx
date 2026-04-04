@@ -316,9 +316,10 @@ const PromoImageApp: React.FC = () => {
                 fontSize: config.title,
                 fontWeight: 900,
                 lineHeight: 1.1,
-                fontFamily: 'Montserrat, sans-serif',
+                fontFamily: "'Playfair Display', serif",
                 color: textColor,
                 marginBottom: 10,
+                letterSpacing: '-0.02em',
                 textShadow: glow ? `0 0 25px ${contrastColor}` : "none",
                 WebkitTextStroke: stroke ? `1px ${contrastColor}` : "0px"
               }}>{title}</h1>
