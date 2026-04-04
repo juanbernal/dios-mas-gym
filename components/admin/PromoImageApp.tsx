@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
+import { fetchMusicCatalog } from "../../services/musicService";
+import { MusicItem } from "../../types";
 
 const sizes = {
   instagram: { w: 500, h: 650, title: 32 },
@@ -25,6 +27,38 @@ const PromoImageApp: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [catalog, setCatalog] = useState<MusicItem[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+
+  useEffect(() => {
+    const loadCatalog = async () => {
+      setIsLoadingCatalog(true);
+      try {
+        const [dM, j6] = await Promise.all([
+          fetchMusicCatalog('diosmasgym'),
+          fetchMusicCatalog('juan614')
+        ]);
+        setCatalog([...dM, ...j6]);
+      } catch (err) {
+        console.error("Error loading catalog:", err);
+      } finally {
+        setIsLoadingCatalog(false);
+      }
+    };
+    loadCatalog();
+  }, []);
+
+  const handleRandomFromCatalog = () => {
+    if (catalog.length === 0) {
+      alert("Catálogo vacío o cargando...");
+      return;
+    }
+    const song = catalog[Math.floor(Math.random() * catalog.length)];
+    setTitle(song.name.toUpperCase());
+    setArtist(song.artist);
+    setBg(song.cover);
+    setMode("disponible");
+  };
 
   const website = artist === "Diosmasgym"
     ? "🔥 BUSCA AQUÍ: musica.diosmasgym.com"
@@ -143,7 +177,17 @@ const PromoImageApp: React.FC = () => {
       <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* PANEL */}
         <div className="p-6 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl h-fit order-2 lg:order-1">
-        <h2 className="text-xl font-bold mb-6 text-[#c5a059]">Configuración de Imagen</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-[#c5a059]">Configuración de Imagen</h2>
+          <button 
+            onClick={handleRandomFromCatalog}
+            disabled={isLoadingCatalog}
+            className="flex items-center gap-2 px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full text-[10px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
+          >
+            <i className={`fas ${isLoadingCatalog ? 'fa-spinner fa-spin' : 'fa-random'}`}></i>
+            {isLoadingCatalog ? 'Cargando...' : 'Obtener Aleatorio'}
+          </button>
+        </div>
         <div className="flex flex-col gap-4">
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-white/40">Título</label>
