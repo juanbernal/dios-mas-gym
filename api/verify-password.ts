@@ -22,9 +22,8 @@ export default async function handler(
     return res.status(400).json({ error: 'Password is required' });
   }
 
-  // Use ADMIN_PASSWORD from environment variables
-  // We remove any surrounding quotes which are a common issue in Vercel
-  const ENV_KEY_NAME = Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD';
+  // Priority search for ADMIN_PASSWORD, otherwise find any other ADMIN-like key
+  const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
   const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
   const INPUT_KEY = String(password).trim();
 
@@ -40,7 +39,8 @@ export default async function handler(
         input_len: INPUT_KEY.length,
         target_len: 0,
         env_keys_found: allKeys,
-        admin_like_keys: adminLikeKeys || 'Ninguna'
+        admin_like_keys: adminLikeKeys || 'Ninguna',
+        chosen_key: ENV_KEY_NAME
       }
     });
   }
