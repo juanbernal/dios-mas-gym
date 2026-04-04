@@ -22,6 +22,7 @@ const PWAInstallPrompt: React.FC = () => {
 
         const handler = (e: any) => {
             e.preventDefault();
+            console.log("PWA: beforeinstallprompt event captured");
             setDeferredPrompt(e);
             setIsVisible(true);
         };
@@ -32,7 +33,7 @@ const PWAInstallPrompt: React.FC = () => {
         if (mobile && !standalone) {
             const timer = setTimeout(() => {
                 setIsVisible(true);
-            }, 8000); // 8 seconds for a better user experience
+            }, 12000); // 12 seconds to give more time to native event
             return () => {
                 window.removeEventListener('beforeinstallprompt', handler);
                 clearTimeout(timer);
