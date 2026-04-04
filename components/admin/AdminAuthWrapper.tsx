@@ -38,7 +38,9 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
            
            if (target_len === 0) {
              const keysMsg = env_keys_found ? `\n\nVariables detectadas: ${env_keys_found}` : "";
-             alert(`⚠️ ERROR DE CONFIGURACIÓN:\nVercel no está entregando la contraseña 'ADMIN_PASSWORD' a la aplicación.${keysMsg}\n\nPor favor, asegúrate de haber hecho un 'Redeploy' *sin caché* en Vercel.`);
+             const adminMsg = data.diagnostics.admin_like_keys ? `\nVariables tipo ADMIN: ${data.diagnostics.admin_like_keys}` : "";
+             
+             alert(`⚠️ ERROR DE CONFIGURACIÓN:\nVercel no está entregando la contraseña a la aplicación.${adminMsg}${keysMsg}\n\nPor favor, asegura que el 'Redeploy' haya terminado.`);
            } else {
              console.warn(`Auth Error: ${data.message || 'Unknown'}. Escrito: ${input_len}, Guardado: ${target_len}`);
            }
