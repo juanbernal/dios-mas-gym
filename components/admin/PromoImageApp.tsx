@@ -23,8 +23,7 @@ const PromoImageApp: React.FC = () => {
   const [textColor, setTextColor] = useState("#ffffff");
   const [contrastColor, setContrastColor] = useState("#000000");
   const [glow, setGlow] = useState(true);
-  const [stroke, setStroke] = useState(true);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [stroke, setStroke] = useState(false); // Default to false for solid look
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -55,7 +54,6 @@ const PromoImageApp: React.FC = () => {
     }
     const song = catalog[Math.floor(Math.random() * catalog.length)];
     
-    // Normalize artist name to match select options
     let normalizedArtist = song.artist;
     if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
     if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
@@ -64,14 +62,9 @@ const PromoImageApp: React.FC = () => {
     setArtist(normalizedArtist);
     setBg(song.cover);
     setMode("disponible");
-    setSize("instagram"); // User requested instagram by default
+    setSize("instagram");
   };
 
-  const website = artist === "Diosmasgym"
-    ? "🔥 BUSCA AQUÍ: musica.diosmasgym.com"
-    : "🔥 BUSCA AQUÍ: juan614.diosmasgym.com";
-
-  const trackList = tracks.split("\n");
   const config = sizes[size];
 
   useEffect(() => {
@@ -118,25 +111,17 @@ const PromoImageApp: React.FC = () => {
   }, [bg]);
 
   const handleDownload = async () => {
-    if (!canvasRef.current) return;
+    const exportEl = document.getElementById("promo-export-master");
+    if (!exportEl) return;
     try {
-      // Force font loading
       await document.fonts.load('1em "Bebas Neue"');
       
-      // To ensure 1:1 capture without CSS transforms affecting quality,
-      // we temporarily remove the scale or target the inner content.
-      const canvas = await html2canvas(canvasRef.current, {
-        scale: 4, // 4 is stable and high enough for 4K
+      const canvas = await html2canvas(exportEl, {
+        scale: 4, 
         useCORS: true,
         allowTaint: true,
         logging: false,
-        backgroundColor: null,
-        onclone: (clonedDoc) => {
-          const clonedCanvas = clonedDoc.getElementById("promo-canvas-capture");
-          if (clonedCanvas) {
-            clonedCanvas.style.transform = "none";
-          }
-        }
+        backgroundColor: null
       });
 
       canvas.toBlob((blob) => {
@@ -144,7 +129,7 @@ const PromoImageApp: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `promo-${artist}-${mode}.png`;
+        link.download = `promo-${artist.replace(/\s+/g, '-')}-${mode}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -173,6 +158,12 @@ const PromoImageApp: React.FC = () => {
     } catch {
       return "PRÓXIMAMENTE";
     }
+  };
+
+  const commonProps = {
+    title, artist, bg, mode, size, date, overlay, textColor, contrastColor, glow, stroke,
+    formatDate, trackList: tracks.split("\n"),
+    config: sizes[size]
   };
 
   return (
@@ -269,7 +260,7 @@ const PromoImageApp: React.FC = () => {
                <input type="color" className="w-full h-10 bg-transparent rounded-lg cursor-pointer" value={textColor} onChange={(e)=>setTextColor(e.target.value)} />
              </div>
              <div className="space-y-1">
-               <label className="text-[10px] uppercase font-bold text-white/40">Contraste (Stroke/Glow)</label>
+               <label className="text-[10px] uppercase font-bold text-white/40">Contraste (Glow)</label>
                <input type="color" className="w-full h-10 bg-transparent rounded-lg cursor-pointer" value={contrastColor} onChange={(e)=>setContrastColor(e.target.value)} />
              </div>
           </div>
@@ -281,7 +272,7 @@ const PromoImageApp: React.FC = () => {
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
               <input type="checkbox" checked={stroke} onChange={()=>setStroke(!stroke)} className="w-4 h-4 accent-[#c5a059]" />
-              <span className="text-xs uppercase font-bold group-hover:text-[#c5a059] transition-colors">Borde (Stroke)</span>
+              <span className="text-xs uppercase font-bold group-hover:text-[#c5a059] transition-colors">Borde (Logo Layout)</span>
             </label>
           </div>
 
@@ -326,12 +317,11 @@ const PromoImageApp: React.FC = () => {
             width: config.w * scale, 
             height: config.h * scale, 
             display: 'block',
-            position: 'relative'
+            position: 'relative',
+            boxShadow: '0 50px 100px rgba(0,0,0,0.5)'
           }}
         >
           <div 
-            ref={canvasRef}
-            id="promo-canvas-capture"
             style={{ 
               width: config.w, 
               height: config.h, 
@@ -344,6 +334,28 @@ const PromoImageApp: React.FC = () => {
               backgroundColor: '#000'
             }}
           >
+            <PromoTemplate {...commonProps} />
+          </div>
+        </div>
+      </div>
+
+      {/* EXPORT MASTER (OFF-SCREEN) */}
+      <div id="promo-export-master" style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -100 }}>
+         <div style={{ width: config.w, height: config.h, overflow: "hidden", position: "relative", backgroundColor: "#000" }}>
+            <PromoTemplate {...commonProps} isExport={true} />
+         </div>
+      </div>
+    </div>
+    </div>
+  );
+}
+
+const PromoTemplate: React.FC<any> = ({ 
+    title, artist, bg, mode, config, overlay, textColor, contrastColor, glow, stroke,
+    formatDate, trackList, isExport = false 
+}) => {
+    return (
+        <div style={{ width: "100%", height: "100%", position: 'relative' }}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&display=swap');
             * { -webkit-font-smoothing: antialiased; }
@@ -490,7 +502,6 @@ const PromoImageApp: React.FC = () => {
                         display: 'block'
                         }}
                     />
-                    {/* OPTIONAL: SCANLINE OVER COVER */}
                     <div className="scanlines" style={{ opacity: 0.2, zIndex: 1 }} />
                   </div>
                 </div>
@@ -509,13 +520,14 @@ const PromoImageApp: React.FC = () => {
                 </h4>
                 <h1 style={{
                     fontSize: config.title * 1.8,
-                    fontWeight: 400,
+                    fontWeight: 900, // HIGH BOLD
                     lineHeight: 0.8,
                     fontFamily: "'Bebas Neue', sans-serif",
                     color: textColor,
                     letterSpacing: '-2px',
                     WebkitTextStroke: stroke ? `2px ${contrastColor}` : 'none',
-                    textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}99` : "none",
+                    textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}CC` : "none",
+                    filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))"
                 }}>{title}</h1>
               </div>
 
@@ -553,7 +565,7 @@ const PromoImageApp: React.FC = () => {
 
               {mode === "album" && (
                 <div style={{ marginTop: 30, color: textColor, fontSize: config.title * 0.25, textAlign: 'left', width: '90%', margin: '20px auto' }}>
-                  {trackList.map((t,i)=>(
+                  {trackList.map((t: string, i: number)=>(
                     <div key={i} style={{ 
                         display:"flex", 
                         justifyContent:"space-between", 
@@ -572,7 +584,7 @@ const PromoImageApp: React.FC = () => {
             </div>
 
             {/* FOOTER: WEBSITE & CTA */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', pt: 15 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', paddingTop: 15 }}>
                <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>STUDIO SESSION</div>
                   <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>&copy; 2026 RECORDS HUB PRO</div>
@@ -597,17 +609,13 @@ const PromoImageApp: React.FC = () => {
 
                <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>MASTERED HIGH DEF</div>
-                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>BPM: 128 // ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</div>
+                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>BPM: 128 // ID: TACTICAL-7</div>
                </div>
             </div>
 
           </div>
-          </div>
         </div>
-      </div>
-    </div>
-    </div>
-  );
+    );
 }
 
 export default PromoImageApp;
