@@ -23,7 +23,7 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
       const response = await fetch('/api/verify-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: password.trim() }),
       });
 
       const data = await response.json();
