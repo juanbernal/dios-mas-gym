@@ -28,10 +28,16 @@ export default async function handler(
   const INPUT_KEY = String(password).trim();
 
   if (!MASTER_KEY) {
+    const keys = Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET') && !k.includes('TOKEN')).join(', ');
     return res.status(500).json({ 
       success: false, 
-      error: 'Variable ADMIN_PASSWORD no encontrada o vacía en Vercel',
-      diagnostics: { env_keys_present: Object.keys(process.env).filter(k => k.includes('ADMIN')) }
+      error: 'CONFIG_ERROR',
+      message: 'La variable ADMIN_PASSWORD no está definida en Vercel.',
+      diagnostics: { 
+        input_len: INPUT_KEY.length,
+        target_len: 0,
+        env_keys_found: keys
+      }
     });
   }
 

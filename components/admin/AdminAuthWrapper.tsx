@@ -32,14 +32,15 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
         localStorage.setItem("admin_session", "true");
         setIsAuthenticated(true);
       } else {
-        // More descriptive error handling for debugging
+        // High-clarity error handling for debugging
         if (data.diagnostics) {
-           const { input_len, target_len } = data.diagnostics;
-           const diffMsg = target_len === 0 ? "La clave no está configurada en Vercel." : `Diferencia de longitud detectada (Escrito: ${input_len}, Guardado: ${target_len})`;
-           console.warn(`Auth Error: ${data.message || 'Unknown'}.`, diffMsg);
+           const { input_len, target_len, env_keys_found } = data.diagnostics;
            
            if (target_len === 0) {
-             alert("ERROR CRÍTICO: La contraseña no se ha configurado correctamente en el panel de Vercel.");
+             const keysMsg = env_keys_found ? `\n\nVariables detectadas: ${env_keys_found}` : "";
+             alert(`⚠️ ERROR DE CONFIGURACIÓN:\nVercel no está entregando la contraseña 'ADMIN_PASSWORD' a la aplicación.${keysMsg}\n\nPor favor, asegúrate de haber hecho un 'Redeploy' *sin caché* en Vercel.`);
+           } else {
+             console.warn(`Auth Error: ${data.message || 'Unknown'}. Escrito: ${input_len}, Guardado: ${target_len}`);
            }
         }
         setError(true);
