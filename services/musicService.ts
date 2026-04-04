@@ -49,8 +49,19 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     const line = lines[i].trim();
     if (!line || line === '---') continue;
 
-    // Split handling commas within quotes
-    const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
+    // Robust CSV split for handling quotes and spaces
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let char of line) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+        } else current += char;
+    }
+    values.push(current.trim());
+
     if (values.length < 4) continue;
 
     const entry: any = {};

@@ -54,10 +54,17 @@ const PromoImageApp: React.FC = () => {
       return;
     }
     const song = catalog[Math.floor(Math.random() * catalog.length)];
+    
+    // Normalize artist name to match select options
+    let normalizedArtist = song.artist;
+    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+
     setTitle(song.name.toUpperCase());
-    setArtist(song.artist);
+    setArtist(normalizedArtist);
     setBg(song.cover);
     setMode("disponible");
+    setSize("instagram"); // User requested instagram by default
   };
 
   const website = artist === "Diosmasgym"
