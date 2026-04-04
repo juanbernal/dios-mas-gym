@@ -124,9 +124,10 @@ const PromoImageApp: React.FC = () => {
       await document.fonts.load('1em "Bebas Neue"');
       
       const canvas = await html2canvas(canvasRef.current, {
-        scale: 4,
+        scale: 6, // Increased for ultra HD
         useCORS: true,
         allowTaint: true,
+        logging: false,
         backgroundColor: null,
       });
 
@@ -581,7 +582,7 @@ const PromoImageApp: React.FC = () => {
                    fontFamily: 'Inter, sans-serif',
                    boxShadow: "0 10px 40px rgba(197,160,89,0.3)"
                  }}>
-                   {artist.toUpperCase().split(' ')[0]}.HUB
+                   {artist.toUpperCase().split(' ')[0]}.COM
                  </div>
                </div>
 
