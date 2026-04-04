@@ -28,35 +28,13 @@ export default async function handler(
   const INPUT_KEY = String(password).trim();
 
   if (!MASTER_KEY) {
-    const allKeys = Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET') && !k.includes('TOKEN')).join(', ');
-    const adminLikeKeys = Object.keys(process.env).filter(k => k.toUpperCase().includes('ADMIN')).join(', ');
-    
-    return res.status(500).json({ 
-      success: false, 
-      error: 'CONFIG_ERROR',
-      message: 'La variable ADMIN_PASSWORD no está definida en Vercel.',
-      diagnostics: { 
-        input_len: INPUT_KEY.length,
-        target_len: 0,
-        env_keys_found: allKeys,
-        admin_like_keys: adminLikeKeys || 'Ninguna',
-        chosen_key: ENV_KEY_NAME
-      }
-    });
+    console.error("ADMIN_PASSWORD is not defined in environment variables.");
+    return res.status(500).json({ success: false, error: 'Server configuration error' });
   }
 
   if (INPUT_KEY === MASTER_KEY) {
     return res.status(200).json({ success: true, message: 'Authenticated successfully' });
   } else {
-    // Return diagnostic info to help the user debug (length mismatch, etc)
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Invalid password',
-      diagnostics: {
-        input_len: INPUT_KEY.length,
-        target_len: MASTER_KEY.length,
-        match: false
-      }
-    });
+    return res.status(401).json({ success: false, message: 'Invalid password' });
   }
 }

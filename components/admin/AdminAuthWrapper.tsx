@@ -32,19 +32,6 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
         localStorage.setItem("admin_session", "true");
         setIsAuthenticated(true);
       } else {
-        // High-clarity error handling for debugging
-        if (data.diagnostics) {
-           const { input_len, target_len, env_keys_found, chosen_key } = data.diagnostics;
-           
-           if (target_len === 0) {
-             const keysMsg = env_keys_found ? `\n\nVariables detectadas: ${env_keys_found}` : "";
-             const adminMsg = data.diagnostics.admin_like_keys ? `\nVariables tipo ADMIN: ${data.diagnostics.admin_like_keys}` : "";
-             
-             alert(`⚠️ ERROR DE CONFIGURACIÓN:\nVercel no está entregando la contraseña a la aplicación.${adminMsg}${keysMsg}\n\nPor favor, asegura que el 'Redeploy' haya terminado.`);
-           } else {
-             console.warn(`Auth Error: ${data.message || 'Unknown'}. [Key USADA: ${chosen_key || 'ADMIN_PASSWORD'}] Escrito: ${input_len}, Guardado: ${target_len}`);
-           }
-        }
         setError(true);
         setPassword("");
       }
