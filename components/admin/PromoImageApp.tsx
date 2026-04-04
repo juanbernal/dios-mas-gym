@@ -123,12 +123,20 @@ const PromoImageApp: React.FC = () => {
       // Force font loading
       await document.fonts.load('1em "Bebas Neue"');
       
+      // To ensure 1:1 capture without CSS transforms affecting quality,
+      // we temporarily remove the scale or target the inner content.
       const canvas = await html2canvas(canvasRef.current, {
-        scale: 6, // Increased for ultra HD
+        scale: 4, // 4 is stable and high enough for 4K
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: null,
+        onclone: (clonedDoc) => {
+          const clonedCanvas = clonedDoc.getElementById("promo-canvas-capture");
+          if (clonedCanvas) {
+            clonedCanvas.style.transform = "none";
+          }
+        }
       });
 
       canvas.toBlob((blob) => {
@@ -317,22 +325,23 @@ const PromoImageApp: React.FC = () => {
           style={{ 
             width: config.w * scale, 
             height: config.h * scale, 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'baseline' 
+            display: 'block',
+            position: 'relative'
           }}
         >
           <div 
-            ref={canvasRef} 
+            ref={canvasRef}
+            id="promo-canvas-capture"
             style={{ 
               width: config.w, 
               height: config.h, 
-              borderRadius: 30, 
-              position: "relative", 
+              borderRadius: 20, 
+              position: "absolute", 
               overflow: "hidden", 
               display: 'block',
               transform: `scale(${scale})`,
-              transformOrigin: 'top left'
+              transformOrigin: 'top left',
+              backgroundColor: '#000'
             }}
           >
           <style>{`
@@ -582,7 +591,7 @@ const PromoImageApp: React.FC = () => {
                    fontFamily: 'Inter, sans-serif',
                    boxShadow: "0 10px 40px rgba(197,160,89,0.3)"
                  }}>
-                   {artist.toUpperCase().split(' ')[0]}.COM
+                   DIOSMASGYM.COM
                  </div>
                </div>
 
