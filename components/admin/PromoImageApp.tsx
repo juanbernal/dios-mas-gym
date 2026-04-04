@@ -79,9 +79,13 @@ const PromoImageApp: React.FC = () => {
   const handleDownload = async () => {
     if (!canvasRef.current) return;
     try {
+      // Force font loading
+      await document.fonts.load('1em "Bebas Neue"');
+      
       const canvas = await html2canvas(canvasRef.current, {
         scale: 4,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: null,
       });
 
@@ -279,6 +283,10 @@ const PromoImageApp: React.FC = () => {
               transformOrigin: 'top left'
             }}
           >
+          <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+            * { -webkit-font-smoothing: antialiased; }
+          `}</style>
           {bg && (
             <img src={bg} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
           )}
@@ -313,15 +321,14 @@ const PromoImageApp: React.FC = () => {
               )}
 
               <h1 style={{
-                fontSize: config.title,
-                fontWeight: 900,
-                lineHeight: 1.1,
-                fontFamily: "'Playfair Display', serif",
+                fontSize: config.title * 1.3,
+                fontWeight: 400,
+                lineHeight: 0.9,
+                fontFamily: "'Bebas Neue', sans-serif",
                 color: textColor,
                 marginBottom: 10,
-                letterSpacing: '-0.02em',
-                textShadow: glow ? `0 0 25px ${contrastColor}` : "none",
-                WebkitTextStroke: stroke ? `1px ${contrastColor}` : "0px"
+                letterSpacing: '0.02em',
+                textShadow: stroke || glow ? `2px 2px 0px ${contrastColor}, -2px -2px 0px ${contrastColor}, 2px -2px 0px ${contrastColor}, -2px 2px 0px ${contrastColor}, 0px 5px 15px ${contrastColor}80` : "none",
               }}>{title}</h1>
 
               {mode === "proximamente" && (
