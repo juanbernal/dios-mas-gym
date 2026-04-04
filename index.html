@@ -18,6 +18,14 @@
     <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 <script>
+    window.deferredPWAEvent = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPWAEvent = e;
+        // Dispatch custom event to notify React components
+        window.dispatchEvent(new CustomEvent('pwa-ready'));
+    });
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => console.error('SW register error:', err));

@@ -20,6 +20,12 @@ const PWAInstallPrompt: React.FC = () => {
         const mobile = /android|iphone|ipad|ipod|windows phone/i.test(userAgent);
         setIsIOS(ios);
 
+        // Check if event was already captured globally
+        if ((window as any).deferredPWAEvent) {
+            setDeferredPrompt((window as any).deferredPWAEvent);
+            setIsVisible(true);
+        }
+
         const handler = (e: any) => {
             e.preventDefault();
             console.log("PWA: beforeinstallprompt event captured");
@@ -27,20 +33,32 @@ const PWAInstallPrompt: React.FC = () => {
             setIsVisible(true);
         };
 
+        const customHandler = () => {
+            if ((window as any).deferredPWAEvent) {
+                setDeferredPrompt((window as any).deferredPWAEvent);
+                setIsVisible(true);
+            }
+        };
+
         window.addEventListener('beforeinstallprompt', handler);
+        window.addEventListener('pwa-ready', customHandler);
 
         // FALLBACK: If on mobile and it hasn't appeared, force it after some time
         if (mobile && !standalone) {
             const timer = setTimeout(() => {
                 setIsVisible(true);
-            }, 12000); // 12 seconds to give more time to native event
+            }, 12000); 
             return () => {
                 window.removeEventListener('beforeinstallprompt', handler);
+                window.removeEventListener('pwa-ready', customHandler);
                 clearTimeout(timer);
             };
         }
 
-        return () => window.removeEventListener('beforeinstallprompt', handler);
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            window.removeEventListener('pwa-ready', customHandler);
+        };
     }, []);
 
     const handleInstall = async () => {
