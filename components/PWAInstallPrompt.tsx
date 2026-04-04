@@ -8,32 +8,39 @@ const PWAInstallPrompt: React.FC = () => {
 
     useEffect(() => {
         // Detect if already installed/standalone
-        if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+        const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+        if (standalone) {
             setIsStandalone(true);
             return;
         }
 
-        // Detect iOS
+        // Detect Mobile & OS
         const userAgent = window.navigator.userAgent.toLowerCase();
         const ios = /iphone|ipad|ipod/.test(userAgent);
+        const mobile = /android|iphone|ipad|ipod|windows phone/i.test(userAgent);
         setIsIOS(ios);
 
         const handler = (e: any) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            // Show prompt after a short delay to not annoy the user immediately
-            setTimeout(() => setIsVisible(true), 3000);
+            setIsVisible(true);
         };
 
         window.addEventListener('beforeinstallprompt', handler);
 
-        // For iOS, we show it anyway after some time if not standalone
-        if (ios && !isStandalone) {
-            setTimeout(() => setIsVisible(true), 5000);
+        // FALLBACK: If on mobile and it hasn't appeared, force it after some time
+        if (mobile && !standalone) {
+            const timer = setTimeout(() => {
+                setIsVisible(true);
+            }, 8000); // 8 seconds for a better user experience
+            return () => {
+                window.removeEventListener('beforeinstallprompt', handler);
+                clearTimeout(timer);
+            };
         }
 
         return () => window.removeEventListener('beforeinstallprompt', handler);
-    }, [isStandalone]);
+    }, []);
 
     const handleInstall = async () => {
         if (!deferredPrompt) return;
@@ -76,13 +83,20 @@ const PWAInstallPrompt: React.FC = () => {
                                     <span className="text-white/60 font-black">"Añadir a pantalla de inicio"</span>
                                 </p>
                             </div>
-                        ) : (
+                        ) : deferredPrompt ? (
                             <button 
                                 onClick={handleInstall}
                                 className="w-full py-3 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-white transition-all shadow-lg active:scale-95"
                             >
                                 Descargar Ahora
                             </button>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-[10px] text-white/40 uppercase tracking-widest leading-relaxed">
+                                    Toca los <i className="fas fa-ellipsis-v mx-1 text-white/60"></i> y selecciona <br/>
+                                    <span className="text-white/60 font-black">"Instalar Aplicación"</span>
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>
