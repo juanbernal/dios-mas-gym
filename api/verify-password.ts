@@ -22,19 +22,31 @@ export default async function handler(
     return res.status(400).json({ error: 'Password is required' });
   }
 
-  // Use ADMIN_PASSWORD from environment variables (set in Vercel Dashboard)
-  // We trim both to avoid issues with copy-paste spaces
-  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim();
+  // Use ADMIN_PASSWORD from environment variables
+  // We remove any surrounding quotes which are a common issue in Vercel
+  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, '');
   const INPUT_KEY = String(password).trim();
 
   if (!MASTER_KEY) {
-    console.error("ADMIN_PASSWORD environment variable is not defined");
-    return res.status(500).json({ error: 'Server configuration error' });
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Variable ADMIN_PASSWORD no encontrada o vacía en Vercel',
+      diagnostics: { env_keys_present: Object.keys(process.env).filter(k => k.includes('ADMIN')) }
+    });
   }
 
   if (INPUT_KEY === MASTER_KEY) {
     return res.status(200).json({ success: true, message: 'Authenticated successfully' });
   } else {
-    return res.status(401).json({ success: false, message: 'Invalid password' });
+    // Return diagnostic info to help the user debug (length mismatch, etc)
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Invalid password',
+      diagnostics: {
+        input_len: INPUT_KEY.length,
+        target_len: MASTER_KEY.length,
+        match: false
+      }
+    });
   }
 }
