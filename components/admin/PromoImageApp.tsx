@@ -237,27 +237,31 @@ const PromoImageApp: React.FC = () => {
             return;
         }
 
-        // Subimos la imagen a ImgBB para URL pública (soporta CORS)
-        console.log("Subiendo imagen a ImgBB CDN...");
-        const uploadData = new FormData();
-        uploadData.append("image", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        // Subimos la imagen usando nuestra propia API Serverless en Vercel
+        // para evadir por completo bloqueadores de anuncios y errores CORS
+        console.log("Subiendo imagen mediante Proxy Seguro...");
         
+        const imageBase64 = canvas.toDataURL("image/png");
         let imageUrl = "";
+        
         try {
-            const ulRes = await fetch("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", {
+            const ulRes = await fetch("/api/upload-promo", {
                 method: "POST",
-                body: uploadData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ base64Data: imageBase64 })
             });
+            
             const ulJson = await ulRes.json();
-            if (ulJson.success) {
-                imageUrl = ulJson.data.url; // URL directa al .png
-                console.log("✅ [URL RAW IMGBB GENERADA]", imageUrl);
+            
+            if (ulRes.ok && ulJson.url) {
+                imageUrl = ulJson.url; // URL directa de CDN obtenida
+                console.log("✅ [URL RAW SEGURA GENERADA]", imageUrl);
             } else {
-                throw new Error("ImgBB rechazó la subida");
+                throw new Error("El Proxy de subida falló");
             }
         } catch (e) {
             console.error("❌ Falló la subida de imagen:", e);
-            alert("No se pudo generar el enlace. Bloqueo de CORS o Servidor lleno.");
+            alert("Error de Servidor: No se pudo subir la imagen mágicamente.");
             setIsSendingToMake(false);
             return;
         }
@@ -359,7 +363,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.11 - IMGBB CDN</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.12 - SECURE UPLOAD</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
