@@ -242,7 +242,7 @@ const PromoImageApp: React.FC = () => {
         image_base64: imageBase64
       };
 
-      const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+      const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -329,7 +329,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.6 - JSON FINAL</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.7 - NEW WEBHOOK</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
