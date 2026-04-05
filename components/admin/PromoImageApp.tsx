@@ -445,7 +445,7 @@ const PromoTemplate: React.FC<any> = ({
                     color: '#c5a059',
                     fontFamily: 'Inter, sans-serif'
                   }}>
-                    {artist.toUpperCase()} RECORDS
+                    {artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}
                   </div>
                   <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>
                     REFLECTIONS // HUB PRO V5
@@ -546,20 +546,36 @@ const PromoTemplate: React.FC<any> = ({
               )}
 
               {mode === "disponible" && (
-                <div style={{ 
-                    marginTop: 10,
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                  <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 15,
+                      fontSize: config.title * 0.3, 
+                      color: '#c5a059',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 900,
+                      letterSpacing: '0.3em'
+                  }}>
+                     <div style={{ height: 1, flex: 1, background: 'linear-gradient(to right, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
+                     <span>PLATAFORMAS DIGITALES</span>
+                     <div style={{ height: 1, flex: 1, background: 'linear-gradient(to left, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
+                  </div>
+
+                  <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: 15,
-                    fontSize: config.title * 0.3, 
+                    justifyContent: 'center', 
+                    gap: config.title * 0.8,
                     color: '#c5a059',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 900,
-                    letterSpacing: '0.3em'
-                }}>
-                   <div style={{ height: 2, flex: 1, background: 'linear-gradient(to right, transparent, #c5a059)', width: 60 }}></div>
-                   <span>PLATAFORMAS DIGITALES</span>
-                   <div style={{ height: 2, flex: 1, background: 'linear-gradient(to left, transparent, #c5a059)', width: 60 }}></div>
+                    opacity: 0.9,
+                    filter: glow ? `drop-shadow(0 0 10px ${contrastColor}44)` : 'none'
+                  }}>
+                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.7 }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.7 }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.7 }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.7 }}></i>
+                  </div>
                 </div>
               )}
 
