@@ -237,27 +237,54 @@ const PromoImageApp: React.FC = () => {
             return;
         }
 
-        const formData = new FormData();
-        formData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
-        formData.append("artist", finalArtist);
-        formData.append("title", finalTitle);
-        formData.append("mode", finalMode);
-        formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
+        // Subimos la imagen a un servidor temporal para que Buffer tenga un Link real
+        console.log("Subiendo imagen temporalmente para generar URL pública...");
+        const uploadData = new FormData();
+        uploadData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        
+        let imageUrl = "";
+        try {
+            // Usamos tmpfiles.org que da link publico
+            const ulRes = await fetch("https://tmpfiles.org/api/v1/upload", {
+                method: "POST",
+                body: uploadData
+            });
+            const ulJson = await ulRes.json();
+            // tmpfiles devuelve algo como https://tmpfiles.org/12345/image.png
+            // Hacemos el string fixing para enlace directo:
+            imageUrl = ulJson.data.url.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+            console.log("✅ [URL GENERADA]", imageUrl);
+        } catch (e) {
+            console.error("❌ Falló la subida temporal de imagen:", e);
+            alert("No se pudo generar el enlace para Buffer.");
+            setIsSendingToMake(false);
+            return;
+        }
+
+        const payload = {
+            artist: finalArtist,
+            title: finalTitle,
+            mode: finalMode,
+            timestamp: new Date().toLocaleTimeString(),
+            post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`,
+            image_url: imageUrl
+        };
 
         const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", {
           method: "POST",
-          body: formData
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
 
         if (res.ok) {
-          console.log("✅ [MAKE] FormData Enviado con éxito!");
+          console.log("✅ [MAKE] Enviado con éxito el Link!");
         } else {
           console.error("❌ [MAKE] Error (HTTP " + res.status + ")");
         }
         setIsSendingToMake(false);
       }, "image/png");
     } catch (err) {
-      alert("Error en el envío");
+      alert("Error general");
       console.error(err);
       setIsSendingToMake(false);
     }
@@ -331,7 +358,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.8 - BUFFER FORMAT</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.9 - BUFFER URL FIX</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
