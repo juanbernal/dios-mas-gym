@@ -102,25 +102,36 @@ const PromoImageApp: React.FC = () => {
   useEffect(() => {
     if (!bg) return;
     const img = new Image();
+    img.crossOrigin = "anonymous"; // SOLUCIÓN AL ERROR DE SEGURIDAD
     img.src = bg;
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      canvas.width = 20;
-      canvas.height = 20;
-      ctx.drawImage(img, 0, 0, 20, 20);
-      const data = ctx.getImageData(0, 0, 20, 20).data;
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        canvas.width = 20;
+        canvas.height = 20;
+        ctx.drawImage(img, 0, 0, 20, 20);
+        const data = ctx.getImageData(0, 0, 20, 20).data;
 
-      let brightness = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+        let brightness = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+        }
+        brightness /= data.length / 4;
+
+        setOverlay(brightness > 140 ? 0.75 : 0.45);
+        setTextColor(brightness > 140 ? "#000000" : "#ffffff");
+        setContrastColor(brightness > 140 ? "#ffffff" : "#000000");
+      } catch (err) {
+        console.warn("⚠️ [SEGURIDAD] No se pudo leer el brillo (CORS). Usando valores por defecto.");
+        setOverlay(0.5);
+        setTextColor("#ffffff");
+        setContrastColor("#000000");
       }
-      brightness /= data.length / 4;
-
-      setOverlay(brightness > 140 ? 0.75 : 0.45);
-      setTextColor(brightness > 140 ? "#000000" : "#ffffff");
-      setContrastColor(brightness > 140 ? "#ffffff" : "#000000");
+    };
+    img.onerror = () => {
+      console.warn("⚠️ [ERROR] No se pudo cargar la imagen de detección de brillo.");
     };
   }, [bg]);
 
@@ -308,7 +319,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator</h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.2 - REFS</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
