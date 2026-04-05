@@ -548,8 +548,9 @@ const PromoTemplate: React.FC<any> = ({
             .grain {
               position: absolute;
               inset: 0;
-              background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
-              opacity: 0.05;
+              background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+              background-size: 24px 24px;
+              opacity: 1;
               pointer-events: none;
               z-index: 5;
             }
