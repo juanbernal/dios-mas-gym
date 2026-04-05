@@ -111,6 +111,33 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg]);
 
+  const handleAutoPublish = async () => {
+    if (catalog.length === 0) {
+      alert("Catálogo vacío o cargando...");
+      return;
+    }
+    
+    // 1. Pick Random
+    const song = catalog[Math.floor(Math.random() * catalog.length)];
+    let normalizedArtist = song.artist;
+    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+
+    setTitle(song.name.toUpperCase());
+    setArtist(normalizedArtist);
+    setBg(song.cover);
+    setMode("disponible");
+    setSize("instagram");
+
+    // 2. Wait for UI and Background Image to load
+    setIsSendingToMake(true);
+    
+    // Small delay to ensure React state and DOM are updated
+    setTimeout(async () => {
+      await handleSendToMake();
+    }, 1500);
+  };
+
   const handleSendToMake = async () => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
@@ -347,20 +374,29 @@ const PromoImageApp: React.FC = () => {
           </div>
 
           <button 
-            onClick={handleDownload}
-            className="mt-4 w-full py-4 bg-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-lg hover:bg-white transition-colors"
+            onClick={handleAutoPublish}
+            disabled={isSendingToMake || isLoadingCatalog}
+            className="mt-4 w-full py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.4em] rounded-lg hover:bg-white transition-all shadow-[0_20px_50px_rgba(197,160,89,0.3)] flex items-center justify-center gap-3 border-2 border-transparent hover:border-black"
           >
-            Descargar en 4K HD
+            <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-bolt'}`}></i>
+            {isSendingToMake ? 'Procesando Publicación...' : 'Publicar Aleatorio (1-Clic)'}
           </button>
 
-          <button 
-            onClick={handleSendToMake}
-            disabled={isSendingToMake}
-            className="mt-2 w-full py-4 bg-white/5 border border-[#c5a059]/30 text-[#c5a059] font-black uppercase text-xs tracking-widest rounded-lg hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-          >
-            <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
-            {isSendingToMake ? 'Enviando a Make...' : 'Enviar a Make Automático'}
-          </button>
+          <div className="flex gap-2 mt-4">
+            <button 
+              onClick={handleDownload}
+              className="flex-1 py-3 bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition-colors"
+            >
+              Descargar 4K
+            </button>
+            <button 
+              onClick={handleSendToMake}
+              disabled={isSendingToMake}
+              className="flex-1 py-3 bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition-colors"
+            >
+              Enviar a Make
+            </button>
+          </div>
         </div>
       </div>
 
