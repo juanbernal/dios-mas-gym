@@ -154,10 +154,14 @@ const PromoImageApp: React.FC = () => {
     if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
     if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
 
-    setTitle(song.name.toUpperCase());
-    setArtist(normalizedArtist);
+    const newTitle = song.name.toUpperCase();
+    const newArtist = normalizedArtist;
+    const newMode = "disponible";
+
+    setTitle(newTitle);
+    setArtist(newArtist);
     setBg(song.cover);
-    setMode("disponible");
+    setMode(newMode);
     setSize("instagram");
 
     // 2. Wait for UI and Background Image to load
@@ -165,14 +169,19 @@ const PromoImageApp: React.FC = () => {
     
     // Small delay to ensure React state and DOM are updated
     setTimeout(async () => {
-      await handleSendToMake();
+      await handleSendToMake(newTitle, newArtist, newMode);
     }, 2000);
   };
 
-  const handleSendToMake = async () => {
+  const handleSendToMake = async (overrideTitle?: string, overrideArtist?: string, overrideMode?: string) => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     
+    // Prioritize passed arguments over state for async calls
+    const finalTitle = overrideTitle || title;
+    const finalArtist = overrideArtist || artist;
+    const finalMode = overrideMode || mode;
+
     setIsSendingToMake(true);
     try {
       await document.fonts.load('1em "Bebas Neue"');
@@ -191,11 +200,11 @@ const PromoImageApp: React.FC = () => {
         }
 
         const formData = new FormData();
-        formData.append("file", blob, `promo-${artist.replace(/\s+/g, '-')}.png`);
-        formData.append("artist", artist);
-        formData.append("title", title);
-        formData.append("mode", mode);
-        formData.append("post_text", `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
+        formData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        formData.append("artist", finalArtist);
+        formData.append("title", finalTitle);
+        formData.append("mode", finalMode);
+        formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
 
         const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
           method: "POST",
