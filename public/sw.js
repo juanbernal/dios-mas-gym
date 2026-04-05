@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diosmasgym-v1';
+const CACHE_NAME = 'diosmasgym-v2.0.4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

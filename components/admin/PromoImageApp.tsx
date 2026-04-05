@@ -200,12 +200,11 @@ const PromoImageApp: React.FC = () => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     
-    // Si ovTitle es string, es una llamada automática con datos pre-fijados.
     const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
     const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
     const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
 
-    console.log("📤 [MAKE] Enviando:", finalTitle, "-", finalArtist);
+    console.log("📤 [MAKE] Enviando JSON:", finalTitle, "-", finalArtist);
 
     setIsSendingToMake(true);
     try {
@@ -220,15 +219,13 @@ const PromoImageApp: React.FC = () => {
 
       const imageBase64 = canvas.toDataURL("image/png");
       
-      console.log("📦 [MAKE] Imagen convertida a Base64, enviando JSON...");
-
       const payload = {
         artist: finalArtist,
         title: finalTitle,
         mode: finalMode,
         timestamp: new Date().toLocaleTimeString(),
-        post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`,
-        image_base64: imageBase64
+        image_base64: imageBase64,
+        post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`
       };
 
       const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
@@ -240,12 +237,12 @@ const PromoImageApp: React.FC = () => {
       if (res.ok) {
         console.log("✅ [MAKE] JSON Enviado con éxito!");
       } else {
-        console.error("❌ [MAKE] Error en servidor JSON (HTTP " + res.status + ")");
+        console.error("❌ [MAKE] Error JSON (HTTP " + res.status + ")");
       }
       setIsSendingToMake(false);
     } catch (err) {
-      alert("Error al procesar el envío");
-      console.error("❌ [MAKE] Excepción:", err);
+      alert("Error en el envío JSON");
+      console.error(err);
       setIsSendingToMake(false);
     }
   };
@@ -318,7 +315,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.3 - MASTER</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.4 - JSON</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
