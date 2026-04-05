@@ -201,7 +201,6 @@ const PromoImageApp: React.FC = () => {
     if (!exportEl) return;
     
     // Si ovTitle es string, es una llamada automática con datos pre-fijados.
-    // Si no, es una llamada manual y usamos titleRef para evitar clausuras viejas.
     const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
     const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
     const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
@@ -219,34 +218,34 @@ const PromoImageApp: React.FC = () => {
         backgroundColor: null
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-            setIsSendingToMake(false);
-            return;
-        }
+      const imageBase64 = canvas.toDataURL("image/png");
+      
+      console.log("📦 [MAKE] Imagen convertida a Base64, enviando JSON...");
 
-        const formData = new FormData();
-        formData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
-        formData.append("artist", finalArtist);
-        formData.append("title", finalTitle);
-        formData.append("mode", finalMode);
-        formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
+      const payload = {
+        artist: finalArtist,
+        title: finalTitle,
+        mode: finalMode,
+        timestamp: new Date().toLocaleTimeString(),
+        post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`,
+        image_base64: imageBase64
+      };
 
-        const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
-          method: "POST",
-          body: formData
-        });
+      const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-        if (res.ok) {
-          console.log("✅ [MAKE] Enviado con éxito");
-        } else {
-          console.error("❌ [MAKE] Error HTTP:", res.status);
-        }
-        setIsSendingToMake(false);
-      }, "image/png");
+      if (res.ok) {
+        console.log("✅ [MAKE] JSON Enviado con éxito!");
+      } else {
+        console.error("❌ [MAKE] Error en servidor JSON (HTTP " + res.status + ")");
+      }
+      setIsSendingToMake(false);
     } catch (err) {
-      alert("Error en el envío");
-      console.error(err);
+      alert("Error al procesar el envío");
+      console.error("❌ [MAKE] Excepción:", err);
       setIsSendingToMake(false);
     }
   };
