@@ -237,23 +237,21 @@ const PromoImageApp: React.FC = () => {
             return;
         }
 
-        // Subimos la imagen a un servidor temporal para que Buffer tenga un Link real
-        console.log("Subiendo imagen temporalmente para generar URL pública...");
+        // Subimos la imagen a Catbox para obtener un Link público RAW (.png directo)
+        console.log("Subiendo imagen a CDN para generar URL pública...");
         const uploadData = new FormData();
-        uploadData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        uploadData.append("reqtype", "fileupload");
+        uploadData.append("fileToUpload", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
         
         let imageUrl = "";
         try {
-            // Usamos tmpfiles.org que da link publico
-            const ulRes = await fetch("https://tmpfiles.org/api/v1/upload", {
+            // Catbox.moe da enlace directo sin HTML ni redirecciones
+            const ulRes = await fetch("https://catbox.moe/user/api.php", {
                 method: "POST",
                 body: uploadData
             });
-            const ulJson = await ulRes.json();
-            // tmpfiles devuelve algo como https://tmpfiles.org/12345/image.png
-            // Hacemos el string fixing para enlace directo:
-            imageUrl = ulJson.data.url.replace("tmpfiles.org/", "tmpfiles.org/dl/");
-            console.log("✅ [URL GENERADA]", imageUrl);
+            imageUrl = await ulRes.text();
+            console.log("✅ [URL RAW GENERADA]", imageUrl);
         } catch (e) {
             console.error("❌ Falló la subida temporal de imagen:", e);
             alert("No se pudo generar el enlace para Buffer.");
@@ -358,7 +356,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.9 - BUFFER URL FIX</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.10 - BUFFER NATIVE FIX</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
