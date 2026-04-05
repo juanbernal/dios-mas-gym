@@ -241,7 +241,9 @@ const PromoImageApp: React.FC = () => {
         // para evadir por completo bloqueadores de anuncios y errores CORS
         console.log("Subiendo imagen mediante Proxy Seguro...");
         
-        const imageBase64 = canvas.toDataURL("image/png");
+        // ¡Secreto aquí!: Convertir a JPEG con compresión (0.8) en lugar de PNG
+        // para evitar el límite estricto de 4.5MB de subida de servidores como Vercel.
+        const imageBase64 = canvas.toDataURL("image/jpeg", 0.8);
         let imageUrl = "";
         
         try {
@@ -257,11 +259,11 @@ const PromoImageApp: React.FC = () => {
                 imageUrl = ulJson.url; // URL directa de CDN obtenida
                 console.log("✅ [URL RAW SEGURA GENERADA]", imageUrl);
             } else {
-                throw new Error("El Proxy de subida falló");
+                throw new Error("El Proxy de subida falló: " + JSON.stringify(ulJson));
             }
         } catch (e) {
             console.error("❌ Falló la subida de imagen:", e);
-            alert("Error de Servidor: No se pudo subir la imagen mágicamente.");
+            alert("Error de Servidor Vercel: Archivo demasiado pesado o desconexión.");
             setIsSendingToMake(false);
             return;
         }
@@ -363,7 +365,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.12 - SECURE UPLOAD</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.13 - JPEG UPLOAD</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
