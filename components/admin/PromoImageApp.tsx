@@ -29,6 +29,9 @@ const PromoImageApp: React.FC = () => {
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [isSendingToMake, setIsSendingToMake] = useState(false);
+  const [isAutopilot, setIsAutopilot] = useState(false);
+  const [autopilotMinutes, setAutopilotMinutes] = useState(240);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -111,6 +114,34 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg]);
 
+  // Autopilot Timer
+  useEffect(() => {
+    let timer: any;
+    if (isAutopilot) {
+       setCountdown(autopilotMinutes * 60);
+       timer = setInterval(() => {
+          setCountdown(prev => {
+             if (prev <= 1) {
+                handleAutoPublish();
+                return autopilotMinutes * 60;
+             }
+             return prev - 1;
+          });
+       }, 1000);
+    } else {
+       setCountdown(0);
+       clearInterval(timer);
+    }
+    return () => clearInterval(timer);
+  }, [isAutopilot, autopilotMinutes]);
+
+  const formatCountdown = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h}h ${m}m ${s}s`;
+  };
+
   const handleAutoPublish = async () => {
     if (catalog.length === 0) {
       alert("Catálogo vacío o cargando...");
@@ -135,7 +166,7 @@ const PromoImageApp: React.FC = () => {
     // Small delay to ensure React state and DOM are updated
     setTimeout(async () => {
       await handleSendToMake();
-    }, 1500);
+    }, 2000);
   };
 
   const handleSendToMake = async () => {
@@ -153,35 +184,38 @@ const PromoImageApp: React.FC = () => {
         backgroundColor: null
       });
 
-      // Convert to Base64
-      const base64Image = canvas.toDataURL("image/png");
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            setIsSendingToMake(false);
+            return;
+        }
 
-      const payload = {
-        image_base64: base64Image,
-        artist: artist,
-        title: title,
-        mode: mode,
-        post_text: `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`
-      };
+        const formData = new FormData();
+        formData.append("file", blob, `promo-${artist.replace(/\s+/g, '-')}.png`);
+        formData.append("artist", artist);
+        formData.append("title", title);
+        formData.append("mode", mode);
+        formData.append("post_text", `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
 
-      const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+        const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+          method: "POST",
+          body: formData
+        });
 
-      if (res.ok) {
-        alert("¡Enviado a Make correctamente!");
-      } else {
-        alert("Error al enviar a Make: " + res.statusText);
-      }
-      setIsSendingToMake(false);
+        if (res.ok) {
+          console.log("Enviado a Make correctamente");
+        } else {
+          console.error("Error al enviar a Make: " + res.statusText);
+        }
+        setIsSendingToMake(false);
+      }, "image/png");
     } catch (err) {
       alert("Error al procesar el envío automátivo");
       console.error(err);
       setIsSendingToMake(false);
     }
   };
+
 
   const handleDownload = async () => {
     const exportEl = document.getElementById("promo-export-master");
@@ -397,6 +431,43 @@ const PromoImageApp: React.FC = () => {
               Enviar a Make
             </button>
           </div>
+
+          {/* Autopilot Panel */}
+          <div className="mt-8 p-6 bg-white/5 border border-[#c5a059]/20 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-[#c5a059]">Modo Piloto Automático</h3>
+                <p className="text-[9px] text-white/40 uppercase mt-1">Automatización 24/7 de Promos</p>
+              </div>
+              <button 
+                onClick={() => setIsAutopilot(!isAutopilot)}
+                className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${isAutopilot ? 'bg-red-500 text-white' : 'bg-[#c5a059] text-black'}`}
+              >
+                {isAutopilot ? 'Detener Piloto' : 'Activar Piloto'}
+              </button>
+            </div>
+
+            {isAutopilot && (
+              <div className="flex flex-col gap-4 animate-pulse">
+                <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-[#c5a059]/30">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">Próximo Envío:</span>
+                  <span className="text-sm font-mono font-bold text-white">{formatCountdown(countdown)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 space-y-2">
+              <label className="text-[9px] uppercase font-bold text-white/40">Frecuencia (Minutos)</label>
+              <input 
+                type="number" 
+                className="w-full bg-white/5 border border-white/10 p-2 rounded text-xs outline-none focus:border-[#c5a059]"
+                value={autopilotMinutes}
+                onChange={(e) => setAutopilotMinutes(Number(e.target.value))}
+                min={1}
+              />
+            </div>
+          </div>
+
         </div>
       </div>
 
