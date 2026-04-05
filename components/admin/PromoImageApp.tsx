@@ -319,7 +319,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.2 - REFS</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.3 - MASTER</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
