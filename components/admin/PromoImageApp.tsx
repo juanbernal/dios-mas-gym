@@ -237,62 +237,34 @@ const PromoImageApp: React.FC = () => {
             return;
         }
 
-        // Subimos la imagen usando nuestra propia API Serverless en Vercel
-        // para evadir por completo bloqueadores de anuncios y errores CORS
-        console.log("Subiendo imagen mediante Proxy Seguro...");
-        
-        // ¡Secreto aquí!: Convertir a JPEG con compresión (0.8) en lugar de PNG
-        // para evitar el límite estricto de 4.5MB de subida de servidores como Vercel.
-        const imageBase64 = canvas.toDataURL("image/jpeg", 0.8);
-        let imageUrl = "";
-        
+        const formData = new FormData();
+        formData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        formData.append("artist", finalArtist);
+        formData.append("title", finalTitle);
+        formData.append("mode", finalMode);
+        formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
+
         try {
-            const ulRes = await fetch("/api/upload-promo", {
+            const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ base64Data: imageBase64 })
+                body: formData
             });
-            
-            const ulJson = await ulRes.json();
-            
-            if (ulRes.ok && ulJson.url) {
-                imageUrl = ulJson.url; // URL directa de CDN obtenida
-                console.log("✅ [URL RAW SEGURA GENERADA]", imageUrl);
+
+            if (res.ok) {
+                console.log("✅ [MAKE] Archivo NATIVO enviado con éxito a Make!");
             } else {
-                throw new Error("El Proxy de subida falló: " + JSON.stringify(ulJson));
+                console.error("❌ [MAKE] Error (HTTP " + res.status + ")");
             }
-        } catch (e) {
-            console.error("❌ Falló la subida de imagen:", e);
-            alert("Error de Servidor Vercel: Archivo demasiado pesado o desconexión.");
-            setIsSendingToMake(false);
-            return;
-        }
-
-        const payload = {
-            artist: finalArtist,
-            title: finalTitle,
-            mode: finalMode,
-            timestamp: new Date().toLocaleTimeString(),
-            post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`,
-            image_url: imageUrl
-        };
-
-        const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          console.log("✅ [MAKE] Enviado con éxito el Link!");
-        } else {
-          console.error("❌ [MAKE] Error (HTTP " + res.status + ")");
+        } catch (err) {
+            alert("Error enviando datos a Make");
+            console.error(err);
         }
         setIsSendingToMake(false);
       }, "image/png");
-    } catch (err) {
-      alert("Error general");
-      console.error(err);
+
+    } catch (e) {
+      console.error("Error General:", e);
+      alert("Ocurrió un error inesperado al procesar la imagen");
       setIsSendingToMake(false);
     }
   };
@@ -365,7 +337,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.13 - JPEG UPLOAD</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.14 - FINAL MAKE FILE</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
