@@ -33,6 +33,16 @@ const PromoImageApp: React.FC = () => {
   const [autopilotMinutes, setAutopilotMinutes] = useState(240);
   const [countdown, setCountdown] = useState(0);
 
+  // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
+  // Esto garantiza que handleSendToMake siempre vea lo que hay en pantalla actualmente
+  const titleRef = useRef(title);
+  const artistRef = useRef(artist);
+  const modeRef = useRef(mode);
+
+  useEffect(() => { titleRef.current = title; }, [title]);
+  useEffect(() => { artistRef.current = artist; }, [artist]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   useEffect(() => {
     const loadCatalog = async () => {
       setIsLoadingCatalog(true);
@@ -148,7 +158,7 @@ const PromoImageApp: React.FC = () => {
       return;
     }
     
-    // 1. Pick Random
+    // 1. Elegir canción al azar
     const song = catalog[Math.floor(Math.random() * catalog.length)];
     let normalizedArtist = song.artist;
     if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
@@ -158,29 +168,34 @@ const PromoImageApp: React.FC = () => {
     const newArtist = normalizedArtist;
     const newMode = "disponible";
 
+    console.log("🎲 [PILOTO] Seleccionando:", newTitle);
+
     setTitle(newTitle);
     setArtist(newArtist);
     setBg(song.cover);
     setMode(newMode);
     setSize("instagram");
 
-    // 2. Wait for UI and Background Image to load
+    // 2. Esperar a que el DOM cargue la nueva imagen (2.5s)
     setIsSendingToMake(true);
     
-    // Small delay to ensure React state and DOM are updated
     setTimeout(async () => {
+      console.log("⏱️ [AUTO] Ejecutando envío programado...");
       await handleSendToMake(newTitle, newArtist, newMode);
-    }, 2000);
+    }, 2500);
   };
 
-  const handleSendToMake = async (overrideTitle?: string, overrideArtist?: string, overrideMode?: string) => {
+  const handleSendToMake = async (ovTitle?: any, ovArtist?: any, ovMode?: any) => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     
-    // Prioritize passed arguments over state for async calls
-    const finalTitle = overrideTitle || title;
-    const finalArtist = overrideArtist || artist;
-    const finalMode = overrideMode || mode;
+    // Si ovTitle es string, es una llamada automática con datos pre-fijados.
+    // Si no, es una llamada manual y usamos titleRef para evitar clausuras viejas.
+    const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
+    const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
+    const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
+
+    console.log("📤 [MAKE] Enviando:", finalTitle, "-", finalArtist);
 
     setIsSendingToMake(true);
     try {
@@ -212,14 +227,14 @@ const PromoImageApp: React.FC = () => {
         });
 
         if (res.ok) {
-          console.log("Enviado a Make correctamente");
+          console.log("✅ [MAKE] Enviado con éxito");
         } else {
-          console.error("Error al enviar a Make: " + res.statusText);
+          console.error("❌ [MAKE] Error HTTP:", res.status);
         }
         setIsSendingToMake(false);
       }, "image/png");
     } catch (err) {
-      alert("Error al procesar el envío automátivo");
+      alert("Error en el envío");
       console.error(err);
       setIsSendingToMake(false);
     }
