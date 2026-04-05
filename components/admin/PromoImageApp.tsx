@@ -200,11 +200,12 @@ const PromoImageApp: React.FC = () => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     
+    // Prioridad absoluta a los parámetros pasados (para evitar clausuras viejas)
     const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
     const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
     const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
 
-    console.log("📤 [MAKE] Enviando JSON:", finalTitle, "-", finalArtist);
+    console.log("📤 [MAKE] Enviando FormData:", finalTitle, "-", finalArtist);
 
     setIsSendingToMake(true);
     try {
@@ -217,31 +218,33 @@ const PromoImageApp: React.FC = () => {
         backgroundColor: null
       });
 
-      const imageBase64 = canvas.toDataURL("image/png");
-      
-      const payload = {
-        artist: finalArtist,
-        title: finalTitle,
-        mode: finalMode,
-        timestamp: new Date().toLocaleTimeString(),
-        image_base64: imageBase64,
-        post_text: `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`
-      };
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            setIsSendingToMake(false);
+            return;
+        }
 
-      const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+        const formData = new FormData();
+        formData.append("file", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        formData.append("artist", finalArtist);
+        formData.append("title", finalTitle);
+        formData.append("mode", finalMode);
+        formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
 
-      if (res.ok) {
-        console.log("✅ [MAKE] JSON Enviado con éxito!");
-      } else {
-        console.error("❌ [MAKE] Error JSON (HTTP " + res.status + ")");
-      }
-      setIsSendingToMake(false);
+        const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+          method: "POST",
+          body: formData
+        });
+
+        if (res.ok) {
+          console.log("✅ [MAKE] Enviado con éxito!");
+        } else {
+          console.error("❌ [MAKE] Error (HTTP " + res.status + ")");
+        }
+        setIsSendingToMake(false);
+      }, "image/png");
     } catch (err) {
-      alert("Error en el envío JSON");
+      alert("Error en el envío");
       console.error(err);
       setIsSendingToMake(false);
     }
