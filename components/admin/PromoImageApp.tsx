@@ -28,6 +28,7 @@ const PromoImageApp: React.FC = () => {
   const [scale, setScale] = useState(1);
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+  const [isSendingToMake, setIsSendingToMake] = useState(false);
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -109,6 +110,53 @@ const PromoImageApp: React.FC = () => {
       setContrastColor(brightness > 140 ? "#ffffff" : "#000000");
     };
   }, [bg]);
+
+  const handleSendToMake = async () => {
+    const exportEl = document.getElementById("promo-export-master");
+    if (!exportEl) return;
+    
+    setIsSendingToMake(true);
+    try {
+      await document.fonts.load('1em "Bebas Neue"');
+      
+      const canvas = await html2canvas(exportEl, {
+        scale: 2, 
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            setIsSendingToMake(false);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", blob, `promo-${artist.replace(/\s+/g, '-')}.png`);
+        formData.append("artist", artist);
+        formData.append("title", title);
+        formData.append("mode", mode);
+        formData.append("post_text", `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible en todas las plataformas!'} #DiosMasGym #Juan614`);
+
+        const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+          method: "POST",
+          body: formData
+        });
+
+        if (res.ok) {
+          alert("¡Enviado a Make correctamente!");
+        } else {
+          alert("Error al enviar a Make: " + res.statusText);
+        }
+        setIsSendingToMake(false);
+      }, "image/png");
+    } catch (err) {
+      alert("Error al procesar el envío automátivo");
+      console.error(err);
+      setIsSendingToMake(false);
+    }
+  };
 
   const handleDownload = async () => {
     const exportEl = document.getElementById("promo-export-master");
@@ -305,6 +353,15 @@ const PromoImageApp: React.FC = () => {
             className="mt-4 w-full py-4 bg-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-lg hover:bg-white transition-colors"
           >
             Descargar en 4K HD
+          </button>
+
+          <button 
+            onClick={handleSendToMake}
+            disabled={isSendingToMake}
+            className="mt-2 w-full py-4 bg-white/5 border border-[#c5a059]/30 text-[#c5a059] font-black uppercase text-xs tracking-widest rounded-lg hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+          >
+            <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+            {isSendingToMake ? 'Enviando a Make...' : 'Enviar a Make Automático'}
           </button>
         </div>
       </div>
