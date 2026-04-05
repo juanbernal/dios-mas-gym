@@ -237,24 +237,27 @@ const PromoImageApp: React.FC = () => {
             return;
         }
 
-        // Subimos la imagen a Catbox para obtener un Link público RAW (.png directo)
-        console.log("Subiendo imagen a CDN para generar URL pública...");
+        // Subimos la imagen a ImgBB para URL pública (soporta CORS)
+        console.log("Subiendo imagen a ImgBB CDN...");
         const uploadData = new FormData();
-        uploadData.append("reqtype", "fileupload");
-        uploadData.append("fileToUpload", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
+        uploadData.append("image", blob, `promo-${finalArtist.replace(/\s+/g, '-')}.png`);
         
         let imageUrl = "";
         try {
-            // Catbox.moe da enlace directo sin HTML ni redirecciones
-            const ulRes = await fetch("https://catbox.moe/user/api.php", {
+            const ulRes = await fetch("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", {
                 method: "POST",
                 body: uploadData
             });
-            imageUrl = await ulRes.text();
-            console.log("✅ [URL RAW GENERADA]", imageUrl);
+            const ulJson = await ulRes.json();
+            if (ulJson.success) {
+                imageUrl = ulJson.data.url; // URL directa al .png
+                console.log("✅ [URL RAW IMGBB GENERADA]", imageUrl);
+            } else {
+                throw new Error("ImgBB rechazó la subida");
+            }
         } catch (e) {
-            console.error("❌ Falló la subida temporal de imagen:", e);
-            alert("No se pudo generar el enlace para Buffer.");
+            console.error("❌ Falló la subida de imagen:", e);
+            alert("No se pudo generar el enlace. Bloqueo de CORS o Servidor lleno.");
             setIsSendingToMake(false);
             return;
         }
@@ -356,7 +359,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.10 - BUFFER NATIVE FIX</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.11 - IMGBB CDN</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
