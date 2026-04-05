@@ -51,7 +51,20 @@ const PromoImageApp: React.FC = () => {
           fetchMusicCatalog('diosmasgym'),
           fetchMusicCatalog('juan614')
         ]);
-        setCatalog([...dM, ...j6]);
+        const fullCatalog = [...dM, ...j6];
+        setCatalog(fullCatalog);
+
+        // AUTO-ALEATORIO AL INICIAR PARA EVITAR "DUDAS QUÉ ES AMOR"
+        if (fullCatalog.length > 0) {
+          const song = fullCatalog[Math.floor(Math.random() * fullCatalog.length)];
+          let normalizedArtist = song.artist;
+          if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+          if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+
+          setTitle(song.name.toUpperCase());
+          setArtist(normalizedArtist);
+          setBg(song.cover);
+        }
       } catch (err) {
         console.error("Error loading catalog:", err);
       } finally {
@@ -318,7 +331,7 @@ const PromoImageApp: React.FC = () => {
           <i className="fas fa-arrow-left"></i>
           Volver al Panel
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.4 - JSON</span></h1>
+        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.5 - CLEAN</span></h1>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
