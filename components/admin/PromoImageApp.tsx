@@ -120,37 +120,35 @@ const PromoImageApp: React.FC = () => {
       await document.fonts.load('1em "Bebas Neue"');
       
       const canvas = await html2canvas(exportEl, {
-        scale: 2, 
+        scale: 1.5, 
         useCORS: true,
         allowTaint: true,
         backgroundColor: null
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-            setIsSendingToMake(false);
-            return;
-        }
+      // Convert to Base64
+      const base64Image = canvas.toDataURL("image/png");
 
-        const formData = new FormData();
-        formData.append("file", blob, `promo-${artist.replace(/\s+/g, '-')}.png`);
-        formData.append("artist", artist);
-        formData.append("title", title);
-        formData.append("mode", mode);
-        formData.append("post_text", `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible en todas las plataformas!'} #DiosMasGym #Juan614`);
+      const payload = {
+        image_base64: base64Image,
+        artist: artist,
+        title: title,
+        mode: mode,
+        post_text: `¡Nuevo lanzamiento! "${title}" de ${artist}. ${mode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`
+      };
 
-        const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
-          method: "POST",
-          body: formData
-        });
+      const res = await fetch("https://hook.us2.make.com/dxk2cocfgkgyvqview35zhbsvd7bni4b", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-        if (res.ok) {
-          alert("¡Enviado a Make correctamente!");
-        } else {
-          alert("Error al enviar a Make: " + res.statusText);
-        }
-        setIsSendingToMake(false);
-      }, "image/png");
+      if (res.ok) {
+        alert("¡Enviado a Make correctamente!");
+      } else {
+        alert("Error al enviar a Make: " + res.statusText);
+      }
+      setIsSendingToMake(false);
     } catch (err) {
       alert("Error al procesar el envío automátivo");
       console.error(err);
