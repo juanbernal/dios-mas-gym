@@ -45,6 +45,7 @@ export interface AppState {
   favorites: string[];
   selectedCategory: string | null;
   nextPageToken?: string;
+  mainNextPageToken?: string;
   searchResults: ContentPost[];
   isSearching: boolean;
   error?: string | null;
