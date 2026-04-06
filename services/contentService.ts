@@ -1,13 +1,14 @@
 
 import { ContentPost } from '../types';
 
-/**
- * Recuperación de datos desde nuestro servidor (Proxy Seguro).
- * Esto permite cargar grandes cantidades de datos y bypass de CORS.
- */
 const getSlugFromUrl = (url: string) => {
   if (!url) return '';
   return url.split('/').pop()?.replace('.html', '') || '';
+};
+
+// Intenta normalizar acentos para búsquedas exitosas en Blogger
+const normalizeText = (text: string) => {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
 
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
@@ -23,30 +24,13 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       if (q) url.searchParams.append('q', q);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s deep search
 
       try {
         const response = await fetch(url.toString(), { signal: controller.signal });
         if (!response.ok) return { posts: [], nextPageToken: undefined };
-        
         const data = await response.json();
-        const processed = processApiV3Data(data);
-        
-        // Caché optimizada (solo para la carga inicial sin búsqueda)
-        if (processed.posts.length > 0 && !token && !q && limit >= 50) {
-          try {
-            const cacheablePosts = processed.posts.map(p => ({
-               ...p,
-               content: p.content.substring(0, 150) + '...'
-            }));
-            localStorage.setItem('dg_posts_cache', JSON.stringify(cacheablePosts));
-            localStorage.setItem('dg_posts_cache_time', Date.now().toString());
-          } catch (e) {
-            localStorage.removeItem('dg_posts_cache');
-          }
-        }
-        
-        return processed;
+        return processApiV3Data(data);
       } catch (e) {
         return { posts: [], nextPageToken: undefined };
       } finally {
@@ -54,18 +38,18 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       }
     };
 
-    // Intentar caché (solo si no hay búsqueda ni paginación)
-    if (!pageToken && !query) {
-      const cached = localStorage.getItem('dg_posts_cache');
-      if (cached) {
-        try {
-          const cachedData = JSON.parse(cached);
-          if (cachedData.length > 0) return { posts: cachedData };
-        } catch (e) {}
-      }
+    // Búsqueda inteligente: si falla con el original, probamos con variaciones (acentos)
+    let result = await fetchFromServer(maxResults, pageToken, query);
+    
+    if (query && result.posts.length === 0) {
+       const normalized = normalizeText(query);
+       if (normalized !== query) {
+         const retry = await fetchFromServer(maxResults, pageToken, normalized);
+         return retry;
+       }
     }
 
-    return await fetchFromServer(maxResults, pageToken, query);
+    return result;
   } catch (error) {
     return { posts: [] };
   }
@@ -73,12 +57,10 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
 export const fetchPostById = async (postId: string): Promise<ContentPost | null> => {
   try {
-    const isVercel = window.location.hostname.includes('vercel');
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+    const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
     const url = new URL('/api/arsenal', apiBase);
-    url.searchParams.append('maxResults', '10'); // We just need to check if it's in the latest or search by ID specifically?
-    // Actually our API doesn't have a direct ID fetch, so we fetch and find.
+    url.searchParams.append('maxResults', '15'); 
     const response = await fetch(url.toString());
     const data = await response.json();
     const processed = processApiV3Data(data);
@@ -88,43 +70,42 @@ export const fetchPostById = async (postId: string): Promise<ContentPost | null>
 
 export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
   try {
-    const isVercel = window.location.hostname.includes('vercel');
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+    const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
 
     const search = async (q: string) => {
       const url = new URL('/api/arsenal', apiBase);
-      url.searchParams.append('maxResults', '20');
+      url.searchParams.append('maxResults', '25');
       url.searchParams.append('q', q);
       const res = await fetch(url.toString());
-      const data = await res.json();
-      return processApiV3Data(data);
+      if (!res.ok) return { posts: [] };
+      return processApiV3Data(await res.json());
     };
 
-    // 1. Intento con slug exacto
-    const query = slug.replace(/-/g, ' ');
-    let result = await search(`"${query}"`);
+    const targetSlug = slug.toLowerCase();
+    const queryTerm = slug.replace(/-/g, ' ');
     
-    // 2. Intento con palabras clave si falla
+    // Probamos varias estrategias en paralelo o cascada
+    let result = await search(queryTerm);
+    
+    // Si no hay resultados o match, probamos sin acentos en el slug
     if (result.posts.length === 0) {
-      result = await search(query);
+      result = await search(normalizeText(queryTerm));
     }
-    
-    const findMatch = (posts: ContentPost[]) => posts.find(p => {
-      const pSlug = getSlugFromUrl(p.url).toLowerCase();
-      const target = slug.toLowerCase();
-      return pSlug === target || pSlug.includes(target) || target.includes(pSlug);
+
+    const match = result.posts.find(p => {
+       const pSlug = getSlugFromUrl(p.url).toLowerCase();
+       return pSlug === targetSlug || pSlug.includes(targetSlug) || targetSlug.includes(pSlug);
     });
 
-    const match = findMatch(result.posts);
     if (match) return match;
 
-    // 3. Fallback agresivo para artículos ultra-viejos (2011-2015)
-    // Extraemos solo la palabra más importante (ej: 'kaka')
-    const keywords = slug.split('-').filter(k => k.length > 3);
-    if (keywords.length > 0) {
-       const finalResult = await search(keywords[keywords.length - 1]);
-       return findMatch(finalResult.posts) || finalResult.posts[0] || null;
+    // Fallback de "último recurso" por última palabra del slug (ej: 'kaka')
+    const chunks = targetSlug.split('-').filter(c => c.length > 3);
+    if (chunks.length > 0) {
+       const finalTry = await search(chunks[chunks.length - 1]);
+       const finalMatch = finalTry.posts.find(p => getSlugFromUrl(p.url).toLowerCase().includes(targetSlug));
+       return finalMatch || finalTry.posts[0] || null;
     }
 
     return result.posts[0] || null;

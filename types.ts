@@ -46,6 +46,7 @@ export interface AppState {
   selectedCategory: string | null;
   nextPageToken?: string;
   mainNextPageToken?: string;
+  searchNextPageToken?: string;
   searchResults: ContentPost[];
   isSearching: boolean;
   error?: string | null;

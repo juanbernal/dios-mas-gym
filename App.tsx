@@ -46,6 +46,7 @@ const App: React.FC = () => {
       error: null,
       nextPageToken: undefined,
       mainNextPageToken: undefined,
+      searchNextPageToken: undefined,
       searchResults: [],
       isSearching: false
     };
@@ -128,17 +129,20 @@ const App: React.FC = () => {
   }, []);
 
   const loadMore = async () => {
-    if (!state.nextPageToken || state.loading) return;
+    const currentToken = state.searchTerm ? state.searchNextPageToken : state.nextPageToken;
+    if (!currentToken || state.loading) return;
     
     setState(p => ({ ...p, loading: true }));
     try {
-      const result = await fetchArsenalData(30, state.nextPageToken, state.searchTerm || undefined);
+      const result = await fetchArsenalData(30, currentToken, state.searchTerm || undefined);
       setState(prev => ({
         ...prev,
         allPosts: state.searchTerm ? prev.allPosts : [...prev.allPosts, ...result.posts],
         searchResults: state.searchTerm ? [...prev.searchResults, ...result.posts] : prev.searchResults,
-        nextPageToken: result.nextPageToken,
+        // Sincronizamos los tokens correspondientes
+        nextPageToken: state.searchTerm ? prev.nextPageToken : result.nextPageToken,
         mainNextPageToken: state.searchTerm ? prev.mainNextPageToken : result.nextPageToken,
+        searchNextPageToken: state.searchTerm ? result.nextPageToken : prev.searchNextPageToken,
         loading: false
       }));
     } catch (e) {
@@ -154,22 +158,28 @@ const App: React.FC = () => {
   const filteredPosts = useMemo(() => {
     let posts = state.allPosts;
     
-    // Si hay una búsqueda activa, combinamos los resultados locales con los remotos del API profundo
     if (state.searchTerm) {
       const term = state.searchTerm.toLowerCase();
+      // 1. Filtrar coincidencias locales
       const localMatches = posts.filter(p => 
         p.title.toLowerCase().includes(term) || 
         p.content.toLowerCase().includes(term) || 
         p.labels?.some(l => l.toLowerCase().includes(term))
       );
       
-      const allResults = [...state.searchResults];
-      localMatches.forEach(lp => {
-         if (!allResults.some(rp => rp.id === lp.id)) allResults.push(lp);
+      // 2. Combinar con resultados remotos asegurando UNICIDAD por ID
+      const seenIds = new Set<string>();
+      const combinedResults = [...state.searchResults];
+      combinedResults.forEach(p => seenIds.add(p.id));
+      
+      localMatches.forEach(p => {
+         if (!seenIds.has(p.id)) {
+            combinedResults.push(p);
+            seenIds.add(p.id);
+         }
       });
       
-      // Ordenar por fecha o relevancia? Por ahora por fecha (las de searchResults suelen ya venir ordenadas)
-      return allResults;
+      return combinedResults;
     }
 
     if (state.currentView === 'favoritos') posts = posts.filter(p => state.favorites.includes(p.id));
@@ -177,30 +187,31 @@ const App: React.FC = () => {
     return posts;
   }, [state.allPosts, state.searchTerm, state.searchResults, state.selectedCategory, state.currentView, state.favorites]);
 
-  // Restaura el token de paginación principal si se limpia la búsqueda
-  useEffect(() => {
-    if (!state.searchTerm && state.mainNextPageToken && !state.nextPageToken) {
-       setState(p => ({ ...p, nextPageToken: p.mainNextPageToken }));
-    }
-  }, [state.searchTerm, state.mainNextPageToken]);
-
   // Efecto de búsqueda profunda (Deep Search) - Debounced
   useEffect(() => {
     const term = state.searchTerm.trim();
     if (term.length < 3) {
-      if (state.searchResults.length > 0) setState(p => ({ ...p, searchResults: [], isSearching: false }));
+      if (state.searchResults.length > 0) {
+         setState(p => ({ 
+            ...p, 
+            searchResults: [], 
+            isSearching: false, 
+            searchNextPageToken: undefined 
+         }));
+      }
       return;
     }
 
     const handler = setTimeout(async () => {
-       setState(p => ({ ...p, isSearching: true, searchResults: [] }));
+       setState(p => ({ ...p, isSearching: true }));
        try {
-          const result = await fetchArsenalData(30, undefined, term);
-          if (result.posts.length > 0) {
-            setState(p => ({ ...p, searchResults: result.posts, isSearching: false, nextPageToken: result.nextPageToken }));
-          } else {
-            setState(p => ({ ...p, isSearching: false }));
-          }
+          const result = await fetchArsenalData(40, undefined, term);
+          setState(p => ({ 
+            ...p, 
+            searchResults: result.posts, 
+            isSearching: false, 
+            searchNextPageToken: result.nextPageToken 
+          }));
        } catch (e) {
           setState(p => ({ ...p, isSearching: false }));
        }
@@ -315,7 +326,6 @@ const App: React.FC = () => {
                  </div>
               </section>
 
-              {/* Dynamic Blocks by Label */}
               {categories.slice(1, 4).map((tag, sIdx) => (
                 <section key={tag} className={`py-32 ${sIdx % 2 === 0 ? 'bg-[#0a0c14]' : 'bg-[#05070a]'}`}>
                    <div className="section-container">
@@ -362,8 +372,8 @@ const App: React.FC = () => {
                    {state.isSearching && (
                       <div className="col-span-12 py-20 text-center animate-pulse">
                          <div className="inline-block w-12 h-12 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full mb-6"></div>
-                         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Explorando el Arsenal Profundo...</p>
-                         <p className="text-[8px] text-white/20 uppercase tracking-widest mt-2">(Buscando artículos históricos 2011-2026)</p>
+                         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Rescatando el Arsenal de Fe...</p>
+                         <p className="text-[8px] text-white/20 uppercase tracking-widest mt-2">(Escaneando el archivo histórico)</p>
                       </div>
                    )}
                    {filteredPosts.map(p => (
@@ -376,26 +386,24 @@ const App: React.FC = () => {
                    ))}
                    {filteredPosts.length === 0 && !state.isSearching && (
                       <div className="col-span-12 py-40 text-center">
-                         <p className="font-serif italic text-4xl opacity-20 text-white mb-8">Objetivo no localizado en el radar inmediato.</p>
-                         <button onClick={() => setState(p => ({ ...p, searchTerm: '' }))} className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest border-b border-[#c5a059] pb-1">Desactivar Filtros</button>
+                         <p className="font-serif italic text-4xl opacity-20 text-white mb-8">Objetivo no localizado.</p>
+                         <button onClick={() => setState(p => ({ ...p, searchTerm: '' }))} className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest border-b border-[#c5a059] pb-1">Resetear Rastreador</button>
                       </div>
                    )}
                 </div>
 
-                {/* BOTÓN PAGINACIÓN (CARGAR MÁS) */}
-                {state.nextPageToken && !state.isSearching && (
+                {(state.searchTerm ? state.searchNextPageToken : state.mainNextPageToken) && (
                   <div className="text-center py-20 border-t border-white/5">
                     <button 
                       onClick={loadMore}
                       disabled={state.loading}
-                      className="group relative px-12 py-6 bg-transparent border border-[#c5a059] overflow-hidden transition-all hover:bg-[#c5a059] duration-500"
+                      className="group relative px-12 py-6 bg-transparent border border-[#c5a059] overflow-hidden transition-all hover:bg-[#c5a059] duration-500 disabled:opacity-30"
                     >
                       <div className="absolute inset-0 w-0 bg-[#c5a059] group-hover:w-full transition-all duration-500"></div>
                       <span className="relative z-10 text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] group-hover:text-black transition-colors">
                         {state.loading ? 'Sincronizando...' : 'Cargar Más Material'}
                       </span>
                     </button>
-                    <p className="mt-8 text-[8px] font-black uppercase tracking-widest text-white/20">Exploración táctica continua</p>
                   </div>
                 )}
               </div>
@@ -408,14 +416,14 @@ const App: React.FC = () => {
                 <h1 className="font-serif text-7xl md:text-9xl mb-32 italic text-[#c5a059]">Mis Favoritos</h1>
                 <div className="magazine-grid">
                    {filteredPosts.map(p => (
-                      <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4">
+                      <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-500">
                         <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
                           isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ 
                             ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] 
                           })); }} />
                       </div>
                    ))}
-                   {filteredPosts.length === 0 && <div className="col-span-12 py-40 text-center font-serif italic text-4xl opacity-20 text-white">No tienes reflexiones guardadas aún.</div>}
+                   {filteredPosts.length === 0 && <div className="col-span-12 py-40 text-center font-serif italic text-4xl opacity-20 text-white">Archivo vacío.</div>}
                 </div>
               </div>
             </section>
@@ -432,20 +440,16 @@ const App: React.FC = () => {
       <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />
       <PWAInstallPrompt />
 
-      <footer className="py-40 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
-         <div className="section-container text-center relative z-10">
-            <h2 className="font-serif italic text-6xl md:text-8xl mb-16 text-white/90">Dios Más Gym</h2>
-            <div className="flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.5em] text-[#c5a059] uppercase opacity-60"><span>Fe</span><span>Valentía</span><span>Disciplina</span></div>
-            <div className="mt-24 h-px w-40 bg-gradient-to-r from-transparent via-white/10 to-transparent mx-auto"></div>
-            <div className="mt-12 flex flex-col items-center gap-6">
-                <p className="text-[9px] font-bold tracking-[0.4em] text-white/20 uppercase">&copy; 2026 REFLECTIONS HUB PRO</p>
-                <button onClick={() => navigate('/admin')} className="text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.03] hover:text-[#c5a059]/40 transition-all">[ MODO OPERADOR ]</button>
-            </div>
-         </div>
+      <footer className="py-40 bg-[#05070a] border-t border-white/5 relative overflow-hidden text-center">
+         <h2 className="font-serif italic text-6xl md:text-8xl mb-16 text-white/90">Dios Más Gym</h2>
+         <div className="flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.5em] text-[#c5a059] uppercase opacity-40"><span>Fe</span><span>Valentía</span><span>Disciplina</span></div>
+         <div className="mt-24 h-px w-40 bg-gradient-to-r from-transparent via-white/10 to-transparent mx-auto"></div>
+         <p className="mt-12 text-[9px] font-bold tracking-[0.4em] text-white/20 uppercase">&copy; 2026 REFLECTIONS HUB PRO</p>
+         <button onClick={() => navigate('/admin')} className="mt-8 text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.03] hover:text-[#c5a059]/40 transition-all">[ MODO OPERADOR ]</button>
       </footer>
 
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10">
+        <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in">
            <div className="w-full max-w-5xl text-center">
              <input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }}
                placeholder="IDENTIFIQUE OBJETIVO..." 
@@ -479,9 +483,6 @@ const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (s:
         <div className="grid grid-cols-12 gap-6">
            {catalog.slice(0, 6).map(item => <div key={item.id} className="col-span-12 md:col-span-6 lg:col-span-4"><MusicCard item={item} onPlay={() => onPlay(item)} /></div>)}
         </div>
-        <div className="mt-16 text-center">
-           <button onClick={() => window.open(`https://${artist === 'diosmasgym' ? 'musica' : 'juan614'}.diosmasgym.com/`, '_blank')} className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] border-b border-[#c5a059]/30 pb-2">Ver Todo el Catálogo</button>
-        </div>
       </div>
     </section>
   );
@@ -514,32 +515,32 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
-  if (error) return <div className="py-80 bg-[#05070a] text-center px-8"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Explorar otras reflexiones</button></div>;
-  if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Cargando inspiración...</div>;
+  if (error) return <div className="py-80 bg-[#05070a] text-center px-8 text-white"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Regresar al Arsenal</button></div>;
+  if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Sincronizando sabiduría...</div>;
 
   return (
-    <div className="bg-[#05070a]">
+    <div className="bg-[#05070a] animate-fade-in-up">
       <div className="relative min-h-[70vh] flex items-center overflow-hidden">
          <img src={state.selectedPost.images?.[0]?.url || ''} className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 scale-105" alt="" />
          <div className="absolute inset-0 bg-gradient-to-t from-[#05070a]"></div>
          <div className="section-container relative z-10 pt-40 pb-20">
             <button onClick={() => navigate(-1)} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group"><div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Hub</button>
-            <h1 className="font-serif italic text-5xl md:text-8xl mb-12 text-white leading-[1.1] max-w-5xl">{state.selectedPost.title}</h1>
+            <h1 className="font-serif italic text-5xl md:text-8xl mb-12 text-white leading-[1.1] max-w-5xl transition-all duration-1000">{state.selectedPost.title}</h1>
             <div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]/50"><span>{new Date(state.selectedPost.published).toLocaleDateString()}</span> {state.selectedPost.labels?.[0] && <span>TEMA: {state.selectedPost.labels[0]}</span>}</div>
          </div>
       </div>
       <article className="py-24 md:py-40 bg-white">
           <div className="max-w-4xl mx-auto px-8 md:px-0">
             <ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} mode="social" musicCatalog={state.musicDiosmasgym} onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} />
-            <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light mt-16" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}></div>
+            <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light mt-16 text-justify" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}></div>
           </div>
       </article>
       <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10">
          <div className="section-container">
-            <h3 className="font-serif italic text-4xl mb-16 text-white/40">Continuar Entrenamiento</h3>
+            <h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3>
             <div className="grid grid-cols-12 gap-8">
                {state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => (
-                  <div key={p.id} className="col-span-12 lg:col-span-4"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div>
+                  <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div>
                ))}
             </div>
          </div>
