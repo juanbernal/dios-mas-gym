@@ -40,13 +40,19 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
         const data = await response.json();
         const processed = processApiV3Data(data);
         
-        // Guardar en caché solo si es la carga principal
+        // Guardar en caché solo si es la carga principal y optimizar espacio
         if (processed.posts.length > 0 && !token && limit >= 20) {
           try {
-            localStorage.setItem('dg_posts_cache', JSON.stringify(processed.posts));
+            // Optimizar: no guardar el contenido HTML completo en el caché de la lista para ahorrar espacio (QuotaExceededError)
+            const cacheablePosts = processed.posts.map(p => ({
+               ...p,
+               content: p.content.substring(0, 150) + '...' // Solo un extracto
+            }));
+            localStorage.setItem('dg_posts_cache', JSON.stringify(cacheablePosts));
             localStorage.setItem('dg_posts_cache_time', Date.now().toString());
           } catch (e) {
-            console.warn("Could not save to cache (quota likely exceeded)", e);
+            console.warn("Retrying cache after clearing old data...");
+            localStorage.removeItem('dg_posts_cache'); // Intentar limpiar si falla
           }
         }
         
@@ -124,9 +130,24 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
     
     const exactMatch = processed.posts.find(p => {
       const pSlug = getSlugFromUrl(p.url).toLowerCase();
-      return pSlug === slug.toLowerCase() || pSlug.includes(slug.toLowerCase()) || slug.toLowerCase().includes(pSlug);
+      const normalizedSlug = slug.toLowerCase();
+      return pSlug === normalizedSlug || pSlug.includes(normalizedSlug) || normalizedSlug.includes(pSlug);
     });
-    return exactMatch || processed.posts[0] || null;
+
+    if (exactMatch) return exactMatch;
+
+    // Si no hay match exacto, intentar una búsqueda más amplia si hay resultados
+    if (processed.posts.length > 0) {
+       // Verificamos si algún post contiene palabras clave del slug
+       const keywords = slug.split('-').filter(k => k.length > 3);
+       const partialMatch = processed.posts.find(p => {
+          const title = p.title.toLowerCase();
+          return keywords.some(k => title.includes(k));
+       });
+       return partialMatch || processed.posts[0];
+    }
+
+    return null;
   } catch (e) {
     console.error("Fetch post by slug failed", e);
     return null;

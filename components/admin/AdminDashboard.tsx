@@ -40,7 +40,7 @@ const AdminDashboard: React.FC = () => {
             description: 'Gestión y programación de estrenos directamente desde la base de datos centralizada de Google.',
             icon: 'fa-rocket',
             color: '#ff4b2b',
-            url: 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec'
+            route: '/admin/proximos-lanzamientos'
         }
     ];
 
@@ -57,8 +57,8 @@ const AdminDashboard: React.FC = () => {
                         <div 
                             key={tool.id}
                             onClick={() => {
-                                if (tool.url) {
-                                    window.open(tool.url, '_blank');
+                                if ('url' in tool && tool.url) {
+                                    window.open(tool.url as string, '_blank');
                                 } else if (tool.route) {
                                     navigate(tool.route);
                                 }
@@ -82,7 +82,7 @@ const AdminDashboard: React.FC = () => {
                             </p>
 
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest group-hover:gap-6 transition-all" style={{ color: tool.color }}>
-                                {tool.url ? 'Abrir Base de Datos' : 'Abrir Herramienta'} 
+                                {'url' in tool ? 'Abrir Base de Datos' : 'Abrir Herramienta'} 
                                 <i className="fas fa-arrow-right"></i>
                             </div>
                         </div>

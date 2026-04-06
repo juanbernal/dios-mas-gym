@@ -12,6 +12,7 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import PromoImageApp from "./components/admin/PromoImageApp";
 import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
+import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
@@ -44,6 +45,7 @@ const App: React.FC = () => {
       favorites: favs,
       selectedCategory: null,
       error: null,
+      nextPageToken: undefined
     };
   });
 
@@ -99,7 +101,8 @@ const App: React.FC = () => {
           musicDiosmasgym: musicD,
           musicJuan614: musicJ,
           loading: false,
-          error: null
+          error: null,
+          nextPageToken: arsenalResult.nextPageToken
         }));
 
         if (posts.length > 0) {
@@ -120,6 +123,23 @@ const App: React.FC = () => {
     };
     init();
   }, []);
+
+  const loadMore = async () => {
+    if (!state.nextPageToken || state.loading) return;
+    
+    setState(p => ({ ...p, loading: true }));
+    try {
+      const result = await fetchArsenalData(20, state.nextPageToken);
+      setState(prev => ({
+        ...prev,
+        allPosts: [...prev.allPosts, ...result.posts],
+        nextPageToken: result.nextPageToken,
+        loading: false
+      }));
+    } catch (e) {
+      setState(p => ({ ...p, loading: false }));
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('dg_favs', JSON.stringify(state.favorites));
@@ -457,6 +477,7 @@ const App: React.FC = () => {
           <Route path="/admin" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
           <Route path="/admin/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
+          <Route path="/admin/proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />
         </Routes>
       </main>
 
