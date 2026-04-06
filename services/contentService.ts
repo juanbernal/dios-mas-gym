@@ -1,4 +1,3 @@
-
 import { ContentPost } from '../types';
 
 const getSlugFromUrl = (url: string) => {
@@ -6,7 +5,6 @@ const getSlugFromUrl = (url: string) => {
   return url.split('/').pop()?.replace('.html', '') || '';
 };
 
-// Intenta normalizar acentos para búsquedas exitosas en Blogger
 const normalizeText = (text: string) => {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
@@ -14,38 +12,42 @@ const normalizeText = (text: string) => {
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string, q?: string) => {
-      const isVercel = window.location.hostname.includes('vercel');
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+      const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
       
       const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());
       if (token) url.searchParams.append('pageToken', token);
       if (q) url.searchParams.append('q', q);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s deep search
-
       try {
-        const response = await fetch(url.toString(), { signal: controller.signal });
+        const response = await fetch(url.toString());
         if (!response.ok) return { posts: [], nextPageToken: undefined };
         const data = await response.json();
         return processApiV3Data(data);
       } catch (e) {
         return { posts: [], nextPageToken: undefined };
-      } finally {
-        clearTimeout(timeoutId);
       }
     };
 
-    // Búsqueda inteligente: si falla con el original, probamos con variaciones (acentos)
     let result = await fetchFromServer(maxResults, pageToken, query);
     
+    // Si la búsqueda original falla, intentamos búsquedas más "suaves"
     if (query && result.posts.length === 0) {
+       // Intento 1: Sin acentos
        const normalized = normalizeText(query);
        if (normalized !== query) {
          const retry = await fetchFromServer(maxResults, pageToken, normalized);
-         return retry;
+         if (retry.posts.length > 0) return retry;
+       }
+       
+       // Intento 2: Palabras individuales si es una cadena larga (ej: slug)
+       if (query.includes(' ')) {
+          const keywords = query.split(' ').filter(k => k.length > 3);
+          if (keywords.length > 0) {
+             const fuzzyRetry = await fetchFromServer(maxResults, pageToken, keywords[keywords.length - 1]);
+             return fuzzyRetry;
+          }
        }
     }
 
@@ -73,9 +75,9 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
 
-    const search = async (q: string) => {
+    const searchApi = async (q: string) => {
       const url = new URL('/api/arsenal', apiBase);
-      url.searchParams.append('maxResults', '25');
+      url.searchParams.append('maxResults', '30');
       url.searchParams.append('q', q);
       const res = await fetch(url.toString());
       if (!res.ok) return { posts: [] };
@@ -85,30 +87,24 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
     const targetSlug = slug.toLowerCase();
     const queryTerm = slug.replace(/-/g, ' ');
     
-    // Probamos varias estrategias en paralelo o cascada
-    let result = await search(queryTerm);
+    // 1. Buscamos por el término exacto del slug (con espacios)
+    let result = await searchApi(queryTerm);
     
-    // Si no hay resultados o match, probamos sin acentos en el slug
+    // 2. Buscamos por palabras clave si no hay resultados
     if (result.posts.length === 0) {
-      result = await search(normalizeText(queryTerm));
+       const chunks = targetSlug.split('-').filter(c => c.length > 3);
+       if (chunks.length > 0) {
+          result = await searchApi(chunks[chunks.length - 1]);
+       }
     }
 
+    // 3. Verificamos si alguno de los resultados coincide con el slug real en el URL
     const match = result.posts.find(p => {
        const pSlug = getSlugFromUrl(p.url).toLowerCase();
        return pSlug === targetSlug || pSlug.includes(targetSlug) || targetSlug.includes(pSlug);
     });
 
-    if (match) return match;
-
-    // Fallback de "último recurso" por última palabra del slug (ej: 'kaka')
-    const chunks = targetSlug.split('-').filter(c => c.length > 3);
-    if (chunks.length > 0) {
-       const finalTry = await search(chunks[chunks.length - 1]);
-       const finalMatch = finalTry.posts.find(p => getSlugFromUrl(p.url).toLowerCase().includes(targetSlug));
-       return finalMatch || finalTry.posts[0] || null;
-    }
-
-    return result.posts[0] || null;
+    return match || result.posts[0] || null;
   } catch (e) { return null; }
 };
 
