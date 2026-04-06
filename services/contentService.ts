@@ -6,7 +6,11 @@ const getSlugFromUrl = (url: string) => {
 };
 
 const normalizeText = (text: string) => {
-  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
+const toTitleCase = (str: string) => {
+   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 };
 
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
@@ -32,21 +36,37 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
     let result = await fetchFromServer(maxResults, pageToken, query);
     
-    // Si la búsqueda original falla, intentamos búsquedas más "suaves"
+    // ESTRATEGIA DE BÚSQUEDA ROBUSTA (Armor-Plated Search)
+    // Si la búsqueda original falla, probamos variaciones de capitalización y acentos
     if (query && result.posts.length === 0) {
-       // Intento 1: Sin acentos
-       const normalized = normalizeText(query);
-       if (normalized !== query) {
-         const retry = await fetchFromServer(maxResults, pageToken, normalized);
-         if (retry.posts.length > 0) return retry;
-       }
+       const term = query.trim();
        
-       // Intento 2: Palabras individuales si es una cadena larga (ej: slug)
-       if (query.includes(' ')) {
-          const keywords = query.split(' ').filter(k => k.length > 3);
-          if (keywords.length > 0) {
-             const fuzzyRetry = await fetchFromServer(maxResults, pageToken, keywords[keywords.length - 1]);
-             return fuzzyRetry;
+       // Intento 1: Lowercase (kaka)
+       if (term !== term.toLowerCase()) {
+         result = await fetchFromServer(maxResults, pageToken, term.toLowerCase());
+         if (result.posts.length > 0) return result;
+       }
+
+       // Intento 2: Title Case (Kaka)
+       const titleCase = toTitleCase(term);
+       if (titleCase !== term) {
+         result = await fetchFromServer(maxResults, pageToken, titleCase);
+         if (result.posts.length > 0) return result;
+       }
+
+       // Intento 3: Sin acentos y minúsculas (kaka)
+       const normalized = normalizeText(term);
+       if (normalized !== term && normalized !== term.toLowerCase()) {
+         result = await fetchFromServer(maxResults, pageToken, normalized);
+         if (result.posts.length > 0) return result;
+       }
+
+       // Intento 4: Búsqueda parcial de la última palabra del término (fuzzy)
+       if (term.includes(' ')) {
+          const parts = term.split(' ').filter(p => p.length > 3);
+          if (parts.length > 0) {
+             result = await fetchFromServer(maxResults, pageToken, parts[parts.length - 1]);
+             if (result.posts.length > 0) return result;
           }
        }
     }
@@ -81,24 +101,20 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
       url.searchParams.append('q', q);
       const res = await fetch(url.toString());
       if (!res.ok) return { posts: [] };
-      return processApiV3Data(await res.json());
+      return processApiV3Data(await res.ok ? await res.json() : {});
     };
 
     const targetSlug = slug.toLowerCase();
     const queryTerm = slug.replace(/-/g, ' ');
     
-    // 1. Buscamos por el término exacto del slug (con espacios)
+    // Probamos con el término derivado del slug
     let result = await searchApi(queryTerm);
     
-    // 2. Buscamos por palabras clave si no hay resultados
+    // Si falla, usamos el Armor-Plated Search de fetchArsenalData pero simplificado aquí
     if (result.posts.length === 0) {
-       const chunks = targetSlug.split('-').filter(c => c.length > 3);
-       if (chunks.length > 0) {
-          result = await searchApi(chunks[chunks.length - 1]);
-       }
+       result = await fetchArsenalData(30, undefined, targetSlug.replace(/-/g, ' '));
     }
 
-    // 3. Verificamos si alguno de los resultados coincide con el slug real en el URL
     const match = result.posts.find(p => {
        const pSlug = getSlugFromUrl(p.url).toLowerCase();
        return pSlug === targetSlug || pSlug.includes(targetSlug) || targetSlug.includes(pSlug);
