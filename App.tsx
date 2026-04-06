@@ -45,7 +45,9 @@ const App: React.FC = () => {
       favorites: favs,
       selectedCategory: null,
       error: null,
-      nextPageToken: undefined
+      nextPageToken: undefined,
+      searchResults: [],
+      isSearching: false
     };
   });
 
