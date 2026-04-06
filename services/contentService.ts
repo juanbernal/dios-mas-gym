@@ -10,9 +10,9 @@ const getSlugFromUrl = (url: string) => {
   return url.split('/').pop()?.replace('.html', '') || '';
 };
 
-export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
+export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
-    const fetchFromServer = async (limit: number, token?: string) => {
+    const fetchFromServer = async (limit: number, token?: string, q?: string) => {
       // PRO TIP: Si estamos en GitHub Pages (app.diosmasgym.com), 
       // forzamos la llamada a Vercel donde reside la API.
       const isVercel = window.location.hostname.includes('vercel');
@@ -22,6 +22,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());
       if (token) url.searchParams.append('pageToken', token);
+      if (q) url.searchParams.append('q', q);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -66,7 +67,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
     };
 
     // 1. Intentar cargar desde caché local para velocidad instantánea
-    if (!pageToken) {
+    if (!pageToken && !query) {
       const cached = localStorage.getItem('dg_posts_cache');
       const cacheTime = localStorage.getItem('dg_posts_cache_time');
       const now = Date.now();
@@ -87,7 +88,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       }
     }
 
-    return await fetchFromServer(maxResults, pageToken);
+    return await fetchFromServer(maxResults, pageToken, query);
 
   } catch (error) {
     console.error('Error in fetchArsenalData:', error);
@@ -122,12 +123,15 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
     const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
 
     const url = new URL('/api/arsenal', apiBase);
-    url.searchParams.append('maxResults', '20');
-    url.searchParams.append('q', slug.replace(/-/g, ' '));
+    url.searchParams.append('maxResults', '30');
+    // Búsqueda profunda: probamos slug original, sin guiones y variaciones comunes
+    const query = slug.replace(/-/g, ' ');
+    url.searchParams.append('q', `"${query}" OR ${query}`); // Comillas para búsqueda exacta + OR
     const response = await fetch(url.toString());
     const data = await response.json();
     const processed = processApiV3Data(data);
     
+    // 1. Match Exacto por Slug (debe contener el slug tal cual)
     const exactMatch = processed.posts.find(p => {
       const pSlug = getSlugFromUrl(p.url).toLowerCase();
       const normalizedSlug = slug.toLowerCase();
@@ -136,18 +140,19 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
 
     if (exactMatch) return exactMatch;
 
-    // Si no hay match exacto, intentar una búsqueda más amplia si hay resultados
-    if (processed.posts.length > 0) {
-       // Verificamos si algún post contiene palabras clave del slug
-       const keywords = slug.split('-').filter(k => k.length > 3);
+    // 2. Si es una búsqueda de un post viejo (como 'kaka'), buscar por palabras clave en los resultados
+    const keywords = slug.split('-').filter(k => k.length > 3);
+    if (keywords.length > 0) {
        const partialMatch = processed.posts.find(p => {
           const title = p.title.toLowerCase();
-          return keywords.some(k => title.includes(k));
+          const content = p.content.toLowerCase();
+          return keywords.every(k => title.includes(k.toLowerCase()) || content.includes(k.toLowerCase()));
        });
-       return partialMatch || processed.posts[0];
+       if (partialMatch) return partialMatch;
     }
 
-    return null;
+    // 3. Fallback final al primer resultado o null
+    return processed.posts[0] || null;
   } catch (e) {
     console.error("Fetch post by slug failed", e);
     return null;

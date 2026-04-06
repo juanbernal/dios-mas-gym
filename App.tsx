@@ -129,10 +129,11 @@ const App: React.FC = () => {
     
     setState(p => ({ ...p, loading: true }));
     try {
-      const result = await fetchArsenalData(20, state.nextPageToken);
+      const result = await fetchArsenalData(20, state.nextPageToken, state.searchTerm || undefined);
       setState(prev => ({
         ...prev,
-        allPosts: [...prev.allPosts, ...result.posts],
+        allPosts: state.searchTerm ? prev.allPosts : [...prev.allPosts, ...result.posts],
+        searchResults: state.searchTerm ? [...prev.searchResults, ...result.posts] : prev.searchResults,
         nextPageToken: result.nextPageToken,
         loading: false
       }));
@@ -147,6 +148,11 @@ const App: React.FC = () => {
   }, [state.favorites, readingHistory]);
 
   const filteredPosts = useMemo(() => {
+    // Si hay una búsqueda activa y tenemos resultados de la API, priorizarlos
+    if (state.searchTerm && state.searchResults.length > 0) {
+       return state.searchResults;
+    }
+
     let posts = state.allPosts;
     if (state.currentView === 'favoritos') posts = posts.filter(p => state.favorites.includes(p.id));
     if (state.searchTerm) {
@@ -155,7 +161,32 @@ const App: React.FC = () => {
     }
     if (state.selectedCategory) posts = posts.filter(p => p.labels?.includes(state.selectedCategory!));
     return posts;
-  }, [state.allPosts, state.searchTerm, state.selectedCategory, state.currentView, state.favorites]);
+  }, [state.allPosts, state.searchTerm, state.searchResults, state.selectedCategory, state.currentView, state.favorites]);
+
+  // Remote Search Effect
+  useEffect(() => {
+    const term = state.searchTerm.trim();
+    if (term.length < 3) {
+      if (state.searchResults.length > 0) setState(p => ({ ...p, searchResults: [], isSearching: false }));
+      return;
+    }
+
+    const handler = setTimeout(async () => {
+       setState(p => ({ ...p, isSearching: true, searchResults: [] }));
+       try {
+          const result = await fetchArsenalData(20, undefined, term);
+          if (result.posts.length > 0) {
+            setState(p => ({ ...p, searchResults: result.posts, isSearching: false, nextPageToken: result.nextPageToken }));
+          } else {
+            setState(p => ({ ...p, isSearching: false }));
+          }
+       } catch (e) {
+          setState(p => ({ ...p, isSearching: false }));
+       }
+    }, 600);
+
+    return () => clearTimeout(handler);
+  }, [state.searchTerm]);
 
   const categories = useMemo(() => {
     const labelCounts: Record<string, number> = {};
@@ -438,6 +469,13 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="magazine-grid">
+                   {state.isSearching && (
+                      <div className="col-span-12 py-20 text-center animate-pulse">
+                         <div className="inline-block w-12 h-12 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full mb-6"></div>
+                         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Explorando el Arsenal Profundo...</p>
+                         <p className="text-[8px] text-white/20 uppercase tracking-widest mt-2">(Buscando artículos históricos 2011-2026)</p>
+                      </div>
+                   )}
                    {filteredPosts.map(p => (
                       <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4">
                         <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
