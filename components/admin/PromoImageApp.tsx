@@ -32,6 +32,14 @@ const PromoImageApp: React.FC = () => {
   const [isAutopilot, setIsAutopilot] = useState(false);
   const [autopilotMinutes, setAutopilotMinutes] = useState(240);
   const [countdown, setCountdown] = useState(0);
+  
+  // NEW AESTHETICS 2026
+  const [template, setTemplate] = useState("original-v1");
+  const [grit, setGrit] = useState(0.15);
+  const [noise, setNoise] = useState(true);
+  const [scanlines, setScanlines] = useState(0.08);
+  const [vignette, setVignette] = useState(0.6);
+  const [industrial, setIndustrial] = useState(false);
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
   // Esto garantiza que handleSendToMake siempre vea lo que hay en pantalla actualmente
@@ -323,233 +331,246 @@ const PromoImageApp: React.FC = () => {
   const commonProps = {
     title, artist, bg, mode, size, date, overlay, textColor, contrastColor, glow, stroke,
     formatDate, trackList: tracks.split("\n"),
-    config: sizes[size]
+    config: sizes[size],
+    grit, noise, scanlines, vignette, industrial, template
   };
 
   return (
     <div className="flex flex-col bg-[#020617] min-h-screen text-white">
       {/* APP HEADER */}
-      <div className="sticky top-0 z-[100] bg-black/80 backdrop-blur-md border-b border-white/10 p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-[100] bg-black/80 backdrop-blur-xl border-b border-white/5 p-4 flex items-center justify-between">
         <button 
           onClick={() => navigate('/admin')}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-[#c5a059] transition-all"
+          className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#c5a059] hover:text-white transition-all bg-[#c5a059]/10 px-4 py-2 rounded-full border border-[#c5a059]/20"
         >
-          <i className="fas fa-arrow-left"></i>
-          Volver al Panel
+          <i className="fas fa-chevron-left text-[8px]"></i>
+          Volver al Centro de Control
         </button>
-        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Promo Generator <span className="opacity-30 ml-2">v2.0.14 - FINAL MAKE FILE</span></h1>
+        <div className="flex items-center gap-4">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v3.0</h1>
+        </div>
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
-      <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* PANEL */}
-        <div className="p-6 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl h-fit order-2 lg:order-1">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-[#c5a059]">Configuración de Imagen</h2>
-          <button 
-            onClick={handleRandomFromCatalog}
-            disabled={isLoadingCatalog}
-            className="flex items-center gap-2 px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full text-[10px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
-          >
-            <i className={`fas ${isLoadingCatalog ? 'fa-spinner fa-spin' : 'fa-random'}`}></i>
-            {isLoadingCatalog ? 'Cargando...' : 'Obtener Aleatorio'}
-          </button>
-        </div>
-        <div className="flex flex-col gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold text-white/40">Título</label>
-            <input 
-              className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-[#c5a059]"
-              value={title} 
-              onChange={(e)=>setTitle(e.target.value.toUpperCase())} 
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Artista</label>
-              <select 
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none text-white"
-                value={artist} 
-                onChange={(e)=>setArtist(e.target.value)}
-              >
-                <option value="Diosmasgym">Diosmasgym</option>
-                <option value="Juan 614">Juan 614</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Modo</label>
-              <select 
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none text-white"
-                value={mode} 
-                onChange={(e)=>setMode(e.target.value)}
-              >
-                <option value="proximamente">Próximamente</option>
-                <option value="disponible">Disponible</option>
-                <option value="album">Álbum</option>
-              </select>
-            </div>
-          </div>
-
-          {mode === "proximamente" && (
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Fecha de Lanzamiento</label>
-              <input 
-                type="datetime-local" 
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none text-white"
-                value={date} 
-                onChange={(e)=>setDate(e.target.value)} 
-              />
-            </div>
-          )}
-
-          {mode === "album" && (
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Tracklist (Uno por línea)</label>
-              <textarea 
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none text-white h-32"
-                value={tracks} 
-                onChange={(e)=>setTracks(e.target.value.toUpperCase())} 
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1">
-               <label className="text-[10px] uppercase font-bold text-white/40">Color Texto</label>
-               <input type="color" className="w-full h-10 bg-transparent rounded-lg cursor-pointer" value={textColor} onChange={(e)=>setTextColor(e.target.value)} />
-             </div>
-             <div className="space-y-1">
-               <label className="text-[10px] uppercase font-bold text-white/40">Contraste (Glow)</label>
-               <input type="color" className="w-full h-10 bg-transparent rounded-lg cursor-pointer" value={contrastColor} onChange={(e)=>setContrastColor(e.target.value)} />
-             </div>
-          </div>
-
-          <div className="flex gap-8 py-2">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input type="checkbox" checked={glow} onChange={()=>setGlow(!glow)} className="w-4 h-4 accent-[#c5a059]" />
-              <span className="text-xs uppercase font-bold group-hover:text-[#c5a059] transition-colors">Resplandor (Glow)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input type="checkbox" checked={stroke} onChange={()=>setStroke(!stroke)} className="w-4 h-4 accent-[#c5a059]" />
-              <span className="text-xs uppercase font-bold group-hover:text-[#c5a059] transition-colors">Borde (Logo Layout)</span>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Formato</label>
-              <select 
-                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none"
-                value={size} 
-                onChange={(e)=>setSize(e.target.value as any)}
-              >
-                <option value="instagram">Instagram (Portrait)</option>
-                <option value="story">Story (Vertical)</option>
-                <option value="post">Post (Horizontal)</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-white/40">Imagen de Fondo</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleBg} 
-                className="w-full text-xs text-white/40 file:bg-[#c5a059] file:border-0 file:text-black file:px-3 file:py-2 file:rounded-lg file:mr-2 cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <button 
-            onClick={handleAutoPublish}
-            disabled={isSendingToMake || isLoadingCatalog}
-            className="mt-4 w-full py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.4em] rounded-lg hover:bg-white transition-all shadow-[0_20px_50px_rgba(197,160,89,0.3)] flex items-center justify-center gap-3 border-2 border-transparent hover:border-black"
-          >
-            <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-bolt'}`}></i>
-            {isSendingToMake ? 'Procesando Publicación...' : 'Publicar Aleatorio (1-Clic)'}
-          </button>
-
-          <div className="flex gap-2 mt-4">
-            <button 
-              onClick={handleDownload}
-              className="flex-1 py-3 bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition-colors"
-            >
-              Descargar 4K
-            </button>
-            <button 
-              onClick={handleSendToMake}
-              disabled={isSendingToMake}
-              className="flex-1 py-3 bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition-colors"
-            >
-              Enviar a Make
-            </button>
-          </div>
-
-          {/* Autopilot Panel */}
-          <div className="mt-8 p-6 bg-white/5 border border-[#c5a059]/20 rounded-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-widest text-[#c5a059]">Modo Piloto Automático</h3>
-                <p className="text-[9px] text-white/40 uppercase mt-1">Automatización 24/7 de Promos</p>
-              </div>
+      <div className="flex-1 p-4 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-auto">
+        {/* LEFT COMPONENT: CONTROLS */}
+        <div className="lg:col-span-5 space-y-8 animate-fade-in-up">
+          
+          {/* GROUP: CONTENT */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl scale-in">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Contenido Principal</h2>
               <button 
-                onClick={() => setIsAutopilot(!isAutopilot)}
-                className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${isAutopilot ? 'bg-red-500 text-white' : 'bg-[#c5a059] text-black'}`}
+                onClick={handleRandomFromCatalog}
+                disabled={isLoadingCatalog}
+                className="flex items-center gap-2 px-6 py-2 bg-[#c5a059]/10 border border-[#c5a059]/20 rounded-full text-[9px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
               >
-                {isAutopilot ? 'Detener Piloto' : 'Activar Piloto'}
+                <i className={`fas ${isLoadingCatalog ? 'fa-spinner fa-spin' : 'fa-dice'}`}></i>
+                {isLoadingCatalog ? 'Sorteando...' : 'Catálogo Aleatorio'}
               </button>
             </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Título de la Obra</label>
+                <input 
+                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-lg font-serif italic transition-all"
+                  value={title} 
+                  onChange={(e)=>setTitle(e.target.value.toUpperCase())} 
+                />
+              </div>
 
-            {isAutopilot && (
-              <div className="flex flex-col gap-4 animate-pulse">
-                <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-[#c5a059]/30">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">Próximo Envío:</span>
-                  <span className="text-sm font-mono font-bold text-white">{formatCountdown(countdown)}</span>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Artista</label>
+                  <select 
+                    className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-sm appearance-none cursor-pointer"
+                    value={artist} 
+                    onChange={(e)=>setArtist(e.target.value)}
+                  >
+                    <option value="Diosmasgym">Diosmasgym</option>
+                    <option value="Juan 614">Juan 614</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Estado</label>
+                  <select 
+                    className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-sm appearance-none cursor-pointer"
+                    value={mode} 
+                    onChange={(e)=>setMode(e.target.value)}
+                  >
+                    <option value="proximamente">Próximamente</option>
+                    <option value="disponible">Disponible</option>
+                    <option value="album">Álbum / EP</option>
+                  </select>
                 </div>
               </div>
-            )}
-
-            <div className="mt-4 space-y-2">
-              <label className="text-[9px] uppercase font-bold text-white/40">Frecuencia (Minutos)</label>
-              <input 
-                type="number" 
-                className="w-full bg-white/5 border border-white/10 p-2 rounded text-xs outline-none focus:border-[#c5a059]"
-                value={autopilotMinutes}
-                onChange={(e) => setAutopilotMinutes(Number(e.target.value))}
-                min={1}
-              />
             </div>
           </div>
 
-        </div>
-      </div>
+          {/* GROUP: AESTHETICS & TEMPLATES */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Base de Diseño & Plantilla</h2>
+            
+            <div className="grid grid-cols-1 gap-8">
+              {/* TEMPLATE SELECTOR */}
+              <div className="space-y-4">
+                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Motor de Renderizado (Multiverso)</label>
+                 <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'original-v1', label: 'ORIGINAL BEAT', icon: 'fa-history' },
+                      { id: 'studio-v3', label: 'STUDIO V3', icon: 'fa-shuttle-space' },
+                      { id: 'magazine', label: 'MAGAZINE PRO', icon: 'fa-newspaper' },
+                      { id: 'minimal-pro', label: 'MINIMAL PRO', icon: 'fa-crop' },
+                      { id: 'neon-strike', label: 'NEON STRIKE', icon: 'fa-bolt' }
+                    ].map((t) => (
+                      <button 
+                        key={t.id}
+                        onClick={() => setTemplate(t.id)}
+                        className={`py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${template === t.id ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-lg shadow-[#c5a059]/20 scale-[1.02]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white hover:border-[#c5a059]/40'}`}
+                      >
+                         <i className={`fas ${t.icon}`}></i>
+                         {t.label}
+                      </button>
+                    ))}
+                 </div>
+              </div>
 
-      {/* PREVIEW */}
-      <div className="flex flex-col items-center gap-6 order-1 lg:order-2 overflow-hidden" ref={containerRef}>
-        <h2 className="text-xs font-black uppercase tracking-[0.5em] text-white/20">Vista Previa (Master)</h2>
-        <div 
-          style={{ 
-            width: config.w * scale, 
-            height: config.h * scale, 
-            display: 'block',
-            position: 'relative',
-            boxShadow: '0 50px 100px rgba(0,0,0,0.5)'
-          }}
-        >
-          <div 
-            style={{ 
-              width: config.w, 
-              height: config.h, 
-              borderRadius: 20, 
-              position: "absolute", 
-              overflow: "hidden", 
-              display: 'block',
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              backgroundColor: '#000'
-            }}
-          >
-            <PromoTemplate {...commonProps} />
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Nivel de Grano ({Math.round(grit * 100)}%)</label>
+                  <div className="flex gap-4">
+                    <button onClick={() => setNoise(!noise)} className={`text-[8px] px-2 py-1 rounded border ${noise ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}>NOISE</button>
+                    <button onClick={() => setIndustrial(!industrial)} className={`text-[8px] px-2 py-1 rounded border ${industrial ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}>GRID</button>
+                  </div>
+                </div>
+                <input type="range" min="0" max="1" step="0.05" value={grit} onChange={(e) => setGrit(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Scanlines</label>
+                   <input type="range" min="0" max="0.3" step="0.01" value={scanlines} onChange={(e) => setScanlines(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
+                </div>
+                <div className="space-y-4">
+                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Viñeta</label>
+                   <input type="range" min="0" max="0.9" step="0.05" value={vignette} onChange={(e) => setVignette(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Color Título</label>
+                  <div className="flex items-center gap-4 bg-black/40 p-2 rounded-xl border border-white/5">
+                    <input type="color" className="w-10 h-10 bg-transparent rounded-lg cursor-pointer border-none" value={textColor} onChange={(e)=>setTextColor(e.target.value)} />
+                    <span className="text-[10px] font-mono opacity-40">{textColor.toUpperCase()}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Color Glow</label>
+                  <div className="flex items-center gap-4 bg-black/40 p-2 rounded-xl border border-white/5">
+                    <input type="color" className="w-10 h-10 bg-transparent rounded-lg cursor-pointer border-none" value={contrastColor} onChange={(e)=>setContrastColor(e.target.value)} />
+                    <span className="text-[10px] font-mono opacity-40">{contrastColor.toUpperCase()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* GROUP: EXPORT */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Salida de Producción</h2>
+             <div className="flex flex-col gap-4">
+                <button 
+                  onClick={handleAutoPublish}
+                  disabled={isSendingToMake || isLoadingCatalog}
+                  className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
+                >
+                  <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-shuttle-space'} group-hover:rotate-12 transition-transform`}></i>
+                  {isSendingToMake ? 'Sincronizando...' : 'Publicación Instantánea'}
+                </button>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={handleDownload}
+                    className="py-4 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <i className="fas fa-download"></i> Master 4K
+                  </button>
+                  <button 
+                    onClick={() => setIsAutopilot(!isAutopilot)}
+                    className={`py-4 border text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${isAutopilot ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
+                  >
+                    <i className={`fas ${isAutopilot ? 'fa-radio' : 'fa-robot'}`}></i> {isAutopilot ? formatCountdown(countdown) : 'Piloto OFF'}
+                  </button>
+                </div>
+             </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COMPONENT: PREVIEW */}
+        <div className="lg:col-span-7 flex flex-col items-center justify-start gap-10">
+          <div className="w-full h-full min-h-[600px] bg-black/60 rounded-[40px] border border-white/5 flex items-center justify-center relative overflow-hidden group shadow-inner">
+            {/* STUDIO LIGHTING EFFECTS */}
+            <div className="absolute top-0 left-1/4 w-1/2 h-40 bg-[#c5a059]/10 blur-[100px] pointer-events-none"></div>
+            <div className="absolute bottom-0 right-1/4 w-1/2 h-40 bg-blue-500/5 blur-[100px] pointer-events-none"></div>
+            
+            <div 
+              style={{ 
+                width: config.w * scale, 
+                height: config.h * scale, 
+                display: 'block',
+                position: 'relative',
+                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                filter: isSendingToMake ? 'brightness(0.5) blur(10px)' : 'none'
+              }}
+              className="hover:scale-[1.02] cursor-crosshair"
+            >
+              <div 
+                style={{ 
+                  width: config.w, 
+                  height: config.h, 
+                  borderRadius: 12, 
+                  position: "absolute", 
+                  overflow: "hidden", 
+                  display: 'block',
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                  backgroundColor: '#000',
+                  boxShadow: '0 100px 200px -50px rgba(0,0,0,0.8)'
+                }}
+              >
+                <PromoTemplate {...commonProps} />
+              </div>
+            </div>
+
+            {isSendingToMake && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-[200] animate-fade-in">
+                <div className="w-16 h-16 border-t-2 border-r-2 border-[#c5a059] rounded-full animate-spin"></div>
+                <div className="text-[10px] font-black uppercase tracking-[1em] text-[#c5a059] animate-pulse">Masterizando Señal</div>
+              </div>
+            )}
+            
+            {/* SIZE SELECTOR OVERLAY */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 bg-black/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all">
+                {Object.keys(sizes).map((s) => (
+                  <button 
+                    key={s}
+                    onClick={() => setSize(s as any)}
+                    className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${size === s ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+            </div>
+          </div>
+          
+          <div className="flex gap-10 opacity-20 hover:opacity-50 transition-opacity">
+             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-layer-group"></i> Adobe Style Engine</div>
+             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-microchip"></i> Vercel Logic Core</div>
+             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-signal"></i> Make.com Link Active</div>
           </div>
         </div>
       </div>
@@ -561,291 +582,302 @@ const PromoImageApp: React.FC = () => {
          </div>
       </div>
     </div>
-    </div>
   );
 }
 
 const PromoTemplate: React.FC<any> = ({ 
     title, artist, bg, mode, config, overlay, textColor, contrastColor, glow, stroke,
-    formatDate, trackList, isExport = false 
+    formatDate, trackList, isExport = false,
+    grit, noise, scanlines, vignette, industrial, template
 }) => {
     return (
-        <div style={{ width: "100%", height: "100%", position: 'relative' }}>
+        <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
           <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&display=swap');
             * { -webkit-font-smoothing: antialiased; }
-            .grain {
+            
+            .noise-layer {
               position: absolute;
               inset: 0;
-              background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
-              background-size: 24px 24px;
-              opacity: 1;
+              background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+              opacity: ${grit * 0.5};
+              mix-blend-mode: overlay;
               pointer-events: none;
-              z-index: 5;
+              z-index: 7;
             }
-            .scanlines {
+
+            .real-grain {
               position: absolute;
               inset: 0;
-              background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%);
-              background-size: 100% 4px;
+              background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
+              opacity: ${grit};
               pointer-events: none;
               z-index: 6;
             }
+
+            .industrial-overlay {
+              position: absolute;
+              inset: 0;
+              background: ${template === 'studio-v3' ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(197, 160, 89, 0.03) 10px, rgba(197, 160, 89, 0.03) 20px)' : 'none'};
+              pointer-events: none;
+              z-index: 4;
+            }
+
+            .scanlines {
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,${scanlines}) 50%);
+              background-size: 100% 4px;
+              pointer-events: none;
+              z-index: 8;
+            }
+
+            .vignette {
+              position: absolute;
+              inset: 0;
+              background: radial-gradient(circle, transparent 20%, rgba(0,0,0,${vignette}) 100%);
+              pointer-events: none;
+              z-index: 9;
+            }
+
             .corner-br {
                 position: absolute;
-                width: 40px;
-                height: 40px;
-                border: 2px solid rgba(197, 160, 89, 0.4);
-                z-index: 8;
+                width: 60px;
+                height: 60px;
+                border: 1px solid rgba(197, 160, 89, 0.3);
+                z-index: 12;
                 pointer-events: none;
+            }
+
+            .hud-text {
+                font-family: 'Space Grotesk', monospace;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                color: #c5a059;
+                opacity: 0.6;
+            }
+
+            .magazine-rule {
+                height: 1px;
+                background: ${textColor};
+                opacity: 0.2;
+                margin: 20px 0;
+            }
+
+            .neon-text {
+                text-shadow: 0 0 10px #c5a059, 0 0 20px #c5a059, 0 0 40px #c5a059;
             }
           `}</style>
           {bg && (
             <img src={bg} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
           )}
 
-          {/* LAYER 1: VIGNETTE & OVERLAY */}
+          {/* LAYER 1: OVERLAY BASE */}
           <div style={{ 
             position: "absolute", 
             inset: 0, 
-            background: `radial-gradient(circle, transparent 0%, rgba(0,0,0,${overlay + 0.2}) 100%), rgba(0,0,0,${overlay})` 
+            backgroundColor: `rgba(0,0,0,${overlay})` 
           }} />
 
-          {/* LAYER 2: SCANLINES & GRAIN */}
-          <div className="scanlines" />
-          <div className="grain" />
+          {/* LAYER 2: TEXTURES (Common but adaptive) */}
+          <div className="vignette" />
+          {scanlines > 0 && <div className="scanlines" />}
+          {noise && <div className="real-grain" />}
+          {industrial && <div className="industrial-overlay" />}
 
-          {/* LAYER 3: TACTICAL BRACKETS */}
-          <div className="corner-br" style={{ top: 20, left: 20, borderRight: 0, borderBottom: 0 }}></div>
-          <div className="corner-br" style={{ top: 20, right: 20, borderLeft: 0, borderBottom: 0 }}></div>
-          <div className="corner-br" style={{ bottom: 20, left: 20, borderRight: 0, borderTop: 0 }}></div>
-          <div className="corner-br" style={{ bottom: 20, right: 20, borderLeft: 0, borderTop: 0 }}></div>
-
-          {/* LAYER 4: BRANDING STAMP */}
-          <div style={{
-              position: 'absolute',
-              top: '12%',
-              right: '8%',
-              width: config.title * 2,
-              height: config.title * 2,
-              borderRadius: '50%',
-              border: '2px dashed rgba(197, 160, 89, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 15,
-              opacity: 0.6,
-              transform: 'rotate(-15deg)'
-          }}>
-              <div style={{
-                  fontSize: config.title * 0.12,
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 900,
-                  color: '#c5a059',
-                  textAlign: 'center',
-                  letterSpacing: '0.1em'
-              }}>
-                  MASTERED FOR<br />THE SPIRIT<br />6:14
+          {/* STYLE-SPECIFIC RENDERING */}
+          {template === 'original-v1' && (
+            <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+              {/* BRANDING STAMP (ORIGINAL) */}
+              <div style={{ position: 'absolute', top: '12%', right: '8%', width: config.title * 2, height: config.title * 2, borderRadius: '50%', border: '2px dashed rgba(197, 160, 89, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15, opacity: 0.6, transform: 'rotate(-15deg)' }}>
+                  <div style={{ fontSize: config.title * 0.12, fontFamily: 'Inter', fontWeight: 900, color: '#c5a059', textAlign: 'center', letterSpacing: '0.1em' }}>MASTERED FOR<br />THE SPIRIT<br />6:14</div>
               </div>
-          </div>
 
-          <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
-
-            {/* HEADER: ARTIST BADGE */}
-            <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ 
-                    fontSize: config.title * 0.28, 
-                    fontWeight: 900, 
-                    letterSpacing: '0.5em', 
-                    color: '#c5a059',
-                    fontFamily: 'Inter, sans-serif'
-                  }}>
-                    {artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}
-                  </div>
-                  <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>
-                    REFLECTIONS // HUB PRO V5
-                  </div>
-              </div>
-              <div style={{ 
-                padding: "8px 20px", 
-                borderRadius: 2, 
-                border: '1px solid rgba(197, 160, 89, 0.6)',
-                background: "rgba(0, 0, 0, 0.4)",
-                backdropFilter: 'blur(10px)',
-                color: '#c5a059',
-                fontSize: config.title * 0.22,
-                fontWeight: '900',
-                letterSpacing: '0.2em',
-                fontFamily: 'Inter, sans-serif',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-              }}>
-                {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
-              </div>
-            </div>
-
-            {/* CENTER: COVER & TITLES */}
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-
-              {bg && (
-                <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
-                  {/* GLOW BEHIND COVER */}
-                  {glow && (
-                    <div style={{ 
-                        position: 'absolute', 
-                        inset: -40, 
-                        background: contrastColor, 
-                        filter: 'blur(80px)', 
-                        opacity: 0.25,
-                        borderRadius: '50%'
-                    }} />
-                  )}
-                  
-                  <div style={{ 
-                    position: 'relative',
-                    padding: 6,
-                    background: 'linear-gradient(135deg, #c5a059 0%, transparent 50%, #c5a059 100%)',
-                    borderRadius: 4,
-                    boxShadow: "0 40px 120px rgba(0,0,0,1)"
-                  }}>
-                    <img
-                        src={bg}
-                        style={{
-                        width: config.title * 6,
-                        height: config.title * 6,
-                        borderRadius: 2,
-                        objectFit: 'cover',
-                        display: 'block'
-                        }}
-                    />
-                    <div className="scanlines" style={{ opacity: 0.2, zIndex: 1 }} />
-                  </div>
+              {/* HEADER (ORIGINAL) */}
+              <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059', fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
+                    <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>REFLECTIONS // HUB PRO V5</div>
                 </div>
-              )}
-
-              <div style={{ marginBottom: 20 }}>
-                <h4 style={{ 
-                    fontSize: config.title * 0.25, 
-                    color: '#c5a059', 
-                    fontWeight: 900, 
-                    letterSpacing: '0.8em', 
-                    marginBottom: 15,
-                    fontFamily: 'Inter, sans-serif' 
-                }}>
-                    ESTRENO GLOBAL
-                </h4>
-                <h1 style={{
-                    fontSize: config.title * 1.8,
-                    fontWeight: 900, // HIGH BOLD
-                    lineHeight: 0.8,
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    color: textColor,
-                    letterSpacing: '-2px',
-                    WebkitTextStroke: stroke ? `2px ${contrastColor}` : 'none',
-                    textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}CC` : "none",
-                    filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))"
-                }}>{title}</h1>
+                <div style={{ padding: "8px 20px", borderRadius: 2, border: '1px solid rgba(197, 160, 89, 0.6)', background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', color: '#c5a059', fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
+                  {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
+                </div>
               </div>
 
-              {mode === "proximamente" && (
-                <div style={{ 
-                    marginTop: 10,
-                    fontSize: config.title * 0.5, 
-                    color: textColor, 
-                    fontFamily: "'DM Serif Display', serif",
-                    fontStyle: 'italic',
-                    opacity: 1,
-                    textShadow: '0 5px 15px rgba(0,0,0,0.5)' 
-                }}>
-                   {formatDate()}
-                </div>
-              )}
-
-              {mode === "disponible" && (
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-                  <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 15,
-                      fontSize: config.title * 0.3, 
-                      color: '#c5a059',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 900,
-                      letterSpacing: '0.3em'
-                  }}>
-                     <div style={{ height: 1, flex: 1, background: 'linear-gradient(to right, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
-                     <span>PLATAFORMAS DIGITALES</span>
-                     <div style={{ height: 1, flex: 1, background: 'linear-gradient(to left, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
-                  </div>
-
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: config.title * 0.8,
-                    color: '#c5a059',
-                    opacity: 0.9,
-                    filter: glow ? `drop-shadow(0 0 10px ${contrastColor}44)` : 'none'
-                  }}>
-                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.7 }}></i>
-                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.7 }}></i>
-                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.7 }}></i>
-                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.7 }}></i>
-                  </div>
-                </div>
-              )}
-
-              {mode === "album" && (
-                <div style={{ marginTop: 30, color: textColor, fontSize: config.title * 0.25, textAlign: 'left', width: '90%', margin: '20px auto' }}>
-                  {trackList.map((t: string, i: number)=>(
-                    <div key={i} style={{ 
-                        display:"flex", 
-                        justifyContent:"space-between", 
-                        borderBottom: '1px solid rgba(255,255,255,0.05)', 
-                        padding: '8px 0',
-                        fontFamily: 'Inter, sans-serif',
-                        textTransform: 'uppercase'
-                    }}>
-                      <span style={{ color: '#c5a059', fontWeight: 900, fontSize: config.title * 0.15, opacity: 0.6 }}>PROX TRACK {String(i+1).padStart(2,"0")}</span>
-                      <span style={{ fontWeight: 700, letterSpacing: '0.1em', fontSize: config.title * 0.28 }}>{t}</span>
+              {/* CENTER (ORIGINAL) */}
+              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                {bg && (
+                  <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
+                    {glow && <div style={{ position: 'absolute', inset: -40, background: contrastColor, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />}
+                    <div style={{ position: 'relative', padding: 6, background: 'linear-gradient(135deg, #c5a059 0%, transparent 50%, #c5a059 100%)', borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
+                      <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover', display: 'block' }} />
                     </div>
-                  ))}
+                  </div>
+                )}
+                <div style={{ marginBottom: 20 }}>
+                  <h4 style={{ fontSize: config.title * 0.25, color: '#c5a059', fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter' }}>ESTRENO GLOBAL</h4>
+                  <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, lineHeight: 0.8, fontFamily: "'Bebas Neue'", color: textColor, letterSpacing: '-2px', WebkitTextStroke: stroke ? `2px ${contrastColor}` : 'none', textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}CC` : "none" }}>{title}</h1>
                 </div>
-              )}
+                {mode === "proximamente" && <div style={{ marginTop: 10, fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic' }}>{formatDate()}</div>}
+                {mode === "disponible" && (
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.3, color: '#c5a059', fontWeight: 900, letterSpacing: '0.3em' }}>
+                       <div style={{ height: 1, flex: 1, background: 'linear-gradient(to right, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
+                       <span>PLATAFORMAS DIGITALES</span>
+                       <div style={{ height: 1, flex: 1, background: 'linear-gradient(to left, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: config.title * 0.8, color: '#c5a059', opacity: 0.9 }}>
+                      <i className="fab fa-spotify" style={{ fontSize: config.title * 0.7 }}></i>
+                      <i className="fab fa-apple" style={{ fontSize: config.title * 0.7 }}></i>
+                      <i className="fab fa-youtube" style={{ fontSize: config.title * 0.7 }}></i>
+                      <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.7 }}></i>
+                    </div>
+                  </div>
+                )}
+              </div>
 
+              {/* FOOTER (ORIGINAL) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', paddingTop: 15 }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>STUDIO SESSION</div>
+                    <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
+                  </div>
+                  <div style={{ padding: "12px 30px", borderRadius: 2, fontWeight: "900", fontSize: config.title * 0.3, color: '#000', background: "#c5a059", letterSpacing: '0.4em', boxShadow: "0 10px 40px rgba(197,160,89,0.3)" }}>DIOSMASGYM.COM</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>MASTERED HIGH DEF</div>
+                    <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>BPM: 128 // ID: TACTICAL-7</div>
+                  </div>
+              </div>
             </div>
+          )}
 
-            {/* FOOTER: WEBSITE & CTA */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', paddingTop: 15 }}>
-               <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>STUDIO SESSION</div>
-                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>&copy; 2026 RECORDS HUB PRO</div>
-               </div>
-               
-               <div style={{ textAlign: "center" }}>
-                 <div style={{
-                   display: "inline-block",
-                   padding: "12px 30px",
-                   borderRadius: 2,
-                   fontWeight: "900",
-                   fontSize: config.title * 0.3,
-                   color: '#000',
-                   background: "#c5a059",
-                   letterSpacing: '0.4em',
-                   fontFamily: 'Inter, sans-serif',
-                   boxShadow: "0 10px 40px rgba(197,160,89,0.3)"
-                 }}>
-                   DIOSMASGYM.COM
+          {template === 'studio-v3' && (
+            <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+              <div className="corner-br" style={{ top: 20, left: 20, borderRight: 0, borderBottom: 0 }}></div>
+              <div className="corner-br" style={{ top: 20, right: 20, borderLeft: 0, borderBottom: 0 }}></div>
+              <div className="corner-br" style={{ bottom: 100, left: 20, borderRight: 0, borderTop: 0 }}></div>
+              <div className="corner-br" style={{ bottom: 100, right: 20, borderLeft: 0, borderTop: 0 }}></div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 20 }}>
+                   <div style={{ width: 4, height: 40, background: '#c5a059' }}></div>
+                   <div>
+                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059', fontFamily: 'Inter' }}>{artist.toUpperCase()} RECORDS</div>
+                    <div className="hud-text">PHASE // QUANTUM-6:14</div>
+                   </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                   <div style={{ fontSize: config.title * 0.12, opacity: 0.4, fontWeight: 'bold', marginBottom: 4 }}>48K / 24BIT STUDIO</div>
+                   <div style={{ padding: "6px 12px", border: '1px solid #c5a059', color: '#c5a059', fontSize: config.title * 0.18, fontWeight: 900 }}>{mode.toUpperCase()} REC[●]</div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                 {bg && (
+                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 20 }}>
+                      <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: '120%', height: 1, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', opacity: 0.3 }}></div>
+                      {glow && <div style={{ position: 'absolute', inset: -30, background: contrastColor, filter: 'blur(60px)', opacity: 0.4 }} />}
+                      <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, border: '1px solid #c5a059', position: 'relative', boxShadow: '0 0 40px rgba(197,160,89,0.2)' }} />
+                      <div style={{ position: 'absolute', bottom: -20, left: '50%', transform: 'translateX(-50%)', width: '120%', height: 1, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', opacity: 0.3 }}></div>
+                   </div>
+                 )}
+                 <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '4px', lineHeight: 0.8 }}>{title}</h1>
+                 <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 10 }}>
+                    {[1,2,3,4,5,6].map(i => <div key={i} style={{ width: 10, height: 2, background: i === 1 ? '#c5a059' : 'rgba(255,255,255,0.1)' }}></div>)}
                  </div>
+              </div>
+
+              <div style={{ position: 'relative' }}>
+                 <div style={{ width: '100%', height: 2, background: 'rgba(197,160,89,0.1)', marginBottom: 20 }}>
+                    <div style={{ width: '61.4%', height: '100%', background: '#c5a059' }}></div>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div className="hud-text">COORD: LAT 6.14 // LNG 2026</div>
+                    <div style={{ padding: '12px 30px', background: '#c5a059', color: '#000', fontWeight: 900, fontSize: config.title * 0.3, letterSpacing: '0.4em' }}>DIOSMASGYM.COM</div>
+                    <div className="hud-text">S-RATE: HIGH DEF</div>
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {template === 'magazine' && (
+            <div style={{ position: "relative", padding: config.title * 1.5, display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
+               {/* LARGE BACKGROUND INITIAL */}
+               <div style={{ position: 'absolute', top: '10%', right: '-10%', fontSize: config.title * 10, fontWeight: 900, opacity: 0.03, color: textColor, pointerEvents: 'none' }}>{artist.charAt(0)}</div>
+               
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 60 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                     <div style={{ width: 60, height: 2, background: '#c5a059' }}></div>
+                     <span style={{ fontSize: config.title * 0.25, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059' }}>ISSUE // {new Date().getFullYear()}</span>
+                  </div>
+                  <div style={{ fontSize: config.title * 0.2, opacity: 0.4, fontWeight: 900 }}>DIOSMASGYM MAGAZINE VOL.03</div>
                </div>
 
-               <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>MASTERED HIGH DEF</div>
-                  <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', fontFamily: 'Inter, sans-serif' }}>BPM: 128 // ID: TACTICAL-7</div>
+               <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 50, flex: 1, alignItems: 'start' }}>
+                  <div style={{ position: 'relative' }}>
+                     <h4 style={{ fontSize: config.title * 0.25, color: '#c5a059', fontWeight: 900, letterSpacing: '0.4em', marginBottom: 15 }}>COVER STORY</h4>
+                     <h2 style={{ fontSize: config.title * 1.2, fontFamily: 'Bebas Neue', color: textColor, margin: 0, letterSpacing: '2px' }}>{artist.toUpperCase()}</h2>
+                     <div className="magazine-rule" style={{ width: '40%', opacity: 0.5 }}></div>
+                     <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.2 : 1.6), fontFamily: 'DM Serif Display', fontStyle: 'italic', color: textColor, lineHeight: 1.05, margin: '20px 0' }}>{title}</h1>
+                     <p style={{ marginTop: 20, opacity: 0.5, fontSize: config.title * 0.28, lineHeight: 1.8, maxWidth: '90%' }}>Exploring the depths of spiritual records in the modern era of mastered sound production.</p>
+                     
+                     <div style={{ marginTop: 60, display: 'flex', alignItems: 'center', gap: 20 }}>
+                        <div style={{ padding: '15px 35px', background: '#c5a059', color: '#000', fontSize: config.title * 0.25, fontWeight: 900, letterSpacing: '0.3em' }}>{mode.toUpperCase()} NOW</div>
+                        <div style={{ fontSize: config.title * 0.18, opacity: 0.5, fontWeight: 900 }}>RECORDS HUB PRO V5 // P. 6:14</div>
+                     </div>
+                  </div>
+                  {bg && (
+                     <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderTop: '2px solid #c5a059', borderRight: '2px solid #c5a059', opacity: 0.3 }}></div>
+                        <img src={bg} style={{ width: '100%', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 40px 100px rgba(0,0,0,0.8)' }} />
+                        <div style={{ position: 'absolute', bottom: -10, left: -10, padding: '5px 15px', background: '#c5a059', color: '#000', fontSize: 10, fontWeight: 900 }}>EXCLUSIVE PHOTO</div>
+                     </div>
+                  )}
                </div>
             </div>
+          )}
 
-          </div>
+          {template === 'minimal-pro' && (
+            <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
+                {/* CINEMATIC BARS */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '10%', background: '#000', zIndex: 15 }}></div>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '10%', background: '#000', zIndex: 15 }}></div>
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: config.title * 2 }}>
+                    {bg && (
+                        <div style={{ position: 'relative', marginBottom: 50 }}>
+                            <div style={{ position: 'absolute', inset: -20, border: '1px solid rgba(197, 160, 89, 0.2)', borderRadius: '50%', transform: 'scale(1.1)' }}></div>
+                            <img src={bg} style={{ width: config.title * 5, height: config.title * 5, borderRadius: '50%', objectFit: 'cover' }} />
+                        </div>
+                    )}
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: config.title * 0.22, fontWeight: 900, letterSpacing: '1.2em', color: '#c5a059', marginBottom: 20 }}>{artist.toUpperCase()}</div>
+                        <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.6 : 2.2), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '4px', textShadow: '0 0 20px rgba(255,255,255,0.1)' }}>{title}</h1>
+                        <div style={{ marginTop: 30, height: 1, width: 80, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', margin: '0 auto' }}></div>
+                        <div style={{ marginTop: 20, fontSize: config.title * 0.25, opacity: 0.4, letterSpacing: '0.5em' }}>{mode.toUpperCase()} // 2026</div>
+                    </div>
+                </div>
+            </div>
+          )}
+
+          {template === 'neon-strike' && (
+            <div style={{ position: "relative", padding: config.title * 1.5, display: "flex", flexDirection: "column", height: "100%", justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+                {bg && (
+                    <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
+                        <img src={bg} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(30px) saturate(2)' }} />
+                    </div>
+                )}
+                <div style={{ position: 'relative', textAlign: 'center' }}>
+                    <div className="neon-text" style={{ fontSize: config.title * 0.3, fontWeight: 900, color: '#fff', letterSpacing: '0.8em', marginBottom: 30 }}>{artist.toUpperCase()}</div>
+                    <h1 className="neon-text" style={{ fontSize: config.title * (title.length > 15 ? 2.5 : 3.5), fontWeight: 900, fontFamily: 'Bebas Neue', color: '#fff', letterSpacing: '10px', textTransform: 'uppercase' }}>{title}</h1>
+                    <div style={{ marginTop: 50, padding: '20px 40px', border: '3px solid #fff', boxShadow: '0 0 20px #c5a059', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
+                         <div className="neon-text" style={{ fontSize: config.title * 0.4, fontWeight: 900, color: '#fff', letterSpacing: '0.5em' }}>{mode.toUpperCase()}</div>
+                    </div>
+                </div>
+                <div style={{ position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', fontFamily: 'Space Grotesk', fontSize: 12, color: '#fff', opacity: 0.5, letterSpacing: '1em' }}>DIOSMASGYM.COM // NEON STRIKE V1</div>
+            </div>
+          )}
         </div>
     );
 }

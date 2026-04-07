@@ -35,11 +35,15 @@ async function startServer() {
 
       const maxResults = req.query.maxResults || "50";
       const pageToken = req.query.pageToken;
+      const q = req.query.q;
       
-      let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${maxResults}&fetchImages=true`;
+      let endpoint = q ? 'posts/search' : 'posts';
+      let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/${endpoint}?key=${apiKey}&maxResults=${maxResults}&fetchImages=true`;
+      
+      if (q) url += `&q=${encodeURIComponent(q as string)}`;
       if (pageToken) url += `&pageToken=${pageToken}`;
 
-      console.log(`Blogger API Request: maxResults=${maxResults}, pageToken=${pageToken || 'none'}`);
+      console.log(`Blogger API Request: endpoint=${endpoint}, q=${q || 'none'}, pageToken=${pageToken || 'none'}`);
       
       const response = await fetch(url, {
         headers: {
