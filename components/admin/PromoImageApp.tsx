@@ -416,19 +416,19 @@ const PromoImageApp: React.FC = () => {
             <div className="grid grid-cols-1 gap-8">
               {/* TEMPLATE SELECTOR */}
               <div className="space-y-4">
-                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Motor de Renderizado (Multiverso)</label>
+                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Motor de Renderizado (v5.1 HQ)</label>
                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { id: 'original-v1', label: 'ORIGINAL BEAT', icon: 'fa-history' },
-                      { id: 'studio-v3', label: 'STUDIO V3', icon: 'fa-shuttle-space' },
-                      { id: 'magazine', label: 'MAGAZINE PRO', icon: 'fa-newspaper' },
-                      { id: 'minimal-pro', label: 'MINIMAL PRO', icon: 'fa-crop' },
-                      { id: 'neon-strike', label: 'NEON STRIKE', icon: 'fa-bolt' }
+                      { id: 'studio-v3', label: 'STUDIO BLACK', icon: 'fa-cube' },
+                      { id: 'magazine', label: 'SACRED EDITORIAL', icon: 'fa-book-open' },
+                      { id: 'minimal-pro', label: 'CINEMATIC NOIR', icon: 'fa-film' },
+                      { id: 'neon-strike', label: 'PRISM FLOW', icon: 'fa-droplet' }
                     ].map((t) => (
                       <button 
                         key={t.id}
                         onClick={() => setTemplate(t.id)}
-                        className={`py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${template === t.id ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-lg shadow-[#c5a059]/20 scale-[1.02]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white hover:border-[#c5a059]/40'}`}
+                        className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-3 ${template === t.id ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-lg shadow-[#c5a059]/30 scale-[1.02]' : 'bg-black/40 text-white/30 border-white/5 hover:text-white hover:border-[#c5a059]/40'}`}
                       >
                          <i className={`fas ${t.icon}`}></i>
                          {t.label}
@@ -640,33 +640,27 @@ const PromoTemplate: React.FC<any> = ({
               z-index: 9;
             }
 
-            .corner-br {
-                position: absolute;
-                width: 60px;
-                height: 60px;
-                border: 1px solid rgba(197, 160, 89, 0.3);
-                z-index: 12;
-                pointer-events: none;
+            .film-grain {
+              position: absolute;
+              inset: 0;
+              background-image: url("https://www.transparenttextures.com/patterns/60-lines.png");
+              opacity: 0.05;
+              pointer-events: none;
+              z-index: 6;
             }
 
-            .hud-text {
-                font-family: 'Space Grotesk', monospace;
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 2px;
-                color: #c5a059;
-                opacity: 0.6;
+            .serif-display {
+                font-family: 'DM Serif Display', serif;
             }
 
-            .magazine-rule {
-                height: 1px;
-                background: ${textColor};
-                opacity: 0.2;
-                margin: 20px 0;
+            .glass-panel {
+                background: rgba(0,0,0,0.4);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(197, 160, 89, 0.2);
             }
 
-            .neon-text {
-                text-shadow: 0 0 10px #c5a059, 0 0 20px #c5a059, 0 0 40px #c5a059;
+            .gold-glow {
+                box-shadow: 0 0 50px rgba(197,160,89,0.1);
             }
           `}</style>
           {bg && (
@@ -687,195 +681,114 @@ const PromoTemplate: React.FC<any> = ({
           {industrial && <div className="industrial-overlay" />}
 
           {/* STYLE-SPECIFIC RENDERING */}
-          {template === 'original-v1' && (
-            <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
-              {/* BRANDING STAMP (ORIGINAL) */}
-              <div style={{ position: 'absolute', top: '12%', right: '8%', width: config.title * 2, height: config.title * 2, borderRadius: '50%', border: '2px dashed rgba(197, 160, 89, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15, opacity: 0.6, transform: 'rotate(-15deg)' }}>
-                  <div style={{ fontSize: config.title * 0.12, fontFamily: 'Inter', fontWeight: 900, color: '#c5a059', textAlign: 'center', letterSpacing: '0.1em' }}>MASTERED FOR<br />THE SPIRIT<br />6:14</div>
-              </div>
-
-              {/* HEADER (ORIGINAL) */}
-              <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059', fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
-                    <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>REFLECTIONS // HUB PRO V5</div>
-                </div>
-                <div style={{ padding: "8px 20px", borderRadius: 2, border: '1px solid rgba(197, 160, 89, 0.6)', background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', color: '#c5a059', fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
-                  {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
-                </div>
-              </div>
-
-              {/* CENTER (ORIGINAL) */}
-              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                {bg && (
-                  <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
-                    {glow && <div style={{ position: 'absolute', inset: -40, background: contrastColor, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />}
-                    <div style={{ position: 'relative', padding: 6, background: 'linear-gradient(135deg, #c5a059 0%, transparent 50%, #c5a059 100%)', borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
-                      <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover', display: 'block' }} />
-                    </div>
-                  </div>
-                )}
-                <div style={{ marginBottom: 20 }}>
-                  <h4 style={{ fontSize: config.title * 0.25, color: '#c5a059', fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter' }}>ESTRENO GLOBAL</h4>
-                  <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, lineHeight: 0.8, fontFamily: "'Bebas Neue'", color: textColor, letterSpacing: '-2px', WebkitTextStroke: stroke ? `2px ${contrastColor}` : 'none', textShadow: stroke || glow ? `0px 20px 50px ${contrastColor}CC` : "none" }}>{title}</h1>
-                </div>
-                {mode === "proximamente" && <div style={{ marginTop: 10, fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic' }}>{formatDate()}</div>}
-                {mode === "disponible" && (
-                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.3, color: '#c5a059', fontWeight: 900, letterSpacing: '0.3em' }}>
-                       <div style={{ height: 1, flex: 1, background: 'linear-gradient(to right, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
-                       <span>PLATAFORMAS DIGITALES</span>
-                       <div style={{ height: 1, flex: 1, background: 'linear-gradient(to left, transparent, rgba(197, 160, 89, 0.5))', width: 60 }}></div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: config.title * 0.8, color: '#c5a059', opacity: 0.9 }}>
-                      <i className="fab fa-spotify" style={{ fontSize: config.title * 0.7 }}></i>
-                      <i className="fab fa-apple" style={{ fontSize: config.title * 0.7 }}></i>
-                      <i className="fab fa-youtube" style={{ fontSize: config.title * 0.7 }}></i>
-                      <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.7 }}></i>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* FOOTER (ORIGINAL) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: '1px solid rgba(197, 160, 89, 0.2)', paddingTop: 15 }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>STUDIO SESSION</div>
-                    <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
-                  </div>
-                  <div style={{ padding: "12px 30px", borderRadius: 2, fontWeight: "900", fontSize: config.title * 0.3, color: '#000', background: "#c5a059", letterSpacing: '0.4em', boxShadow: "0 10px 40px rgba(197,160,89,0.3)" }}>DIOSMASGYM.COM</div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: '#c5a059' }}>MASTERED HIGH DEF</div>
-                    <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>BPM: 128 // ID: TACTICAL-7</div>
-                  </div>
-              </div>
-            </div>
-          )}
-
           {template === 'studio-v3' && (
-            <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
-              <div className="corner-br" style={{ top: 20, left: 20, borderRight: 0, borderBottom: 0 }}></div>
-              <div className="corner-br" style={{ top: 20, right: 20, borderLeft: 0, borderBottom: 0 }}></div>
-              <div className="corner-br" style={{ bottom: 100, left: 20, borderRight: 0, borderTop: 0 }}></div>
-              <div className="corner-br" style={{ bottom: 100, right: 20, borderLeft: 0, borderTop: 0 }}></div>
+            <div style={{ position: "relative", padding: config.title * 1.5, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+              <div style={{ position: 'absolute', top: 0, left: 20, width: 2, height: '100%', background: 'linear-gradient(to bottom, transparent, #c5a059, transparent)', opacity: 0.2 }}></div>
+              <div style={{ position: 'absolute', top: 0, right: 20, width: 2, height: '100%', background: 'linear-gradient(to bottom, transparent, #c5a059, transparent)', opacity: 0.2 }}></div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 20 }}>
-                   <div style={{ width: 4, height: 40, background: '#c5a059' }}></div>
-                   <div>
-                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059', fontFamily: 'Inter' }}>{artist.toUpperCase()} RECORDS</div>
-                    <div className="hud-text">PHASE // QUANTUM-6:14</div>
-                   </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: 'flex-start' }}>
+                <div style={{ opacity: 0.8 }}>
+                    <div style={{ fontSize: config.title * 0.2, fontWeight: 900, letterSpacing: '0.8em', color: '#c5a059' }}>RECORDS // HUB PRO</div>
+                    <div style={{ fontSize: config.title * 0.1, letterSpacing: '0.4em' }}>STUDIO BLACK EDITION</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                   <div style={{ fontSize: config.title * 0.12, opacity: 0.4, fontWeight: 'bold', marginBottom: 4 }}>48K / 24BIT STUDIO</div>
-                   <div style={{ padding: "6px 12px", border: '1px solid #c5a059', color: '#c5a059', fontSize: config.title * 0.18, fontWeight: 900 }}>{mode.toUpperCase()} REC[●]</div>
-                </div>
+                <div style={{ fontSize: config.title * 0.15, fontWeight: 900, borderBottom: '1px solid #c5a059', paddingBottom: 4 }}>{mode.toUpperCase()}</div>
               </div>
 
               <div style={{ textAlign: "center" }}>
                  {bg && (
-                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 20 }}>
-                      <div style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: '120%', height: 1, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', opacity: 0.3 }}></div>
-                      {glow && <div style={{ position: 'absolute', inset: -30, background: contrastColor, filter: 'blur(60px)', opacity: 0.4 }} />}
-                      <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, border: '1px solid #c5a059', position: 'relative', boxShadow: '0 0 40px rgba(197,160,89,0.2)' }} />
-                      <div style={{ position: 'absolute', bottom: -20, left: '50%', transform: 'translateX(-50%)', width: '120%', height: 1, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', opacity: 0.3 }}></div>
+                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 40, padding: 20, border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+                      {glow && <div style={{ position: 'absolute', inset: -10, background: contrastColor, filter: 'blur(100px)', opacity: 0.15 }} />}
+                      <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover' }} />
                    </div>
                  )}
-                 <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '4px', lineHeight: 0.8 }}>{title}</h1>
-                 <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 10 }}>
-                    {[1,2,3,4,5,6].map(i => <div key={i} style={{ width: 10, height: 2, background: i === 1 ? '#c5a059' : 'rgba(255,255,255,0.1)' }}></div>)}
-                 </div>
+                 <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '6px', margin: 0 }}>{title}</h1>
+                 <div style={{ marginTop: 20, fontSize: config.title * 0.3, fontWeight: 900, color: '#c5a059', letterSpacing: '1.2em' }}>{artist.toUpperCase()}</div>
               </div>
 
-              <div style={{ position: 'relative' }}>
-                 <div style={{ width: '100%', height: 2, background: 'rgba(197,160,89,0.1)', marginBottom: 20 }}>
-                    <div style={{ width: '61.4%', height: '100%', background: '#c5a059' }}></div>
-                 </div>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                    <div className="hud-text">COORD: LAT 6.14 // LNG 2026</div>
-                    <div style={{ padding: '12px 30px', background: '#c5a059', color: '#000', fontWeight: 900, fontSize: config.title * 0.3, letterSpacing: '0.4em' }}>DIOSMASGYM.COM</div>
-                    <div className="hud-text">S-RATE: HIGH DEF</div>
-                 </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 60, alignItems: 'center' }}>
+                 <div style={{ width: 100, height: 1, background: 'rgba(197,160,89,0.3)' }}></div>
+                 <div style={{ fontSize: config.title * 0.3, fontWeight: 900, letterSpacing: '0.8em' }}>DIOSMASGYM.COM</div>
+                 <div style={{ width: 100, height: 1, background: 'rgba(197,160,89,0.3)' }}></div>
               </div>
             </div>
           )}
 
           {template === 'magazine' && (
-            <div style={{ position: "relative", padding: config.title * 1.5, display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
-               {/* LARGE BACKGROUND INITIAL */}
-               <div style={{ position: 'absolute', top: '10%', right: '-10%', fontSize: config.title * 10, fontWeight: 900, opacity: 0.03, color: textColor, pointerEvents: 'none' }}>{artist.charAt(0)}</div>
-               
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 60 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                     <div style={{ width: 60, height: 2, background: '#c5a059' }}></div>
-                     <span style={{ fontSize: config.title * 0.25, fontWeight: 900, letterSpacing: '0.5em', color: '#c5a059' }}>ISSUE // {new Date().getFullYear()}</span>
-                  </div>
-                  <div style={{ fontSize: config.title * 0.2, opacity: 0.4, fontWeight: 900 }}>DIOSMASGYM MAGAZINE VOL.03</div>
+            <div style={{ position: "relative", padding: config.title * 2, display: "flex", flexDirection: "column", height: "100%", zIndex: 10, background: 'rgba(10,10,10,1)' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 60 }}>
+                  <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '1em', color: '#c5a059', marginBottom: 20 }}>EL ARSENAL DE FE // MAGAZINE</div>
+                  <h2 style={{ fontSize: config.title, fontFamily: 'DM Serif Display', margin: 0, textTransform: 'uppercase', letterSpacing: '10px', WebkitTextStroke: '1px rgba(255,255,255,0.1)', color: 'transparent' }}>RECORDS</h2>
                </div>
 
-               <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 50, flex: 1, alignItems: 'start' }}>
-                  <div style={{ position: 'relative' }}>
-                     <h4 style={{ fontSize: config.title * 0.25, color: '#c5a059', fontWeight: 900, letterSpacing: '0.4em', marginBottom: 15 }}>COVER STORY</h4>
-                     <h2 style={{ fontSize: config.title * 1.2, fontFamily: 'Bebas Neue', color: textColor, margin: 0, letterSpacing: '2px' }}>{artist.toUpperCase()}</h2>
-                     <div className="magazine-rule" style={{ width: '40%', opacity: 0.5 }}></div>
-                     <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.2 : 1.6), fontFamily: 'DM Serif Display', fontStyle: 'italic', color: textColor, lineHeight: 1.05, margin: '20px 0' }}>{title}</h1>
-                     <p style={{ marginTop: 20, opacity: 0.5, fontSize: config.title * 0.28, lineHeight: 1.8, maxWidth: '90%' }}>Exploring the depths of spiritual records in the modern era of mastered sound production.</p>
-                     
-                     <div style={{ marginTop: 60, display: 'flex', alignItems: 'center', gap: 20 }}>
-                        <div style={{ padding: '15px 35px', background: '#c5a059', color: '#000', fontSize: config.title * 0.25, fontWeight: 900, letterSpacing: '0.3em' }}>{mode.toUpperCase()} NOW</div>
-                        <div style={{ fontSize: config.title * 0.18, opacity: 0.5, fontWeight: 900 }}>RECORDS HUB PRO V5 // P. 6:14</div>
-                     </div>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, flex: 1, alignItems: 'center' }}>
+                  <div style={{ textAlign: 'right' }}>
+                     <h4 style={{ fontSize: config.title * 0.2, color: '#c5a059', fontWeight: 900, letterSpacing: '0.5em', marginBottom: 20 }}>THE ARTIST</h4>
+                     <h5 style={{ fontSize: config.title * 1.5, fontFamily: 'Bebas Neue', color: textColor, margin: 0, lineHeight: 0.8 }}>{artist.toUpperCase()}</h5>
                   </div>
                   {bg && (
                      <div style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderTop: '2px solid #c5a059', borderRight: '2px solid #c5a059', opacity: 0.3 }}></div>
-                        <img src={bg} style={{ width: '100%', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 40px 100px rgba(0,0,0,0.8)' }} />
-                        <div style={{ position: 'absolute', bottom: -10, left: -10, padding: '5px 15px', background: '#c5a059', color: '#000', fontSize: 10, fontWeight: 900 }}>EXCLUSIVE PHOTO</div>
+                        <img src={bg} style={{ width: '100%', height: config.title * 8, objectFit: 'cover', borderRadius: '4px', filter: 'grayscale(0.5) contrast(1.1)' }} />
+                        <div style={{ position: 'absolute', bottom: -20, left: -20, padding: '20px', background: '#c5a059', color: '#000', fontSize: 12, fontWeight: 900, writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>S/A-26</div>
                      </div>
                   )}
+               </div>
+
+               <div style={{ marginTop: 60 }}>
+                  <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontFamily: 'DM Serif Display', fontStyle: 'italic', color: textColor, lineHeight: 0.9, textAlign: 'center' }}>{title}</h1>
+                  <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 20, display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 900, opacity: 0.5, letterSpacing: '4px' }}>
+                     <span>VOL. 3 // NO. 614</span>
+                     <span>DIOSMASGYM.COM</span>
+                     <span>{mode.toUpperCase()}</span>
+                  </div>
                </div>
             </div>
           )}
 
           {template === 'minimal-pro' && (
-            <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
-                {/* CINEMATIC BARS */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '10%', background: '#000', zIndex: 15 }}></div>
-                <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '10%', background: '#000', zIndex: 15 }}></div>
-
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: config.title * 2 }}>
-                    {bg && (
-                        <div style={{ position: 'relative', marginBottom: 50 }}>
-                            <div style={{ position: 'absolute', inset: -20, border: '1px solid rgba(197, 160, 89, 0.2)', borderRadius: '50%', transform: 'scale(1.1)' }}></div>
-                            <img src={bg} style={{ width: config.title * 5, height: config.title * 5, borderRadius: '50%', objectFit: 'cover' }} />
-                        </div>
-                    )}
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: config.title * 0.22, fontWeight: 900, letterSpacing: '1.2em', color: '#c5a059', marginBottom: 20 }}>{artist.toUpperCase()}</div>
-                        <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.6 : 2.2), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '4px', textShadow: '0 0 20px rgba(255,255,255,0.1)' }}>{title}</h1>
-                        <div style={{ marginTop: 30, height: 1, width: 80, background: 'linear-gradient(to right, transparent, #c5a059, transparent)', margin: '0 auto' }}></div>
-                        <div style={{ marginTop: 20, fontSize: config.title * 0.25, opacity: 0.4, letterSpacing: '0.5em' }}>{mode.toUpperCase()} // 2026</div>
+            <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", background: '#000', zIndex: 10 }}>
+                {bg && (
+                    <div style={{ position: 'absolute', inset: 0, opacity: 0.5 }}>
+                        <img src={bg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #000 10%, transparent 50%, #000 90%)' }}></div>
                     </div>
+                )}
+                
+                <div style={{ position: 'absolute', top: 60, width: '100%', textAlign: 'center', fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '1.2em', color: '#c5a059' }}>{artist.toUpperCase()}</div>
+                
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: config.title * 2 }}>
+                    <h1 style={{ fontSize: config.title * (title.length > 15 ? 2.5 : 3.5), fontWeight: 900, fontFamily: 'Bebas Neue', color: textColor, letterSpacing: '4px', textAlign: 'center', margin: 0, opacity: 0.9 }}>{title}</h1>
+                    <div style={{ marginTop: 40, padding: '10px 40px', border: '1px solid rgba(255,255,255,0.2)', fontSize: config.title * 0.3, fontWeight: 900, letterSpacing: '8px' }}>{mode.toUpperCase()}</div>
+                </div>
+
+                <div style={{ position: 'absolute', bottom: 60, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20 }}>
+                    <div style={{ width: 40, height: 1, background: '#c5a059' }}></div>
+                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '6px' }}>CINEMATIC NOIR</div>
+                    <div style={{ width: 40, height: 1, background: '#c5a059' }}></div>
                 </div>
             </div>
           )}
 
           {template === 'neon-strike' && (
-            <div style={{ position: "relative", padding: config.title * 1.5, display: "flex", flexDirection: "column", height: "100%", justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
-                {bg && (
-                    <div style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
-                        <img src={bg} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(30px) saturate(2)' }} />
-                    </div>
-                )}
-                <div style={{ position: 'relative', textAlign: 'center' }}>
-                    <div className="neon-text" style={{ fontSize: config.title * 0.3, fontWeight: 900, color: '#fff', letterSpacing: '0.8em', marginBottom: 30 }}>{artist.toUpperCase()}</div>
-                    <h1 className="neon-text" style={{ fontSize: config.title * (title.length > 15 ? 2.5 : 3.5), fontWeight: 900, fontFamily: 'Bebas Neue', color: '#fff', letterSpacing: '10px', textTransform: 'uppercase' }}>{title}</h1>
-                    <div style={{ marginTop: 50, padding: '20px 40px', border: '3px solid #fff', boxShadow: '0 0 20px #c5a059', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}>
-                         <div className="neon-text" style={{ fontSize: config.title * 0.4, fontWeight: 900, color: '#fff', letterSpacing: '0.5em' }}>{mode.toUpperCase()}</div>
-                    </div>
+            <div style={{ position: "relative", padding: config.title * 2, display: "flex", flexDirection: "column", height: "100%", background: '#080808', zIndex: 10, overflow: 'hidden' }}>
+                {/* PRISM ELEMENTS */}
+                <div style={{ position: 'absolute', top: '-20%', left: '-20%', width: '140%', height: '140%', background: `radial-gradient(circle at center, rgba(197, 160, 89, 0.1) 0%, transparent 70%)`, filter: 'blur(60px)' }}></div>
+                
+                <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    {bg && (
+                        <div style={{ position: 'relative', marginBottom: 60, width: config.title * 7, height: config.title * 7 }}>
+                            <div style={{ position: 'absolute', inset: -30, border: '1px solid rgba(197, 160, 89, 0.1)', borderRadius: '50%' }}></div>
+                            <img src={bg} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', border: '4px solid #c5a059', boxShadow: '0 0 80px rgba(197,160,89,0.2)' }} />
+                        </div>
+                    )}
+                    <h2 style={{ fontSize: config.title * 0.3, fontWeight: 900, color: '#c5a059', letterSpacing: '1em', marginBottom: 20 }}>{artist.toUpperCase()}</h2>
+                    <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.6 : 2.5), fontWeight: 900, fontFamily: 'Bebas Neue', color: '#fff', letterSpacing: '15px', textShadow: '0 0 30px rgba(255,255,255,0.2)' }}>{title}</h1>
                 </div>
-                <div style={{ position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', fontFamily: 'Space Grotesk', fontSize: 12, color: '#fff', opacity: 0.5, letterSpacing: '1em' }}>DIOSMASGYM.COM // NEON STRIKE V1</div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 30 }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, opacity: 0.3 }}>PRISM FLOW // V1.0</div>
+                    <div style={{ padding: '8px 25px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontWeight: 900, letterSpacing: '4px' }}>{mode.toUpperCase()}</div>
+                    <div style={{ fontSize: config.title * 0.3, fontWeight: 900, color: '#c5a059' }}>6:14</div>
+                </div>
             </div>
           )}
         </div>
