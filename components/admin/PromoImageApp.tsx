@@ -163,30 +163,75 @@ const PromoImageApp: React.FC = () => {
   }, [bg]);
 
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
-    const text = `¡Escucha "${title}" de ${artist}! Ya disponible en todas las plataformas. #DiosMasGym #Juan614`;
-    const url = "https://diosmasgym.com"; // O link específico si existiera
+    const exportEl = document.getElementById("promo-export-master");
+    if (!exportEl) return;
 
-    switch (platform) {
-      case 'whatsapp':
-        window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank');
-        break;
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
-        break;
-      case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-        break;
-      case 'generic':
-        if (navigator.share) {
-          try {
-            await navigator.share({ title: title, text: text, url: url });
-          } catch (err) {
-            console.log("Error sharing:", err);
-          }
-        } else {
-          alert("Tu navegador no soporta la función de compartir nativa.");
+    try {
+      setIsSendingToMake(true); // Re-use loading state for visual feedback
+      await document.fonts.load('1em "Bebas Neue"');
+      
+      const canvas = await html2canvas(exportEl, {
+        scale: 2, 
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      });
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error("Could not generate image");
+
+      const file = new File([blob], `promo-${title.toLowerCase().replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+      const text = `¡Escucha "${title}" de ${artist}! Ya disponible. #DiosMasGym #Juan614`;
+      const url = "https://diosmasgym.com";
+
+      // 1. Try Native Sharing (Recommended for Mobile)
+      if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: title,
+            text: text,
+          });
+          setIsSendingToMake(false);
+          return;
+        } catch (err) {
+          console.warn("Share failed or cancelled:", err);
         }
-        break;
+      }
+
+      // 2. Try Clipboard (Best for Desktop)
+      try {
+        if (typeof ClipboardItem !== 'undefined') {
+            const data = [new ClipboardItem({ [file.type]: blob })];
+            await navigator.clipboard.write(data);
+            alert("✅ Imagen copiada al portapapeles. ¡Pégala directamente en tu chat o red social!");
+            setIsSendingToMake(false);
+            return;
+        }
+      } catch (err) {
+        console.warn("Clipboard failed:", err);
+      }
+
+      // 3. Fallback to per-platform URL (Text only)
+      switch (platform) {
+        case 'whatsapp':
+          window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+          break;
+        case 'facebook':
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+          break;
+        case 'twitter':
+          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+          break;
+        case 'generic':
+          alert("Tu navegador no soporta compartir archivos. Usa 'Descargar Master 4K' y comparte el archivo manualmente.");
+          break;
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+      alert("Error al procesar la imagen para compartir.");
+    } finally {
+      setIsSendingToMake(false);
     }
   };
 
