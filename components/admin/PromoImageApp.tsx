@@ -29,9 +29,8 @@ const PromoImageApp: React.FC = () => {
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [isSendingToMake, setIsSendingToMake] = useState(false);
-  const [isAutopilot, setIsAutopilot] = useState(false);
-  const [autopilotMinutes, setAutopilotMinutes] = useState(240);
-  const [countdown, setCountdown] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   // NEW AESTHETICS 2026
   const [template, setTemplate] = useState("original-v1");
@@ -82,13 +81,7 @@ const PromoImageApp: React.FC = () => {
     loadCatalog();
   }, []);
 
-  const handleRandomFromCatalog = () => {
-    if (catalog.length === 0) {
-      alert("Catálogo vacío o cargando...");
-      return;
-    }
-    const song = catalog[Math.floor(Math.random() * catalog.length)];
-    
+  const handleSelectSong = (song: MusicItem) => {
     let normalizedArtist = song.artist;
     if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
     if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
@@ -98,7 +91,20 @@ const PromoImageApp: React.FC = () => {
     setBg(song.cover);
     setMode("disponible");
     setSize("instagram");
+    setSearchQuery("");
+    setIsSearchOpen(false);
   };
+
+  const handleRandomFromCatalog = () => {
+    if (catalog.length === 0) return;
+    const song = catalog[Math.floor(Math.random() * catalog.length)];
+    handleSelectSong(song);
+  };
+
+  const filteredCatalog = catalog.filter(song => 
+    song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    song.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 10);
 
   const config = sizes[size];
 
@@ -156,65 +162,32 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg]);
 
-  // Autopilot Timer
-  useEffect(() => {
-    let timer: any;
-    if (isAutopilot) {
-       setCountdown(autopilotMinutes * 60);
-       timer = setInterval(() => {
-          setCountdown(prev => {
-             if (prev <= 1) {
-                handleAutoPublish();
-                return autopilotMinutes * 60;
-             }
-             return prev - 1;
-          });
-       }, 1000);
-    } else {
-       setCountdown(0);
-       clearInterval(timer);
+  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
+    const text = `¡Escucha "${title}" de ${artist}! Ya disponible en todas las plataformas. #DiosMasGym #Juan614`;
+    const url = "https://diosmasgym.com"; // O link específico si existiera
+
+    switch (platform) {
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+        break;
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'generic':
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: title, text: text, url: url });
+          } catch (err) {
+            console.log("Error sharing:", err);
+          }
+        } else {
+          alert("Tu navegador no soporta la función de compartir nativa.");
+        }
+        break;
     }
-    return () => clearInterval(timer);
-  }, [isAutopilot, autopilotMinutes]);
-
-  const formatCountdown = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h}h ${m}m ${s}s`;
-  };
-
-  const handleAutoPublish = async () => {
-    if (catalog.length === 0) {
-      alert("Catálogo vacío o cargando...");
-      return;
-    }
-    
-    // 1. Elegir canción al azar
-    const song = catalog[Math.floor(Math.random() * catalog.length)];
-    let normalizedArtist = song.artist;
-    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
-    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
-
-    const newTitle = song.name.toUpperCase();
-    const newArtist = normalizedArtist;
-    const newMode = "disponible";
-
-    console.log("🎲 [PILOTO] Seleccionando:", newTitle);
-
-    setTitle(newTitle);
-    setArtist(newArtist);
-    setBg(song.cover);
-    setMode(newMode);
-    setSize("instagram");
-
-    // 2. Esperar a que el DOM cargue la nueva imagen (2.5s)
-    setIsSendingToMake(true);
-    
-    setTimeout(async () => {
-      console.log("⏱️ [AUTO] Ejecutando envío programado...");
-      await handleSendToMake(newTitle, newArtist, newMode);
-    }, 2500);
   };
 
   const handleSendToMake = async (ovTitle?: any, ovArtist?: any, ovMode?: any) => {
@@ -357,18 +330,57 @@ const PromoImageApp: React.FC = () => {
         {/* LEFT COMPONENT: CONTROLS */}
         <div className="lg:col-span-5 space-y-8 animate-fade-in-up">
           
-          {/* GROUP: CONTENT */}
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl scale-in">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Contenido Principal</h2>
+          {/* GROUP: CONTENT & SEARCH */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl scale-in">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Contenido</h2>
               <button 
                 onClick={handleRandomFromCatalog}
                 disabled={isLoadingCatalog}
-                className="flex items-center gap-2 px-6 py-2 bg-[#c5a059]/10 border border-[#c5a059]/20 rounded-full text-[9px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 rounded-full text-[9px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
               >
                 <i className={`fas ${isLoadingCatalog ? 'fa-spinner fa-spin' : 'fa-dice'}`}></i>
-                {isLoadingCatalog ? 'Sorteando...' : 'Catálogo Aleatorio'}
+                {isLoadingCatalog ? 'Sorteando...' : 'Azar'}
               </button>
+            </div>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#c5a059]/40">
+                <i className="fas fa-search text-xs"></i>
+              </div>
+              <input 
+                type="text"
+                placeholder="BUSCAR CANCIÓN EN CATÁLOGO..."
+                className="w-full bg-black/40 border border-white/5 pl-12 pr-4 py-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-[10px] font-black tracking-widest transition-all"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchOpen(e.target.value.length > 0);
+                }}
+                onFocus={() => searchQuery.length > 0 && setIsSearchOpen(true)}
+              />
+              
+              {isSearchOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0f1d] border border-white/10 rounded-2xl overflow-hidden z-[200] shadow-2xl animate-fade-in">
+                  {filteredCatalog.length > 0 ? (
+                    filteredCatalog.map((song) => (
+                      <button
+                        key={song.id}
+                        onClick={() => handleSelectSong(song)}
+                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors text-left"
+                      >
+                        <img src={song.cover} className="w-10 h-10 rounded-lg object-cover bg-black" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-black text-white/90 truncate uppercase tracking-widest">{song.name}</div>
+                          <div className="text-[8px] font-bold text-[#c5a059] truncate uppercase tracking-widest">{song.artist}</div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-white/20 text-[9px] font-black uppercase tracking-[0.2em]">No se encontraron temas</div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="space-y-6">
@@ -479,31 +491,59 @@ const PromoImageApp: React.FC = () => {
             </div>
           </div>
 
-          {/* GROUP: EXPORT */}
+          {/* GROUP: EXPORT & SHARE */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Salida de Producción</h2>
-             <div className="flex flex-col gap-4">
+             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Exportar & Compartir</h2>
+             <div className="flex flex-col gap-6">
                 <button 
-                  onClick={handleAutoPublish}
-                  disabled={isSendingToMake || isLoadingCatalog}
+                  onClick={handleDownload}
                   className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
                 >
-                  <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-shuttle-space'} group-hover:rotate-12 transition-transform`}></i>
-                  {isSendingToMake ? 'Sincronizando...' : 'Publicación Instantánea'}
+                  <i className="fas fa-download group-hover:translate-y-1 transition-transform"></i> Descargar Master 4K
                 </button>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest text-center block">Compartir en Redes Sociales</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    <button 
+                      onClick={() => handleShare('whatsapp')}
+                      className="py-4 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] rounded-xl hover:bg-[#25D366] hover:text-white transition-all flex items-center justify-center text-lg"
+                      title="WhatsApp"
+                    >
+                      <i className="fab fa-whatsapp"></i>
+                    </button>
+                    <button 
+                      onClick={() => handleShare('facebook')}
+                      className="py-4 bg-[#1877F2]/10 border border-[#1877F2]/20 text-[#1877F2] rounded-xl hover:bg-[#1877F2] hover:text-white transition-all flex items-center justify-center text-lg"
+                      title="Facebook"
+                    >
+                      <i className="fab fa-facebook-f"></i>
+                    </button>
+                    <button 
+                      onClick={() => handleShare('twitter')}
+                      className="py-4 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center justify-center text-lg"
+                      title="Twitter/X"
+                    >
+                      <i className="fab fa-x-twitter"></i>
+                    </button>
+                    <button 
+                      onClick={() => handleShare('generic')}
+                      className="py-4 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] rounded-xl hover:bg-[#c5a059] hover:text-white transition-all flex items-center justify-center text-lg"
+                      title="Compartir"
+                    >
+                      <i className="fas fa-share-nodes"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-white/5">
                   <button 
-                    onClick={handleDownload}
-                    className="py-4 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                    onClick={() => handleSendToMake()}
+                    disabled={isSendingToMake}
+                    className="w-full py-3 bg-black/40 border border-white/10 text-white/40 text-[8px] font-black uppercase tracking-[0.3em] rounded-xl hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                   >
-                    <i className="fas fa-download"></i> Master 4K
-                  </button>
-                  <button 
-                    onClick={() => setIsAutopilot(!isAutopilot)}
-                    className={`py-4 border text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${isAutopilot ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
-                  >
-                    <i className={`fas ${isAutopilot ? 'fa-radio' : 'fa-robot'}`}></i> {isAutopilot ? formatCountdown(countdown) : 'Piloto OFF'}
+                    <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`}></i>
+                    {isSendingToMake ? 'Sincronizando...' : 'Sincronizar con Make.com (Manual)'}
                   </button>
                 </div>
              </div>
