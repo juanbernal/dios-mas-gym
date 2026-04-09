@@ -2,12 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 interface ReleaseData {
     Artista: string;
-    Titulo: string;
-    Fecha: string; // yyyy-MM-dd
-    Spotify?: string;
-    YouTube?: string;
-    Apple?: string;
-    Imagen?: string;
+    name: string;          // Mapeado a Título
+    releaseDate: string;   // Mapeado a Fecha
+    preSaveLink?: string;  // Spotify
+    audioUrl?: string;      // YouTube/Audio
+    coverImageUr?: string; // Portada
 }
 
 const UpcomingReleases: React.FC = () => {
@@ -20,18 +19,16 @@ const UpcomingReleases: React.FC = () => {
     useEffect(() => {
         const fetchReleases = async () => {
             try {
-                // Fetch using the new ?read=true parameter
                 const response = await fetch(`${googleScriptUrl}?read=true`);
                 if (!response.ok) throw new Error('Fetch failed');
                 const data = await response.json();
                 
-                // Filter and sort releases (only future or today)
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 
                 const upcoming = (data as ReleaseData[])
-                    .filter(r => r.Fecha && new Date(r.Fecha + 'T00:00:00') >= now)
-                    .sort((a, b) => new Date(a.Fecha).getTime() - new Date(b.Fecha).getTime());
+                    .filter(r => r.releaseDate && new Date(r.releaseDate + 'T00:00:00') >= now)
+                    .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
                 
                 setReleases(upcoming);
             } catch (error) {
@@ -42,17 +39,15 @@ const UpcomingReleases: React.FC = () => {
         };
 
         fetchReleases();
-        
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
     const nextRelease = releases[0];
 
-    // Countdown logic
     const countdown = useMemo(() => {
         if (!nextRelease) return null;
-        const target = new Date(nextRelease.Fecha + 'T00:00:00');
+        const target = new Date(nextRelease.releaseDate + 'T00:00:00');
         const diff = target.getTime() - currentTime.getTime();
 
         if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, finished: true };
@@ -66,7 +61,7 @@ const UpcomingReleases: React.FC = () => {
         };
     }, [nextRelease, currentTime]);
 
-    if (loading || !nextRelease) return null; // Hide if no upcoming releases
+    if (loading || !nextRelease) return null;
 
     const timeZones = [
         { city: 'MEX', time: '00:00' },
@@ -78,27 +73,21 @@ const UpcomingReleases: React.FC = () => {
 
     return (
         <section className="relative py-40 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
-            {/* Ambient Background */}
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#c5a059]/5 rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#c5a059]/5 rounded-full blur-[100px] -ml-72 -mb-72"></div>
 
             <div className="section-container relative z-10">
                 <div className="flex flex-col lg:flex-row items-center gap-20">
-                    
-                    {/* Left Side: Visual & Countdown */}
                     <div className="flex-1 w-full max-w-2xl">
                         <div className="relative group">
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-transparent opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#0a0c14] border border-white/5 shadow-2xl">
                                 <img 
-                                    src={nextRelease.Imagen || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
-                                    alt={nextRelease.Titulo}
+                                    src={nextRelease.coverImageUr || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
+                                    alt={nextRelease.name}
                                     className="w-full h-full object-cover grayscale opacity-50 transition-all duration-1000 group-hover:scale-105 group-hover:grayscale-0 group-hover:opacity-80"
                                 />
-                                
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent"></div>
-                                
-                                {/* Countdown Overlay */}
                                 <div className="absolute bottom-0 left-0 right-0 p-12">
                                     <div className="grid grid-cols-4 gap-4 text-center">
                                         {[
@@ -118,7 +107,6 @@ const UpcomingReleases: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Right Side: Info & Release Schedule */}
                     <div className="flex-1 text-center lg:text-left">
                         <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
                             <span className="w-12 h-px bg-[#c5a059]"></span>
@@ -126,11 +114,11 @@ const UpcomingReleases: React.FC = () => {
                         </div>
 
                         <h2 className="font-serif italic text-6xl md:text-8xl text-white mb-8 leading-tight">
-                            {nextRelease.Titulo}
+                            {nextRelease.name}
                         </h2>
                         
                         <div className="text-2xl md:text-3xl font-light text-white/60 mb-12 uppercase tracking-[0.2em]">
-                            {nextRelease.Artista} <span className="text-[#c5a059]/40 px-4">/</span> {new Date(nextRelease.Fecha + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            {nextRelease.Artista} <span className="text-[#c5a059]/40 px-4">/</span> {new Date(nextRelease.releaseDate + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-16 px-4 py-8 border-y border-white/5">
@@ -143,27 +131,20 @@ const UpcomingReleases: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap justify-center lg:justify-start gap-10">
-                            {nextRelease.Spotify && (
-                                <a href={nextRelease.Spotify} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#1DB954] transition-all">
+                            {nextRelease.preSaveLink && (
+                                <a href={nextRelease.preSaveLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#1DB954] transition-all">
                                     <i className="fab fa-spotify text-xl"></i> Pre-Save
                                 </a>
                             )}
-                            {nextRelease.YouTube && (
-                                <a href={nextRelease.YouTube} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#ff0000] transition-all">
+                            {nextRelease.audioUrl && (
+                                <a href={nextRelease.audioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#ff0000] transition-all">
                                     <i className="fab fa-youtube text-xl"></i> Reminder
-                                </a>
-                            )}
-                            {nextRelease.Apple && (
-                                <a href={nextRelease.Apple} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#fc3c44] transition-all">
-                                    <i className="fab fa-apple text-xl"></i> Pre-Add
                                 </a>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
-            
-            {/* Animated Bottom Border */}
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
         </section>
     );

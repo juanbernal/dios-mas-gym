@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface ReleaseData {
+    Artista: string;
+    name: string;
+    releaseDate: string;
+    preSaveLink?: string;
+    audioUrl?: string;
+    coverImageUr?: string;
+}
+
 const ProximosLanzamientos: React.FC = () => {
     const navigate = useNavigate();
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ type: 'idle' });
-    const [currentReleases, setCurrentReleases] = useState<any[]>([]);
+    const [currentReleases, setCurrentReleases] = useState<ReleaseData[]>([]);
     const [loadingReleases, setLoadingReleases] = useState(true);
     
     const [formData, setFormData] = useState({
@@ -45,13 +54,14 @@ const ProximosLanzamientos: React.FC = () => {
         try {
             const params = new URLSearchParams();
             // Map keys to match the spreadsheet headers exactly as in the .gs script
+            // MAPEO EXACTO SEGÚN TUS CABECERAS DE EXCEL:
+            // name, releaseDate, coverImageUr, preSaveLink, audioUrl, Artista
+            params.append('name', formData.titulo);
+            params.append('releaseDate', formData.fecha);
+            params.append('coverImageUr', formData.imagen);
+            params.append('preSaveLink', formData.spotify);
+            params.append('audioUrl', formData.youtube);
             params.append('Artista', formData.artista);
-            params.append('Titulo', formData.titulo);
-            params.append('Fecha', formData.fecha);
-            params.append('Spotify', formData.spotify);
-            params.append('YouTube', formData.youtube);
-            params.append('Apple', formData.apple);
-            params.append('Imagen', formData.imagen);
 
             await fetch(googleScriptUrl, {
                 method: 'POST',
