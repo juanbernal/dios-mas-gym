@@ -127,7 +127,6 @@ const LyricStudio: React.FC = () => {
       return { time: parseFloat(parts[0]), text: parts[1].trim() };
     }).filter((l): l is LyricLine => l !== null).sort((a, b) => a.time - b.time);
   };
-
   useEffect(() => {
     if (branding === 'diosmasgym') {
       setIncludeIntro(true);
@@ -135,68 +134,102 @@ const LyricStudio: React.FC = () => {
     }
   }, [branding]);
 
+  const drawFilmGrain = (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    for (let i = 0; i < 5000; i++) {
+        const x = Math.random() * cw;
+        const y = Math.random() * ch;
+        ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+        ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.restore();
+  };
+
+  const applyChromaticAberration = (ctx: CanvasRenderingContext2D, cw: number, ch: number, amount: number) => {
+    // This is a simplified "faux" aberration by drawing offset overlays
+    const original = ctx.getImageData(0, 0, cw, ch);
+    // In canvas, true aberration requires pixel manipulation which is slow for 60fps
+    // We'll use a visual trick by drawing a slightly offset colored shadow or repetitive draw
+  };
+
   const renderIntro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
     const alpha = Math.min(time / 1.0, 1) * Math.min((INTRO_DURATION - time) / 0.8, 1);
     ctx.save();
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     
-    // 1. Cinematic Light Leaks / Rays
+    // 1. Cinematic Light Leaks / Rays (Moving)
     const timeFactor = time * 0.5;
-    for(let i=0; i<3; i++) {
-        const rayAlpha = Math.sin(timeFactor + i) * 0.1 * alpha;
-        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw * (1 + i * 0.2));
+    for(let i=0; i<4; i++) {
+        const rayAlpha = Math.sin(timeFactor + i) * 0.12 * alpha;
+        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw * (1.2 + i * 0.3));
         grad.addColorStop(0, `rgba(0, 255, 204, ${rayAlpha})`);
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, cw, ch);
     }
 
+    // 2. Anamorphic Lens Flare
+    const flarePos = (time / INTRO_DURATION) * ch * 1.5 - ch * 0.25;
+    const flareGrad = ctx.createLinearGradient(0, flarePos, cw, flarePos);
+    flareGrad.addColorStop(0, 'transparent');
+    flareGrad.addColorStop(0.5, `rgba(0, 255, 204, ${0.4 * alpha})`);
+    flareGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = flareGrad;
+    ctx.fillRect(0, flarePos - 50, cw, 100);
+    // Core of flare
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * alpha})`;
+    ctx.fillRect(0, flarePos - 1, cw, 2);
+
     ctx.globalAlpha = alpha;
 
-    // 2. Logo Animation
+    // 3. Logo Animation with RGB Pulse
     if (logoStudioRef.current.complete) {
         const logo = logoStudioRef.current;
-        const logoScale = 0.4 + (time * 0.05); // Subtle zoom in
+        const logoScale = 0.45 + (time * 0.04);
         const lWidth = cw * logoScale;
         const lHeight = (logo.height / logo.width) * lWidth;
         
         ctx.save();
-        ctx.translate(cw/2, ch/2 - 100);
+        ctx.translate(cw/2, ch/2 - 120);
         
-        // Backglow for logo
-        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, lWidth * 0.8);
-        glow.addColorStop(0, 'rgba(0, 255, 204, 0.2)');
-        glow.addColorStop(1, 'transparent');
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(0, 0, lWidth * 0.8, 0, Math.PI*2); ctx.fill();
-
+        // Chromatic Aberration Faux Effect (Offset Red/Cyan)
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.5 * alpha;
+        ctx.drawImage(logo, -lWidth/2 - 3, -lHeight/2, lWidth, lHeight); // Cyanish offset
+        ctx.drawImage(logo, -lWidth/2 + 3, -lHeight/2, lWidth, lHeight); // Reddish offset
+        
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(logo, -lWidth/2, -lHeight/2, lWidth, lHeight);
         ctx.restore();
     }
 
-    // 3. Cinematic Text
+    // 4. Diamond Typography
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Metallic Silver Gradient
-    const textGrad = ctx.createLinearGradient(0, ch/2 + 100, 0, ch/2 + 200);
+    const textGrad = ctx.createLinearGradient(0, ch/2 + 100, 0, ch/2 + 250);
     textGrad.addColorStop(0, '#ffffff');
-    textGrad.addColorStop(0.5, '#a0a0a0');
+    textGrad.addColorStop(0.4, '#00ffcc');
+    textGrad.addColorStop(0.5, '#ffffff');
+    textGrad.addColorStop(0.6, '#00ffcc');
     textGrad.addColorStop(1, '#ffffff');
 
     ctx.font = '900 24px Montserrat';
-    ctx.letterSpacing = '10px';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 + 120);
+    ctx.letterSpacing = '12px';
+    ctx.fillStyle = 'rgba(0, 255, 204, 0.3)';
+    ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 + 100);
 
-    ctx.font = '900 70px Montserrat';
-    ctx.letterSpacing = '15px';
+    ctx.font = '900 80px Montserrat';
+    ctx.letterSpacing = '18px';
     ctx.fillStyle = textGrad;
-    ctx.shadowColor = 'rgba(255,255,255,0.5)';
-    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(0,255,204,0.6)';
+    ctx.shadowBlur = 25;
     ctx.fillText("PRESENTA", cw/2, ch/2 + 200);
 
+    drawFilmGrain(ctx, cw, ch);
     ctx.restore();
   };
 
@@ -204,91 +237,107 @@ const LyricStudio: React.FC = () => {
     const alpha = Math.min(time / 1.0, 1);
     ctx.save();
     
-    // 1. Cinematic Deep Background
+    // 1. Cinematic Deep Background with Ambient Cycle
+    const hue = 180 + Math.sin(time * 0.2) * 20;
     const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
-    bgGrad.addColorStop(0, '#050508');
-    bgGrad.addColorStop(1, '#0f0f1a');
+    bgGrad.addColorStop(0, '#020205');
+    bgGrad.addColorStop(1, `hsl(${hue}, 40%, 5%)`);
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, cw, ch);
 
-    // 2. Dust/Particles
-    ctx.globalAlpha = 0.2 * alpha;
-    for(let i=0; i<30; i++) {
-        const x = ((Math.sin(i * 13.5 + time * 0.1) + 1) / 2) * cw;
-        const y = ((Math.cos(i * 7.2 + time * 0.05) + 1) / 2) * ch;
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+    // 2. Swarm Energy Particles
+    ctx.globalAlpha = 0.3 * alpha;
+    for(let i=0; i<40; i++) {
+        const angle = i * 0.5 + time * 0.2;
+        const radius = 200 + Math.sin(time + i) * 100;
+        const px = cw/2 + Math.cos(angle) * radius;
+        const py = ch/2 + Math.sin(angle) * radius;
+        ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.5)`;
+        ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
     }
 
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
 
-    // 3. CTA Text
-    ctx.font = '900 32px Montserrat';
-    ctx.letterSpacing = '8px';
-    ctx.fillStyle = '#00ffcc';
+    // 3. CTA Text with Glow
+    ctx.font = '900 36px Montserrat';
+    ctx.letterSpacing = '10px';
+    ctx.fillStyle = '#ffffff';
     ctx.shadowColor = '#00ffcc';
-    ctx.shadowBlur = 20;
-    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 200);
+    ctx.shadowBlur = 30 * alpha;
+    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 250);
 
-    // 4. Social Logos (Just Logos)
+    // 4. Social Logos with 3D Reflection
     const logos = [
         { platform: 'Spotify', color: '#1DB954', delay: 0 },
-        { platform: 'Instagram', color: '#E1306C', delay: 0.2 },
-        { platform: 'YouTube', color: '#FF0000', delay: 0.4 }
+        { platform: 'Instagram', color: '#E1306C', delay: 0.15 },
+        { platform: 'YouTube', color: '#FF0000', delay: 0.3 }
     ];
 
     logos.forEach((logo, i) => {
         const lAlpha = Math.min(Math.max((time - logo.delay) * 2, 0), 1);
-        const y = ch/2 + (i * 120) - 50;
-        const bounce = Math.sin(time * 2 + i) * 5;
+        const yBase = ch/2 + (i * 140) - 20;
+        const float = Math.sin(time * 1.5 + i) * 8;
+        const y = yBase + float;
         
+        // --- DRAW REFLECTION ---
+        ctx.save();
+        ctx.globalAlpha = lAlpha * alpha * 0.15;
+        ctx.translate(cw/2, (yBase + 200) - float);
+        ctx.scale(1.1, -0.6); // Mirrored and squashed
+        drawSocialLogo(ctx, logo, 0, 0);
+        ctx.restore();
+
+        // --- DRAW MAIN LOGO ---
         ctx.save();
         ctx.globalAlpha = lAlpha * alpha;
-        ctx.translate(cw/2, y + bounce);
-
-        // Icon Glow
-        const iconGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
-        iconGlow.addColorStop(0, `${logo.color}33`);
-        iconGlow.addColorStop(1, 'transparent');
-        ctx.fillStyle = iconGlow;
-        ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI*2); ctx.fill();
-
-        // Icon Box (Glassmorphism)
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.roundRect(-45, -45, 90, 90, 20); ctx.fill(); ctx.stroke();
-
-        // Detailed Icon Drawing
-        if (logo.platform === 'Spotify') {
-            ctx.fillStyle = logo.color;
-            ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-            for(let j=0; j<3; j++) {
-                ctx.beginPath();
-                ctx.arc(0, 5, 20 - j*6, Math.PI * 1.1, Math.PI * 1.9);
-                ctx.stroke();
-            }
-        } else if (logo.platform === 'Instagram') {
-            const instGrad = ctx.createLinearGradient(-30, 30, 30, -30);
-            instGrad.addColorStop(0, '#f09433'); instGrad.addColorStop(0.25, '#e6683c'); 
-            instGrad.addColorStop(0.5, '#dc2743'); instGrad.addColorStop(0.75, '#cc2366'); instGrad.addColorStop(1, '#bc1888');
-            ctx.strokeStyle = instGrad; ctx.lineWidth = 6;
-            ctx.strokeRect(-25, -25, 50, 50);
-            ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = instGrad; ctx.beginPath(); ctx.arc(15, -15, 3, 0, Math.PI*2); ctx.fill();
-        } else if (logo.platform === 'YouTube') {
-            ctx.fillStyle = logo.color;
-            ctx.beginPath(); ctx.roundRect(-35, -25, 70, 50, 10); ctx.fill();
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.moveTo(-10, -15); ctx.lineTo(15, 0); ctx.lineTo(-10, 15); ctx.closePath(); ctx.fill();
-        }
-
+        ctx.translate(cw/2, y);
+        drawSocialLogo(ctx, logo, 0, 0);
         ctx.restore();
     });
 
+    drawFilmGrain(ctx, cw, ch);
     ctx.restore();
+  };
+
+  const drawSocialLogo = (ctx: CanvasRenderingContext2D, logo: any, x: number, y: number) => {
+    // Icon Box (Glassmorphism)
+    const size = 100;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(-size/2, -size/2, size, size, 25); ctx.fill(); ctx.stroke();
+
+    // Glow
+    const iconGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 70);
+    iconGlow.addColorStop(0, `${logo.color}44`);
+    iconGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = iconGlow;
+    ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI*2); ctx.fill();
+
+    // Drawing the actual paths
+    if (logo.platform === 'Spotify') {
+        ctx.fillStyle = logo.color;
+        ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        for(let j=0; j<3; j++) {
+            ctx.beginPath();
+            ctx.arc(0, 6, 22 - j*7, Math.PI * 1.1, Math.PI * 1.9);
+            ctx.stroke();
+        }
+    } else if (logo.platform === 'Instagram') {
+        const instGrad = ctx.createLinearGradient(-30, 30, 30, -30);
+        instGrad.addColorStop(0, '#f09433'); instGrad.addColorStop(1, '#bc1888');
+        ctx.strokeStyle = instGrad; ctx.lineWidth = 7;
+        ctx.strokeRect(-28, -28, 56, 56);
+        ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = instGrad; ctx.beginPath(); ctx.arc(18, -18, 4, 0, Math.PI*2); ctx.fill();
+    } else if (logo.platform === 'YouTube') {
+        ctx.fillStyle = logo.color;
+        ctx.beginPath(); ctx.roundRect(-40, -28, 80, 56, 12); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.moveTo(-12, -18); ctx.lineTo(18, 0); ctx.lineTo(-12, 18); ctx.closePath(); ctx.fill();
+    }
   };
 
   const renderFrame = (absoluteTime: number) => {
