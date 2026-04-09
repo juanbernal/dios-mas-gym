@@ -15,13 +15,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
   const [showFallback, setShowFallback] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Use production domain for localhost testing so FB doesn't block it
-  const displayUrl = url.includes('localhost') 
-    ? `https://diosmasgym.com${new URL(url).pathname}`
-    : url;
+  // Use the clean URL provided by the parent (App.tsx window.location.href)
+  const displayUrl = url.split('?')[0].split('#')[0];
 
   useEffect(() => {
-    // 1. Load SDK directly with xfbml=1 (Often more reliable than manual init)
+    // 1. Load SDK (Standard HTML5 method, very reliable)
     const loadSDK = () => {
       if (document.getElementById('facebook-jssdk')) {
         if (window.FB && window.FB.XFBML) {
@@ -33,8 +31,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
       const fjs = document.getElementsByTagName('script')[0];
       const js = document.createElement('script') as HTMLScriptElement;
       js.id = 'facebook-jssdk';
-      // Added xfbml=1 to the URL for automatic parsing
-      js.src = "https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v20.0&appId=809015114144186";
+      // Loading with xfbml=1 for auto-render
+      js.src = "https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v20.0";
       js.async = true;
       js.defer = true;
       js.crossOrigin = "anonymous";
@@ -43,25 +41,21 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
 
     loadSDK();
 
-    // 2. More aggressive detection of failure
-    // If after 4 seconds we don't see an iframe from Facebook, show fallback
+    // 2. Failure Detection
     const checkTimer = setInterval(() => {
         const container = document.querySelector('.fb-comments');
-        const hasIframe = container?.querySelector('iframe') || container?.querySelector('span');
-        
-        if (hasIframe) {
+        if (container && (container.querySelector('iframe') || container.querySelector('span'))) {
             setHasLoaded(true);
             clearInterval(checkTimer);
         }
     }, 1000);
 
-    // Hard fallback after 5 seconds total
     const hardFallback = setTimeout(() => {
         if (!hasLoaded) {
             setShowFallback(true);
             setHasLoaded(false);
         }
-    }, 5000);
+    }, 8000);
 
     return () => {
         clearInterval(checkTimer);
@@ -79,7 +73,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
         case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${encodedUrl}`; break;
         case 'twitter': shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`; break;
         case 'copy': 
-            navigator.clipboard.writeText(url);
+            navigator.clipboard.writeText(displayUrl);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
             return;

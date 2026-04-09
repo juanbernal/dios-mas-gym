@@ -382,6 +382,33 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     load();
   }, [slug]);
 
+  // DYNAMIC META TAGS INJECTOR (Fixes social sharing)
+  useEffect(() => {
+    if (state.selectedPost) {
+        const title = state.selectedPost.title;
+        const description = state.selectedPost.content?.replace(/<[^>]*>/g, '').slice(0, 160) + '...';
+        const image = state.selectedPost.images?.[0]?.url || "";
+        const url = window.location.href;
+
+        document.title = `${title} | El Arsenal de Fe`;
+
+        const updateMeta = (property: string, content: string) => {
+            let el = document.querySelector(`meta[property="${property}"]`);
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute('property', property);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('content', content);
+        };
+
+        updateMeta('og:title', title);
+        updateMeta('og:description', description);
+        updateMeta('og:url', url);
+        if (image) updateMeta('og:image', image);
+    }
+  }, [state.selectedPost, slug]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     const timer = setTimeout(() => {
