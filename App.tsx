@@ -382,6 +382,37 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     load();
   }, [slug]);
 
+  // FIX: DYNAMIC META TAGS FOR SOCIAL SHARING
+  useEffect(() => {
+    if (state.selectedPost) {
+        const p = state.selectedPost;
+        const title = p.title;
+        const description = (p.content || "").replace(/<[^>]*>/g, '').slice(0, 160) + '...';
+        const image = p.images?.[0]?.url || "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+        const url = window.location.href;
+
+        // Browser title
+        document.title = `${title} | El Arsenal`;
+
+        // Update head meta tags
+        const updateMeta = (prop: string, content: string) => {
+            let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute(prop.includes('og:') ? 'property' : 'name', prop);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('content', content);
+        };
+
+        updateMeta('og:title', title);
+        updateMeta('og:description', description);
+        updateMeta('og:url', url);
+        updateMeta('og:image', image);
+        updateMeta('description', description);
+    }
+  }, [state.selectedPost, slug]);
+
   // DYNAMIC META TAGS INJECTOR (Fixes social sharing)
   useEffect(() => {
     if (state.selectedPost) {
