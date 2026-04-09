@@ -425,16 +425,47 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     }
   }, [state.selectedPost]);
 
+  // Stable artist choice for the banner
+  const randomArtist = useMemo(() => Math.random() > 0.5 ? 'diosmasgym' : 'juan614', [slug]);
+
   if (error) return <div className="py-80 bg-[#05070a] text-center px-8 text-white"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Regresar al Arsenal</button></div>;
   if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Sincronizando sabiduría...</div>;
 
   return (
     <div className="bg-[#05070a] animate-fade-in-up">
-      <div className="relative min-h-[70vh] flex items-center overflow-hidden"><img src={state.selectedPost.images?.[0]?.url || ''} className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 scale-105" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-[#05070a]"></div><div className="section-container relative z-10 pt-40 pb-20"><button onClick={() => navigate(-1)} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group"><div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Hub</button><h1 className="font-serif italic text-5xl md:text-8xl mb-12 text-white leading-[1.1] max-w-5xl transition-all duration-1000">{state.selectedPost.title}</h1><div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]/50"><span>{new Date(state.selectedPost.published).toLocaleDateString()}</span> {state.selectedPost.labels?.[0] && <span>TEMA: {state.selectedPost.labels[0]}</span>}</div></div></div>
+      <div className="relative min-h-[70vh] flex items-center overflow-hidden">
+        <img src={state.selectedPost.images?.[0]?.url || ''} className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 scale-105" alt="" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a]"></div>
+        <div className="section-container relative z-10 pt-40 pb-20">
+          <button onClick={() => navigate(-1)} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
+            <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Hub
+          </button>
+          <h1 className="font-serif italic text-5xl md:text-8xl mb-12 text-white leading-[1.1] max-w-5xl transition-all duration-1000">
+            {state.selectedPost.title}
+          </h1>
+          <div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]/50">
+            <span>{new Date(state.selectedPost.published).toLocaleDateString()}</span> 
+            {state.selectedPost.labels?.[0] && <span>TEMA: {state.selectedPost.labels[0]}</span>}
+          </div>
+        </div>
+      </div>
+      
       <article className="py-24 md:py-40 bg-white">
           <div className="max-w-4xl mx-auto px-8 md:px-0">
-              <ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} mode="social" musicCatalog={state.musicDiosmasgym} onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} />
-              <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light mt-16 text-justify" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}></div>
+              <div 
+                className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light text-justify" 
+                dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}
+              ></div>
+              
+              <div className="my-20 opacity-90">
+                <ArtistPromo 
+                  artist={randomArtist as any} 
+                  mode="social" 
+                  musicCatalog={state.musicDiosmasgym} 
+                  onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} 
+                />
+              </div>
+
               <CommentSection url={window.location.href} />
           </div>
       </article>
