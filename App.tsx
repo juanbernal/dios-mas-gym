@@ -393,8 +393,12 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     };
     
     load();
+  }, [slug]);
+
+  // 2. SCROLL TO TOP ON NAVIGATION
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [slug, state.allPosts.length]); // Added state.allPosts.length to re-check when background sync finishes
+  }, [slug]);
 
   // 2. DYNAMIC META TAGS (Professional Social Sharing)
   useEffect(() => {
