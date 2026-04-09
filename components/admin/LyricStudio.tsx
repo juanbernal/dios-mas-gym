@@ -20,6 +20,9 @@ interface LyricLine {
   text: string;
 }
 
+const INTRO_DURATION = 3;
+const OUTRO_DURATION = 5;
+
 const LyricStudio: React.FC = () => {
   const navigate = useNavigate();
   const [apiKey, setApiKey] = useState("");
@@ -41,6 +44,9 @@ const LyricStudio: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [scale, setScale] = useState(1);
+  const [includeIntro, setIncludeIntro] = useState(false);
+  const [includeOutro, setIncludeOutro] = useState(false);
+  const [outroMessage, setOutroMessage] = useState("SÍGUENOS EN REDES SOCIALES");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,7 +125,104 @@ const LyricStudio: React.FC = () => {
     }).filter((l): l is LyricLine => l !== null).sort((a, b) => a.time - b.time);
   };
 
-  const renderFrame = (time: number) => {
+  useEffect(() => {
+    if (branding === 'diosmasgym') {
+      setIncludeIntro(true);
+      setIncludeOutro(true);
+    }
+  }, [branding]);
+
+  const renderIntro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
+    const alpha = Math.min(time / 0.8, 1) * Math.min((INTRO_DURATION - time) / 0.8, 1);
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, cw, ch);
+    
+    // Cinematic Glow
+    const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw);
+    grad.addColorStop(0, 'rgba(0, 255, 204, 0.1)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, cw, ch);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = alpha;
+
+    // Subtext
+    ctx.font = '900 20px Montserrat';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 - 60);
+
+    // Main Title
+    ctx.font = `900 ${80 + Math.sin(time) * 5}px Montserrat`;
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 20;
+    ctx.fillText("PRESENTA", cw/2, ch/2);
+    
+    // Line decoration
+    const lw = 200 * alpha;
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cw/2 - lw, ch/2 + 60);
+    ctx.lineTo(cw/2 + lw, ch/2 + 60);
+    ctx.stroke();
+
+    ctx.restore();
+  };
+
+  const renderOutro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
+    const alpha = Math.min(time / 0.8, 1);
+    ctx.save();
+    ctx.fillStyle = '#101015';
+    ctx.fillRect(0, 0, cw, ch);
+
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = alpha;
+
+    // Background particles for outro
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    for(let i=0; i<20; i++) {
+        const x = (Math.sin(i + time * 0.1) * 0.5 + 0.5) * cw;
+        const y = (Math.cos(i * 1.5 + time * 0.2) * 0.5 + 0.5) * ch;
+        ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.font = '900 40px Montserrat';
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 100);
+
+    // Social Media Simulation
+    const socials = [
+        { icon: "FAB", name: "DIOSMASGYM", color: "#E1306C" },
+        { icon: "YUT", name: "DIOSMASGYM RECORDS", color: "#FF0000" },
+        { icon: "SPO", name: "JUAN 614", color: "#1DB954" }
+    ];
+
+    socials.forEach((s, i) => {
+        const y = ch/2 + (i * 80);
+        ctx.save();
+        ctx.translate(cw/2, y);
+        
+        // Icon Circle
+        ctx.fillStyle = s.color;
+        ctx.beginPath(); ctx.arc(-160, 0, 20, 0, Math.PI*2); ctx.fill();
+        
+        // Text
+        ctx.textAlign = 'left';
+        ctx.font = '700 24px Inter';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(s.name, -120, 8);
+        
+        ctx.restore();
+    });
+
+    ctx.restore();
+  };
+
+  const renderFrame = (absoluteTime: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -127,6 +230,35 @@ const LyricStudio: React.FC = () => {
 
     const cw = canvas.width;
     const ch = canvas.height;
+
+    let effectiveTime = absoluteTime;
+    let phase = 'lyrics'; // intro, lyrics, outro
+
+    const actualIntroDuration = includeIntro ? INTRO_DURATION : 0;
+    const lyrics = parseLyrics(lyricsInput);
+    const lyricsDuration = lyrics.length > 0 ? (lyrics[lyrics.length - 1].time + 3.0) : 0;
+
+    if (includeIntro && absoluteTime < actualIntroDuration) {
+        phase = 'intro';
+    } else if (includeOutro && absoluteTime > actualIntroDuration + lyricsDuration) {
+        phase = 'outro';
+        effectiveTime = absoluteTime - (actualIntroDuration + lyricsDuration);
+    } else {
+        phase = 'lyrics';
+        effectiveTime = absoluteTime - actualIntroDuration;
+    }
+
+    if (phase === 'intro') {
+        renderIntro(ctx, absoluteTime, cw, ch);
+        return;
+    }
+
+    if (phase === 'outro') {
+        renderOutro(ctx, effectiveTime, cw, ch);
+        return;
+    }
+
+    const time = effectiveTime;
     ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cw, ch);
 
@@ -219,7 +351,6 @@ const LyricStudio: React.FC = () => {
     }
 
     // Lyrics
-    const lyrics = parseLyrics(lyricsInput);
     const active = lyrics.filter(l => time >= l.time).pop();
     if (active) {
       const elapsed = time - active.time;
@@ -273,16 +404,31 @@ const LyricStudio: React.FC = () => {
     }
   };
 
-  const animate = useCallback(() => {
-    if (audioRef.current && isPlaying && !isExporting) {
-      setCurrentTime(audioRef.current.currentTime);
-      renderFrame(audioRef.current.currentTime);
+  const startTimeRef = useRef<number>(0);
+
+  const animate = useCallback((time: number) => {
+    if (isPlaying && !isExporting) {
+      const actualIntro = includeIntro ? INTRO_DURATION : 0;
+      let visualTime = 0;
+      
+      if (audioRef.current && audioRef.current.currentTime > 0) {
+          visualTime = audioRef.current.currentTime + actualIntro;
+      } else {
+          // Intro phase or audio hasn't started
+          if (startTimeRef.current === 0) startTimeRef.current = performance.now();
+          const elapsed = (performance.now() - startTimeRef.current) / 1000;
+          visualTime = Math.min(elapsed, actualIntro);
+      }
+
+      setCurrentTime(visualTime);
+      renderFrame(visualTime);
       requestRef.current = requestAnimationFrame(animate);
     } else if (!isExporting) {
-      renderFrame(0);
+      startTimeRef.current = 0;
+      renderFrame(currentTime);
       requestRef.current = requestAnimationFrame(animate);
     }
-  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding]);
+  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -297,8 +443,20 @@ const LyricStudio: React.FC = () => {
       audioRef.current?.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current?.play();
-      setIsPlaying(true);
+      if (includeIntro) {
+          setCurrentTime(0);
+          setIsPlaying(true);
+          startTimeRef.current = performance.now();
+          setTimeout(() => {
+              if (audioRef.current && isPlaying) { 
+                  audioRef.current.play();
+              }
+          }, INTRO_DURATION * 1000);
+      } else {
+          audioRef.current?.play();
+          setIsPlaying(true);
+          startTimeRef.current = 0;
+      }
     }
   };
 
@@ -356,19 +514,32 @@ const LyricStudio: React.FC = () => {
       setProgress(0);
     };
 
-    const targetDuration = lyrics[lyrics.length - 1].time + 3.0;
+    const lyricsDuration = lyrics[lyrics.length - 1].time + 3.0;
+    const actualIntro = includeIntro ? INTRO_DURATION : 0;
+    const actualOutro = includeOutro ? OUTRO_DURATION : 0;
+    const totalDuration = actualIntro + lyricsDuration + actualOutro;
+
     recorder.start(); 
     audioRef.current.currentTime = 0; 
-    audioRef.current.play();
     
+    let frameTime = 0;
     const recordLoop = () => {
       if (!audioRef.current) return;
-      const cur = audioRef.current.currentTime;
-      renderFrame(cur);
-      const pct = Math.min((cur / targetDuration) * 100, 100);
-      setProgress(pct);
       
-      if (cur < targetDuration && !audioRef.current.paused) {
+      renderFrame(frameTime);
+      const pct = Math.min((frameTime / totalDuration) * 100, 100);
+      setProgress(pct);
+
+      if (frameTime >= actualIntro && audioRef.current.paused && frameTime < actualIntro + lyricsDuration) {
+          audioRef.current.play();
+      }
+
+      if (frameTime >= actualIntro + lyricsDuration && !audioRef.current.paused) {
+          audioRef.current.pause();
+      }
+      
+      if (frameTime < totalDuration) {
+        frameTime += 1/60; // Approximate step for 60fps
         requestAnimationFrame(recordLoop);
       } else {
         recorder.stop();
@@ -498,6 +669,33 @@ const LyricStudio: React.FC = () => {
                     <option value="juan614">Juan 614 - juan614.diosmasgym.com</option>
                     <option value="diosmasgym">Diosmasgym - musica.diosmasgym.com</option>
                 </select>
+            </div>
+        </div>
+
+        {/* 1.5. Intro/Outro Control */}
+        <div className="mb-6 p-5 bg-white/5 border border-[#00ffcc]/20 rounded-2xl shadow-[0_0_15px_rgba(0,255,204,0.05)]">
+            <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-clapperboard text-[#00ffcc] text-[10px]"></i>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#00ffcc]">Cinematics</span>
+            </div>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <label className="text-[9px] uppercase font-bold text-zinc-400">Intro Diosmasgym</label>
+                    <input type="checkbox" checked={includeIntro} onChange={(e) => setIncludeIntro(e.target.checked)} className="accent-[#00ffcc]" />
+                </div>
+                <div className="flex items-center justify-between">
+                    <label className="text-[9px] uppercase font-bold text-zinc-400">Outro Redes Sociales</label>
+                    <input type="checkbox" checked={includeOutro} onChange={(e) => setIncludeOutro(e.target.checked)} className="accent-[#00ffcc]" />
+                </div>
+                {includeOutro && (
+                    <input 
+                        type="text" 
+                        value={outroMessage}
+                        onChange={(e) => setOutroMessage(e.target.value)}
+                        placeholder="Mensaje Outro..."
+                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none focus:border-[#00ffcc]/30"
+                    />
+                )}
             </div>
         </div>
 
