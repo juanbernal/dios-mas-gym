@@ -21,18 +21,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
     : url;
 
   useEffect(() => {
-    // 1. Define Initialization Function
-    (window as any).fbAsyncInit = function() {
-      window.FB.init({
-        appId: '809015114144186',
-        cookie: true,
-        xfbml: true,
-        version: 'v20.0'
-      });
-      window.FB.XFBML.parse();
-    };
-
-    // 2. Load SDK
+    // 1. Load SDK directly with xfbml=1 (Often more reliable than manual init)
     const loadSDK = () => {
       if (document.getElementById('facebook-jssdk')) {
         if (window.FB && window.FB.XFBML) {
@@ -44,7 +33,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
       const fjs = document.getElementsByTagName('script')[0];
       const js = document.createElement('script') as HTMLScriptElement;
       js.id = 'facebook-jssdk';
-      js.src = "https://connect.facebook.net/es_LA/sdk.js";
+      // Added xfbml=1 to the URL for automatic parsing
+      js.src = "https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v20.0&appId=809015114144186";
       js.async = true;
       js.defer = true;
       js.crossOrigin = "anonymous";
@@ -53,19 +43,31 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
 
     loadSDK();
 
-    // 3. Monitor Loading
-    const checkTimer = setTimeout(() => {
-        // If the container still only has 0 or 1 children (the spinner) or is height 0
+    // 2. More aggressive detection of failure
+    // If after 4 seconds we don't see an iframe from Facebook, show fallback
+    const checkTimer = setInterval(() => {
         const container = document.querySelector('.fb-comments');
-        if (container && container.children.length <= 1) {
-            setShowFallback(true);
-        } else {
+        const hasIframe = container?.querySelector('iframe') || container?.querySelector('span');
+        
+        if (hasIframe) {
             setHasLoaded(true);
+            clearInterval(checkTimer);
         }
-    }, 6000);
+    }, 1000);
 
-    return () => clearTimeout(checkTimer);
-  }, [displayUrl]);
+    // Hard fallback after 5 seconds total
+    const hardFallback = setTimeout(() => {
+        if (!hasLoaded) {
+            setShowFallback(true);
+            setHasLoaded(false);
+        }
+    }, 5000);
+
+    return () => {
+        clearInterval(checkTimer);
+        clearTimeout(hardFallback);
+    };
+  }, [displayUrl, hasLoaded]);
 
   const handleShare = (platform: string) => {
     const text = encodeURIComponent("Mira esta reflexión en El Arsenal de Dios Más Gym:");
