@@ -380,8 +380,17 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
       } else { setError("Lo sentimos, no pudimos encontrar esta reflexión en El Arsenal."); }
     };
     load();
+  }, [slug]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [slug, state.allPosts.length]); // Re-run if background posts arrive
+    const timer = setTimeout(() => {
+      if (window.FB && window.FB.XFBML) {
+        window.FB.XFBML.parse();
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [slug]);
 
   if (error) return <div className="py-80 bg-[#05070a] text-center px-8 text-white"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Regresar al Arsenal</button></div>;
   if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Sincronizando sabiduría...</div>;

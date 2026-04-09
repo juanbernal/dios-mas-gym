@@ -12,24 +12,28 @@ declare global {
 
 const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
   useEffect(() => {
-    // 1. Initialize FB SDK if not exists
     const initFacebookSDK = () => {
-      if (window.FB) {
-        window.FB.XFBML.parse();
+      // If script is already loading/loaded, just parse
+      if (document.getElementById('facebook-jssdk')) {
+        if (window.FB) {
+          setTimeout(() => window.FB.XFBML.parse(), 500);
+        }
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v19.0';
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = 'anonymous';
-      script.onload = () => {
+      const fjs = document.getElementsByTagName('script')[0];
+      const js = document.createElement('script') as HTMLScriptElement;
+      js.id = 'facebook-jssdk';
+      js.src = "https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v19.0";
+      js.async = true;
+      js.defer = true;
+      js.crossOrigin = "anonymous";
+      js.onload = () => {
         if (window.FB) {
-          window.FB.XFBML.parse();
+          setTimeout(() => window.FB.XFBML.parse(), 500);
         }
       };
-      document.body.appendChild(script);
+      fjs.parentNode?.insertBefore(js, fjs);
     };
 
     initFacebookSDK();
