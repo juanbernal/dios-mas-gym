@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const ProximosLanzamientos: React.FC = () => {
     const navigate = useNavigate();
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ type: 'idle' });
+    const [currentReleases, setCurrentReleases] = useState<any[]>([]);
+    const [loadingReleases, setLoadingReleases] = useState(true);
     
     const [formData, setFormData] = useState({
         artista: 'Diosmasgym',
@@ -17,20 +19,38 @@ const ProximosLanzamientos: React.FC = () => {
 
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
+    const fetchCurrentReleases = async () => {
+        setLoadingReleases(true);
+        try {
+            const response = await fetch(`${googleScriptUrl}?read=true`);
+            const data = await response.json();
+            setCurrentReleases(data);
+        } catch (error) {
+            console.error("Error fetching admin releases:", error);
+        } finally {
+            setLoadingReleases(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCurrentReleases();
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus({ type: 'loading' });
 
         try {
-            // Usamos un formulario invisible para evitar problemas de CORS con Google Apps Script si es necesario,
-            // o intentamos fetch con mode no-cors si solo queremos enviar los datos.
-            // Google Apps Script a veces requiere redirecciones.
-            
             const params = new URLSearchParams();
-            Object.entries(formData).forEach(([key, value]) => params.append(key, value as string));
+            // Map keys to match the spreadsheet headers (Artista, Titulo, Fecha, etc.)
+            params.append('Artista', formData.artista);
+            params.append('Titulo', formData.titulo);
+            params.append('Fecha', formData.fecha);
+            params.append('Spotify', formData.spotify);
+            params.append('YouTube', formData.youtube);
+            params.append('Apple', formData.apple);
+            params.append('Imagen', formData.imagen);
 
-            // Intentamos envío via fetch. Nota: Google Scripts a menudo devuelven error de CORS 
-            // pero los datos SI se procesan si se usa mode: 'no-cors'.
             await fetch(googleScriptUrl, {
                 method: 'POST',
                 mode: 'no-cors', 
@@ -38,7 +58,7 @@ const ProximosLanzamientos: React.FC = () => {
                 body: params.toString()
             });
 
-            setStatus({ type: 'success', message: '¡Lanzamiento programado con éxito en la base de datos!' });
+            setStatus({ type: 'success', message: '¡Lanzamiento sincronizado con éxito!' });
             setFormData({
                 artista: 'Diosmasgym',
                 titulo: '',
@@ -49,7 +69,11 @@ const ProximosLanzamientos: React.FC = () => {
                 imagen: ''
             });
             
-            setTimeout(() => setStatus({ type: 'idle' }), 5000);
+            // Refresh list after a short delay to allow for propagation
+            setTimeout(() => {
+                setStatus({ type: 'idle' });
+                fetchCurrentReleases();
+            }, 3000);
 
         } catch (error) {
             console.error('Error al enviar:', error);
@@ -63,7 +87,7 @@ const ProximosLanzamientos: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8 font-['Poppins']">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
                 <button 
                     onClick={() => navigate('/admin')}
                     className="mb-12 text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:text-white transition-all flex items-center gap-4 group"
@@ -77,128 +101,131 @@ const ProximosLanzamientos: React.FC = () => {
                     <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Despliegue Estratégico de Artillería Musical</p>
                 </div>
 
-                <div className="bg-[#0f111a] border border-white/5 p-8 md:p-16 rounded-3xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
-                        <i className="fas fa-rocket text-[200px]"></i>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    {/* Form Section */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-[#0f111a] border border-white/5 p-8 md:p-16 rounded-3xl shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
+                                <i className="fas fa-rocket text-[200px]"></i>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Artista Principal</label>
+                                    <select 
+                                        name="artista"
+                                        value={formData.artista}
+                                        onChange={handleChange}
+                                        className="w-full bg-black/40 border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="Diosmasgym">Diosmasgym</option>
+                                        <option value="Juan 614">Juan 614</option>
+                                        <option value="Otro / Colaboración">Otro / Colaboración</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Título del Lanzamiento</label>
+                                    <input 
+                                        required
+                                        type="text"
+                                        name="titulo"
+                                        value={formData.titulo}
+                                        onChange={handleChange}
+                                        placeholder="Nombre del single/EP..."
+                                        className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Fecha de Estreno</label>
+                                    <input 
+                                        required
+                                        type="date"
+                                        name="fecha"
+                                        value={formData.fecha}
+                                        onChange={handleChange}
+                                        className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all [color-scheme:dark]"
+                                    />
+                                </div>
+
+                                <div className="col-span-1 md:col-span-2">
+                                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mt-10 mb-8 border-b border-white/5 pb-4">Recursos Multimedia</h3>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Spotify URL</label>
+                                    <input 
+                                        type="url"
+                                        name="spotify"
+                                        value={formData.spotify}
+                                        onChange={handleChange}
+                                        placeholder="https://open.spotify.com/..."
+                                        className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Portada URL (ImgBB)</label>
+                                    <input 
+                                        type="url"
+                                        name="imagen"
+                                        value={formData.imagen}
+                                        onChange={handleChange}
+                                        placeholder="https://..."
+                                        className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div className="col-span-1 md:col-span-2 mt-12">
+                                    <button 
+                                        disabled={status.type === 'loading'}
+                                        type="submit"
+                                        className={`w-full py-8 text-[11px] font-black uppercase tracking-[0.5em] transition-all relative overflow-hidden group
+                                            ${status.type === 'loading' ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-[#c5a059] text-black hover:bg-white hover:scale-[1.01]'}`}
+                                    >
+                                        {status.type === 'loading' ? 'Sincronizando...' : 'Programar Lanzamiento'}
+                                    </button>
+
+                                    {status.message && (
+                                        <div className={`mt-8 p-6 text-[10px] font-bold uppercase tracking-widest text-center
+                                            ${status.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                            {status.message}
+                                        </div>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Artista Principal</label>
-                            <select 
-                                name="artista"
-                                value={formData.artista}
-                                onChange={handleChange}
-                                className="w-full bg-black/40 border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all appearance-none cursor-pointer"
-                            >
-                                <option value="Diosmasgym">Diosmasgym</option>
-                                <option value="Juan 614">Juan 614</option>
-                                <option value="Otro / Colaboración">Otro / Colaboración</option>
-                            </select>
-                        </div>
+                    {/* Verification List */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-[#0f111a] border border-white/5 p-8 rounded-3xl h-full">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8 flex items-center gap-4">
+                                <i className="fas fa-list-ul"></i> Base de Datos
+                            </h3>
 
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Título del Single / Álbum</label>
-                            <input 
-                                required
-                                type="text"
-                                name="titulo"
-                                value={formData.titulo}
-                                onChange={handleChange}
-                                placeholder="Escribe el nombre del lanzamiento..."
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Fecha de Estreno</label>
-                            <input 
-                                required
-                                type="date"
-                                name="fecha"
-                                value={formData.fecha}
-                                onChange={handleChange}
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none transition-all [color-scheme:dark]"
-                            />
-                        </div>
-
-                        <div className="col-span-1 md:col-span-2">
-                            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mt-10 mb-8 border-b border-white/5 pb-4">Enlaces de Distribución (Si los hay)</h3>
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Spotify URL</label>
-                            <input 
-                                type="url"
-                                name="spotify"
-                                value={formData.spotify}
-                                onChange={handleChange}
-                                placeholder="https://open.spotify.com/..."
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">YouTube URL</label>
-                            <input 
-                                type="url"
-                                name="youtube"
-                                value={formData.youtube}
-                                onChange={handleChange}
-                                placeholder="https://youtube.com/watch?v=..."
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Apple Music URL</label>
-                            <input 
-                                type="url"
-                                name="apple"
-                                value={formData.apple}
-                                onChange={handleChange}
-                                placeholder="https://music.apple.com/..."
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Portada Cover URL</label>
-                            <input 
-                                type="url"
-                                name="imagen"
-                                value={formData.imagen}
-                                onChange={handleChange}
-                                placeholder="https://..."
-                                className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none transition-all placeholder:text-white/5"
-                            />
-                        </div>
-
-                        <div className="col-span-1 md:col-span-2 mt-12">
-                            <button 
-                                disabled={status.type === 'loading'}
-                                type="submit"
-                                className={`w-full py-8 text-[11px] font-black uppercase tracking-[0.5em] transition-all relative overflow-hidden group
-                                    ${status.type === 'loading' ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-[#c5a059] text-black hover:bg-white hover:scale-[1.01]'}`}
-                            >
-                                {status.type === 'loading' ? (
-                                    <span className="flex items-center justify-center gap-4">
-                                        <i className="fas fa-circle-notch animate-spin"></i>
-                                        Sincronizando...
-                                    </span>
-                                ) : (
-                                    'Programar Lanzamiento'
-                                )}
-                            </button>
-
-                            {status.message && (
-                                <div className={`mt-8 p-6 text-[10px] font-bold uppercase tracking-widest text-center animate-fade-in
-                                    ${status.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                    {status.message}
+                            {loadingReleases ? (
+                                <div className="py-20 text-center animate-pulse">
+                                    <i className="fas fa-circle-notch animate-spin text-white/20 text-3xl"></i>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {currentReleases.length === 0 ? (
+                                        <p className="text-[10px] text-white/20 uppercase text-center py-10">Sin lanzamientos activos</p>
+                                    ) : (
+                                        currentReleases.map((rev, idx) => (
+                                            <div key={idx} className="bg-black/40 border border-white/5 p-6 rounded-2xl hover:border-[#c5a059]/20 transition-all">
+                                                <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-2">{rev.Artista}</div>
+                                                <div className="text-sm font-bold text-white mb-2">{rev.Titulo}</div>
+                                                <div className="text-[10px] text-white/40">{rev.Fecha}</div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
