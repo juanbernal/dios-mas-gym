@@ -7,20 +7,24 @@ interface CommentSectionProps {
 declare global {
   interface Window {
     FB: any;
+    DISQUS: any;
+    disqus_config: any;
   }
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
-  const [activeTab, setActiveTab] = useState<'facebook' | 'whatsapp'>('facebook');
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [showFallback, setShowFallback] = useState(false);
+  const [activeTab, setActiveTab] = useState<'facebook' | 'disqus'>('facebook');
+  const [fbLoaded, setFbLoaded] = useState(false);
+  const [showFbFallback, setShowFbFallback] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // The clean URL for sharing
+  // The clean URL for sharing and unique identification
   const displayUrl = url.split('?')[0].split('#')[0];
+  const postSlug = displayUrl.split('/').pop() || 'home';
 
+  // 1. FACEBOOK LOGIC
   useEffect(() => {
-    const loadSDK = () => {
+    const loadFB = () => {
       if (document.getElementById('facebook-jssdk')) {
         if (window.FB && window.FB.XFBML) window.FB.XFBML.parse();
         return;
@@ -36,21 +40,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
     };
 
     if (activeTab === 'facebook') {
-      loadSDK();
-      
+      loadFB();
       const checkTimer = setInterval(() => {
           const container = document.querySelector('.fb-comments');
           if (container && (container.querySelector('iframe') || container.querySelector('span'))) {
-              setHasLoaded(true);
+              setFbLoaded(true);
               clearInterval(checkTimer);
           }
       }, 1000);
 
       const hardFallback = setTimeout(() => {
-          if (!hasLoaded && activeTab === 'facebook') {
-              setShowFallback(true);
-              // Auto-toggle to WhatsApp if FB is totally blocked
-              setTimeout(() => setActiveTab('whatsapp'), 3000);
+          if (!fbLoaded && activeTab === 'facebook') {
+              setShowFbFallback(true);
+              // Auto-toggle to Disqus if FB is totally blocked
+              setTimeout(() => setActiveTab('disqus'), 3000);
           }
       }, 6000);
 
@@ -59,7 +62,44 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
           clearTimeout(hardFallback);
       };
     }
-  }, [displayUrl, activeTab, hasLoaded]);
+  }, [displayUrl, activeTab, fbLoaded]);
+
+  // 2. DISQUS LOGIC
+  useEffect(() => {
+    const loadDisqus = () => {
+      const shortname = 'diosmasgym'; // Default shortname
+      
+      if (document.getElementById('disqus-script')) {
+        if (window.DISQUS) {
+            window.DISQUS.reset({
+                reload: true,
+                config: function () {
+                    this.page.identifier = postSlug;
+                    this.page.url = displayUrl;
+                    this.page.title = document.title;
+                }
+            });
+        }
+        return;
+      }
+
+      window.disqus_config = function () {
+        this.page.url = displayUrl;
+        this.page.identifier = postSlug;
+        this.page.title = document.title;
+      };
+
+      const d = document, s = d.createElement('script');
+      s.id = 'disqus-script';
+      s.src = `https://${shortname}.disqus.com/embed.js`;
+      s.setAttribute('data-timestamp', (+new Date()).toString());
+      (d.head || d.body).appendChild(s);
+    };
+
+    if (activeTab === 'disqus') {
+        loadDisqus();
+    }
+  }, [displayUrl, activeTab, postSlug]);
 
   const handleShare = (platform: string) => {
     const text = encodeURIComponent("Mira esta reflexión en El Arsenal de Dios Más Gym:");
@@ -77,12 +117,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
             return;
     }
     if (shareUrl) window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
-  const openWhatsAppComment = () => {
-    const phone = "526141393650"; // Based on provided screenshot info
-    const text = encodeURIComponent(`¡Hola! Vengo de El Arsenal.\n\nQuiero comentar sobre la reflexión: ${document.title}\n\nMi comentario es: `);
-    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   };
 
   return (
@@ -120,17 +154,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
                 Facebook
             </button>
             <button 
-                onClick={() => setActiveTab('whatsapp')}
-                className={`px-8 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'whatsapp' ? 'bg-[#25D366] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                onClick={() => setActiveTab('disqus')}
+                className={`px-8 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'disqus' ? 'bg-[#1DB954] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
             >
-                WhatsApp Directo
+                Directo / Disqus
             </button>
         </div>
         
         <div className="flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
           <h3 className="text-[11px] font-black uppercase tracking-[0.6em] text-white/80">
-            {activeTab === 'facebook' ? 'Comunidad El Arsenal' : 'Comentar vía WhatsApp'}
+            {activeTab === 'facebook' ? 'Comunidad El Arsenal' : 'Discusión General'}
           </h3>
           <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
         </div>
@@ -141,34 +175,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
         {/* FACEBOOK VIEW */}
         {activeTab === 'facebook' && (
             <div className="p-4 md:p-8">
-                {!hasLoaded && !showFallback && (
+                {!fbLoaded && !showFbFallback && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-[#0a0c14]">
                         <div className="w-10 h-10 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full mb-4"></div>
                         <p className="text-[#c5a059] font-serif italic text-sm tracking-widest uppercase animate-pulse">Conectando con Facebook...</p>
                     </div>
                 )}
 
-                {showFallback && (
+                {showFbFallback && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-[#0a0c14] p-8 text-center animate-fade-in">
-                        <i className="fab fa-facebook-messenger text-[#1877F2] text-6xl mb-6 opacity-20"></i>
-                        <h4 className="text-white font-serif italic text-2xl mb-4">Widget Bloqueado</h4>
+                        <i className="fab fa-facebook-messenger text-[#1877F2] text-6xl mb-6 opacity-10"></i>
+                        <h4 className="text-white font-serif italic text-2xl mb-4 text-[#c5a059]">Conexión Limitada</h4>
                         <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 max-w-sm leading-relaxed">
-                            Tu navegador bloqueó el widget de comentarios de Facebook automáticamente.
+                            Facebook está bloqueado en este navegador. Cambiando a la alternativa profesional automáticamente...
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <button 
-                                onClick={() => window.open(displayUrl, '_blank')}
-                                className="px-10 py-4 bg-[#1877F2] text-white text-[9px] font-black uppercase tracking-[0.3em] rounded-sm hover:scale-105 transition-all"
-                            >
-                                Abrir en Facebook
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('whatsapp')}
-                                className="px-10 py-4 border border-white/10 text-white text-[9px] font-black uppercase tracking-[0.3em] rounded-sm hover:bg-white/5 transition-all"
-                            >
-                                Usar WhatsApp
-                            </button>
-                        </div>
                     </div>
                 )}
 
@@ -183,26 +203,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
             </div>
         )}
 
-        {/* WHATSAPP VIEW */}
-        {activeTab === 'whatsapp' && (
-            <div className="p-12 md:p-20 flex flex-col items-center text-center animate-fade-in-up">
-                <div className="w-24 h-24 rounded-full bg-[#25D366]/10 flex items-center justify-center mb-10 border border-[#25D366]/20 shadow-[0_0_50px_rgba(37,211,102,0.1)]">
-                    <i className="fab fa-whatsapp text-[#25D366] text-5xl"></i>
-                </div>
-                <h4 className="text-white font-serif italic text-4xl mb-6">Chat Comunitario</h4>
-                <p className="text-white/50 text-xs font-bold uppercase tracking-[0.3em] mb-12 max-w-md leading-loose">
-                    ¿Facebook no carga? No hay problema. Envía tu comentario directamente a nuestra línea oficial y únete al Arsenal de Fe.
-                </p>
-                <button 
-                    onClick={openWhatsAppComment}
-                    className="px-16 py-6 bg-[#25D366] text-white text-[11px] font-black uppercase tracking-[0.5em] hover:bg-white hover:text-[#25D366] transition-all rounded-sm shadow-2xl hover:-translate-y-1 active:scale-95 flex items-center gap-4"
-                >
-                    <i className="fab fa-whatsapp text-lg"></i>
-                    Comentar Ahora
-                </button>
-                <p className="mt-8 text-[8px] text-white/20 font-black uppercase tracking-widest">
-                    Seguridad y privacidad garantizada
-                </p>
+        {/* DISQUS VIEW */}
+        {activeTab === 'disqus' && (
+            <div className="p-4 md:p-12 animate-fade-in-up">
+                <div id="disqus_thread" className="w-full"></div>
+                <noscript>Por favor habilita JavaScript para ver los comentarios.</noscript>
             </div>
         )}
       </div>
