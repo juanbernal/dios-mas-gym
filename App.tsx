@@ -13,6 +13,7 @@ import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import CommentSection from './components/CommentSection';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -389,7 +390,11 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
     <div className="bg-[#05070a] animate-fade-in-up">
       <div className="relative min-h-[70vh] flex items-center overflow-hidden"><img src={state.selectedPost.images?.[0]?.url || ''} className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 scale-105" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-[#05070a]"></div><div className="section-container relative z-10 pt-40 pb-20"><button onClick={() => navigate(-1)} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group"><div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Hub</button><h1 className="font-serif italic text-5xl md:text-8xl mb-12 text-white leading-[1.1] max-w-5xl transition-all duration-1000">{state.selectedPost.title}</h1><div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]/50"><span>{new Date(state.selectedPost.published).toLocaleDateString()}</span> {state.selectedPost.labels?.[0] && <span>TEMA: {state.selectedPost.labels[0]}</span>}</div></div></div>
       <article className="py-24 md:py-40 bg-white">
-          <div className="max-w-4xl mx-auto px-8 md:px-0"><ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} mode="social" musicCatalog={state.musicDiosmasgym} onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} /><div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light mt-16 text-justify" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}></div></div>
+          <div className="max-w-4xl mx-auto px-8 md:px-0">
+              <ArtistPromo artist={Math.random() > 0.5 ? 'diosmasgym' : 'juan614'} mode="social" musicCatalog={state.musicDiosmasgym} onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} />
+              <div className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light mt-16 text-justify" dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}></div>
+              <CommentSection url={window.location.href} />
+          </div>
       </article>
       <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10"><div className="section-container"><h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3><div className="grid grid-cols-12 gap-8">{state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => ( <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}</div></div></section>
     </div>
