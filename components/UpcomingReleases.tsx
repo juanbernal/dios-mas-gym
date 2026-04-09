@@ -6,7 +6,7 @@ interface ReleaseData {
     releaseDate: string; 
     preSaveLink?: string; 
     audioUrl?: string;    
-    coverImageUr?: string; 
+    coverImageUrl?: string; 
 }
 
 const UpcomingReleases: React.FC = () => {
@@ -35,7 +35,7 @@ const UpcomingReleases: React.FC = () => {
                         releaseDate: findKey(['releasedate', 'fecha']),
                         preSaveLink: findKey(['presavelink', 'spotify']),
                         audioUrl: findKey(['audiourl', 'youtube']),
-                        coverImageUr: findKey(['coverimageur', 'coverimageurl', 'imagen', 'portada'])
+                        coverImageUrl: findKey(['coverimageurl', 'coverimageur', 'imagen', 'portada'])
                     } as ReleaseData;
                 });
                 
@@ -99,7 +99,7 @@ const UpcomingReleases: React.FC = () => {
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-transparent opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
                             <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#0a0c14] border border-white/5 shadow-2xl">
                                 <img 
-                                    src={nextRelease.coverImageUr || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
+                                    src={nextRelease.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
                                     alt={nextRelease.name}
                                     className="w-full h-full object-cover grayscale opacity-50 transition-all duration-1000 group-hover:scale-105 group-hover:grayscale-0 group-hover:opacity-80"
                                 />

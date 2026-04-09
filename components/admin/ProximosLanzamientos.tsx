@@ -7,7 +7,7 @@ interface ReleaseData {
     releaseDate: string;
     preSaveLink?: string;
     audioUrl?: string;
-    coverImageUr?: string;
+    coverImageUrl?: string;
 }
 
 const ProximosLanzamientos: React.FC = () => {
@@ -47,7 +47,7 @@ const ProximosLanzamientos: React.FC = () => {
                         releaseDate: findKey(['releasedate', 'fecha']),
                         preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
                         audioUrl: findKey(['audiourl', 'youtube', 'audio']),
-                        coverImageUr: findKey(['coverimageur', 'coverimageurl', 'imagen', 'portada'])
+                        coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
                     } as ReleaseData;
                 });
                 
@@ -75,7 +75,7 @@ const ProximosLanzamientos: React.FC = () => {
             const params = new URLSearchParams();
             params.append('name', formData.titulo);
             params.append('releaseDate', formData.fecha);
-            params.append('coverImageUr', formData.imagen);
+            params.append('coverImageUrl', formData.imagen);
             params.append('preSaveLink', formData.spotify);
             params.append('audioUrl', formData.youtube);
             params.append('Artista', formData.artista);
@@ -202,8 +202,8 @@ const ProximosLanzamientos: React.FC = () => {
                                         currentReleases.map((rev, idx) => (
                                             <div key={idx} className="bg-black/40 border border-white/5 p-6 rounded-2xl hover:border-[#c5a059]/20 transition-all group">
                                                 <div className="flex items-start gap-4 mb-4">
-                                                    {rev.coverImageUr && (
-                                                        <img src={rev.coverImageUr} alt="" className="w-12 h-12 rounded object-cover border border-white/10" />
+                                                    {rev.coverImageUrl && (
+                                                        <img src={rev.coverImageUrl} alt="" className="w-12 h-12 rounded object-cover border border-white/10" />
                                                     )}
                                                     <div>
                                                         <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-1">{rev.Artista}</div>
