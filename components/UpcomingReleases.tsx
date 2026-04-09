@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 interface ReleaseData {
     Artista: string;
-    name: string;          // Mapeado a Título
-    releaseDate: string;   // Mapeado a Fecha
-    preSaveLink?: string;  // Spotify
-    audioUrl?: string;      // YouTube/Audio
-    coverImageUr?: string; // Portada
+    name: string;        
+    releaseDate: string; 
+    preSaveLink?: string; 
+    audioUrl?: string;    
+    coverImageUr?: string; 
 }
 
 const UpcomingReleases: React.FC = () => {
@@ -23,10 +23,26 @@ const UpcomingReleases: React.FC = () => {
                 if (!response.ok) throw new Error('Fetch failed');
                 const data = await response.json();
                 
+                // Normalización de datos para ser extremadamente robustos
+                const normalized = (data as any[]).map(r => {
+                    const findKey = (keys: string[]) => {
+                        const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                        return k ? r[k] : undefined;
+                    };
+                    return {
+                        Artista: findKey(['artista']),
+                        name: findKey(['name', 'nombre', 'titulo', 'título']),
+                        releaseDate: findKey(['releasedate', 'fecha']),
+                        preSaveLink: findKey(['presavelink', 'spotify']),
+                        audioUrl: findKey(['audiourl', 'youtube']),
+                        coverImageUr: findKey(['coverimageur', 'coverimageurl', 'imagen', 'portada'])
+                    } as ReleaseData;
+                });
+                
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 
-                const upcoming = (data as ReleaseData[])
+                const upcoming = normalized
                     .filter(r => r.releaseDate && new Date(r.releaseDate + 'T00:00:00') >= now)
                     .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
                 
