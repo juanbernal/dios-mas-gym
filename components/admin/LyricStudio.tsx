@@ -182,94 +182,82 @@ const LyricStudio: React.FC = () => {
     const alpha = Math.min(time / 1.0, 1) * Math.min((INTRO_DURATION - time) / 0.8, 1);
     ctx.save();
     
-    // 0. VHS Glitch Start (First 0.3s)
-    if (time < 0.3 && Math.random() > 0.7) {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, Math.random() * ch, cw, 20);
-        ctx.fillStyle = '#00ffcc';
-        ctx.fillRect(0, Math.random() * ch, cw, 5);
-        ctx.translate((Math.random()-0.5)*20, 0);
-    }
-
+    // 1. Solid Black Base
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
-    
-    // 1. Cinematic Light Leaks
-    const timeFactor = time * 0.5;
-    for(let i=0; i<4; i++) {
-        const rayAlpha = Math.sin(timeFactor + i) * 0.15 * alpha;
-        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw * (1.5 + i * 0.4));
-        grad.addColorStop(0, `rgba(0, 255, 204, ${rayAlpha})`);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
+
+    // 2. Cinematic Smoke/Reveal (Organic Gradient Swarm)
+    for(let i=0; i<6; i++) {
+        const motion = time * 0.4 + i;
+        const x = cw/2 + Math.cos(motion) * 100;
+        const y = ch/2 + Math.sin(motion * 0.8) * 80;
+        const size = 300 + Math.sin(time) * 50;
+        const smokeGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
+        smokeGrad.addColorStop(0, `rgba(0, 255, 204, ${0.1 * alpha})`);
+        smokeGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = smokeGrad;
         ctx.fillRect(0, 0, cw, ch);
     }
 
-    // 2. Audio Spectrum (God Level Addition)
-    let lowEnd = 0;
-    if (analyserRef.current && dataArrayRef.current) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-        let lowSum = 0; for(let i=0; i<8; i++) lowSum += dataArrayRef.current[i];
-        lowEnd = (lowSum / 8) / 255;
-        renderAudioSpectrum(ctx, cw, ch, lowEnd);
-    }
+    // 3. Dynamic Spotlight
+    const lightX = cw/2 + Math.cos(time * 0.5) * 200;
+    const lightY = ch/2 + Math.sin(time * 0.3) * 300;
+    const spotlight = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, 600);
+    spotlight.addColorStop(0, `rgba(255, 255, 255, ${0.08 * alpha})`);
+    spotlight.addColorStop(1, 'transparent');
+    ctx.fillStyle = spotlight;
+    ctx.fillRect(0, 0, cw, ch);
 
-    // 3. Anamorphic Lens Flare
-    const flareAlpha = alpha * (0.3 + Math.random() * 0.1);
-    const flarePos = (time / INTRO_DURATION) * ch * 1.5 - ch * 0.25;
-    const flareGrad = ctx.createLinearGradient(0, flarePos, cw, flarePos);
-    flareGrad.addColorStop(0, 'transparent');
-    flareGrad.addColorStop(0.5, `rgba(0, 255, 204, ${0.6 * flareAlpha})`);
-    flareGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = flareGrad;
-    ctx.fillRect(0, flarePos - 60, cw, 120);
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * flareAlpha})`;
-    ctx.fillRect(0, flarePos - 1, cw, 2);
-
-    ctx.globalAlpha = alpha;
-
-    // 4. Logo Animation with Pulse
+    // 4. Logo Reveal (Cinema Master)
     if (logoStudioRef.current.complete) {
         const logo = logoStudioRef.current;
-        const pulse = 1 + (lowEnd * 0.05);
-        const logoScale = (0.45 + (time * 0.04)) * pulse;
+        const progress = Math.min(time / 1.5, 1);
+        const logoScale = (0.4 + (progress * 0.08)); // Very slow, majestic zoom
         const lWidth = cw * logoScale;
         const lHeight = (logo.height / logo.width) * lWidth;
         
         ctx.save();
         ctx.translate(cw/2, ch/2 - 120);
+        ctx.globalAlpha = alpha * progress;
         
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.6 * alpha;
-        ctx.drawImage(logo, -lWidth/2 - 4, -lHeight/2, lWidth, lHeight);
-        ctx.drawImage(logo, -lWidth/2 + 4, -lHeight/2, lWidth, lHeight);
-        
-        ctx.globalAlpha = alpha;
-        ctx.globalCompositeOperation = 'source-over';
+        // Faint Glow under logo
+        const logoGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, lWidth);
+        logoGlow.addColorStop(0, 'rgba(0, 255, 204, 0.2)');
+        logoGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = logoGlow;
+        ctx.beginPath(); ctx.arc(0, 0, lWidth, 0, Math.PI*2); ctx.fill();
+
         ctx.drawImage(logo, -lWidth/2, -lHeight/2, lWidth, lHeight);
         ctx.restore();
     }
 
-    // 5. Epic Typography
+    // 5. Minimalist Premium Typography
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     
-    const textGrad = ctx.createLinearGradient(0, ch/2 + 100, 0, ch/2 + 280);
-    textGrad.addColorStop(0, '#ffffff');
-    textGrad.addColorStop(0.5, '#00ffcc');
-    textGrad.addColorStop(1, '#ffffff');
-
-    ctx.font = '900 24px Montserrat';
-    ctx.letterSpacing = '14px';
-    ctx.fillStyle = 'rgba(0, 255, 204, 0.4)';
+    // Subtitle
+    ctx.font = '900 18px Montserrat';
+    ctx.letterSpacing = '16px';
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * alpha})`;
     ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 + 100);
 
+    // Main Title with tracking animation
+    const progress = Math.min(time / 2.0, 1);
+    const tracking = progress * 15;
     ctx.font = '900 85px Montserrat';
-    ctx.letterSpacing = '20px';
+    ctx.letterSpacing = `${tracking}px`;
+    
+    const textGrad = ctx.createLinearGradient(0, ch/2 + 160, 0, ch/2 + 260);
+    textGrad.addColorStop(0, '#ffffff');
+    textGrad.addColorStop(1, '#00ffcc');
+    
+    ctx.save();
+    ctx.translate(cw/2, ch/2 + 220);
     ctx.fillStyle = textGrad;
-    ctx.shadowColor = 'rgba(0,255,204,0.8)';
-    ctx.shadowBlur = 35;
-    ctx.fillText("PRESENTA", cw/2, ch/2 + 200);
+    ctx.shadowColor = 'rgba(0,255,204,0.6)';
+    ctx.shadowBlur = 40 * alpha;
+    ctx.globalAlpha = alpha * progress;
+    ctx.fillText("PRESENTA", 0, 0);
+    ctx.restore();
 
     ctx.restore();
   };
@@ -278,66 +266,85 @@ const LyricStudio: React.FC = () => {
     const alpha = Math.min(time / 1.0, 1);
     ctx.save();
     
-    // 1. Cinematic Deep Background with Ambient Cycle
-    const hue = 180 + Math.sin(time * 0.2) * 20;
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
-    bgGrad.addColorStop(0, '#020205');
-    bgGrad.addColorStop(1, `hsl(${hue}, 40%, 5%)`);
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, cw, ch);
+    // 1. Immersive Background (Integrated with Video)
+    if (imgRef.current.src) {
+        const sourceImg = imgRef.current;
+        let scale = Math.max(cw / (sourceImg.width || cw), ch / (sourceImg.height || ch)) * 1.1;
+        ctx.save();
+        ctx.translate(cw/2, ch/2);
+        ctx.scale(scale, scale);
+        ctx.filter = 'blur(40px) brightness(0.3) saturate(0.5)';
+        ctx.drawImage(sourceImg, -sourceImg.width/2, -sourceImg.height/2);
+        ctx.restore();
+    } else {
+        ctx.fillStyle = '#05070a';
+        ctx.fillRect(0, 0, cw, ch);
+    }
 
-    // 2. Swarm Energy Particles
-    ctx.globalAlpha = 0.3 * alpha;
-    for(let i=0; i<40; i++) {
-        const angle = i * 0.5 + time * 0.2;
-        const radius = 200 + Math.sin(time + i) * 100;
+    // 2. Subtle Energy Swarm
+    ctx.globalAlpha = 0.2 * alpha;
+    for(let i=0; i<30; i++) {
+        const angle = i * 0.8 + time * 0.1;
+        const radius = 300 + Math.sin(time + i) * 50;
         const px = cw/2 + Math.cos(angle) * radius;
         const py = ch/2 + Math.sin(angle) * radius;
-        ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.5)`;
-        ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = `rgba(0, 255, 204, 0.3)`;
+        ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI*2); ctx.fill();
     }
 
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
 
-    // 3. CTA Text with Glow
-    ctx.font = '900 36px Montserrat';
-    ctx.letterSpacing = '10px';
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#00ffcc';
-    ctx.shadowBlur = 30 * alpha;
-    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 250);
-
-    // 4. Social Logos with 3D Reflection
+    // 3. Floating social panels
     const logos = [
         { platform: 'Spotify', color: '#1DB954', delay: 0 },
-        { platform: 'Instagram', color: '#E1306C', delay: 0.15 },
-        { platform: 'YouTube', color: '#FF0000', delay: 0.3 }
+        { platform: 'Instagram', color: '#E1306C', delay: 0.2 },
+        { platform: 'YouTube', color: '#FF0000', delay: 0.4 }
     ];
+
+    // Follower Message
+    ctx.font = '900 32px Montserrat';
+    ctx.letterSpacing = '12px';
+    ctx.fillStyle = 'white';
+    ctx.shadowColor = 'rgba(0, 255, 204, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 350);
 
     logos.forEach((logo, i) => {
         const lAlpha = Math.min(Math.max((time - logo.delay) * 2, 0), 1);
-        const yBase = ch/2 + (i * 140) - 20;
-        const float = Math.sin(time * 1.5 + i) * 8;
+        const yBase = ch/2 + (i * 180) - 100;
+        const float = Math.sin(time * 1.2 + i) * 12;
         const y = yBase + float;
         
-        // --- DRAW REFLECTION ---
-        ctx.save();
-        ctx.globalAlpha = lAlpha * alpha * 0.15;
-        ctx.translate(cw/2, (yBase + 200) - float);
-        ctx.scale(1.1, -0.6); // Mirrored and squashed
-        drawSocialLogo(ctx, logo, 0, 0);
-        ctx.restore();
-
-        // --- DRAW MAIN LOGO ---
         ctx.save();
         ctx.globalAlpha = lAlpha * alpha;
         ctx.translate(cw/2, y);
+        
+        // Glass Card
+        const cardW = 400, cardH = 140;
+        const grad = ctx.createLinearGradient(-cardW/2, -cardH/2, cardW/2, cardH/2);
+        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.02)');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); (ctx as any).roundRect(-cardW/2, -cardH/2, cardW, cardH, 20); ctx.fill(); ctx.stroke();
+        
+        // Icon
+        ctx.save();
+        ctx.translate(-120, 0);
         drawSocialLogo(ctx, logo, 0, 0);
+        ctx.restore();
+        
+        // Text
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'white';
+        ctx.font = '900 24px Montserrat';
+        ctx.fillText("@DIOSMASGYM", -40, 10);
+        
         ctx.restore();
     });
 
-    drawFilmGrain(ctx, cw, ch);
     ctx.restore();
   };
 
