@@ -362,93 +362,68 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
+  // 1. LOAD POST LOGIC
   useEffect(() => {
     const load = async () => {
       if (!slug) return;
       setError(null);
+      
+      // Try to find in cache first (allPosts or searchResults)
       const allPossiblePosts = [...state.allPosts, ...state.searchResults];
       const cached = allPossiblePosts.find(p => getSlugFromUrl(p.url) === slug);
+      
       if (cached && cached.content && !cached.content.endsWith('...')) {
         setState((p: any) => ({ ...p, selectedPost: cached }));
         if (!readingHistory.includes(cached.id)) setReadingHistory((prev: string[]) => [...prev, cached.id]);
         return;
       }
-      const fetched = cached ? await fetchPostById(cached.id) : await fetchPostBySlug(slug);
-      if (fetched) {
-        setState((p: any) => ({ ...p, selectedPost: fetched }));
-        if (!readingHistory.includes(fetched.id)) setReadingHistory((prev: string[]) => [...prev, fetched.id]);
-      } else { setError("Lo sentimos, no pudimos encontrar esta reflexión en El Arsenal."); }
-    };
-    load();
-  }, [slug]);
 
-  // FIX: DYNAMIC META TAGS FOR SOCIAL SHARING
-  useEffect(() => {
-    if (state.selectedPost) {
-        const p = state.selectedPost;
-        const title = p.title;
-        const description = (p.content || "").replace(/<[^>]*>/g, '').slice(0, 160) + '...';
-        const image = p.images?.[0]?.url || "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
-        const url = window.location.href;
-
-        // Browser title
-        document.title = `${title} | El Arsenal`;
-
-        // Update head meta tags
-        const updateMeta = (prop: string, content: string) => {
-            let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
-            if (!el) {
-                el = document.createElement('meta');
-                el.setAttribute(prop.includes('og:') ? 'property' : 'name', prop);
-                document.head.appendChild(el);
-            }
-            el.setAttribute('content', content);
-        };
-
-        updateMeta('og:title', title);
-        updateMeta('og:description', description);
-        updateMeta('og:url', url);
-        updateMeta('og:image', image);
-        updateMeta('description', description);
-    }
-  }, [state.selectedPost, slug]);
-
-  // DYNAMIC META TAGS INJECTOR (Fixes social sharing)
-  useEffect(() => {
-    if (state.selectedPost) {
-        const title = state.selectedPost.title;
-        const description = state.selectedPost.content?.replace(/<[^>]*>/g, '').slice(0, 160) + '...';
-        const image = state.selectedPost.images?.[0]?.url || "";
-        const url = window.location.href;
-
-        document.title = `${title} | El Arsenal de Fe`;
-
-        const updateMeta = (property: string, content: string) => {
-            let el = document.querySelector(`meta[property="${property}"]`);
-            if (!el) {
-                el = document.createElement('meta');
-                el.setAttribute('property', property);
-                document.head.appendChild(el);
-            }
-            el.setAttribute('content', content);
-        };
-
-        updateMeta('og:title', title);
-        updateMeta('og:description', description);
-        updateMeta('og:url', url);
-        if (image) updateMeta('og:image', image);
-    }
-  }, [state.selectedPost, slug]);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    const timer = setTimeout(() => {
-      if (window.FB && window.FB.XFBML) {
-        window.FB.XFBML.parse();
+      // If not in cache or incomplete, fetch from API
+      try {
+        const fetched = await fetchPostBySlug(slug);
+        if (fetched) {
+          setState((p: any) => ({ ...p, selectedPost: fetched }));
+          if (!readingHistory.includes(fetched.id)) setReadingHistory((prev: string[]) => [...prev, fetched.id]);
+        } else {
+          setError("Lo sentimos, no pudimos encontrar esta reflexión en El Arsenal.");
+        }
+      } catch (e) {
+        setError("Error al conectar con el servidor de contenidos.");
       }
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [slug]);
+    };
+    
+    load();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [slug, state.allPosts.length]); // Added state.allPosts.length to re-check when background sync finishes
+
+  // 2. DYNAMIC META TAGS (Professional Social Sharing)
+  useEffect(() => {
+    if (state.selectedPost) {
+      const p = state.selectedPost;
+      const title = p.title;
+      const description = (p.content || "").replace(/<[^>]*>/g, '').slice(0, 160) + '...';
+      const image = p.images?.[0]?.url || "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+      const url = window.location.href;
+
+      document.title = `${title} | El Arsenal`;
+
+      const updateMeta = (prop: string, content: string) => {
+        let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute(prop.includes('og:') ? 'property' : 'name', prop);
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+      };
+
+      updateMeta('og:title', title);
+      updateMeta('og:description', description);
+      updateMeta('og:url', url);
+      updateMeta('og:image', image);
+      updateMeta('description', description);
+    }
+  }, [state.selectedPost]);
 
   if (error) return <div className="py-80 bg-[#05070a] text-center px-8 text-white"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Regresar al Arsenal</button></div>;
   if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Sincronizando sabiduría...</div>;
