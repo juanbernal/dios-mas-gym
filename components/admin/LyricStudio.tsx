@@ -147,58 +147,102 @@ const LyricStudio: React.FC = () => {
   };
 
   const applyChromaticAberration = (ctx: CanvasRenderingContext2D, cw: number, ch: number, amount: number) => {
-    // This is a simplified "faux" aberration by drawing offset overlays
-    const original = ctx.getImageData(0, 0, cw, ch);
-    // In canvas, true aberration requires pixel manipulation which is slow for 60fps
-    // We'll use a visual trick by drawing a slightly offset colored shadow or repetitive draw
+    // Faux aberration by drawing offset overlays with blend modes
+  };
+
+  const drawGlobalVignette = (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
+    const vGrad = ctx.createRadialGradient(cw/2, ch/2, cw/4, cw/2, ch/2, ch*0.9);
+    vGrad.addColorStop(0, 'transparent');
+    vGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    ctx.fillStyle = vGrad; ctx.fillRect(0,0,cw,ch);
+  };
+
+  const renderAudioSpectrum = (ctx: CanvasRenderingContext2D, cw: number, ch: number, lowEnd: number) => {
+    if (!dataArrayRef.current) return;
+    const bars = 60;
+    const radius = 220 + (lowEnd * 50);
+    ctx.save();
+    ctx.translate(cw/2, ch/2 - 120);
+    for (let i = 0; i < bars; i++) {
+        const angle = (i / bars) * Math.PI * 2;
+        const val = dataArrayRef.current[i] / 2;
+        const h = 5 + (val * 0.5);
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.fillStyle = `rgba(0, 255, 204, ${0.4 + (val/255)})`;
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(radius, -1, h, 2);
+        ctx.restore();
+    }
+    ctx.restore();
   };
 
   const renderIntro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
     const alpha = Math.min(time / 1.0, 1) * Math.min((INTRO_DURATION - time) / 0.8, 1);
     ctx.save();
+    
+    // 0. VHS Glitch Start (First 0.3s)
+    if (time < 0.3 && Math.random() > 0.7) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, Math.random() * ch, cw, 20);
+        ctx.fillStyle = '#00ffcc';
+        ctx.fillRect(0, Math.random() * ch, cw, 5);
+        ctx.translate((Math.random()-0.5)*20, 0);
+    }
+
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     
-    // 1. Cinematic Light Leaks / Rays (Moving)
+    // 1. Cinematic Light Leaks
     const timeFactor = time * 0.5;
     for(let i=0; i<4; i++) {
-        const rayAlpha = Math.sin(timeFactor + i) * 0.12 * alpha;
-        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw * (1.2 + i * 0.3));
+        const rayAlpha = Math.sin(timeFactor + i) * 0.15 * alpha;
+        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, cw * (1.5 + i * 0.4));
         grad.addColorStop(0, `rgba(0, 255, 204, ${rayAlpha})`);
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, cw, ch);
     }
 
-    // 2. Anamorphic Lens Flare
+    // 2. Audio Spectrum (God Level Addition)
+    let lowEnd = 0;
+    if (analyserRef.current && dataArrayRef.current) {
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+        let lowSum = 0; for(let i=0; i<8; i++) lowSum += dataArrayRef.current[i];
+        lowEnd = (lowSum / 8) / 255;
+        renderAudioSpectrum(ctx, cw, ch, lowEnd);
+    }
+
+    // 3. Anamorphic Lens Flare
+    const flareAlpha = alpha * (0.3 + Math.random() * 0.1);
     const flarePos = (time / INTRO_DURATION) * ch * 1.5 - ch * 0.25;
     const flareGrad = ctx.createLinearGradient(0, flarePos, cw, flarePos);
     flareGrad.addColorStop(0, 'transparent');
-    flareGrad.addColorStop(0.5, `rgba(0, 255, 204, ${0.4 * alpha})`);
+    flareGrad.addColorStop(0.5, `rgba(0, 255, 204, ${0.6 * flareAlpha})`);
     flareGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = flareGrad;
-    ctx.fillRect(0, flarePos - 50, cw, 100);
-    // Core of flare
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * alpha})`;
+    ctx.fillRect(0, flarePos - 60, cw, 120);
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * flareAlpha})`;
     ctx.fillRect(0, flarePos - 1, cw, 2);
 
     ctx.globalAlpha = alpha;
 
-    // 3. Logo Animation with RGB Pulse
+    // 4. Logo Animation with Pulse
     if (logoStudioRef.current.complete) {
         const logo = logoStudioRef.current;
-        const logoScale = 0.45 + (time * 0.04);
+        const pulse = 1 + (lowEnd * 0.05);
+        const logoScale = (0.45 + (time * 0.04)) * pulse;
         const lWidth = cw * logoScale;
         const lHeight = (logo.height / logo.width) * lWidth;
         
         ctx.save();
         ctx.translate(cw/2, ch/2 - 120);
         
-        // Chromatic Aberration Faux Effect (Offset Red/Cyan)
         ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.5 * alpha;
-        ctx.drawImage(logo, -lWidth/2 - 3, -lHeight/2, lWidth, lHeight); // Cyanish offset
-        ctx.drawImage(logo, -lWidth/2 + 3, -lHeight/2, lWidth, lHeight); // Reddish offset
+        ctx.globalAlpha = 0.6 * alpha;
+        ctx.drawImage(logo, -lWidth/2 - 4, -lHeight/2, lWidth, lHeight);
+        ctx.drawImage(logo, -lWidth/2 + 4, -lHeight/2, lWidth, lHeight);
         
         ctx.globalAlpha = alpha;
         ctx.globalCompositeOperation = 'source-over';
@@ -206,30 +250,27 @@ const LyricStudio: React.FC = () => {
         ctx.restore();
     }
 
-    // 4. Diamond Typography
+    // 5. Epic Typography
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    const textGrad = ctx.createLinearGradient(0, ch/2 + 100, 0, ch/2 + 250);
+    const textGrad = ctx.createLinearGradient(0, ch/2 + 100, 0, ch/2 + 280);
     textGrad.addColorStop(0, '#ffffff');
-    textGrad.addColorStop(0.4, '#00ffcc');
-    textGrad.addColorStop(0.5, '#ffffff');
-    textGrad.addColorStop(0.6, '#00ffcc');
+    textGrad.addColorStop(0.5, '#00ffcc');
     textGrad.addColorStop(1, '#ffffff');
 
     ctx.font = '900 24px Montserrat';
-    ctx.letterSpacing = '12px';
-    ctx.fillStyle = 'rgba(0, 255, 204, 0.3)';
+    ctx.letterSpacing = '14px';
+    ctx.fillStyle = 'rgba(0, 255, 204, 0.4)';
     ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 + 100);
 
-    ctx.font = '900 80px Montserrat';
-    ctx.letterSpacing = '18px';
+    ctx.font = '900 85px Montserrat';
+    ctx.letterSpacing = '20px';
     ctx.fillStyle = textGrad;
-    ctx.shadowColor = 'rgba(0,255,204,0.6)';
-    ctx.shadowBlur = 25;
+    ctx.shadowColor = 'rgba(0,255,204,0.8)';
+    ctx.shadowBlur = 35;
     ctx.fillText("PRESENTA", cw/2, ch/2 + 200);
 
-    drawFilmGrain(ctx, cw, ch);
     ctx.restore();
   };
 
@@ -368,11 +409,15 @@ const LyricStudio: React.FC = () => {
 
     if (phase === 'intro') {
         renderIntro(ctx, absoluteTime, cw, ch);
+        drawFilmGrain(ctx, cw, ch);
+        drawGlobalVignette(ctx, cw, ch);
         return;
     }
 
     if (phase === 'outro') {
         renderOutro(ctx, effectiveTime, cw, ch);
+        drawFilmGrain(ctx, cw, ch);
+        drawGlobalVignette(ctx, cw, ch);
         return;
     }
 
