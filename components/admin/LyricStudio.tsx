@@ -53,6 +53,7 @@ const LyricStudio: React.FC = () => {
   const [sensitivity, setSensitivity] = useState(1);
   const [blurAmount, setBlurAmount] = useState(25);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
+  const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, hidden
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -212,35 +213,97 @@ const LyricStudio: React.FC = () => {
 
   const renderAudioSpectrum = (ctx: CanvasRenderingContext2D, cw: number, ch: number, lowEnd: number) => {
     if (!dataArrayRef.current) return;
-    const bars = 60;
-    const radius = 220 + (lowEnd * 50);
-    ctx.save();
-    ctx.translate(cw/2, ch/2 - 120);
-    for (let i = 0; i < bars; i++) {
-        const angle = (i / bars) * Math.PI * 2;
-        const val = dataArrayRef.current[i] / 2;
-        const h = 5 + (val * 0.5);
+    
+    const barsCount = 100;
+    const barW = cw / barsCount;
+
+    if (visualizerStyle === 'bars') {
+        // URBAN GOLD BARS
         ctx.save();
-        ctx.rotate(angle);
-        ctx.fillStyle = `rgba(0, 255, 204, ${0.4 + (val/255)})`;
-        ctx.shadowColor = '#00ffcc';
-        ctx.shadowBlur = 10;
-        ctx.fillRect(radius, -1, h, 2);
+        for (let i = 0; i < barsCount; i++) {
+            const val = dataArrayRef.current[i % dataArrayRef.current.length];
+            const h = (val / 255) * 120 * sensitivity;
+            const grad = ctx.createLinearGradient(0, ch - h - 40, 0, ch - 40);
+            grad.addColorStop(0, '#c5a059'); // Gold
+            grad.addColorStop(1, 'rgba(197, 160, 89, 0.1)');
+            ctx.fillStyle = grad;
+            ctx.shadowColor = '#c5a059';
+            ctx.shadowBlur = lowEnd > 0.6 ? 15 : 5;
+            ctx.fillRect(i * barW, ch - h - 40, barW - 2, h);
+        }
+        ctx.restore();
+    } else if (visualizerStyle === 'wave') {
+        // DIGITAL CYAN WAVE
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(0, ch - 150);
+        ctx.strokeStyle = '#00f2ff';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#00f2ff';
+        ctx.shadowBlur = 20;
+        for (let i = 0; i < cw; i += 5) {
+            const idx = Math.floor((i / cw) * dataArrayRef.current.length);
+            const val = dataArrayRef.current[idx];
+            const y = ch - 150 - (val / 255) * 100 * sensitivity;
+            ctx.lineTo(i, y);
+        }
+        ctx.stroke();
+        
+        ctx.lineTo(cw, ch);
+        ctx.lineTo(0, ch);
+        const grad = ctx.createLinearGradient(0, ch - 250, 0, ch);
+        grad.addColorStop(0, 'rgba(0, 242, 255, 0.2)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+    } else if (visualizerStyle === 'pulse') {
+        // NEON RED PULSE
+        ctx.save();
+        const pSize = 300 + (lowEnd * 200 * sensitivity);
+        const grad = ctx.createRadialGradient(cw/2, ch/2, 0, cw/2, ch/2, pSize);
+        grad.addColorStop(0, 'rgba(255, 0, 80, 0.15)');
+        grad.addColorStop(0.5, 'rgba(255, 0, 80, 0.05)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(cw/2, ch/2, pSize, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    } else if (visualizerStyle === 'dots') {
+        // MINIMAL WHITE DOTS
+        ctx.save();
+        for (let i = 0; i < 40; i++) {
+            const idx = Math.floor((i / 40) * dataArrayRef.current.length);
+            const val = dataArrayRef.current[idx];
+            const x = (i / 40) * cw + barW/2;
+            const y = ch - 100 - (val / 255) * 200 * sensitivity;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+            if (lowEnd > 0.5) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, ch); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    } else if (visualizerStyle === 'circular') {
+        // PREVIOUS CIRCULAR (KEEP AS OPTION)
+        const bars = 60;
+        const radius = 220 + (lowEnd * 50 * sensitivity);
+        ctx.save();
+        ctx.translate(cw/2, ch/2 - 120);
+        for (let i = 0; i < bars; i++) {
+            const angle = (i / bars) * Math.PI * 2;
+            const val = dataArrayRef.current[(i * 2) % dataArrayRef.current.length] / 2;
+            const h = 5 + (val * 0.5);
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.fillStyle = `rgba(0, 255, 204, ${0.4 + (val/255)})`;
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(radius, -1, h, 2);
+            ctx.restore();
+        }
         ctx.restore();
     }
-    ctx.restore();
-    
-    // Linear spectrum at bottom
-    ctx.save();
-    const linearBars = 100;
-    const barW = cw / linearBars;
-    for (let i = 0; i < linearBars; i++) {
-        const val = dataArrayRef.current[i % dataArrayRef.current.length];
-        const h = (val / 255) * 80;
-        ctx.fillStyle = `rgba(0, 200, 255, ${0.1 + (val/512)})`;
-        ctx.fillRect(i * barW, ch - h - 30, barW - 1, h);
-    }
-    ctx.restore();
   };
 
   const renderIntro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
@@ -715,7 +778,7 @@ const LyricStudio: React.FC = () => {
       renderFrame(currentTime);
       requestRef.current = requestAnimationFrame(animate);
     }
-  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime, animationStyle, vhsMode, sensitivity, customLogo]);
+  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime, animationStyle, vhsMode, sensitivity, customLogo, visualizerStyle]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -1063,6 +1126,30 @@ const LyricStudio: React.FC = () => {
         {/* 3. Estética */}
         <div className="mb-10 p-5 bg-white/5 border border-white/5 rounded-2xl">
             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 block">3. Estética Pro</span>
+            
+            <div className="mb-6 p-3 bg-black/20 rounded-xl border border-white/5">
+                <label className="text-[9px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>
+                <div className="grid grid-cols-2 gap-2">
+                    {[
+                        { id: 'bars', label: 'Barras Urbanas', icon: 'fa-chart-simple' },
+                        { id: 'wave', label: 'Onda Digital', icon: 'fa-wave-square' },
+                        { id: 'pulse', label: 'Pulso Neon', icon: 'fa-circle-dot' },
+                        { id: 'dots', label: 'Puntos Minimal', icon: 'fa-ellipsis' },
+                        { id: 'circular', label: 'Círculo Studio', icon: 'fa-circle-notch' },
+                        { id: 'hidden', label: 'Ocultar todo', icon: 'fa-eye-slash' }
+                    ].map((s) => (
+                        <button 
+                            key={s.id}
+                            onClick={() => setVisualizerStyle(s.id)}
+                            className={`flex items-center gap-2 p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${visualizerStyle === s.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
+                        >
+                            <i className={`fas ${s.icon}`}></i>
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="space-y-1">
                     <label className="text-[9px] text-zinc-500 uppercase font-bold">Vibe FX</label>
