@@ -48,6 +48,11 @@ const LyricStudio: React.FC = () => {
   const [includeIntro, setIncludeIntro] = useState(false);
   const [includeOutro, setIncludeOutro] = useState(false);
   const [outroMessage, setOutroMessage] = useState("SÍGUENOS EN REDES SOCIALES");
+  const [animationStyle, setAnimationStyle] = useState("fade");
+  const [vhsMode, setVhsMode] = useState(false);
+  const [sensitivity, setSensitivity] = useState(1);
+  const [blurAmount, setBlurAmount] = useState(25);
+  const [customLogo, setCustomLogo] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -543,10 +548,21 @@ const LyricStudio: React.FC = () => {
     ctx.fillStyle = vGrad; ctx.fillRect(0,0,cw,ch);
     ctx.filter = 'none';
 
-    // Effects
     drawLightLeaks(ctx, cw, ch, time);
     drawProgressBar(ctx, cw, ch, (time / (duration || 1)) * 100);
-    renderAudioSpectrum(ctx, cw, ch, lowEnd);
+    renderAudioSpectrum(ctx, cw, ch, lowEnd * sensitivity);
+
+    if (vhsMode) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.globalCompositeOperation = 'difference';
+      ctx.fillStyle = '#fff';
+      if (Math.random() > 0.9) ctx.fillRect(0, Math.random() * ch, cw, 2);
+      ctx.restore();
+      
+      // Chromatic Aberration Jitter
+      if (Math.random() > 0.95) ctx.translate((Math.random()-0.5)*4, 0);
+    }
 
     // Title Card Overlay (First 5 seconds of lyrics)
     if (time > 0 && time < 5) {
@@ -615,7 +631,7 @@ const LyricStudio: React.FC = () => {
 
     // Lyrics
     const active = lyrics.filter(l => time >= l.time).pop();
-    if (active) {
+    if (active && active.text.trim() !== "" && active.text !== "[SILENCIO]") {
       const elapsed = time - active.time;
       let alpha = Math.min(elapsed / 0.45, 1);
       const next = lyrics[lyrics.indexOf(active) + 1];
@@ -635,9 +651,18 @@ const LyricStudio: React.FC = () => {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.globalAlpha = alpha;
 
-      const blur = Math.max(0, (1 - alpha) * 15);
-      if (blur > 0) ctx.filter = `blur(${blur}px)`;
-      ctx.translate(0, (1-alpha) * 20);
+      // ANIMATION STYLES
+      if (animationStyle === 'slide') {
+          ctx.translate(0, (1 - alpha) * 50);
+      } else if (animationStyle === 'zoom') {
+          const s = 0.8 + (alpha * 0.2);
+          ctx.scale(s, s);
+      } else {
+        // Default fade/blur
+        const blur = Math.max(0, (1 - alpha) * 15);
+        if (blur > 0) ctx.filter = `blur(${blur}px)`;
+        ctx.translate(0, (1-alpha) * 20);
+      }
 
       const words = active.text.toUpperCase().split(' ');
       let lineText = '', linesArr: string[] = [];
@@ -674,10 +699,9 @@ const LyricStudio: React.FC = () => {
       const actualIntro = includeIntro ? INTRO_DURATION : 0;
       let visualTime = 0;
       
-      if (audioRef.current && audioRef.current.currentTime > 0) {
+      if (audioRef.current && !audioRef.current.paused) {
           visualTime = audioRef.current.currentTime + actualIntro;
       } else {
-          // Intro phase or audio hasn't started
           if (startTimeRef.current === 0) startTimeRef.current = performance.now();
           const elapsed = (performance.now() - startTimeRef.current) / 1000;
           visualTime = Math.min(elapsed, actualIntro);
@@ -691,7 +715,7 @@ const LyricStudio: React.FC = () => {
       renderFrame(currentTime);
       requestRef.current = requestAnimationFrame(animate);
     }
-  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime]);
+  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime, animationStyle, vhsMode, sensitivity, customLogo]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -785,10 +809,24 @@ const LyricStudio: React.FC = () => {
     recorder.start(); 
     audioRef.current.currentTime = 0; 
     
-    let frameTime = 0;
-    const recordLoop = () => {
+    let lastRealTime = performance.now();
+    const recordLoop = (now: number) => {
       if (!audioRef.current) return;
       
+      const dt = (now - lastRealTime) / 1000;
+      lastRealTime = now;
+      
+      // Sincronización Real con Audio durante exportación
+      let frameTime;
+      if (audioRef.current.paused) {
+          // Si el audio está pausado (intro/outro), usamos el clock manual
+          frameTime = audioRef.current.currentTime > 0 ? (audioRef.current.currentTime + actualIntro) : (progress / 100 * totalDuration); 
+          // Corrección: Durante el loop de exportación, incrementamos frameTime manualmente para que sea fluido
+          // pero lo anclamos al audio cuando esté sonando.
+      } else {
+          frameTime = audioRef.current.currentTime + actualIntro;
+      }
+
       renderFrame(frameTime);
       const pct = Math.min((frameTime / totalDuration) * 100, 100);
       setProgress(pct);
@@ -802,13 +840,12 @@ const LyricStudio: React.FC = () => {
       }
       
       if (frameTime < totalDuration) {
-        frameTime += 1/60; // Approximate step for 60fps
         requestAnimationFrame(recordLoop);
       } else {
         recorder.stop();
       }
     };
-    recordLoop();
+    requestAnimationFrame(recordLoop);
   };
 
   const startSync = () => {
@@ -839,6 +876,13 @@ const LyricStudio: React.FC = () => {
     if (nextIdx >= syncLines.length) {
         setIsSyncing(false);
     }
+  };
+
+  const markSilence = () => {
+    if (!isSyncing) return;
+    if (!audioRef.current) return;
+    const time = (audioRef.current.currentTime + SYNC_CORRECTION).toFixed(2);
+    setLyricsInput(prev => prev + `${time} | [SILENCIO]\n`);
   };
 
   const aiSync = async () => {
@@ -986,6 +1030,13 @@ const LyricStudio: React.FC = () => {
                         MARCAR TIEMPO (SPACE)
                     </button>
                     <button 
+                        onClick={markSilence}
+                        className="w-full bg-white/10 text-[#00ffcc] font-black py-3 rounded-xl text-[10px] uppercase border border-[#00ffcc]/20 hover:bg-[#00ffcc]/10 transition-all flex items-center justify-center gap-3"
+                    >
+                        <i className="fas fa-volume-mute"></i>
+                        Marcar Silencio
+                    </button>
+                    <button 
                         onClick={() => setIsSyncing(false)}
                         className="w-full text-[8px] uppercase text-zinc-500 font-bold"
                     >
@@ -1042,6 +1093,25 @@ const LyricStudio: React.FC = () => {
                     </select>
                 </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1">
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Animación Letra</label>
+                    <select 
+                        value={animationStyle} 
+                        onChange={(e) => setAnimationStyle(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg"
+                    >
+                        <option value="fade">Fade & Blur (Classic)</option>
+                        <option value="slide">Slide Up (Smooth)</option>
+                        <option value="zoom">Elastic Zoom (Action)</option>
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Sensibilidad Bass</label>
+                    <input type="range" min="0.5" max="3" step="0.1" value={sensitivity} onChange={(e) => setSensitivity(parseFloat(e.target.value))} className="w-full accent-[#00ffcc]" />
+                </div>
+            </div>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="space-y-1">
@@ -1062,6 +1132,10 @@ const LyricStudio: React.FC = () => {
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={leakToggle} onChange={() => setLeakToggle(!leakToggle)} className="w-4 h-4 accent-[#00ffcc]" />
                     <span className="text-[9px] uppercase font-bold text-zinc-400">Light Leaks</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={vhsMode} onChange={() => setVhsMode(!vhsMode)} className="w-4 h-4 accent-[#00ffcc]" />
+                    <span className="text-[9px] uppercase font-bold text-[#ff4444]">Retro VHS</span>
                 </label>
             </div>
         </div>
