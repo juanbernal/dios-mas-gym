@@ -22,6 +22,7 @@ interface LyricLine {
 
 const INTRO_DURATION = 3;
 const OUTRO_DURATION = 5;
+const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
 
 const LyricStudio: React.FC = () => {
   const navigate = useNavigate();
@@ -146,6 +147,53 @@ const LyricStudio: React.FC = () => {
     ctx.restore();
   };
 
+  const drawLightLeaks = (ctx: CanvasRenderingContext2D, cw: number, ch: number, time: number) => {
+    if (!leakToggle) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    
+    // Leak 1: Warm Orange
+    const x1 = cw * (0.5 + Math.sin(time * 0.4) * 0.5);
+    const y1 = ch * (0.1 + Math.cos(time * 0.3) * 0.2);
+    const grad1 = ctx.createRadialGradient(x1, y1, 0, x1, y1, cw * 0.8);
+    grad1.addColorStop(0, 'rgba(255, 100, 0, 0.15)');
+    grad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad1;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Leak 2: Soft Blue
+    const x2 = cw * (0.2 + Math.cos(time * 0.5) * 0.3);
+    const y2 = ch * (0.8 + Math.sin(time * 0.6) * 0.2);
+    const grad2 = ctx.createRadialGradient(x2, y2, 0, x2, y2, cw * 0.6);
+    grad2.addColorStop(0, 'rgba(0, 150, 255, 0.1)');
+    grad2.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad2;
+    ctx.fillRect(0, 0, cw, ch);
+    
+    ctx.restore();
+  };
+
+  const drawProgressBar = (ctx: CanvasRenderingContext2D, cw: number, ch: number, pct: number) => {
+    ctx.save();
+    const barW = cw - 80;
+    const barH = 4;
+    const bx = 40, by = ch - 20;
+    
+    // Background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.beginPath(); (ctx as any).roundRect(bx, by, barW, barH, 2); ctx.fill();
+    
+    // Progress
+    const grad = ctx.createLinearGradient(bx, 0, bx + barW, 0);
+    grad.addColorStop(0, '#00ffcc');
+    grad.addColorStop(1, '#0099ff');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 10;
+    ctx.beginPath(); (ctx as any).roundRect(bx, by, barW * (pct / 100), barH, 2); ctx.fill();
+    ctx.restore();
+  };
+
   const applyChromaticAberration = (ctx: CanvasRenderingContext2D, cw: number, ch: number, amount: number) => {
     // Faux aberration by drawing offset overlays with blend modes
   };
@@ -174,6 +222,18 @@ const LyricStudio: React.FC = () => {
         ctx.shadowBlur = 10;
         ctx.fillRect(radius, -1, h, 2);
         ctx.restore();
+    }
+    ctx.restore();
+    
+    // Linear spectrum at bottom
+    ctx.save();
+    const linearBars = 100;
+    const barW = cw / linearBars;
+    for (let i = 0; i < linearBars; i++) {
+        const val = dataArrayRef.current[i % dataArrayRef.current.length];
+        const h = (val / 255) * 80;
+        ctx.fillStyle = `rgba(0, 200, 255, ${0.1 + (val/512)})`;
+        ctx.fillRect(i * barW, ch - h - 30, barW - 1, h);
     }
     ctx.restore();
   };
@@ -454,8 +514,11 @@ const LyricStudio: React.FC = () => {
     let shake = (lowEnd > 0.7) ? (Math.random()-0.5) * 6 * lowEnd : 0;
     let zoom = 1.05 + (lowEnd * 0.04) + Math.sin(time * 0.12) * 0.03;
 
+    // Breath effect
+    const breath = 1 + Math.sin(time * 0.5) * 0.02;
+    
     ctx.translate(cw/2 + panX + shake, ch/2 + panY + shake);
-    ctx.scale(scale * zoom, scale * zoom);
+    ctx.scale(scale * zoom * breath, scale * zoom * breath);
     
     if (sourceImg.src) {
       ctx.translate(-sourceImg.width/2, -sourceImg.height/2);
@@ -479,6 +542,36 @@ const LyricStudio: React.FC = () => {
     vGrad.addColorStop(1, 'rgba(0,0,0,0.85)');
     ctx.fillStyle = vGrad; ctx.fillRect(0,0,cw,ch);
     ctx.filter = 'none';
+
+    // Effects
+    drawLightLeaks(ctx, cw, ch, time);
+    drawProgressBar(ctx, cw, ch, (time / (duration || 1)) * 100);
+    renderAudioSpectrum(ctx, cw, ch, lowEnd);
+
+    // Title Card Overlay (First 5 seconds of lyrics)
+    if (time > 0 && time < 5) {
+      const tAlpha = Math.min(time / 1, 1) * Math.min((5 - time) / 1, 1);
+      ctx.save();
+      ctx.globalAlpha = tAlpha;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 40px Montserrat';
+      ctx.shadowColor = 'rgba(0, 255, 204, 0.5)';
+      ctx.shadowBlur = 20;
+      ctx.fillText("NOW PLAYING", 60, 100);
+      
+      const bData = brandingData[branding];
+      const artistTitle = bData.name ? bData.name.toUpperCase() : "DIOSMASGYM";
+      
+      ctx.font = '400 20px Inter';
+      ctx.letterSpacing = '8px';
+      ctx.fillText(artistTitle, 60, 140);
+      
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(60, 160); ctx.lineTo(160, 160); ctx.stroke();
+      ctx.restore();
+    }
 
     // Particles
     const pack = emojiMap[emojiPack];
@@ -737,8 +830,9 @@ const LyricStudio: React.FC = () => {
     if (!isSyncing || syncIndex >= syncLines.length) return;
     if (!audioRef.current) return;
     
-    const time = audioRef.current.currentTime.toFixed(1);
-    setLyricsInput(prev => prev + `${time} | ${syncLines[syncIndex]}\n`);
+    // Aplicación de corrección automática fija (+0.25s para compensar latencia/adelanto)
+    const correctedTime = (audioRef.current.currentTime + SYNC_CORRECTION).toFixed(2);
+    setLyricsInput(prev => prev + `${correctedTime} | ${syncLines[syncIndex]}\n`);
     const nextIdx = syncIndex + 1;
     setSyncIndex(nextIdx);
     
