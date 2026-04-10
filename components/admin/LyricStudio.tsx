@@ -876,7 +876,7 @@ const LyricStudio: React.FC = () => {
     let lastRealTime = performance.now();
 
     const recordLoop = (now: number) => {
-      if (!audioRef.current || !isExporting) return;
+      if (!audioRef.current) return;
       
       const dt = Math.min((now - lastRealTime) / 1000, 0.1); 
       lastRealTime = now;
@@ -893,7 +893,6 @@ const LyricStudio: React.FC = () => {
           if (audioRef.current.paused) {
               audioRef.current.play().catch(e => console.error("Auto-play blocked", e));
           }
-          // Ajuste fino opcional: audioRef.current.currentTime = frameTime - actualIntro;
       } else {
           if (!audioRef.current.paused) audioRef.current.pause();
       }
