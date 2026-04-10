@@ -34,7 +34,7 @@ const PromoImageApp: React.FC = () => {
   
   // NEW AESTHETICS 2026
   const [template, setTemplate] = useState("original-v1");
-  const [grit, setGrit] = useState(0.15);
+  const [grit, setGrit] = useState(0.85); // 85% por defecto
   const [noise, setNoise] = useState(true);
   const [scanlines, setScanlines] = useState(0.08);
   const [vignette, setVignette] = useState(0.6);
@@ -426,6 +426,24 @@ const PromoImageApp: React.FC = () => {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* BOTÓN DE CARGA MANUAL RESPALDADO */}
+            <div className="mb-8">
+              <button 
+                onClick={() => document.getElementById('manual-bg-upload')?.click()}
+                className="w-full flex items-center justify-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
+              >
+                <i className="fas fa-cloud-upload-alt group-hover:scale-110 transition-transform"></i>
+                Subir Imagen Manual (Local)
+              </button>
+              <input 
+                id="manual-bg-upload"
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleBg} 
+              />
             </div>
             
             <div className="space-y-6">
