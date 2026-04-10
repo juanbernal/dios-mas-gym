@@ -872,34 +872,30 @@ const LyricStudio: React.FC = () => {
     recorder.start(); 
     audioRef.current.currentTime = 0; 
     
+    let exportTime = 0;
     let lastRealTime = performance.now();
-    const recordLoop = (now: number) => {
-      if (!audioRef.current) return;
-      
-      const dt = (now - lastRealTime) / 1000;
-      lastRealTime = now;
-      
-      // Sincronización Real con Audio durante exportación
-      let frameTime;
-      if (audioRef.current.paused) {
-          // Si el audio está pausado (intro/outro), usamos el clock manual
-          frameTime = audioRef.current.currentTime > 0 ? (audioRef.current.currentTime + actualIntro) : (progress / 100 * totalDuration); 
-          // Corrección: Durante el loop de exportación, incrementamos frameTime manualmente para que sea fluido
-          // pero lo anclamos al audio cuando esté sonando.
-      } else {
-          frameTime = audioRef.current.currentTime + actualIntro;
-      }
 
+    const recordLoop = (now: number) => {
+      if (!audioRef.current || !isExporting) return;
+      
+      const dt = Math.min((now - lastRealTime) / 1000, 0.1); 
+      lastRealTime = now;
+      exportTime += dt;
+
+      const frameTime = exportTime;
       renderFrame(frameTime);
+      
       const pct = Math.min((frameTime / totalDuration) * 100, 100);
       setProgress(pct);
 
-      if (frameTime >= actualIntro && audioRef.current.paused && frameTime < actualIntro + lyricsDuration) {
-          audioRef.current.play();
-      }
-
-      if (frameTime >= actualIntro + lyricsDuration && !audioRef.current.paused) {
-          audioRef.current.pause();
+      // Sincronización de Audio
+      if (frameTime >= actualIntro && frameTime < actualIntro + lyricsDuration) {
+          if (audioRef.current.paused) {
+              audioRef.current.play().catch(e => console.error("Auto-play blocked", e));
+          }
+          // Ajuste fino opcional: audioRef.current.currentTime = frameTime - actualIntro;
+      } else {
+          if (!audioRef.current.paused) audioRef.current.pause();
       }
       
       if (frameTime < totalDuration) {
@@ -1238,15 +1234,33 @@ const LyricStudio: React.FC = () => {
             </button>
             
             {isExporting && (
-                <div className="mt-4 p-4 bg-black/40 rounded-2xl border border-white/5 animate-fade-in text-center">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[#00ffcc]">Rindiendo Frames</span>
-                        <span className="text-xs font-black">{Math.floor(progress)}%</span>
+                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 animate-fade-in">
+                    <div className="w-full max-w-md space-y-8 text-center">
+                        <div className="relative w-48 h-48 mx-auto">
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={502.4} strokeDashoffset={502.4 * (1 - progress/100)} className="text-[#00ffcc] transition-all duration-300" strokeLinecap="round" />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-black italic">{Math.floor(progress)}%</span>
+                                <span className="text-[9px] uppercase font-black tracking-widest text-[#00ffcc]">Rindiendo Master</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-black uppercase italic tracking-tighter">Procesando Video HD</h3>
+                            <p className="text-[10px] text-zinc-400 uppercase tracking-widest leading-relaxed">
+                                Por favor mantén esta pestaña activa.<br/>
+                                <span className="text-[#ff4444]">El proceso se pausará si cambias de ventana.</span>
+                            </p>
+                        </div>
+
+                        <div className="flex justify-center gap-1">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="w-1 h-1 bg-[#00ffcc] rounded-full animate-bounce" style={{ animationDelay: `${i*0.2}s` }}></div>
+                            ))}
+                        </div>
                     </div>
-                    <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#00ffcc] transition-all" style={{ width: `${progress}%` }}></div>
-                    </div>
-                    <p className="mt-2 text-[8px] text-white/40 uppercase">No cierres esta pestaña hasta finalizar</p>
                 </div>
             ) }
         </div>
