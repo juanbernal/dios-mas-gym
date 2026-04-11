@@ -10,6 +10,18 @@ const sizes = {
   post: { w: 900, h: 600, title: 36 },
 };
 
+const countryOptions = [
+  { name: 'México', flag: '🇲🇽' },
+  { name: 'Estados Unidos', flag: '🇺🇸' },
+  { name: 'Colombia', flag: '🇨🇴' },
+  { name: 'Argentina', flag: '🇦🇷' },
+  { name: 'España', flag: '🇪🇸' },
+  { name: 'Chile', flag: '🇨🇱' },
+  { name: 'Puerto Rico', flag: '🇵🇷' },
+  { name: 'Guatemala', flag: '🇬🇹' },
+  { name: 'El Salvador', flag: '🇸🇻' }
+];
+
 // UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION
 const getHighResUrl = (url: string | null): string | null => {
   if (!url) return null;
@@ -76,6 +88,7 @@ const PromoImageApp: React.FC = () => {
   const [industrial, setIndustrial] = useState(false);
   const [autoColor, setAutoColor] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false); // Progress feedback state
+  const [country, setCountry] = useState(countryOptions[0]);
 
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
@@ -410,8 +423,16 @@ const PromoImageApp: React.FC = () => {
 
   const formatDate = () => {
     try {
-      const d = new Date(date);
+      // FIXING TIMEZONE OFFSET (Input 12 show 11) - Force local parsing
+      // replace('-','/') ensures browser treats it as local date if time not present
+      const dateString = date.includes('T') ? date : `${date}T12:00:00`;
+      const d = new Date(dateString);
       const fecha = d.toLocaleDateString("es-MX", { day: "numeric", month: "long" }).toUpperCase();
+      
+      if (mode === 'proximamente') {
+         return `ESTRENO ${fecha}`;
+      }
+      
       const hora = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
       return `ESTRENO ${fecha} · ${hora}`;
     } catch {
@@ -421,7 +442,7 @@ const PromoImageApp: React.FC = () => {
 
   const commonProps = {
     title, artist, bg, mode, size, date, overlay, textColor, contrastColor, glow, stroke,
-    formatDate, trackList: tracks.split("\n"),
+    formatDate, country, trackList: tracks.split("\n"),
     config: sizes[size],
     grit, noise, scanlines, vignette, industrial, template
   };
@@ -553,6 +574,21 @@ const PromoImageApp: React.FC = () => {
                     <option value="album">Álbum / EP</option>
                   </select>
                 </div>
+              </div>
+
+              {/* NEW COUNTRY SELECTOR */}
+              <div className="space-y-2 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">País del Estreno</label>
+                <select 
+                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-xs appearance-none cursor-pointer text-[#c5a059] font-black"
+                  value={country.name}
+                  onChange={(e) => {
+                    const sel = countryOptions.find(c => c.name === e.target.value);
+                    if (sel) setCountry(sel);
+                  }}
+                >
+                  {countryOptions.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+                </select>
               </div>
 
               {/* DATE PICKER (Conditional Simple Calendar for Proximamente) */}
@@ -986,7 +1022,7 @@ const PromoTemplate: React.FC<any> = ({
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
-                              transform: bg && bg.startsWith('data:') ? 'scale(1.02)' : 'scale(1.3)', 
+                              transform: bg && bg.startsWith('data:') ? 'scale(1.02)' : 'none', // Removed scale(1.3) which caused distortion/pixelation
                               filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
                             }} 
                           />
@@ -994,7 +1030,11 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                     )}
                   <div style={{ marginBottom: 20 }}>
-                    <h4 style={{ fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter', textShadow: `0 4px 10px rgba(0,0,0,0.3)` }}>ESTRENO GLOBAL</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 15 }}>
+                      <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
+                      <h4 style={{ fontSize: config.title * 0.22, color: theme.accent, fontWeight: 900, letterSpacing: '0.6em', textShadow: `0 4px 10px rgba(0,0,0,0.3)` }}>{country.flag} ESTRENO {country.name.toUpperCase()}</h4>
+                      <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
+                    </div>
                     <h1 style={{ 
                       fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), 
                       fontWeight: 900, 
