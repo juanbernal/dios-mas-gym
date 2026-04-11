@@ -237,33 +237,37 @@ const PromoImageApp: React.FC = () => {
       
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const canvas = await html2canvas(exportEl, {
-        scale: 4, // Calidad alta para compartir sin romper el canvas
+      // 2. ACTUALIZAR A ALTA RESOLUCIÓN Y ESPERAR CARGA
+      const hiResBg = getHighResUrl(bg);
+      if (hiResBg) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = hiResBg;
+          await new Promise(resolve => {
+              if (img.complete) resolve(true);
+              else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
+          });
+          
+          // Actualizar temporalmente para la captura (esto se verá en el clon)
+          const imgs = document.querySelectorAll('[data-export-master-img]');
+          imgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const canvas = await html2canvas(captureEl, {
+        scale: 3, // Calidad optimizada para compartir
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
         imageTimeout: 15000,
-        width: config.w,
-        height: config.h,
-        windowWidth: config.w,
-        windowHeight: config.h,
         onclone: (clonedDoc) => {
-            // UPGRADE IMAGE QUALITY FOR EXPORT
-            const hiRes = getHighResUrl(bg);
-            if (hiRes) {
-                const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
-                if (bgEl) bgEl.style.backgroundImage = `url("${hiRes}")`;
-                
-                const coverEl = clonedDoc.querySelector('[data-export-cover]') as HTMLElement;
-                if (coverEl) coverEl.style.backgroundImage = `url("${hiRes}")`;
-            }
-
-            // Fallback para texturas
+            // Polyfill para efectos que canvas no entiende nativamente
             const findAndFixNoise = (selector: string, opacity: number) => {
               const el = clonedDoc.querySelector(selector) as HTMLElement;
               if (el) {
                  el.style.mixBlendMode = 'normal';
-                 el.style.opacity = (opacity * 0.4).toString();
+                 el.style.opacity = (opacity * 0.45).toString();
               }
             };
             findAndFixNoise('.noise-layer', grit);
@@ -414,18 +418,21 @@ const PromoImageApp: React.FC = () => {
 
 
   const handleDownload = async () => {
-    const exportEl = document.getElementById("promo-export-master");
-    if (!exportEl) return;
+    // CAPTURAMOS EL CONTENEDOR VIVO PARA PARIDAD TOTAL (WYSIWYG)
+    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
+    if (!captureEl) return;
+
     try {
       // 1. Asegurar cargado de fuentes
       await Promise.all([
         document.fonts.load('1em "Bebas Neue"'),
         document.fonts.load('1em "Inter"'),
         document.fonts.load('1em "DM Serif Display"'),
+        document.fonts.load('1em "Satisfy"'),
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      // 2. Asegurar cargado de imagen REAL en alta resolución
+      // 2. ACTUALIZAR A ALTA RESOLUCIÓN Y ESPERAR CARGA
       const hiResBg = getHighResUrl(bg);
       if (hiResBg) {
           const img = new Image();
@@ -436,45 +443,37 @@ const PromoImageApp: React.FC = () => {
               else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
           });
           
-          // FORZAR ACTUALIZACIÓN EN EL DOM DEL MASTER ANTES DE LA CAPTURA
-          const masters = document.querySelectorAll('[data-export-master-img]');
-          masters.forEach(m => {
+          // Aplicar la imagen de alta resolución a los elementos de la vista previa temporalmente
+          const masterImgs = document.querySelectorAll('[data-export-master-img]');
+          masterImgs.forEach(m => {
              (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`;
           });
       }
       
-      // 3. Pequeño retraso extra para estabilización
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // 3. Pequeño retraso extra para estabilización de efectos CSS
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const canvas = await html2canvas(exportEl, {
-        scale: 4, 
+      // Calculamos la escala necesaria para llegar a ~3840px de ancho (4K)
+      const currentWidth = captureEl.offsetWidth;
+      const targetScale = Math.max(4, 3840 / currentWidth);
+
+      const canvas = await html2canvas(captureEl, {
+        scale: targetScale, 
         useCORS: true,
         allowTaint: false,
         logging: false,
         backgroundColor: null,
         imageTimeout: 30000,
-        removeContainer: true,
-        width: config.w,
-        height: config.h,
-        windowWidth: config.w,
-        windowHeight: config.h,
         onclone: (clonedDoc) => {
-          // Aplicar filtros finales de retoque pro
-          const bgEls = clonedDoc.querySelectorAll('[data-export-bg]');
-          bgEls.forEach(el => {
+          // POLYFILL: Simular Backdrop Filters (que canvas ignora)
+          const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
+          backdropFilters.forEach(el => {
             const h = el as HTMLElement;
-            h.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.05) sharpen(1.2) contrast(1.05)';
-            h.style.imageRendering = 'high-quality';
-          });
-          
-          const coverEls = clonedDoc.querySelectorAll('[data-export-cover]');
-          coverEls.forEach(el => {
-             const h = el as HTMLElement;
-             h.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.02) contrast(1.05)';
-             h.style.imageRendering = 'high-quality';
+            h.style.backgroundColor = 'rgba(0,0,0,0.3)';
+            h.style.backdropFilter = 'none';
           });
 
-          // Grano Fallback
+          // POLYFILL: Simular Mix-Blend-Mode para texturas
           const findAndFixNoise = (selector: string, opacity: number) => {
             const el = clonedDoc.querySelector(selector) as HTMLElement;
             if (el) {
@@ -484,7 +483,8 @@ const PromoImageApp: React.FC = () => {
           };
           findAndFixNoise('.noise-layer', grit);
           findAndFixNoise('.real-grain', grit);
-          
+
+          // Optimizar nitidez de texto en el clon
           const titleEl = clonedDoc.querySelector('h1') as HTMLElement;
           if (titleEl) {
             titleEl.style.textRendering = 'geometricPrecision';
@@ -493,20 +493,14 @@ const PromoImageApp: React.FC = () => {
         }
       });
 
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `promo-${artist.replace(/\s+/g, '-')}-${mode}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, "image/png", 1.0); // Calidad máxima sugerida para el blob
-    } catch (err) {
-      alert("Error al descargar");
-      console.error(err);
+      const link = document.createElement("a");
+      link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
+      link.href = canvas.toDataURL("image/png", 1.0);
+      link.click();
+      
+    } catch (e) {
+      console.error("Error Download:", e);
+      alert("Error al generar la imagen 4K");
     }
   };
 
@@ -978,14 +972,17 @@ const PromoTemplate: React.FC<any> = ({
           )}
           
           {/* SILK SMOOTHING OVERLAY */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: `radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.2) 100%)`,
-            backdropFilter: 'contrast(1.02)',
-            zIndex: 1,
-            pointerEvents: 'none'
-          }} />
+          <div 
+            data-backdrop-polyfill
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.2) 100%)`,
+              backdropFilter: 'contrast(1.02)',
+              zIndex: 1,
+              pointerEvents: 'none'
+            }} 
+          />
 
           {/* LAYER 1: OVERLAY BASE */}
           <div style={{ 
