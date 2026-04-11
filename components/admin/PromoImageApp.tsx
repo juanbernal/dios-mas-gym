@@ -18,23 +18,26 @@ const getHighResUrl = (url: string | null): string | null => {
   try {
     // 1. Handle Blogger/Google User Content URLs (Full coverage of all size flags)
     if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com')) {
-       return url.replace(/=s\d+/g, '=s0') // Original size
-                 .replace(/=w\d+(-h\d+)?/g, '=s0')
-                 .replace(/\/s\d+(-c)?\//g, '/s0/') // Path based size
-                 .replace(/=w500-h500-c/g, '=s0')
-                 .replace(/-rw$/g, '') // Remove WebP compression if present
-                 .replace(/=s0-pp$/g, '=s0');
+       // Clean up common size parameters while preserving the base
+       let hurl = url.replace(/=s\d+([-c])?/, '=s0')
+                    .replace(/=w\d+(-h\d+)?([-c])?/, '=s0')
+                    .replace(/\/s\d+(-c)?\//, '/s1600/') // s1600 is safer than s0 for path-based Blogger
+                    .replace(/-rw$/, ''); // Remove WebP compression
+       return hurl;
     }
     
-    // 2. Handle YouTube Thumbnails (Force maxresdefault)
+    // 2. Handle YouTube Thumbnails (Force maxresdefault if possible)
     if (url.includes('ytimg.com')) {
-       return url.replace(/(hq|mq|sd|default)\.jpg/g, 'maxresdefault.jpg');
+       return url.replace(/\/(hq|mq|sd|default)default\.jpg/, '/maxresdefault.jpg');
     }
 
     // 3. Handle Google Drive (Force Direct Download mode)
     if (url.includes('drive.google.com')) {
        if (url.includes('/thumbnail')) return url.replace('/thumbnail', '/uc') + '&export=download';
-       if (url.includes('/file/d/')) return url.replace('/file/d/', '/uc?id=').split('/view')[0] + '&export=download';
+       if (url.includes('/file/d/')) {
+         const fileId = url.split('/file/d/')[1]?.split('/')[0];
+         if (fileId) return `https://drive.google.com/uc?id=${fileId}&export=download`;
+       }
     }
   } catch (e) {
     console.warn("URL Upgrade failed, using fallback:", url);
