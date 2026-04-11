@@ -1081,23 +1081,25 @@ const PromoTemplate: React.FC<any> = ({
                         </div>
                       </div>
                     )}
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 15 }}>
-                      <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
-                      <h4 style={{ 
-                        fontSize: config.title * 0.22, 
-                        color: theme.accent, 
-                        fontWeight: 900, 
-                        letterSpacing: '0.6em', 
-                        textShadow: `0 4px 10px rgba(0,0,0,0.3)`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8
-                      }}>
-                        {mode === 'proximamente' && <>ESTRENO MUNDIAL</>}
-                      </h4>
-                      <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
-                    </div>
+                  <div style={{ marginBottom: config.title * 0.4 }}>
+                    {mode === 'proximamente' && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20 }}>
+                        <div style={{ height: 1, width: 40, background: `linear-gradient(to right, transparent, ${theme.accent})` }}></div>
+                        <h4 style={{ 
+                          fontSize: config.title * 0.22, 
+                          color: theme.accent, 
+                          fontWeight: 900, 
+                          letterSpacing: '0.6em', 
+                          textShadow: `0 4px 20px ${theme.accent}44`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}>
+                          ESTRENO MUNDIAL
+                        </h4>
+                        <div style={{ height: 1, width: 40, background: `linear-gradient(to left, transparent, ${theme.accent})` }}></div>
+                      </div>
+                    )}
                     <h1 style={{ 
                       fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), 
                       fontWeight: 900, 
@@ -1109,7 +1111,29 @@ const PromoTemplate: React.FC<any> = ({
                       filter: stroke ? `drop-shadow(0 0 2px ${theme.accent})` : 'none'
                     }}>{title}</h1>
                   </div>
-                  {mode === "proximamente" && <div style={{ marginTop: 10, fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic' }}>{formatDate()}</div>}
+                  {mode === "proximamente" && (
+                    <div style={{ marginTop: config.title * 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
+                      <div 
+                        data-backdrop-polyfill
+                        style={{ 
+                          padding: "12px 40px", 
+                          background: "rgba(255, 255, 255, 0.05)", 
+                          backdropFilter: 'blur(20px)', 
+                          border: `1px solid ${theme.accent}33`, 
+                          borderRadius: 100,
+                          boxShadow: `0 10px 40px rgba(0,0,0,0.3)`
+                        }}>
+                        <div style={{ fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic', letterSpacing: '0.05em' }}>
+                          {formatDate()}
+                        </div>
+                      </div>
+                      {country && country.iso !== 'un' && (
+                        <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, opacity: 0.6, marginTop: 5 }}>
+                          EXCLUSIVO // {country.name.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {mode === "disponible" && (
                     <div style={{ marginTop: config.title * 0.4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.3, color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
