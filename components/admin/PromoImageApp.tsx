@@ -175,14 +175,29 @@ const PromoImageApp: React.FC = () => {
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 2. Esperar que la imagen de fondo esté cargada en el navegador
+      if (bg) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = bg;
+          await new Promise((resolve) => {
+              if (img.complete) resolve(true);
+              else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
+          });
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(exportEl, {
-        scale: 2, 
+        scale: 3, // Calidad alta para compartir
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
-        imageTimeout: 15000
+        imageTimeout: 15000,
+        width: config.w,
+        height: config.h,
+        windowWidth: config.w,
+        windowHeight: config.h
       });
 
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -264,14 +279,28 @@ const PromoImageApp: React.FC = () => {
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (bg) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = bg;
+          await new Promise(resolve => {
+              if (img.complete) resolve(true);
+              else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
+          });
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(exportEl, {
         scale: 2, 
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
-        imageTimeout: 15000
+        imageTimeout: 15000,
+        width: config.w,
+        height: config.h,
+        windowWidth: config.w,
+        windowHeight: config.h
       });
 
       canvas.toBlob(async (blob) => {
@@ -317,7 +346,7 @@ const PromoImageApp: React.FC = () => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     try {
-      // 1. Asegurar que TODAS las fuentes estén cargadas (no solo una)
+      // 1. Asegurar cargado de fuentes
       await Promise.all([
         document.fonts.load('1em "Bebas Neue"'),
         document.fonts.load('1em "Inter"'),
@@ -325,17 +354,32 @@ const PromoImageApp: React.FC = () => {
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      // 2. Pequeño retraso para garantizar que el renderizado off-screen se estabilice
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 2. Asegurar cargado de imagen real
+      if (bg) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = bg;
+          await new Promise(resolve => {
+              if (img.complete) resolve(true);
+              else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
+          });
+      }
+      
+      // 3. Pequeño retraso extra para estabilización de renderizado en off-screen
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(exportEl, {
-        scale: 4, // 4 es suficiente para 4K en la mayoría de tamaños, pero aseguramos alta calidad
+        scale: 5, // Aumentamos a 5 para máxima nitidez (resolución 5K aprox)
         useCORS: true,
-        allowTaint: false, // IMPORTANTE: Taint=true degrada calidad y seguridad
+        allowTaint: false,
         logging: false,
         backgroundColor: null,
-        imageTimeout: 15000, // Dar tiempo a imágenes pesadas
-        removeContainer: true
+        imageTimeout: 20000,
+        removeContainer: true,
+        width: config.w,
+        height: config.h,
+        windowWidth: config.w,
+        windowHeight: config.h
       });
 
       canvas.toBlob((blob) => {
@@ -788,7 +832,14 @@ const PromoTemplate: React.FC<any> = ({
             }
           `}</style>
           {bg && (
-            <img src={bg} crossOrigin="anonymous" style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ 
+              position: "absolute", 
+              inset: 0, 
+              backgroundImage: `url("${bg}")`, 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center', 
+              backgroundRepeat: 'no-repeat'
+            }} />
           )}
 
           {/* LAYER 1: OVERLAY BASE */}
