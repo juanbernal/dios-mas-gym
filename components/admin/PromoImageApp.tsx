@@ -802,7 +802,7 @@ const PromoTemplate: React.FC<any> = ({
     return (
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
           <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Caveat:wght@700&display=swap');
             * { 
               -webkit-font-smoothing: antialiased; 
               -moz-osx-font-smoothing: grayscale;
@@ -950,7 +950,37 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
                       <div style={{ position: 'absolute', inset: -40, background: theme.glow, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />
                       <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
-                        <img src={bg} crossOrigin="anonymous" style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover', display: 'block', filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' }} />
+                        <div 
+                          style={{ 
+                            width: config.title * 6, 
+                            height: config.title * 6, 
+                            borderRadius: 2, 
+                            backgroundImage: `url("${bg}")`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            display: 'block', 
+                            transform: 'scale(1.04)', // ZOOM DE SEGURIDAD PARA ELIMINAR BORDES NEGROS
+                            filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
+                          }} 
+                        />
+                      </div>
+                      
+                      {/* SLOGAN DE ARTISTA (SIGNATURE STYLE) */}
+                      <div style={{
+                        position: 'absolute',
+                        right: -config.title * 1.5,
+                        bottom: config.title * 0.2,
+                        fontFamily: "'Caveat', cursive",
+                        fontSize: config.title * 0.8,
+                        color: textColor,
+                        textShadow: `0 10px 20px rgba(0,0,0,0.8), 0 0 10px ${theme.accent}44`,
+                        transform: 'rotate(-8deg)',
+                        zIndex: 20,
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        filter: 'drop-shadow(0 5px 15px rgba(0,0,0,0.5))'
+                      }}>
+                        {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                       </div>
                     </div>
                   )}
