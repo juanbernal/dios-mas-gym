@@ -927,9 +927,12 @@ const PromoTemplate: React.FC<any> = ({
               <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
                 
-                {/* BRANDING STAMP (ORIGINAL) */}
-                <div style={{ position: 'absolute', top: '12%', right: '8%', width: config.title * 2, height: config.title * 2, borderRadius: '50%', border: `2px dashed ${theme.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15, opacity: 0.6, transform: 'rotate(-15deg)' }}>
-                    <div style={{ fontSize: config.title * 0.12, fontFamily: 'Inter', fontWeight: 900, color: theme.accent, textAlign: 'center', letterSpacing: '0.1em' }}>MASTERED FOR<br />THE SPIRIT<br />6:14</div>
+                {/* BRANDING LOGO */}
+                <div style={{ position: 'absolute', top: '8%', right: '8%', width: config.title * 2.5, height: config.title * 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15, opacity: 0.8 }}>
+                    <img 
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614.jpg' : '/logo-diosmasgym.png'} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 20px ${theme.glow})` }} 
+                    />
                 </div>
 
                 {/* HEADER (ORIGINAL) */}
