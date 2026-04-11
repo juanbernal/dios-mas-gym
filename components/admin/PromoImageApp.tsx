@@ -265,25 +265,26 @@ const PromoImageApp: React.FC = () => {
         const findAndFixNoise = (selector: string, multiplier: number) => {
           const el = clonedDoc.querySelector(selector) as HTMLElement;
           if (el) { 
-            el.style.mixBlendMode = 'normal'; 
+            // PRESERVE ORIGINAL BLEND MODE FROM CSS (No more forcing to 'normal')
             el.style.opacity = (grit * multiplier).toString(); 
           }
         };
         findAndFixNoise('.noise-layer', 0.1);
         findAndFixNoise('.real-grain', 0.12);
         
-        // 4. Backdrop-Filter Polyfill (Essential for Text Visibility)
+        // 4. Backdrop-Filter Fallback (Subtle for readability)
         const polyfills = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
         polyfills.forEach(el => {
           const h = el as HTMLElement;
           h.style.backdropFilter = 'none';
           h.style.webkitBackdropFilter = 'none';
-          h.style.backgroundColor = 'rgba(0,0,0,0.85)'; // Solid fallback for blur
+          // Use original background alpha but slightly darker to ensure text pop in master
+          h.style.backgroundColor = 'rgba(0,0,0,0.7)'; 
         });
 
-        // 5. Global Master Sharpening (Syncs Text & Multi-layers)
+        // 5. No Global Sharpening (Matches Preview exactly)
         if (clonedWrapper) {
-          clonedWrapper.style.filter = 'brightness(1.04) contrast(1.04) saturate(1.05)';
+          clonedWrapper.style.filter = 'none'; 
         }
       }
     });
