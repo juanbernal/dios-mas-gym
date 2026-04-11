@@ -160,7 +160,15 @@ const PromoImageApp: React.FC = () => {
         if (autoColor) {
            setContrastColor(hexColor);
            setOverlay(brightness > 160 ? 0.75 : 0.5);
-           setTextColor(brightness > 160 ? "#000000" : "#ffffff");
+           
+           // SMART TEXT MASTERY: Color de texto armonizado (no solo B/W)
+           if (brightness > 160) {
+             setTextColor(`rgba(${Math.max(0, r-150)}, ${Math.max(0, g-150)}, ${Math.max(0, b-150)}, 1)`); // Versión muy oscura del dominante
+           } else {
+             setTextColor(`rgba(${Math.min(255, r+200)}, ${Math.min(255, g+200)}, ${Math.min(255, b+200)}, 1)`); // Versión muy clara del dominante
+           }
+           
+           setGlow(true);
         } else {
            setOverlay(brightness > 140 ? 0.75 : 0.45);
         }
@@ -946,8 +954,17 @@ const PromoTemplate: React.FC<any> = ({
                     </div>
                   )}
                   <div style={{ marginBottom: 20 }}>
-                    <h4 style={{ fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter' }}>ESTRENO GLOBAL</h4>
-                    <h1 style={{ fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), fontWeight: 900, lineHeight: 0.8, fontFamily: "'Bebas Neue'", color: textColor, letterSpacing: '-2px', textShadow: `0px 20px 50px ${theme.accent}33` }}>{title}</h1>
+                    <h4 style={{ fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter', textShadow: `0 4px 10px rgba(0,0,0,0.3)` }}>ESTRENO GLOBAL</h4>
+                    <h1 style={{ 
+                      fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), 
+                      fontWeight: 900, 
+                      lineHeight: 0.8, 
+                      fontFamily: "'Bebas Neue'", 
+                      color: textColor, 
+                      letterSpacing: '-2px', 
+                      textShadow: `0px 20px 60px ${theme.accent}66, 0 10px 20px rgba(0,0,0,0.5)`,
+                      filter: stroke ? `drop-shadow(0 0 2px ${theme.accent})` : 'none'
+                    }}>{title}</h1>
                   </div>
                   {mode === "proximamente" && <div style={{ marginTop: 10, fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic' }}>{formatDate()}</div>}
                   {mode === "disponible" && (
