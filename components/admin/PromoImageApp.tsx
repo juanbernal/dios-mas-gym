@@ -167,14 +167,22 @@ const PromoImageApp: React.FC = () => {
     if (!exportEl) return;
 
     try {
-      setIsSendingToMake(true); // Re-use loading state for visual feedback
-      await document.fonts.load('1em "Bebas Neue"');
+      // 1. Asegurar que TODAS las fuentes estén cargadas
+      await Promise.all([
+        document.fonts.load('1em "Bebas Neue"'),
+        document.fonts.load('1em "Inter"'),
+        document.fonts.load('1em "DM Serif Display"'),
+        document.fonts.load('1em "Space Grotesk"')
+      ]);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const canvas = await html2canvas(exportEl, {
         scale: 2, 
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
+        allowTaint: false,
+        backgroundColor: null,
+        imageTimeout: 15000
       });
 
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -248,13 +256,22 @@ const PromoImageApp: React.FC = () => {
 
     setIsSendingToMake(true);
     try {
-      await document.fonts.load('1em "Bebas Neue"');
+      // 1. Asegurar que TODAS las fuentes estén cargadas
+      await Promise.all([
+        document.fonts.load('1em "Bebas Neue"'),
+        document.fonts.load('1em "Inter"'),
+        document.fonts.load('1em "DM Serif Display"'),
+        document.fonts.load('1em "Space Grotesk"')
+      ]);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const canvas = await html2canvas(exportEl, {
-        scale: 1.5, 
+        scale: 2, 
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
+        allowTaint: false,
+        backgroundColor: null,
+        imageTimeout: 15000
       });
 
       canvas.toBlob(async (blob) => {
@@ -300,14 +317,25 @@ const PromoImageApp: React.FC = () => {
     const exportEl = document.getElementById("promo-export-master");
     if (!exportEl) return;
     try {
-      await document.fonts.load('1em "Bebas Neue"');
+      // 1. Asegurar que TODAS las fuentes estén cargadas (no solo una)
+      await Promise.all([
+        document.fonts.load('1em "Bebas Neue"'),
+        document.fonts.load('1em "Inter"'),
+        document.fonts.load('1em "DM Serif Display"'),
+        document.fonts.load('1em "Space Grotesk"')
+      ]);
       
+      // 2. Pequeño retraso para garantizar que el renderizado off-screen se estabilice
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const canvas = await html2canvas(exportEl, {
-        scale: 4, 
+        scale: 4, // 4 es suficiente para 4K en la mayoría de tamaños, pero aseguramos alta calidad
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false, // IMPORTANTE: Taint=true degrada calidad y seguridad
         logging: false,
-        backgroundColor: null
+        backgroundColor: null,
+        imageTimeout: 15000, // Dar tiempo a imágenes pesadas
+        removeContainer: true
       });
 
       canvas.toBlob((blob) => {
@@ -320,7 +348,7 @@ const PromoImageApp: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      }, "image/png");
+      }, "image/png", 1.0); // Calidad máxima sugerida para el blob
     } catch (err) {
       alert("Error al descargar");
       console.error(err);
@@ -760,7 +788,7 @@ const PromoTemplate: React.FC<any> = ({
             }
           `}</style>
           {bg && (
-            <img src={bg} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={bg} crossOrigin="anonymous" style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
           )}
 
           {/* LAYER 1: OVERLAY BASE */}
@@ -813,7 +841,7 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
                       <div style={{ position: 'absolute', inset: -40, background: theme.glow, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />
                       <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
-                        <img src={bg} style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover', display: 'block', filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' }} />
+                        <img src={bg} crossOrigin="anonymous" style={{ width: config.title * 6, height: config.title * 6, borderRadius: 2, objectFit: 'cover', display: 'block', filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' }} />
                       </div>
                     </div>
                   )}
