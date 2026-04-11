@@ -10,6 +10,33 @@ const sizes = {
   post: { w: 900, h: 600, title: 36 },
 };
 
+// UTILITY TO UPGRADE LOW-RES GOOGLE/BLOGGER URLS TO ORIGINAL RESOLUTION
+const getHighResUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith('data:')) return url; // Manual uploads are already original
+  
+  try {
+    // 1. Handle Blogger/Google User Content URLs (=s... or =w...)
+    if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com')) {
+       // Replace any size parameter (=s..., =w..., -s..., -w...) with =s0 (original)
+       let upgraded = url.replace(/=s\d+/g, '=s0')
+                        .replace(/=w\d+(-h\d+)?/g, '=s0')
+                        .replace(/\/s\d+\//g, '/s0/')
+                        .replace(/=w500-h500/g, '=s0');
+       return upgraded;
+    }
+    
+    // 2. Handle Google Drive Thumbnail redirects
+    if (url.includes('drive.google.com/thumbnail')) {
+       return url.replace('thumbnail', 'uc') + '&export=download'; // Force direct stream
+    }
+  } catch (e) {
+    console.warn("URL Upgrade failed:", e);
+  }
+  
+  return url;
+};
+
 const PromoImageApp: React.FC = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("CARGANDO CANCIÓN...");
@@ -206,7 +233,7 @@ const PromoImageApp: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(exportEl, {
-        scale: 3, // Calidad alta para compartir
+        scale: 4, // Calidad alta para compartir sin romper el canvas
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
@@ -214,7 +241,29 @@ const PromoImageApp: React.FC = () => {
         width: config.w,
         height: config.h,
         windowWidth: config.w,
-        windowHeight: config.h
+        windowHeight: config.h,
+        onclone: (clonedDoc) => {
+            // UPGRADE IMAGE QUALITY FOR EXPORT
+            const hiRes = getHighResUrl(bg);
+            if (hiRes) {
+                const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
+                if (bgEl) bgEl.style.backgroundImage = `url("${hiRes}")`;
+                
+                const coverEl = clonedDoc.querySelector('[data-export-cover]') as HTMLElement;
+                if (coverEl) coverEl.style.backgroundImage = `url("${hiRes}")`;
+            }
+
+            // Fallback para texturas
+            const findAndFixNoise = (selector: string, opacity: number) => {
+              const el = clonedDoc.querySelector(selector) as HTMLElement;
+              if (el) {
+                 el.style.mixBlendMode = 'normal';
+                 el.style.opacity = (opacity * 0.4).toString();
+              }
+            };
+            findAndFixNoise('.noise-layer', grit);
+            findAndFixNoise('.real-grain', grit);
+        }
       });
 
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -398,11 +447,20 @@ const PromoImageApp: React.FC = () => {
         windowWidth: config.w,
         windowHeight: config.h,
         onclone: (clonedDoc) => {
-          // 1. Mejorar contraste y nitidez en la exportación
-          const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
-          if (bgEl) {
-            bgEl.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.05) sharpen(1.2)';
-            bgEl.style.imageRendering = 'high-quality';
+          // 1. UPGRADE IMAGES TO ORIGINAL HIGH-RES FOR 4K DOWNLOAD
+          const hiRes = getHighResUrl(bg);
+          if (hiRes) {
+            const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
+            if (bgEl) {
+                bgEl.style.backgroundImage = `url("${hiRes}")`;
+                bgEl.style.filter = 'contrast(1.05) saturate(1.1) brightness(1.05)';
+            }
+            
+            const coverEl = clonedDoc.querySelector('[data-export-cover]') as HTMLElement;
+            if (coverEl) {
+                coverEl.style.backgroundImage = `url("${hiRes}")`;
+                coverEl.style.filter = 'contrast(1.1) saturate(1.1)';
+            }
           }
 
           // 2. CORRECCIÓN DE GRANO PARA EXPORTACIÓN (Fallback de mix-blend-mode)
@@ -410,15 +468,18 @@ const PromoImageApp: React.FC = () => {
             const el = clonedDoc.querySelector(selector) as HTMLElement;
             if (el) {
                el.style.mixBlendMode = 'normal';
-               el.style.opacity = (opacity * 0.4).toString(); // Simular overlay con transparencia normal
+               el.style.opacity = (opacity * 0.4).toString(); 
             }
           };
           findAndFixNoise('.noise-layer', grit);
           findAndFixNoise('.real-grain', grit);
           
-          // 3. Asegurar que las imágenes están escaladas para máxima nitidez
+          // 3. Maximizar nitidez de texto y bordes
           const imgs = clonedDoc.querySelectorAll('img');
           imgs.forEach(i => i.style.imageRendering = 'high-quality');
+          
+          const titleEl = clonedDoc.querySelector('h1') as HTMLElement;
+          if (titleEl) titleEl.style.textRendering = 'geometricPrecision';
         }
       });
 
@@ -966,6 +1027,7 @@ const PromoTemplate: React.FC<any> = ({
                       <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
                         <div style={{ width: config.title * 6, height: config.title * 6, overflow: 'hidden', borderRadius: 2 }}>
                           <div 
+                            data-export-cover
                             style={{ 
                               width: '100%', 
                               height: '100%', 
@@ -973,7 +1035,7 @@ const PromoTemplate: React.FC<any> = ({
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
-                              transform: bg.startsWith('data:') ? 'scale(1.02)' : 'scale(1.3)', // SMART ZOOM: Solo para catálogo
+                              transform: bg && bg.startsWith('data:') ? 'scale(1.02)' : 'scale(1.3)', 
                               filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
                             }} 
                           />
