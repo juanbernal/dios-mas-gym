@@ -284,13 +284,19 @@ const PromoImageApp: React.FC = () => {
       logging: false,
       imageTimeout: 15000,
       onclone: (clonedDoc) => {
-        const clonedWrapper = clonedDoc.querySelector('.promo-container-wrapper') as HTMLElement;
+        // FONT INJECTION: Critical for 4K Master Parity on Windows/Vercel
+        const fontLink = clonedDoc.createElement('link');
+        fontLink.rel = 'stylesheet';
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;700;900&family=Satisfy&display=swap';
+        clonedDoc.head.appendChild(fontLink);
+
+        const clonedWrapper = clonedDoc.querySelector('.promo-master-target') as HTMLElement;
         if (clonedWrapper) {
           // FORCE EXACT PIXEL DIMENSIONS TO PREVENT 0x0 PATTERN ERRORS
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.boxShadow = 'none';
-          clonedWrapper.style.width = `${config.w}px`;
-          clonedWrapper.style.height = `${config.h}px`;
+          clonedWrapper.style.width = `${masterWidth}px`; // Use masterWidth instead of preview config
+          clonedWrapper.style.height = `${masterWidth * (sizes[size].h / sizes[size].w)}px`;
           clonedWrapper.style.display = 'block';
         }
 
@@ -1086,29 +1092,7 @@ const PromoTemplate: React.FC<any> = ({
                         alignItems: 'center',
                         gap: 8
                       }}>
-                        {mode === 'proximamente' && (
-                          country.name.includes('GLOBAL') ? (
-                            <span style={{ display: 'flex', gap: config.title * 0.1, alignItems: 'center' }}>
-                              {countryOptions.filter(c => c.iso !== 'un').slice(0, 6).map(c => (
-                                <img 
-                                  key={c.iso} 
-                                  src={`https://flagcdn.com/w80/${c.iso}.png`} 
-                                  style={{ height: config.title * 0.2, width: 'auto', borderRadius: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} 
-                                  alt={c.name}
-                                />
-                              ))}
-                            </span>
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <img 
-                                src={`https://flagcdn.com/w80/${country.iso}.png`} 
-                                style={{ height: config.title * 0.25, width: 'auto', borderRadius: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} 
-                                alt={country.name}
-                              />
-                               <span style={{ fontSize: config.title * 0.15, opacity: 0.6, letterSpacing: '0.4em' }}>ESTRENO Mundial</span>
-                            </div>
-                          )
-                        )}
+                        {mode === 'proximamente' && <>ESTRENO MUNDIAL</>}
                       </h4>
                       <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
                     </div>
