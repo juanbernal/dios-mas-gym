@@ -10,33 +10,34 @@ const sizes = {
   post: { w: 900, h: 600, title: 36 },
 };
 
-// UTILITY TO UPGRADE LOW-RES GOOGLE/BLOGGER URLS TO ORIGINAL RESOLUTION
+// UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION
 const getHighResUrl = (url: string | null): string | null => {
   if (!url) return null;
-  if (url.startsWith('data:')) return url; // Manual uploads are already original
+  if (url.startsWith('data:')) return url;
   
   try {
-    // 1. Handle Blogger/Google User Content URLs (=s... or =w...)
+    // 1. Handle Blogger/Google User Content URLs (Full coverage of all size flags)
     if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com')) {
-       return url.replace(/=s\d+/g, '=s0')
+       return url.replace(/=s\d+/g, '=s0') // Original size
                  .replace(/=w\d+(-h\d+)?/g, '=s0')
-                 .replace(/\/s\d+\//g, '/s0/')
-                 .replace(/=w500-h500/g, '=s0');
+                 .replace(/\/s\d+(-c)?\//g, '/s0/') // Path based size
+                 .replace(/=w500-h500-c/g, '=s0')
+                 .replace(/-rw$/g, '') // Remove WebP compression if present
+                 .replace(/=s0-pp$/g, '=s0');
     }
     
-    // 2. Handle YouTube Thumbnails (hqdefault -> maxresdefault)
+    // 2. Handle YouTube Thumbnails (Force maxresdefault)
     if (url.includes('ytimg.com')) {
-       return url.replace('hqdefault', 'maxresdefault')
-                 .replace('mqdefault', 'maxresdefault')
-                 .replace('sddefault', 'maxresdefault');
+       return url.replace(/(hq|mq|sd|default)\.jpg/g, 'maxresdefault.jpg');
     }
 
-    // 3. Handle Google Drive Thumbnail redirects
-    if (url.includes('drive.google.com/thumbnail')) {
-       return url.replace('thumbnail', 'uc') + '&export=download';
+    // 3. Handle Google Drive (Force Direct Download mode)
+    if (url.includes('drive.google.com')) {
+       if (url.includes('/thumbnail')) return url.replace('/thumbnail', '/uc') + '&export=download';
+       if (url.includes('/file/d/')) return url.replace('/file/d/', '/uc?id=').split('/view')[0] + '&export=download';
     }
   } catch (e) {
-    console.warn("URL Upgrade failed:", e);
+    console.warn("URL Upgrade failed, using fallback:", url);
   }
   
   return url;
@@ -213,66 +214,51 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg, autoColor]);
 
-  // ASYNC PREPARE CANVAS: Unified engine for all exports
-  const prepareCanvas = async (customScale = 3) => {
-    console.log("[MASTER] STARTING 4K PREPARATION...");
+  // ASYNC PREPARE CANVAS: Unified engine for all exports (Ultra 4K Edition)
+  const prepareCanvas = async (customScale = 4) => {
+    console.log("[MASTER] STARTING ULTRA-4K PREPARATION...");
     const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
     if (!captureEl) throw new Error("Capture element not found");
 
-    // 1. Load Fonts
-    try {
-      await Promise.all([
-        document.fonts.load('1em "Bebas Neue"'),
-        document.fonts.load('1em "Inter"'),
-        document.fonts.load('1em "Satisfy"'),
-        document.fonts.load('1em "DM Serif Display"'),
-        document.fonts.load('1em "Space Grotesk"')
-      ]);
-    } catch (e) {
-      console.warn("Font loading timed out or failed, proceeding with fallbacks.");
-    }
-
-    // 2. High-Res Image Swap (Failsafe)
-    const hiResBg = getHighResUrl(bg);
-    let actualBg = bg;
-    if (hiResBg && hiResBg !== bg) {
-      console.log("🖼️ [MASTER] UPGRADING TO HIGH-RES:", hiResBg);
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = hiResBg;
-      const success = await new Promise(resolve => {
-        const t = setTimeout(() => resolve(false), 3000); // 3s timeout for hi-res
-        if (img.complete) { clearTimeout(t); resolve(true); }
-        else { img.onload = () => { clearTimeout(t); resolve(true); }; img.onerror = () => { clearTimeout(t); resolve(false); }; }
+    // 1. Force Load ALL Images (Texture & Cover)
+    const images = Array.from(captureEl.querySelectorAll('img, [style*="background-image"]'));
+    await Promise.all(images.map(img => {
+      const src = img instanceof HTMLImageElement ? img.src : (img as HTMLElement).style.backgroundImage.slice(5, -2);
+      if (!src || src === 'none') return Promise.resolve();
+      return new Promise(resolve => {
+        const testImg = new Image();
+        testImg.crossOrigin = "anonymous";
+        testImg.onload = testImg.onerror = resolve;
+        testImg.src = src;
       });
-      if (success) {
-        actualBg = hiResBg;
-        console.log("[MASTER] HIGH-RES LOADED SUCCESSFULY");
-      } else {
-        console.warn("[MASTER] HIGH-RES FAILED, USING ORIGINAL");
-      }
-      
-      if (actualBg) {
-        const masterImgs = document.querySelectorAll('[data-export-master-img]');
-        masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
-      }
-    }
+    }));
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 2. Load Fonts
+    try {
+      await document.fonts.ready;
+      console.log("[MASTER] FONTS READY.");
+    } catch (e) { console.warn("Font loading fallback engaged."); }
 
-    // 3. Dynamic Scale for 4K Parity
+    // 3. Dynamic Scale for True 4K (No arbitrary cap)
     const currentWidth = captureEl.offsetWidth;
     const targetScale = Math.max(customScale, 3840 / currentWidth);
-    console.log("📐 [MASTER] RENDERING AT SCALE:", Math.min(6, targetScale));
+    const finalScale = Math.max(targetScale, 4); // Min 4x for safety
+    console.log("[MASTER] RENDERING AT ULTRA-SCALE:", finalScale.toFixed(2));
 
     return await html2canvas(captureEl, {
-      scale: Math.min(6, targetScale),
+      scale: finalScale,
       useCORS: true,
       allowTaint: false,
       backgroundColor: null,
       logging: false,
-      imageTimeout: 10000,
+      imageTimeout: 15000,
       onclone: (clonedDoc) => {
+        const clonedWrapper = clonedDoc.querySelector('.promo-container-wrapper') as HTMLElement;
+        if (clonedWrapper) {
+          clonedWrapper.style.transform = 'none';
+          clonedWrapper.style.boxShadow = 'none';
+        }
+
         const findAndFixNoise = (selector: string, multiplier: number) => {
           const el = clonedDoc.querySelector(selector) as HTMLElement;
           if (el) { 
@@ -286,11 +272,9 @@ const PromoImageApp: React.FC = () => {
         const hGrid = clonedDoc.querySelector('.halftone-grid') as HTMLElement;
         if (hGrid) hGrid.style.opacity = (grit * 0.5).toString();
         
-        const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
-        backdropFilters.forEach(el => { 
-          const h = el as HTMLElement;
-          h.style.backgroundColor = 'rgba(0,0,0,0.3)'; h.style.backdropFilter = 'none'; 
-        });
+        // Boost contrast slightly for the master file
+        const bgLayer = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
+        if (bgLayer) bgLayer.style.filter = 'brightness(1.05) contrast(1.05)';
       }
     });
   };
