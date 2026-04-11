@@ -859,7 +859,7 @@ const PromoTemplate: React.FC<any> = ({
               style={{ 
                 position: "absolute", 
                 inset: "-2%", // Ligero margen negativo para evitar bordes blancos
-                backgroundImage: `url("${bg}")`, 
+                backgroundImage: `url("${getHighResUrl(bg)}")`, 
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
@@ -939,7 +939,7 @@ const PromoTemplate: React.FC<any> = ({
                             style={{ 
                               width: '100%', 
                               height: '100%', 
-                              backgroundImage: `url("${bg}")`,
+                              backgroundImage: `url("${getHighResUrl(bg)}")`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
