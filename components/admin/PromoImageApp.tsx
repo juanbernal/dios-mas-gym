@@ -11,16 +11,16 @@ const sizes = {
 };
 
 const countryOptions = [
-  { name: 'GLOBAL (TODAS)', flag: '🌎' },
-  { name: 'México', flag: '🇲🇽' },
-  { name: 'Estados Unidos', flag: '🇺🇸' },
-  { name: 'Colombia', flag: '🇨🇴' },
-  { name: 'Argentina', flag: '🇦🇷' },
-  { name: 'España', flag: '🇪🇸' },
-  { name: 'Chile', flag: '🇨🇱' },
-  { name: 'Puerto Rico', flag: '🇵🇷' },
-  { name: 'Guatemala', flag: '🇬🇹' },
-  { name: 'El Salvador', flag: '🇸🇻' }
+  { name: 'GLOBAL (TODAS)', flag: '🌎', iso: 'un' },
+  { name: 'México', flag: '🇲🇽', iso: 'mx' },
+  { name: 'Estados Unidos', flag: '🇺🇸', iso: 'us' },
+  { name: 'Colombia', flag: '🇨🇴', iso: 'co' },
+  { name: 'Argentina', flag: '🇦🇷', iso: 'ar' },
+  { name: 'España', flag: '🇪🇸', iso: 'es' },
+  { name: 'Chile', flag: '🇨🇱', iso: 'cl' },
+  { name: 'Puerto Rico', flag: '🇵🇷', iso: 'pr' },
+  { name: 'Guatemala', flag: '🇬🇹', iso: 'gt' },
+  { name: 'El Salvador', flag: '🇸🇻', iso: 'sv' }
 ];
 
 // UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION
@@ -447,6 +447,19 @@ const PromoImageApp: React.FC = () => {
     grit, noise, scanlines, vignette, industrial, template
   };
 
+  // 4K MASTER PROPS: Scaled configuration for high-res render
+  const masterWidth = 3840;
+  const masterMultiplier = masterWidth / sizes[size].w;
+  const masterCommonProps = {
+    ...commonProps,
+    config: {
+      ...sizes[size],
+      w: masterWidth,
+      h: sizes[size].h * masterMultiplier,
+      title: sizes[size].title * masterMultiplier, // SCALING FONT SIZES FOR 4K
+    }
+  };
+
   return (
     <div className="flex flex-col bg-[#020617] min-h-screen text-white">
       {/* APP HEADER */}
@@ -819,31 +832,33 @@ const PromoImageApp: React.FC = () => {
         </div>
       </div>
 
-      {/* GHOST MASTER: NATIVE 4K RENDERER (HIDDEN FROM VIEW) */}
+      {/* GHOST MASTER: NATIVE 4K RENDERER (OFF-SCREEN BUT VISIBLE FOR CAPTURE) */}
       <div 
         style={{ 
           position: 'fixed', 
           left: -4000, 
           top: -4000, 
-          width: 3840, // Native 4K Width
+          width: masterWidth, 
           pointerEvents: 'none',
           zIndex: -1000,
-          opacity: 0,
-          overflow: 'hidden'
+          opacity: 1, // Fix: Opacity 1 ensures images aren't black
+          visibility: 'visible',
+          overflow: 'hidden',
+          background: '#000'
         }}
       >
         <div ref={masterRef}>
-          {/* We must mirror the exact structure that the capture engine expects */}
+          {/* We mirror the exact structure that the capture engine expects but with Master Props */}
           <div 
             className="promo-master-target" 
             style={{ 
-              width: 3840, 
-              height: 3840 * (config.h / config.w), // Maintain Aspect Ratio
+              width: masterWidth, 
+              height: masterWidth * (sizes[size].h / sizes[size].w),
               position: 'relative',
               display: 'block'
             }}
           >
-             <PromoTemplate {...commonProps} isExport={true} />
+             <PromoTemplate {...masterCommonProps} isExport={true} />
           </div>
         </div>
       </div>
@@ -1071,14 +1086,28 @@ const PromoTemplate: React.FC<any> = ({
                         alignItems: 'center',
                         gap: 8
                       }}>
-                        {country.name.includes('GLOBAL') ? (
-                          <span style={{ letterSpacing: '0.2em', display: 'flex', gap: 4 }}>
-                            {countryOptions.filter(c => !c.name.includes('GLOBAL')).slice(0, 6).map(c => (
-                              <span key={c.name}>{c.flag}</span>
-                            ))}
-                          </span>
-                        ) : (
-                          <>{country.flag} ESTRENO</>
+                        {mode === 'proximamente' && (
+                          country.name.includes('GLOBAL') ? (
+                            <span style={{ display: 'flex', gap: config.title * 0.1, alignItems: 'center' }}>
+                              {countryOptions.filter(c => c.iso !== 'un').slice(0, 6).map(c => (
+                                <img 
+                                  key={c.iso} 
+                                  src={`https://flagcdn.com/w80/${c.iso}.png`} 
+                                  style={{ height: config.title * 0.2, width: 'auto', borderRadius: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} 
+                                  alt={c.name}
+                                />
+                              ))}
+                            </span>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <img 
+                                src={`https://flagcdn.com/w80/${country.iso}.png`} 
+                                style={{ height: config.title * 0.25, width: 'auto', borderRadius: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} 
+                                alt={country.name}
+                              />
+                               <span style={{ fontSize: config.title * 0.15, opacity: 0.6, letterSpacing: '0.4em' }}>ESTRENO Mundial</span>
+                            </div>
+                          )
                         )}
                       </h4>
                       <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
