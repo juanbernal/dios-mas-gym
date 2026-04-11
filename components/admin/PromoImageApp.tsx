@@ -947,22 +947,21 @@ const PromoTemplate: React.FC<any> = ({
                 {/* CENTER (ORIGINAL) */}
                 <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
                   {bg && (
-                    <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
-                      <div style={{ position: 'absolute', inset: -40, background: theme.glow, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />
-                      <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)", overflow: 'hidden' }}>
-                        <div 
-                          style={{ 
-                            width: config.title * 6, 
-                            height: config.title * 6, 
-                            borderRadius: 2, 
-                            backgroundImage: `url("${bg}")`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            display: 'block', 
-                            transform: 'scale(1.2)', // ZOOM AUMENTADO PARA ASEGURAR LLENADO TOTAL
-                            filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
-                          }} 
-                        />
+                      <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
+                        <div style={{ width: config.title * 6, height: config.title * 6, overflow: 'hidden', borderRadius: 2 }}>
+                          <div 
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              backgroundImage: `url("${bg}")`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              display: 'block', 
+                              transform: 'scale(1.2)', 
+                              filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
+                            }} 
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
