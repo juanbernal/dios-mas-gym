@@ -1006,18 +1006,18 @@ const PromoTemplate: React.FC<any> = ({
                           padding: "10px 25px", 
                           borderRadius: 4, 
                           fontWeight: "900", 
-                          fontSize: config.title * 0.25, 
+                          fontSize: config.title * (artist.toUpperCase().includes('JUAN 614') ? 0.20 : 0.25), 
                           color: '#000', 
                           background: theme.accent, 
-                          letterSpacing: '0.4em', 
+                          letterSpacing: artist.toUpperCase().includes('JUAN 614') ? '0.2em' : '0.4em', 
                           boxShadow: `0 8px 30px ${theme.accent}4d`, 
                           cursor: 'pointer'
                         }}
                       >
-                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 RECORDS' : 'DIOSMASGYM RECORDS'}
+                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'DIOSMASGYM RECORDS'}
                       </div>
                       <div style={{ fontSize: config.title * 0.12, color: theme.accent, fontWeight: 900, letterSpacing: '0.4em', opacity: 0.6 }}>
-                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'MUSICA.DIOSMASGYM.COM'}
+                        {artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'MUSICA.DIOSMASGYM.COM'}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
