@@ -223,15 +223,27 @@ const PromoImageApp: React.FC = () => {
     const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
     if (!captureEl) throw new Error("Capture element not found");
 
-    // 1. Force Load ALL Images (Texture & Cover)
+    // 1. Force Load ALL Images (Texture & Cover) with Robust URL extraction
     const images = Array.from(captureEl.querySelectorAll('img, [style*="background-image"]'));
     await Promise.all(images.map(img => {
-      const src = img instanceof HTMLImageElement ? img.src : (img as HTMLElement).style.backgroundImage.slice(5, -2);
-      if (!src || src === 'none') return Promise.resolve();
+      let src = "";
+      if (img instanceof HTMLImageElement) {
+        src = img.src;
+      } else {
+        const bgStyle = (img as HTMLElement).style.backgroundImage;
+        // Robust regex to extract URL from various formats: url("..."), url('...'), url(...)
+        const match = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
+        src = match ? match[1] : "";
+      }
+      
+      if (!src || src === 'none' || src === '""') return Promise.resolve();
+      
       return new Promise(resolve => {
         const testImg = new Image();
         testImg.crossOrigin = "anonymous";
-        testImg.onload = testImg.onerror = resolve;
+        const t = setTimeout(() => resolve(false), 8000); // 8s timeout per image
+        testImg.onload = () => { clearTimeout(t); resolve(true); };
+        testImg.onerror = () => { clearTimeout(t); resolve(false); };
         testImg.src = src;
       });
     }));
@@ -242,11 +254,11 @@ const PromoImageApp: React.FC = () => {
       console.log("[MASTER] FONTS READY.");
     } catch (e) { console.warn("Font loading fallback engaged."); }
 
-    // 3. Dynamic Scale for True 4K (No arbitrary cap)
+    // 3. Dynamic Scale for True 4K (Balanced Cap for Memory)
     const currentWidth = captureEl.offsetWidth;
     const targetScale = Math.max(customScale, 3840 / currentWidth);
-    const finalScale = Math.max(targetScale, 4); // Min 4x for safety
-    console.log("[MASTER] RENDERING AT ULTRA-SCALE:", finalScale.toFixed(2));
+    const finalScale = Math.min(6, Math.max(targetScale, 4)); // Balanced cap at 6x for 4K (~3600-4000px)
+    console.log("[MASTER] RENDERING AT SCALE:", finalScale.toFixed(2));
 
     return await html2canvas(captureEl, {
       scale: finalScale,
@@ -371,9 +383,9 @@ const PromoImageApp: React.FC = () => {
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       console.log("[DOWNLOAD] PROCESS COMPLETE");
-    } catch (e) {
-      console.error("Download Error:", e);
-      alert("Error generating 4K Master. Please check connection.");
+    } catch (e: any) {
+      console.error("Critical Export Error:", e);
+      alert(`⚠️ Export Error: ${e.message || 'Browser Memory/Connection Issue'}. Try lowering resolution or checking connection.`);
     } finally {
       setIsGenerating(false);
     }
