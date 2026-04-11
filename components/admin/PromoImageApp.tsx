@@ -271,12 +271,15 @@ const PromoImageApp: React.FC = () => {
       logging: false,
       imageTimeout: 10000,
       onclone: (clonedDoc) => {
-        const findAndFixNoise = (selector: string, opacity: number) => {
+        const findAndFixNoise = (selector: string, multiplier: number) => {
           const el = clonedDoc.querySelector(selector) as HTMLElement;
-          if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
+          if (el) { 
+            el.style.mixBlendMode = 'normal'; 
+            el.style.opacity = (grit * multiplier).toString(); 
+          }
         };
-        findAndFixNoise('.noise-layer', grit);
-        findAndFixNoise('.real-grain', grit);
+        findAndFixNoise('.noise-layer', 0.08);
+        findAndFixNoise('.real-grain', 0.12);
         
         const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
         backdropFilters.forEach(el => { 
