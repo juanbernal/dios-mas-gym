@@ -11,6 +11,7 @@ const sizes = {
 };
 
 const countryOptions = [
+  { name: 'GLOBAL (TODAS)', flag: '🌎' },
   { name: 'México', flag: '🇲🇽' },
   { name: 'Estados Unidos', flag: '🇺🇸' },
   { name: 'Colombia', flag: '🇨🇴' },
@@ -72,6 +73,7 @@ const PromoImageApp: React.FC = () => {
   const [glow, setGlow] = useState(true);
   const [stroke, setStroke] = useState(false); // Default to false for solid look
   const containerRef = useRef<HTMLDivElement>(null);
+  const masterRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
@@ -229,13 +231,15 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg, autoColor]);
 
-  // ASYNC PREPARE CANVAS: Unified engine for all exports (Ultra 4K Edition)
-  const prepareCanvas = async (customScale = 4) => {
-    console.log("[MASTER] STARTING ULTRA-4K PREPARATION...");
-    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) throw new Error("Capture element not found");
+  // ASYNC PREPARE CANVAS: Ghost Master Engine (Native 4K Native Resolution)
+  const prepareCanvas = async (customScale = 1) => {
+    console.log("[MASTER] STARTING GHOST-MASTER NATIVE 4K PREPARATION...");
+    
+    // Target the hidden high-res master container
+    const captureEl = masterRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
+    if (!captureEl) throw new Error("Ghost Master element not found");
 
-    // 1. Force Load ALL Images (Texture & Cover) with Robust URL extraction
+    // 1. Force Load ALL Images in the Master Render
     const images = Array.from(captureEl.querySelectorAll('img, [style*="background-image"]'));
     await Promise.all(images.map(img => {
       let src = "";
@@ -243,7 +247,6 @@ const PromoImageApp: React.FC = () => {
         src = img.src;
       } else {
         const bgStyle = (img as HTMLElement).style.backgroundImage;
-        // Robust regex to extract URL from various formats: url("..."), url('...'), url(...)
         const match = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
         src = match ? match[1] : "";
       }
@@ -253,31 +256,27 @@ const PromoImageApp: React.FC = () => {
       return new Promise(resolve => {
         const testImg = new Image();
         testImg.crossOrigin = "anonymous";
-        const t = setTimeout(() => resolve(false), 20000); // 20s timeout for ultra-high-res images
+        const t = setTimeout(() => resolve(false), 20000); 
         testImg.onload = () => { clearTimeout(t); resolve(true); };
         testImg.onerror = () => { clearTimeout(t); resolve(false); };
         testImg.src = src;
       });
     }));
 
-    // 1.5 Stabilization Wait (Essential for Browser Rasterization of 4K images)
-    console.log("[MASTER] IMAGES READY, STABILIZING RASTERIZATION...");
+    // 1.5 Stabilization Wait (Browser rasterization at high-res)
+    console.log("[MASTER] MASTER IMAGES LOADED, STABILIZING 4K RASTER...");
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // 2. Load Fonts
     try {
       await document.fonts.ready;
-      console.log("[MASTER] FONTS READY.");
-    } catch (e) { console.warn("Font loading fallback engaged."); }
+    } catch (e) { console.warn("Font loading fallback."); }
 
-    // 3. Dynamic Scale for True 4K (Balanced Cap for Memory)
-    const currentWidth = captureEl.offsetWidth;
-    const targetScale = Math.max(customScale, 3840 / currentWidth);
-    const finalScale = Math.min(6, Math.max(targetScale, 4)); // Balanced cap at 6x for 4K (~3600-4000px)
-    console.log("[MASTER] RENDERING AT SCALE:", finalScale.toFixed(2));
-
+    // 3. Capture Native Master (Scale 1 because master is already huge)
+    console.log("[MASTER] CAPTURING NATIVE 4K MASTER...");
+    
     return await html2canvas(captureEl, {
-      scale: finalScale,
+      scale: customScale, // Usually 1 for native master
       useCORS: true,
       allowTaint: false,
       backgroundColor: null,
@@ -819,9 +818,27 @@ const PromoImageApp: React.FC = () => {
         </div>
       </div>
 
+      {/* GHOST MASTER: NATIVE 4K RENDERER (HIDDEN FROM VIEW) */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          left: -10000, 
+          top: -10000, 
+          width: 3840, // Native 4K Width for perfect rasterization
+          pointerEvents: 'none',
+          zIndex: -1000,
+          opacity: 0,
+          visibility: 'hidden'
+        }}
+      >
+        <div ref={masterRef}>
+          <PromoTemplate {...commonProps} isExport={true} />
+        </div>
+      </div>
+
     </div>
   );
-}
+};
 
 const PromoTemplate: React.FC<any> = ({ 
     title, artist, bg, mode, config, overlay, textColor, contrastColor, glow, stroke,
@@ -1032,7 +1049,26 @@ const PromoTemplate: React.FC<any> = ({
                   <div style={{ marginBottom: 20 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 15 }}>
                       <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
-                      <h4 style={{ fontSize: config.title * 0.22, color: theme.accent, fontWeight: 900, letterSpacing: '0.6em', textShadow: `0 4px 10px rgba(0,0,0,0.3)` }}>{country.flag} ESTRENO {country.name.toUpperCase()}</h4>
+                      <h4 style={{ 
+                        fontSize: config.title * 0.22, 
+                        color: theme.accent, 
+                        fontWeight: 900, 
+                        letterSpacing: '0.6em', 
+                        textShadow: `0 4px 10px rgba(0,0,0,0.3)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}>
+                        {country.name.includes('GLOBAL') ? (
+                          <span style={{ letterSpacing: '0.2em', display: 'flex', gap: 4 }}>
+                            {countryOptions.filter(c => !c.name.includes('GLOBAL')).slice(0, 6).map(c => (
+                              <span key={c.name}>{c.flag}</span>
+                            ))}
+                          </span>
+                        ) : (
+                          <>{country.flag} ESTRENO</>
+                        )}
+                      </h4>
                       <div style={{ width: 10, height: 1, background: theme.accent, opacity: 0.3 }}></div>
                     </div>
                     <h1 style={{ 
