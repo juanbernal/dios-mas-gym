@@ -949,7 +949,7 @@ const PromoTemplate: React.FC<any> = ({
                   {bg && (
                     <div style={{ position: "relative", marginBottom: config.title * 0.8 }}>
                       <div style={{ position: 'absolute', inset: -40, background: theme.glow, filter: 'blur(80px)', opacity: 0.25, borderRadius: '50%' }} />
-                      <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
+                      <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)", overflow: 'hidden' }}>
                         <div 
                           style={{ 
                             width: config.title * 6, 
@@ -959,26 +959,27 @@ const PromoTemplate: React.FC<any> = ({
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             display: 'block', 
-                            transform: 'scale(1.04)', // ZOOM DE SEGURIDAD PARA ELIMINAR BORDES NEGROS
+                            transform: 'scale(1.2)', // ZOOM AUMENTADO PARA ASEGURAR LLENADO TOTAL
                             filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
                           }} 
                         />
                       </div>
                       
-                      {/* SLOGAN DE ARTISTA (SIGNATURE STYLE) */}
+                      {/* SLOGAN DE ARTISTA (ELEGANT SIDE WATERMARK) */}
                       <div style={{
                         position: 'absolute',
-                        right: -config.title * 1.5,
-                        bottom: config.title * 0.2,
+                        right: config.title * 0.5,
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(90deg)',
+                        transformOrigin: 'center right',
                         fontFamily: "'Caveat', cursive",
-                        fontSize: config.title * 0.8,
+                        fontSize: config.title * 0.65,
                         color: textColor,
-                        textShadow: `0 10px 20px rgba(0,0,0,0.8), 0 0 10px ${theme.accent}44`,
-                        transform: 'rotate(-8deg)',
-                        zIndex: 20,
+                        opacity: 0.35, // MAS SUTIL COMO MARCA DE AGUA
                         whiteSpace: 'nowrap',
                         pointerEvents: 'none',
-                        filter: 'drop-shadow(0 5px 15px rgba(0,0,0,0.5))'
+                        letterSpacing: '0.1em',
+                        textShadow: `0 0 10px rgba(0,0,0,0.5)`
                       }}>
                         {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                       </div>
