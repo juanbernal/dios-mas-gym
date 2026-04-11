@@ -802,7 +802,7 @@ const PromoTemplate: React.FC<any> = ({
     return (
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
           <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Alex+Brush&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Dancing+Script:wght@700&display=swap');
             * { 
               -webkit-font-smoothing: antialiased; 
               -moz-osx-font-smoothing: grayscale;
@@ -916,7 +916,7 @@ const PromoTemplate: React.FC<any> = ({
           {/* THE BEAT SERIES (ORIGINAL LAYOUT VARIANTS) */}
           {(template === 'original-v1' || template.startsWith('beat-')) && (() => {
             const theme = {
-              'original-v1': { accent: '#c5a059', glow: glow ? contrastColor : 'rgba(197,160,89,0.15)', effect: null },
+              'original-v1': { accent: contrastColor || '#c5a059', glow: glow ? contrastColor : 'rgba(197,160,89,0.15)', effect: null },
               'beat-crimson': { accent: '#ff4444', glow: 'rgba(255,68,68,0.2)', effect: 'grunge' },
               'beat-cyber': { accent: '#00f2ff', glow: 'rgba(0,242,255,0.25)', effect: 'glitch' },
               'beat-platinum': { accent: '#e5e4e2', glow: 'rgba(255,255,255,0.1)', effect: 'glass' },
@@ -957,7 +957,7 @@ const PromoTemplate: React.FC<any> = ({
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
-                              transform: 'scale(1.2)', 
+                              transform: 'scale(1.3)', 
                               filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
                             }} 
                           />
@@ -1030,9 +1030,9 @@ const PromoTemplate: React.FC<any> = ({
                       <div style={{ 
                         fontSize: config.title * 0.45, 
                         color: textColor, 
-                        fontFamily: "'Alex Brush', cursive", 
+                        fontFamily: "'Dancing Script', cursive", 
                         letterSpacing: '0.04em', 
-                        marginTop: -8, 
+                        marginTop: -2, 
                         opacity: 1,
                         textShadow: '0 2px 10px rgba(0,0,0,0.3)'
                       }}>
