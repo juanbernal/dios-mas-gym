@@ -366,20 +366,27 @@ const PromoImageApp: React.FC = () => {
       }
       
       // 3. Pequeño retraso extra para estabilización de renderizado en off-screen
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(exportEl, {
-        scale: 5, // Aumentamos a 5 para máxima nitidez (resolución 5K aprox)
+        scale: 6, // Máxima calidad absoluta (Resolución 6K aprox)
         useCORS: true,
         allowTaint: false,
         logging: false,
         backgroundColor: null,
-        imageTimeout: 20000,
+        imageTimeout: 30000,
         removeContainer: true,
         width: config.w,
         height: config.h,
         windowWidth: config.w,
-        windowHeight: config.h
+        windowHeight: config.h,
+        onclone: (clonedDoc) => {
+          // Mejorar contraste y saturación SOLO en la exportación para un look profesional
+          const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
+          if (bgEl) {
+            bgEl.style.filter = 'contrast(1.1) saturate(1.15) brightness(1.05)';
+          }
+        }
       });
 
       canvas.toBlob((blob) => {
@@ -770,7 +777,16 @@ const PromoTemplate: React.FC<any> = ({
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&display=swap');
-            * { -webkit-font-smoothing: antialiased; }
+            * { 
+              -webkit-font-smoothing: antialiased; 
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeLegibility;
+            }
+            
+            img {
+              image-rendering: -webkit-optimize-contrast;
+              image-rendering: high-quality;
+            }
             
             .noise-layer {
               position: absolute;
@@ -832,15 +848,30 @@ const PromoTemplate: React.FC<any> = ({
             }
           `}</style>
           {bg && (
-            <div style={{ 
-              position: "absolute", 
-              inset: 0, 
-              backgroundImage: `url("${bg}")`, 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center', 
-              backgroundRepeat: 'no-repeat'
-            }} />
+            <div 
+              data-export-bg
+              style={{ 
+                position: "absolute", 
+                inset: "-2%", // Ligero margen negativo para evitar bordes blancos
+                backgroundImage: `url("${bg}")`, 
+                backgroundSize: 'cover', 
+                backgroundPosition: 'center', 
+                backgroundRepeat: 'no-repeat',
+                imageRendering: 'high-quality',
+                filter: 'brightness(1.02)' // Brillo base para contrarrestar el overlay oscuro
+              }} 
+            />
           )}
+          
+          {/* SILK SMOOTHING OVERLAY */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: `radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.2) 100%)`,
+            backdropFilter: 'contrast(1.02)',
+            zIndex: 1,
+            pointerEvents: 'none'
+          }} />
 
           {/* LAYER 1: OVERLAY BASE */}
           <div style={{ 
