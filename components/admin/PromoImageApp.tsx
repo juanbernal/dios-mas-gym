@@ -39,6 +39,7 @@ const PromoImageApp: React.FC = () => {
   const [scanlines, setScanlines] = useState(0.08);
   const [vignette, setVignette] = useState(0.6);
   const [industrial, setIndustrial] = useState(false);
+  const [autoColor, setAutoColor] = useState(true);
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
   // Esto garantiza que handleSendToMake siempre vea lo que hay en pantalla actualmente
@@ -129,7 +130,7 @@ const PromoImageApp: React.FC = () => {
   useEffect(() => {
     if (!bg) return;
     const img = new Image();
-    img.crossOrigin = "anonymous"; // SOLUCIÓN AL ERROR DE SEGURIDAD
+    img.crossOrigin = "anonymous"; 
     img.src = bg;
     img.onload = () => {
       try {
@@ -141,26 +142,34 @@ const PromoImageApp: React.FC = () => {
         ctx.drawImage(img, 0, 0, 20, 20);
         const data = ctx.getImageData(0, 0, 20, 20).data;
 
-        let brightness = 0;
+        let r = 0, g = 0, b = 0, brightness = 0;
         for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
           brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
         }
-        brightness /= data.length / 4;
+        const pixelCount = data.length / 4;
+        r = Math.round(r / pixelCount);
+        g = Math.round(g / pixelCount);
+        b = Math.round(b / pixelCount);
+        brightness /= pixelCount;
 
-        setOverlay(brightness > 140 ? 0.75 : 0.45);
-        setTextColor(brightness > 140 ? "#000000" : "#ffffff");
-        setContrastColor(brightness > 140 ? "#ffffff" : "#000000");
+        const hexColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+
+        if (autoColor) {
+           setContrastColor(hexColor);
+           setOverlay(brightness > 160 ? 0.75 : 0.5);
+           setTextColor(brightness > 160 ? "#000000" : "#ffffff");
+        } else {
+           setOverlay(brightness > 140 ? 0.75 : 0.45);
+        }
       } catch (err) {
-        console.warn("⚠️ [SEGURIDAD] No se pudo leer el brillo (CORS). Usando valores por defecto.");
-        setOverlay(0.5);
-        setTextColor("#ffffff");
-        setContrastColor("#000000");
+        console.warn("⚠️ [AUTO-COLOR] Error en análisis. Fallback.");
+        if (autoColor) setContrastColor("#c5a059");
       }
     };
-    img.onerror = () => {
-      console.warn("⚠️ [ERROR] No se pudo cargar la imagen de detección de brillo.");
-    };
-  }, [bg]);
+  }, [bg, autoColor]);
 
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
     const exportEl = document.getElementById("promo-export-master");
@@ -565,7 +574,16 @@ const PromoImageApp: React.FC = () => {
 
           {/* GROUP: AESTHETICS & TEMPLATES */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Base de Diseño & Plantilla</h2>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Base de Diseño & Plantilla</h2>
+              <button 
+                onClick={() => setAutoColor(!autoColor)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${autoColor ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}
+              >
+                <i className={`fas ${autoColor ? 'fa-magic' : 'fa-palette'}`}></i>
+                {autoColor ? 'Smart Color ON' : 'Manual Color'}
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 gap-8">
               {/* TEMPLATE SELECTOR: THE BEAT SERIES */}
