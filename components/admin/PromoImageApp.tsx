@@ -986,8 +986,27 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ textAlign: 'left', minWidth: config.title * 2 }}>
                       <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>{template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION</div>
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
+                      {artist.toUpperCase().includes('DIOSMASGYM') && (
+                        <div style={{ fontSize: config.title * 0.12, color: theme.accent, fontWeight: 900, letterSpacing: '0.1em', marginTop: 5, opacity: 0.8 }}>PURO CHIHUAHUA, SALUDOS</div>
+                      )}
                     </div>
-                    <div style={{ padding: "10px 25px", borderRadius: 4, fontWeight: "900", fontSize: config.title * 0.28, color: '#000', background: theme.accent, letterSpacing: '0.4em', boxShadow: `0 8px 30px ${theme.accent}4d`, flexShrink: 0 }}>DIOSMASGYM.COM</div>
+                    <div 
+                      onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
+                      style={{ 
+                        padding: "10px 25px", 
+                        borderRadius: 4, 
+                        fontWeight: "900", 
+                        fontSize: config.title * (artist.toUpperCase().includes('JUAN 614') ? 0.22 : 0.28), 
+                        color: '#000', 
+                        background: theme.accent, 
+                        letterSpacing: '0.3em', 
+                        boxShadow: `0 8px 30px ${theme.accent}4d`, 
+                        flexShrink: 0,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'DIOSMASGYM RECORDS'}
+                    </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
                       <div style={{ width: config.title * 2.2, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                          <img 
