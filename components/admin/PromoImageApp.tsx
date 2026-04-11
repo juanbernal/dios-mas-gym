@@ -215,7 +215,7 @@ const PromoImageApp: React.FC = () => {
 
   // ASYNC PREPARE CANVAS: Unified engine for all exports
   const prepareCanvas = async (customScale = 3) => {
-    console.log("🚀 [MASTER] INICIANDO PREPARACIÓN 4K...");
+    console.log("[MASTER] STARTING 4K PREPARATION...");
     const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
     if (!captureEl) throw new Error("Capture element not found");
 
@@ -247,13 +247,15 @@ const PromoImageApp: React.FC = () => {
       });
       if (success) {
         actualBg = hiResBg;
-        console.log("✅ [MASTER] HIGH-RES LOADED SUCCESSFULY");
+        console.log("[MASTER] HIGH-RES LOADED SUCCESSFULY");
       } else {
-        console.warn("⚠️ [MASTER] HIGH-RES FAILED, USING ORIGINAL");
+        console.warn("[MASTER] HIGH-RES FAILED, USING ORIGINAL");
       }
       
-      const masterImgs = document.querySelectorAll('[data-export-master-img]');
-      masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
+      if (actualBg) {
+        const masterImgs = document.querySelectorAll('[data-export-master-img]');
+        masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
+      }
     }
 
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -357,14 +359,14 @@ const PromoImageApp: React.FC = () => {
 
   const handleDownload = async () => {
     setIsGenerating(true);
-    console.log("💾 [DOWNLOAD] INICIANDO DESCARGA MASTER 4K...");
+    console.log("[DOWNLOAD] STARTING MASTER 4K EXPORT...");
     try {
       const canvas = await prepareCanvas(4);
-      console.log("🎨 [DOWNLOAD] CANVAS GENERADO, CREANDO BLOB...");
+      console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-      if (!blob) throw new Error("No se pudo generar el Blob de imagen");
+      if (!blob) throw new Error("Blob generation failed");
 
-      console.log("✅ [DOWNLOAD] BLOB LISTO, TRIGGERING DESCARGA...");
+      console.log("[DOWNLOAD] BLOB READY, TRIGGERING DOWNLOAD...");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
@@ -373,10 +375,10 @@ const PromoImageApp: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      console.log("🏁 [DOWNLOAD] PROCESO COMPLETADO");
+      console.log("[DOWNLOAD] PROCESS COMPLETE");
     } catch (e) {
       console.error("Download Error:", e);
-      alert("Error al generar la imagen 4K. Revisa tu conexión.");
+      alert("Error generating 4K Master. Please check connection.");
     } finally {
       setIsGenerating(false);
     }
