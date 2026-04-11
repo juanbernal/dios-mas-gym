@@ -72,6 +72,8 @@ const PromoImageApp: React.FC = () => {
   const [vignette, setVignette] = useState(0.6);
   const [industrial, setIndustrial] = useState(false);
   const [autoColor, setAutoColor] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false); // Progress feedback state
+
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
   // Esto garantiza que handleSendToMake siempre vea lo que hay en pantalla actualmente
@@ -212,32 +214,24 @@ const PromoImageApp: React.FC = () => {
   }, [bg, autoColor]);
 
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
-    const exportEl = document.getElementById("promo-export-master");
-    if (!exportEl) return;
+    setIsGenerating(true);
+    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
+    if (!captureEl) {
+      setIsGenerating(false);
+      return;
+    }
 
     try {
-      // 1. Asegurar que TODAS las fuentes estén cargadas
+      // 1. Cargado de fuentes
       await Promise.all([
         document.fonts.load('1em "Bebas Neue"'),
         document.fonts.load('1em "Inter"'),
+        document.fonts.load('1em "Satisfy"'),
         document.fonts.load('1em "DM Serif Display"'),
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      // 2. Esperar que la imagen de fondo esté cargada en el navegador
-      if (bg) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = bg;
-          await new Promise((resolve) => {
-              if (img.complete) resolve(true);
-              else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
-          });
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 2. ACTUALIZAR A ALTA RESOLUCIÓN Y ESPERAR CARGA
+      // 2. Imagen en alta resolución
       const hiResBg = getHighResUrl(bg);
       if (hiResBg) {
           const img = new Image();
@@ -247,31 +241,28 @@ const PromoImageApp: React.FC = () => {
               if (img.complete) resolve(true);
               else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
           });
-          
-          // Actualizar temporalmente para la captura (esto se verá en el clon)
-          const imgs = document.querySelectorAll('[data-export-master-img]');
-          imgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`);
+          const masterImgs = document.querySelectorAll('[data-export-master-img]');
+          masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(captureEl, {
-        scale: 3, // Calidad optimizada para compartir
+        scale: 3, 
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
         imageTimeout: 15000,
         onclone: (clonedDoc) => {
-            // Polyfill para efectos que canvas no entiende nativamente
             const findAndFixNoise = (selector: string, opacity: number) => {
               const el = clonedDoc.querySelector(selector) as HTMLElement;
-              if (el) {
-                 el.style.mixBlendMode = 'normal';
-                 el.style.opacity = (opacity * 0.45).toString();
-              }
+              if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
             };
             findAndFixNoise('.noise-layer', grit);
             findAndFixNoise('.real-grain', grit);
+            
+            const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
+            backdropFilters.forEach(el => { (el as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.3)'; (el as HTMLElement).style.backdropFilter = 'none'; });
         }
       });
 
@@ -334,48 +325,58 @@ const PromoImageApp: React.FC = () => {
   };
 
   const handleSendToMake = async (ovTitle?: any, ovArtist?: any, ovMode?: any) => {
-    const exportEl = document.getElementById("promo-export-master");
-    if (!exportEl) return;
+    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
+    if (!captureEl) return;
     
-    // Prioridad absoluta a los parámetros pasados (para evitar clausuras viejas)
+    // Prioridad absoluta a los parámetros pasados
     const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
     const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
     const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
 
-    console.log("📤 [MAKE] Enviando FormData:", finalTitle, "-", finalArtist);
-
+    setIsGenerating(true);
     setIsSendingToMake(true);
     try {
-      // 1. Asegurar que TODAS las fuentes estén cargadas
+      // 1. Asegurar fuentes
       await Promise.all([
         document.fonts.load('1em "Bebas Neue"'),
         document.fonts.load('1em "Inter"'),
+        document.fonts.load('1em "Satisfy"'),
         document.fonts.load('1em "DM Serif Display"'),
         document.fonts.load('1em "Space Grotesk"')
       ]);
-      
-      if (bg) {
+
+      // 2. Imagen en alta resolución
+      const hiResBg = getHighResUrl(bg);
+      if (hiResBg) {
           const img = new Image();
           img.crossOrigin = "anonymous";
-          img.src = bg;
+          img.src = hiResBg;
           await new Promise(resolve => {
               if (img.complete) resolve(true);
               else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
           });
+          const masterImgs = document.querySelectorAll('[data-export-master-img]');
+          masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const canvas = await html2canvas(exportEl, {
-        scale: 2, 
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const canvas = await html2canvas(captureEl, {
+        scale: 2.5, // Calidad balanceada para el Arsenal
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
-        imageTimeout: 15000,
-        width: config.w,
-        height: config.h,
-        windowWidth: config.w,
-        windowHeight: config.h
+        onclone: (clonedDoc) => {
+            const findAndFixNoise = (selector: string, opacity: number) => {
+              const el = clonedDoc.querySelector(selector) as HTMLElement;
+              if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
+            };
+            findAndFixNoise('.noise-layer', grit);
+            findAndFixNoise('.real-grain', grit);
+            
+            const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
+            backdropFilters.forEach(el => { (el as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.3)'; (el as HTMLElement).style.backdropFilter = 'none'; });
+        }
       });
 
       canvas.toBlob(async (blob) => {
@@ -407,6 +408,7 @@ const PromoImageApp: React.FC = () => {
             console.error(err);
         }
         setIsSendingToMake(false);
+        setIsGenerating(false);
       }, "image/png");
 
     } catch (e) {
@@ -418,9 +420,13 @@ const PromoImageApp: React.FC = () => {
 
 
   const handleDownload = async () => {
+    setIsGenerating(true);
     // CAPTURAMOS EL CONTENEDOR VIVO PARA PARIDAD TOTAL (WYSIWYG)
     const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) return;
+    if (!captureEl) {
+      setIsGenerating(false);
+      return;
+    }
 
     try {
       // 1. Asegurar cargado de fuentes
@@ -493,14 +499,21 @@ const PromoImageApp: React.FC = () => {
         }
       });
 
-      const link = document.createElement("a");
-      link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
-      link.href = canvas.toDataURL("image/png", 1.0);
-      link.click();
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
+        link.href = url;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }, "image/png", 1.0);
       
     } catch (e) {
       console.error("Error Download:", e);
       alert("Error al generar la imagen 4K");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -836,10 +849,10 @@ const PromoImageApp: React.FC = () => {
               </div>
             </div>
 
-            {isSendingToMake && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-[200] animate-fade-in">
-                <div className="w-16 h-16 border-t-2 border-r-2 border-[#c5a059] rounded-full animate-spin"></div>
-                <div className="text-[10px] font-black uppercase tracking-[1em] text-[#c5a059] animate-pulse">Masterizando Señal</div>
+            {isGenerating && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-[250] bg-black/60 backdrop-blur-md animate-fade-in rounded-[40px]">
+                <div className="w-16 h-16 border-t-2 border-r-2 border-[#c5a059] rounded-full animate-spin shadow-[0_0_30px_rgba(197,160,89,0.3)]"></div>
+                <div className="text-[10px] font-black uppercase tracking-[1em] text-[#c5a059] animate-pulse">Masterizando 4K</div>
               </div>
             )}
             
@@ -865,12 +878,6 @@ const PromoImageApp: React.FC = () => {
         </div>
       </div>
 
-      {/* EXPORT MASTER (OFF-SCREEN) */}
-      <div id="promo-export-master" style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -100 }}>
-         <div style={{ width: config.w, height: config.h, overflow: "hidden", position: "relative", backgroundColor: "#000" }}>
-            <PromoTemplate {...commonProps} isExport={true} />
-         </div>
-      </div>
     </div>
   );
 }
