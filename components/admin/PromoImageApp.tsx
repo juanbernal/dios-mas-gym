@@ -272,12 +272,19 @@ const PromoImageApp: React.FC = () => {
         findAndFixNoise('.noise-layer', 0.1);
         findAndFixNoise('.real-grain', 0.12);
         
-        const hGrid = clonedDoc.querySelector('.halftone-grid') as HTMLElement;
-        if (hGrid) hGrid.style.opacity = (grit * 0.5).toString();
-        
-        // Boost contrast slightly for the master file
-        const bgLayer = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
-        if (bgLayer) bgLayer.style.filter = 'brightness(1.05) contrast(1.05)';
+        // 4. Backdrop-Filter Polyfill (Essential for Text Visibility)
+        const polyfills = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
+        polyfills.forEach(el => {
+          const h = el as HTMLElement;
+          h.style.backdropFilter = 'none';
+          h.style.webkitBackdropFilter = 'none';
+          h.style.backgroundColor = 'rgba(0,0,0,0.85)'; // Solid fallback for blur
+        });
+
+        // 5. Global Master Sharpening (Syncs Text & Multi-layers)
+        if (clonedWrapper) {
+          clonedWrapper.style.filter = 'brightness(1.04) contrast(1.04) saturate(1.05)';
+        }
       }
     });
   };
@@ -910,7 +917,9 @@ const PromoTemplate: React.FC<any> = ({
                         <span style={{ color: theme.accent }}>{artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'PURO CHIHUAHUA'}</span>
                       </div>
                   </div>
-                  <div style={{ padding: "8px 20px", borderRadius: 2, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
+                  <div 
+                    data-backdrop-polyfill
+                    style={{ padding: "8px 20px", borderRadius: 2, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
                     {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
                   </div>
                 </div>
