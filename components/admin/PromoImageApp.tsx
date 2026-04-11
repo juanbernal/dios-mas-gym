@@ -213,16 +213,14 @@ const PromoImageApp: React.FC = () => {
     };
   }, [bg, autoColor]);
 
-  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
-    setIsGenerating(true);
+  // ASYNC PREPARE CANVAS: Unified engine for all exports
+  const prepareCanvas = async (customScale = 3) => {
+    console.log("🚀 [MASTER] INICIANDO PREPARACIÓN 4K...");
     const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) {
-      setIsGenerating(false);
-      return;
-    }
+    if (!captureEl) throw new Error("Capture element not found");
 
+    // 1. Load Fonts
     try {
-      // 1. Cargado de fuentes
       await Promise.all([
         document.fonts.load('1em "Bebas Neue"'),
         document.fonts.load('1em "Inter"'),
@@ -230,248 +228,137 @@ const PromoImageApp: React.FC = () => {
         document.fonts.load('1em "DM Serif Display"'),
         document.fonts.load('1em "Space Grotesk"')
       ]);
-      
-      // 2. Imagen en alta resolución (Con Failsafe)
-      const hiResBg = getHighResUrl(bg);
-      let actualBg = bg;
-      if (hiResBg) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = hiResBg;
-          const success = await new Promise(resolve => {
-              const timeout = setTimeout(() => resolve(false), 5000);
-              if (img.complete) { clearTimeout(timeout); resolve(true); }
-              else { 
-                img.onload = () => { clearTimeout(timeout); resolve(true); }; 
-                img.onerror = () => { clearTimeout(timeout); resolve(false); }; 
-              }
-          });
-          if (success) actualBg = hiResBg;
-          
-          const masterImgs = document.querySelectorAll('[data-export-master-img]');
-          masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
+    } catch (e) {
+      console.warn("Font loading timed out or failed, proceeding with fallbacks.");
+    }
+
+    // 2. High-Res Image Swap (Failsafe)
+    const hiResBg = getHighResUrl(bg);
+    let actualBg = bg;
+    if (hiResBg && hiResBg !== bg) {
+      console.log("🖼️ [MASTER] UPGRADING TO HIGH-RES:", hiResBg);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = hiResBg;
+      const success = await new Promise(resolve => {
+        const t = setTimeout(() => resolve(false), 3000); // 3s timeout for hi-res
+        if (img.complete) { clearTimeout(t); resolve(true); }
+        else { img.onload = () => { clearTimeout(t); resolve(true); }; img.onerror = () => { clearTimeout(t); resolve(false); }; }
+      });
+      if (success) {
+        actualBg = hiResBg;
+        console.log("✅ [MASTER] HIGH-RES LOADED SUCCESSFULY");
+      } else {
+        console.warn("⚠️ [MASTER] HIGH-RES FAILED, USING ORIGINAL");
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const canvas = await html2canvas(captureEl, {
-        scale: 3, 
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        onclone: (clonedDoc) => {
-            const findAndFixNoise = (selector: string, opacity: number) => {
-              const el = clonedDoc.querySelector(selector) as HTMLElement;
-              if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
-            };
-            findAndFixNoise('.noise-layer', grit);
-            findAndFixNoise('.real-grain', grit);
-            
-            const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
-            backdropFilters.forEach(el => { 
-                const h = el as HTMLElement;
-                h.style.backgroundColor = 'rgba(0,0,0,0.3)'; 
-                h.style.backdropFilter = 'none'; 
-            });
-        }
-      });
+      const masterImgs = document.querySelectorAll('[data-export-master-img]');
+      masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
+    }
 
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-      if (!blob) throw new Error("Could not generate image");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 3. Dynamic Scale for 4K Parity
+    const currentWidth = captureEl.offsetWidth;
+    const targetScale = Math.max(customScale, 3840 / currentWidth);
+    console.log("📐 [MASTER] RENDERING AT SCALE:", Math.min(6, targetScale));
+
+    return await html2canvas(captureEl, {
+      scale: Math.min(6, targetScale),
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: null,
+      logging: false,
+      imageTimeout: 10000,
+      onclone: (clonedDoc) => {
+        const findAndFixNoise = (selector: string, opacity: number) => {
+          const el = clonedDoc.querySelector(selector) as HTMLElement;
+          if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
+        };
+        findAndFixNoise('.noise-layer', grit);
+        findAndFixNoise('.real-grain', grit);
+        
+        const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
+        backdropFilters.forEach(el => { 
+          const h = el as HTMLElement;
+          h.style.backgroundColor = 'rgba(0,0,0,0.3)'; h.style.backdropFilter = 'none'; 
+        });
+      }
+    });
+  };
+
+  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
+    setIsGenerating(true);
+    try {
+      const canvas = await prepareCanvas(2.5);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+      if (!blob) throw new Error("Blob failed");
 
       const file = new File([blob], `PROMO-${title.toLowerCase().replace(/\s+/g, '-')}.png`, { type: 'image/png' });
       const text = `¡Escucha "${title}" de ${artist}! Ya disponible. #DiosMasGym #Juan614`;
       const url = "https://diosmasgym.com";
 
-      if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text, url });
+      } else {
         try {
-          await navigator.share({ files: [file], title: title, text: text });
-          return;
-        } catch (err) {
-          console.warn("Share failed or cancelled:", err);
+          if (typeof ClipboardItem !== 'undefined') {
+            await navigator.clipboard.write([new ClipboardItem({ [file.type]: blob })]);
+            alert("✅ Imagen copiada al portapapeles.");
+          }
+        } catch (e) {
+          switch (platform) {
+            case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank'); break;
+            case 'facebook': window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank'); break;
+            case 'twitter': window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank'); break;
+            default: alert("Usa 'Descargar Master 4K' para compartir.");
+          }
         }
-      }
-
-      try {
-        if (typeof ClipboardItem !== 'undefined') {
-            const data = [new ClipboardItem({ [file.type]: blob })];
-            await navigator.clipboard.write(data);
-            alert("✅ Imagen copiada al portapapeles. ¡Pégala directamente en tu chat o red social!");
-            return;
-        }
-      } catch (err) {
-        console.warn("Clipboard failed:", err);
-      }
-
-      switch (platform) {
-        case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank'); break;
-        case 'facebook': window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank'); break;
-        case 'twitter': window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank'); break;
-        case 'generic': alert("Tu navegador no soporta compartir archivos nativamente. Usa 'Descargar Master 4K'."); break;
       }
     } catch (err) {
-      console.error("Error sharing:", err);
-      alert("Error al procesar la imagen para compartir.");
+      console.error("Share error:", err);
+      alert("Error al compartir la imagen.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleSendToMake = async (ovTitle?: any, ovArtist?: any, ovMode?: any) => {
-    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) return;
-    
-    const finalTitle = (typeof ovTitle === 'string') ? ovTitle : titleRef.current;
-    const finalArtist = (typeof ovArtist === 'string') ? ovArtist : artistRef.current;
-    const finalMode = (typeof ovMode === 'string') ? ovMode : modeRef.current;
-
+  const handleSendToMake = async () => {
     setIsGenerating(true);
     setIsSendingToMake(true);
     try {
-      await Promise.all([
-        document.fonts.load('1em "Bebas Neue"'),
-        document.fonts.load('1em "Inter"'),
-        document.fonts.load('1em "Satisfy"'),
-        document.fonts.load('1em "DM Serif Display"'),
-        document.fonts.load('1em "Space Grotesk"')
-      ]);
-
-      const hiResBg = getHighResUrl(bg);
-      let actualBg = bg;
-      if (hiResBg) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = hiResBg;
-          const success = await new Promise(resolve => {
-              const timeout = setTimeout(() => resolve(false), 5000);
-              if (img.complete) { clearTimeout(timeout); resolve(true); }
-              else { 
-                img.onload = () => { clearTimeout(timeout); resolve(true); }; 
-                img.onerror = () => { clearTimeout(timeout); resolve(false); }; 
-              }
-          });
-          if (success) actualBg = hiResBg;
-          const masterImgs = document.querySelectorAll('[data-export-master-img]');
-          masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const canvas = await html2canvas(captureEl, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        onclone: (clonedDoc) => {
-            const findAndFixNoise = (selector: string, opacity: number) => {
-              const el = clonedDoc.querySelector(selector) as HTMLElement;
-              if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
-            };
-            findAndFixNoise('.noise-layer', grit);
-            findAndFixNoise('.real-grain', grit);
-            const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
-            backdropFilters.forEach(el => { (el as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.3)'; (el as HTMLElement).style.backdropFilter = 'none'; });
-        }
-      });
-
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
-      if (!blob) throw new Error("No se pudo generar el archivo");
+      const canvas = await prepareCanvas(2);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+      if (!blob) throw new Error("Blob failed");
 
       const formData = new FormData();
-      formData.append("file", blob, `PROMO-${finalArtist.replace(/\s+/g, '-')}.png`);
-      formData.append("artist", finalArtist);
-      formData.append("title", finalTitle);
-      formData.append("mode", finalMode);
-      formData.append("post_text", `¡Nuevo lanzamiento! "${finalTitle}" de ${finalArtist}. ${finalMode === 'proximamente' ? 'Próximamente disponible.' : '¡Ya disponible!'} #DiosMasGym #Juan614`);
+      formData.append("file", blob, `PROMO-${artistRef.current}.png`);
+      formData.append("artist", artistRef.current);
+      formData.append("title", titleRef.current);
+      formData.append("mode", modeRef.current);
 
-      const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", {
-          method: "POST",
-          body: formData
-      });
-
-      if (res.ok) alert("✅ Promo enviada al Arsenal con éxito");
-      else throw new Error("Make server responded with " + res.status);
-
+      const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Server error");
+      alert("✅ Promo enviada al Arsenal exitosamente.");
     } catch (err) {
-        console.error("Make error:", err);
-        alert("Error enviando datos al Arsenal");
+      console.error("Make error:", err);
+      alert("Error al enviar al Arsenal.");
     } finally {
-        setIsSendingToMake(false);
-        setIsGenerating(false);
+      setIsSendingToMake(false);
+      setIsGenerating(false);
     }
   };
 
   const handleDownload = async () => {
     setIsGenerating(true);
-    const captureEl = containerRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) {
-      setIsGenerating(false);
-      return;
-    }
-
+    console.log("💾 [DOWNLOAD] INICIANDO DESCARGA MASTER 4K...");
     try {
-      await Promise.all([
-        document.fonts.load('1em "Bebas Neue"'),
-        document.fonts.load('1em "Inter"'),
-        document.fonts.load('1em "DM Serif Display"'),
-        document.fonts.load('1em "Satisfy"'),
-        document.fonts.load('1em "Space Grotesk"')
-      ]);
-      
-      const hiResBg = getHighResUrl(bg);
-      let actualBg = bg;
-      if (hiResBg) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = hiResBg;
-          const success = await new Promise(resolve => {
-              const timeout = setTimeout(() => resolve(false), 5000);
-              if (img.complete) { clearTimeout(timeout); resolve(true); }
-              else { 
-                img.onload = () => { clearTimeout(timeout); resolve(true); }; 
-                img.onerror = () => { clearTimeout(timeout); resolve(false); }; 
-              }
-          });
-          if (success) actualBg = hiResBg;
-          
-          const masterImgs = document.querySelectorAll('[data-export-master-img]');
-          masterImgs.forEach(m => (m as HTMLElement).style.backgroundImage = `url("${actualBg}")`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const currentWidth = captureEl.offsetWidth;
-      const targetScale = Math.max(4, 3840 / currentWidth);
-
-      const canvas = await html2canvas(captureEl, {
-        scale: Math.min(6, targetScale), 
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        backgroundColor: null,
-        imageTimeout: 30000,
-        onclone: (clonedDoc) => {
-          const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
-          backdropFilters.forEach(el => { (el as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.3)'; (el as HTMLElement).style.backdropFilter = 'none'; });
-
-          const findAndFixNoise = (selector: string, opacity: number) => {
-            const el = clonedDoc.querySelector(selector) as HTMLElement;
-            if (el) { el.style.mixBlendMode = 'normal'; el.style.opacity = (opacity * 0.45).toString(); }
-          };
-          findAndFixNoise('.noise-layer', grit);
-          findAndFixNoise('.real-grain', grit);
-
-          const titleEl = clonedDoc.querySelector('h1') as HTMLElement;
-          if (titleEl) {
-            titleEl.style.textRendering = 'geometricPrecision';
-            titleEl.style.webkitFontSmoothing = 'antialiased';
-          }
-        }
-      });
-
+      const canvas = await prepareCanvas(4);
+      console.log("🎨 [DOWNLOAD] CANVAS GENERADO, CREANDO BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-      if (!blob) throw new Error("No se pudo generar el archivo de imagen");
+      if (!blob) throw new Error("No se pudo generar el Blob de imagen");
 
+      console.log("✅ [DOWNLOAD] BLOB LISTO, TRIGGERING DESCARGA...");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
@@ -479,12 +366,11 @@ const PromoImageApp: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      
+      console.log("🏁 [DOWNLOAD] PROCESO COMPLETADO");
     } catch (e) {
-      console.error("Error Download:", e);
-      alert("Error al generar la imagen 4K");
+      console.error("Download Error:", e);
+      alert("Error al generar la imagen 4K. Revisa tu conexión.");
     } finally {
       setIsGenerating(false);
     }
@@ -534,7 +420,7 @@ const PromoImageApp: React.FC = () => {
         <div className="w-20"></div> {/* Spacer */}
       </div>
 
-      <div className="flex-1 p-4 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-auto">
+      <div ref={containerRef} className="flex-1 p-4 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-auto">
         {/* LEFT COMPONENT: CONTROLS */}
         <div className="lg:col-span-5 space-y-8 animate-fade-in-up">
           
@@ -802,7 +688,7 @@ const PromoImageApp: React.FC = () => {
                 transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                 filter: isSendingToMake ? 'brightness(0.5) blur(10px)' : 'none'
               }}
-              className="hover:scale-[1.02] cursor-crosshair"
+              className="hover:scale-[1.02] cursor-crosshair promo-container-wrapper"
             >
               <div 
                 style={{ 
@@ -878,8 +764,8 @@ const PromoTemplate: React.FC<any> = ({
             .noise-layer {
               position: absolute;
               inset: 0;
-              background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
-              opacity: ${grit * 0.5};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.15};
               mix-blend-mode: overlay;
               pointer-events: none;
               z-index: 7;
@@ -888,9 +774,10 @@ const PromoTemplate: React.FC<any> = ({
             .real-grain {
               position: absolute;
               inset: 0;
-              background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
-              opacity: ${grit};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.2};
               pointer-events: none;
+              mix-blend-mode: multiply;
               z-index: 6;
             }
 
