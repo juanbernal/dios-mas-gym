@@ -278,8 +278,11 @@ const PromoImageApp: React.FC = () => {
             el.style.opacity = (grit * multiplier).toString(); 
           }
         };
-        findAndFixNoise('.noise-layer', 0.12);
-        findAndFixNoise('.real-grain', 0.15);
+        findAndFixNoise('.noise-layer', 0.1);
+        findAndFixNoise('.real-grain', 0.12);
+        
+        const hGrid = clonedDoc.querySelector('.halftone-grid') as HTMLElement;
+        if (hGrid) hGrid.style.opacity = (grit * 0.5).toString();
         
         const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
         backdropFilters.forEach(el => { 
@@ -767,8 +770,8 @@ const PromoTemplate: React.FC<any> = ({
             .noise-layer {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-              opacity: ${grit * 0.12};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.1};
               mix-blend-mode: overlay;
               pointer-events: none;
               z-index: 7;
@@ -777,17 +780,40 @@ const PromoTemplate: React.FC<any> = ({
             .real-grain {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
-              opacity: ${grit * 0.15};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.12};
               pointer-events: none;
-              mix-blend-mode: overlay;
+              mix-blend-mode: soft-light;
               z-index: 6;
+            }
+
+            .halftone-grid {
+              position: absolute;
+              inset: 0;
+              background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+              background-size: 4px 4px;
+              pointer-events: none;
+              z-index: 10;
+              opacity: ${grit * 0.5};
+            }
+
+            .light-leak {
+              position: absolute;
+              top: -20%;
+              left: -10%;
+              width: 140%;
+              height: 140%;
+              background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 0%, transparent 40%),
+                          radial-gradient(circle at 80% 80%, rgba(197, 160, 89, 0.05) 0%, transparent 40%);
+              pointer-events: none;
+              z-index: 5;
+              mix-blend-mode: screen;
             }
 
             .industrial-overlay {
               position: absolute;
               inset: 0;
-              background: ${template === 'studio-v3' ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(197, 160, 89, 0.03) 10px, rgba(197, 160, 89, 0.03) 20px)' : 'none'};
+              background: ${industrial ? 'repeating-linear-gradient(45deg, transparent, transparent 1px, rgba(255, 255, 255, 0.02) 1px, rgba(255, 255, 255, 0.02) 2px)' : 'none'};
               pointer-events: none;
               z-index: 4;
             }
@@ -795,8 +821,8 @@ const PromoTemplate: React.FC<any> = ({
             .scanlines {
               position: absolute;
               inset: 0;
-              background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,${scanlines}) 50%);
-              background-size: 100% 4px;
+              background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,${scanlines * 0.5}) 50%);
+              background-size: 100% 2px;
               pointer-events: none;
               z-index: 8;
             }
@@ -804,7 +830,7 @@ const PromoTemplate: React.FC<any> = ({
             .vignette {
               position: absolute;
               inset: 0;
-              background: radial-gradient(circle, transparent 20%, rgba(0,0,0,${vignette}) 100%);
+              background: radial-gradient(circle, transparent 40%, rgba(0,0,0,${vignette * 0.8}) 100%);
               pointer-events: none;
               z-index: 9;
             }
@@ -812,11 +838,11 @@ const PromoTemplate: React.FC<any> = ({
             .glitch-scan {
               position: absolute;
               inset: 0;
-              background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+              background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
               background-size: 100% 2px, 3px 100%;
               pointer-events: none;
               z-index: 12;
-              opacity: 0.15;
+              opacity: 0.1;
             }
 
             .beat-border {
@@ -861,8 +887,9 @@ const PromoTemplate: React.FC<any> = ({
             backgroundColor: `rgba(0,0,0,${overlay})` 
           }} />
 
-          {/* LAYER 2: TEXTURES (Common but adaptive) */}
           <div className="vignette" />
+          <div className="light-leak" />
+          <div className="halftone-grid" />
           {scanlines > 0 && <div className="scanlines" />}
           {noise && <div className="real-grain" />}
           {industrial && <div className="industrial-overlay" />}
