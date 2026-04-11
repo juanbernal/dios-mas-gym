@@ -309,7 +309,7 @@ const PromoImageApp: React.FC = () => {
         polyfills.forEach(el => {
           const h = el as HTMLElement;
           h.style.backdropFilter = 'none';
-          h.style.webkitBackdropFilter = 'none';
+          (h.style as any).webkitBackdropFilter = 'none';
           // Use original background alpha but slightly darker to ensure text pop in master
           h.style.backgroundColor = 'rgba(0,0,0,0.7)'; 
         });
@@ -825,7 +825,7 @@ const PromoImageApp: React.FC = () => {
 
 const PromoTemplate: React.FC<any> = ({ 
     title, artist, bg, mode, config, overlay, textColor, contrastColor, glow, stroke,
-    formatDate, trackList, isExport = false,
+    formatDate, trackList, isExport = false, country,
     grit, noise, scanlines, vignette, industrial, template
 }) => {
     return (
