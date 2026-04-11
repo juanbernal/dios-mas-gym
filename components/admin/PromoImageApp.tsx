@@ -802,7 +802,7 @@ const PromoTemplate: React.FC<any> = ({
     return (
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
           <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Satisfy&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Alex+Brush&display=swap');
             * { 
               -webkit-font-smoothing: antialiased; 
               -moz-osx-font-smoothing: grayscale;
@@ -1028,12 +1028,12 @@ const PromoTemplate: React.FC<any> = ({
                         {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'DIOSMASGYM RECORDS'}
                       </div>
                       <div style={{ 
-                        fontSize: config.title * 0.4, 
+                        fontSize: config.title * 0.45, 
                         color: textColor, 
-                        fontFamily: "'Satisfy', cursive", 
-                        letterSpacing: '0.02em', 
-                        marginTop: -2, 
-                        opacity: 0.9,
+                        fontFamily: "'Alex Brush', cursive", 
+                        letterSpacing: '0.04em', 
+                        marginTop: -8, 
+                        opacity: 1,
                         textShadow: '0 2px 10px rgba(0,0,0,0.3)'
                       }}>
                         {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
