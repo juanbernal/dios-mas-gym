@@ -16,17 +16,16 @@ const getHighResUrl = (url: string | null): string | null => {
   if (url.startsWith('data:')) return url;
   
   try {
-    // 1. Handle Blogger/Google User Content URLs (Full coverage of all size flags)
-    if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com')) {
-       // Clean up common size parameters while preserving the base
-       let hurl = url.replace(/=s\d+([-c])?/, '=s0')
-                    .replace(/=w\d+(-h\d+)?([-c])?/, '=s0')
-                    .replace(/\/s\d+(-c)?\//, '/s1600/') // s1600 is safer than s0 for path-based Blogger
-                    .replace(/-rw$/, ''); // Remove WebP compression
-       return hurl;
+    // 1. Handle Blogger/Google User Content URLs (Absolute coverage)
+    if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com') || url.includes('ggpht.com')) {
+       // s0 is the absolute master original in Google's ecosystem
+       return url.replace(/=s\d+([-c])?/, '=s0')
+                 .replace(/=w\d+(-h\d+)?([-c])?/, '=s0')
+                 .replace(/\/s\d+(-c)?\//, '/s0/')
+                 .replace(/-rw$/, ''); // Strip WebP compression if present
     }
     
-    // 2. Handle YouTube Thumbnails (Force maxresdefault if possible)
+    // 2. Handle YouTube Thumbnails (Force maxresdefault)
     if (url.includes('ytimg.com')) {
        return url.replace(/\/(hq|mq|sd|default)default\.jpg/, '/maxresdefault.jpg');
     }
@@ -241,12 +240,16 @@ const PromoImageApp: React.FC = () => {
       return new Promise(resolve => {
         const testImg = new Image();
         testImg.crossOrigin = "anonymous";
-        const t = setTimeout(() => resolve(false), 8000); // 8s timeout per image
+        const t = setTimeout(() => resolve(false), 20000); // 20s timeout for ultra-high-res images
         testImg.onload = () => { clearTimeout(t); resolve(true); };
         testImg.onerror = () => { clearTimeout(t); resolve(false); };
         testImg.src = src;
       });
     }));
+
+    // 1.5 Stabilization Wait (Essential for Browser Rasterization of 4K images)
+    console.log("[MASTER] IMAGES READY, STABILIZING RASTERIZATION...");
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // 2. Load Fonts
     try {
