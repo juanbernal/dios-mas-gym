@@ -927,13 +927,7 @@ const PromoTemplate: React.FC<any> = ({
               <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
                 
-                {/* BRANDING LOGO */}
-                <div style={{ position: 'absolute', top: '8%', right: '8%', width: config.title * 2.5, height: config.title * 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15, opacity: 0.8 }}>
-                    <img 
-                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614.jpg' : '/logo-diosmasgym.png'} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 20px ${theme.glow})` }} 
-                    />
-                </div>
+                {/* BRANDING LOGO REMOVED FROM TOP-RIGHT - MOVED TO FOOTER */}
 
                 {/* HEADER (ORIGINAL) */}
                 <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
@@ -994,9 +988,14 @@ const PromoTemplate: React.FC<any> = ({
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
                     </div>
                     <div style={{ padding: "12px 30px", borderRadius: 2, fontWeight: "900", fontSize: config.title * 0.3, color: '#000', background: theme.accent, letterSpacing: '0.4em', boxShadow: `0 10px 40px ${theme.accent}4d` }}>DIOSMASGYM.COM</div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>MASTERED HIGH DEF</div>
-                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>BPM: 128 // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                      <div style={{ width: config.title * 1.5, height: config.title * 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <img 
+                            src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'} 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 5px ${theme.accent}33)` }} 
+                         />
+                      </div>
+                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
                 </div>
               </div>
