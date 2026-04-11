@@ -992,21 +992,33 @@ const PromoTemplate: React.FC<any> = ({
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
                     </div>
                     <div 
-                      onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
                       style={{ 
-                        padding: "10px 25px", 
-                        borderRadius: 4, 
-                        fontWeight: "900", 
-                        fontSize: config.title * 0.25, 
-                        color: '#000', 
-                        background: theme.accent, 
-                        letterSpacing: '0.4em', 
-                        boxShadow: `0 8px 30px ${theme.accent}4d`, 
-                        flexShrink: 0,
-                        cursor: 'pointer'
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexShrink: 0
                       }}
                     >
-                      {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 RECORDS' : 'DIOSMASGYM RECORDS'}
+                      <div 
+                        onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
+                        style={{ 
+                          padding: "10px 25px", 
+                          borderRadius: 4, 
+                          fontWeight: "900", 
+                          fontSize: config.title * 0.25, 
+                          color: '#000', 
+                          background: theme.accent, 
+                          letterSpacing: '0.4em', 
+                          boxShadow: `0 8px 30px ${theme.accent}4d`, 
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 RECORDS' : 'DIOSMASGYM RECORDS'}
+                      </div>
+                      <div style={{ fontSize: config.title * 0.12, color: theme.accent, fontWeight: 900, letterSpacing: '0.4em', opacity: 0.6 }}>
+                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'MUSICA.DIOSMASGYM.COM'}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
                       <div style={{ width: config.title * 2.2, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -1023,24 +1035,6 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
-                </div>
-
-                {/* VERTICAL URL SIDEBAR (CHIDO STYLE) */}
-                <div style={{ 
-                  position: 'absolute', 
-                  bottom: '20%', 
-                  left: config.title * 0.3, 
-                  transformOrigin: 'bottom left', 
-                  transform: 'rotate(-90deg)', 
-                  fontSize: config.title * 0.15, 
-                  fontWeight: 900, 
-                  letterSpacing: '0.5em', 
-                  color: theme.accent, 
-                  opacity: 0.4,
-                  zIndex: 20,
-                  fontFamily: 'Inter'
-                }}>
-                  {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'MUSICA.DIOSMASGYM.COM'}
                 </div>
               </div>
             );
