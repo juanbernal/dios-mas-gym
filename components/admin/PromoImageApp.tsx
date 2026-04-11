@@ -278,8 +278,8 @@ const PromoImageApp: React.FC = () => {
             el.style.opacity = (grit * multiplier).toString(); 
           }
         };
-        findAndFixNoise('.noise-layer', 0.08);
-        findAndFixNoise('.real-grain', 0.12);
+        findAndFixNoise('.noise-layer', 0.12);
+        findAndFixNoise('.real-grain', 0.15);
         
         const backdropFilters = clonedDoc.querySelectorAll('[data-backdrop-polyfill]');
         backdropFilters.forEach(el => { 
@@ -767,8 +767,8 @@ const PromoTemplate: React.FC<any> = ({
             .noise-layer {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.4' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-              opacity: ${grit * 0.08};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.12};
               mix-blend-mode: overlay;
               pointer-events: none;
               z-index: 7;
@@ -777,10 +777,10 @@ const PromoTemplate: React.FC<any> = ({
             .real-grain {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 500' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.25' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
-              opacity: ${grit * 0.12};
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.08' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
+              opacity: ${grit * 0.15};
               pointer-events: none;
-              mix-blend-mode: multiply;
+              mix-blend-mode: overlay;
               z-index: 6;
             }
 
