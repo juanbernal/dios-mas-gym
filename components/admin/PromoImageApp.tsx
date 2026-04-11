@@ -386,7 +386,7 @@ const PromoImageApp: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(exportEl, {
-        scale: 6, // Máxima calidad absoluta (Resolución 6K aprox)
+        scale: 4, // Óptimo para 4K sin saturar memoria del navegador
         useCORS: true,
         allowTaint: false,
         logging: false,
@@ -398,11 +398,27 @@ const PromoImageApp: React.FC = () => {
         windowWidth: config.w,
         windowHeight: config.h,
         onclone: (clonedDoc) => {
-          // Mejorar contraste y saturación SOLO en la exportación para un look profesional
+          // 1. Mejorar contraste y nitidez en la exportación
           const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
           if (bgEl) {
-            bgEl.style.filter = 'contrast(1.1) saturate(1.15) brightness(1.05)';
+            bgEl.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.05) sharpen(1.2)';
+            bgEl.style.imageRendering = 'high-quality';
           }
+
+          // 2. CORRECCIÓN DE GRANO PARA EXPORTACIÓN (Fallback de mix-blend-mode)
+          const findAndFixNoise = (selector: string, opacity: number) => {
+            const el = clonedDoc.querySelector(selector) as HTMLElement;
+            if (el) {
+               el.style.mixBlendMode = 'normal';
+               el.style.opacity = (opacity * 0.4).toString(); // Simular overlay con transparencia normal
+            }
+          };
+          findAndFixNoise('.noise-layer', grit);
+          findAndFixNoise('.real-grain', grit);
+          
+          // 3. Asegurar que las imágenes están escaladas para máxima nitidez
+          const imgs = clonedDoc.querySelectorAll('img');
+          imgs.forEach(i => i.style.imageRendering = 'high-quality');
         }
       });
 
@@ -957,7 +973,7 @@ const PromoTemplate: React.FC<any> = ({
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
-                              transform: 'scale(1.3)', 
+                              transform: bg.startsWith('data:') ? 'scale(1.02)' : 'scale(1.3)', // SMART ZOOM: Solo para catálogo
                               filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
                             }} 
                           />
