@@ -236,8 +236,9 @@ const PromoImageApp: React.FC = () => {
     console.log("[MASTER] STARTING GHOST-MASTER NATIVE 4K PREPARATION...");
     
     // Target the hidden high-res master container
-    const captureEl = masterRef.current?.querySelector('.promo-container-wrapper') as HTMLElement;
-    if (!captureEl) throw new Error("Ghost Master element not found");
+    // We look for the main template container within our ghost master ref
+    const captureEl = masterRef.current?.querySelector('.promo-master-target') as HTMLElement;
+    if (!captureEl) throw new Error("Ghost Master element not found. Please wait a moment and try again.");
 
     // 1. Force Load ALL Images in the Master Render
     const images = Array.from(captureEl.querySelectorAll('img, [style*="background-image"]'));
@@ -822,17 +823,28 @@ const PromoImageApp: React.FC = () => {
       <div 
         style={{ 
           position: 'fixed', 
-          left: -10000, 
-          top: -10000, 
-          width: 3840, // Native 4K Width for perfect rasterization
+          left: -4000, 
+          top: -4000, 
+          width: 3840, // Native 4K Width
           pointerEvents: 'none',
           zIndex: -1000,
           opacity: 0,
-          visibility: 'hidden'
+          overflow: 'hidden'
         }}
       >
         <div ref={masterRef}>
-          <PromoTemplate {...commonProps} isExport={true} />
+          {/* We must mirror the exact structure that the capture engine expects */}
+          <div 
+            className="promo-master-target" 
+            style={{ 
+              width: 3840, 
+              height: 3840 * (config.h / config.w), // Maintain Aspect Ratio
+              position: 'relative',
+              display: 'block'
+            }}
+          >
+             <PromoTemplate {...commonProps} isExport={true} />
+          </div>
         </div>
       </div>
 
