@@ -270,8 +270,12 @@ const PromoImageApp: React.FC = () => {
       onclone: (clonedDoc) => {
         const clonedWrapper = clonedDoc.querySelector('.promo-container-wrapper') as HTMLElement;
         if (clonedWrapper) {
+          // FORCE EXACT PIXEL DIMENSIONS TO PREVENT 0x0 PATTERN ERRORS
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.boxShadow = 'none';
+          clonedWrapper.style.width = `${config.w}px`;
+          clonedWrapper.style.height = `${config.h}px`;
+          clonedWrapper.style.display = 'block';
         }
 
         const findAndFixNoise = (selector: string, multiplier: number) => {
@@ -779,7 +783,8 @@ const PromoTemplate: React.FC<any> = ({
             .noise-layer {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+              background-size: 100% 100%; /* Evita tiling que causa errores de createPattern */
               opacity: ${grit * 0.1};
               mix-blend-mode: overlay;
               pointer-events: none;
@@ -789,7 +794,8 @@ const PromoTemplate: React.FC<any> = ({
             .real-grain {
               position: absolute;
               inset: 0;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
+              background-size: 100% 100%;
               opacity: ${grit * 0.12};
               pointer-events: none;
               mix-blend-mode: soft-light;
@@ -800,7 +806,8 @@ const PromoTemplate: React.FC<any> = ({
               position: absolute;
               inset: 0;
               background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-              background-size: 4px 4px;
+              background-size: 8px 8px;
+              background-repeat: repeat;
               pointer-events: none;
               z-index: 10;
               opacity: ${grit * 0.5};
