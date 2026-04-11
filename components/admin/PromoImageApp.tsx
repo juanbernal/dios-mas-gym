@@ -309,7 +309,8 @@ const PromoImageApp: React.FC = () => {
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
     setIsGenerating(true);
     try {
-      const canvas = await prepareCanvas(2.5);
+      // Use standard scale (2x) for sharing to ensure compatibility
+      const canvas = await prepareCanvas(2);
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
       if (!blob) throw new Error("Blob failed");
 
@@ -368,11 +369,12 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (isUltra = true) => {
     setIsGenerating(true);
-    console.log("[DOWNLOAD] STARTING MASTER 4K EXPORT...");
+    console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT...`);
     try {
-      const canvas = await prepareCanvas(4);
+      // Use scale 1 for 1:1 parity if requested, otherwise 4 for 4K
+      const canvas = await prepareCanvas(isUltra ? 4 : 1);
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
       if (!blob) throw new Error("Blob generation failed");
@@ -380,7 +382,7 @@ const PromoImageApp: React.FC = () => {
       console.log("[DOWNLOAD] BLOB READY, TRIGGERING DOWNLOAD...");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `PROMO-${title.replace(/\s+/g, '-')}-4K.png`;
+      link.download = `PROMO-${title.replace(/\s+/g, '-')}-${isUltra ? '4K' : '1to1'}.png`;
       link.href = url;
       document.body.appendChild(link);
       link.click();
@@ -549,6 +551,19 @@ const PromoImageApp: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* DATE PICKER (Conditional Simple Calendar for Proximamente) */}
+              <div className="space-y-2 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">
+                  {mode === 'proximamente' ? 'Día del Estreno (Calendario)' : 'Fecha y Hora Oficial'}
+                </label>
+                <input 
+                  type={mode === 'proximamente' ? "date" : "datetime-local"}
+                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059]"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -636,10 +651,17 @@ const PromoImageApp: React.FC = () => {
              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Exportar & Compartir</h2>
              <div className="flex flex-col gap-6">
                 <button 
-                  onClick={handleDownload}
+                  onClick={() => handleDownload(true)}
                   className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
                 >
-                  <i className="fas fa-download group-hover:translate-y-1 transition-transform"></i> Descargar Master 4K
+                  <i className="fas fa-crown group-hover:scale-110 transition-transform"></i> Descargar Master 4K Ultra
+                </button>
+
+                <button 
+                  onClick={() => handleDownload(false)}
+                  className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
+                >
+                  <i className="fas fa-eye"></i> Descargar 1:1 (Calidad de Vista)
                 </button>
                 
                 <div className="space-y-4">
@@ -699,6 +721,7 @@ const PromoImageApp: React.FC = () => {
             <div className="absolute bottom-0 right-1/4 w-1/2 h-40 bg-blue-500/5 blur-[100px] pointer-events-none"></div>
             
             <div 
+              onClick={() => handleDownload(false)}
               style={{ 
                 width: config.w * scale, 
                 height: config.h * scale, 
@@ -707,7 +730,8 @@ const PromoImageApp: React.FC = () => {
                 transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                 filter: isSendingToMake ? 'brightness(0.5) blur(10px)' : 'none'
               }}
-              className="hover:scale-[1.02] cursor-crosshair promo-container-wrapper"
+              className="hover:scale-[1.02] cursor-download promo-container-wrapper"
+              title="Haz clic para descargar exactamente lo que ves"
             >
               <div 
                 style={{ 
