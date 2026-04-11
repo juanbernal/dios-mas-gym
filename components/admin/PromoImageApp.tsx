@@ -933,7 +933,11 @@ const PromoTemplate: React.FC<any> = ({
                 <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
-                      <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>REFLECTIONS // HUB PRO V5.1</div>
+                      <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span>REFLECTIONS // HUB PRO V5.1</span>
+                        <span style={{ color: theme.accent, opacity: 0.8 }}>//</span>
+                        <span style={{ color: theme.accent }}>{artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'PURO CHIHUAHUA'}</span>
+                      </div>
                   </div>
                   <div style={{ padding: "8px 20px", borderRadius: 2, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
                     {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
@@ -986,9 +990,6 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ textAlign: 'left', minWidth: config.title * 2 }}>
                       <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>{template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION</div>
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
-                      {artist.toUpperCase().includes('DIOSMASGYM') && (
-                        <div style={{ fontSize: config.title * 0.12, color: theme.accent, fontWeight: 900, letterSpacing: '0.1em', marginTop: 5, opacity: 0.8 }}>PURO CHIHUAHUA, SALUDOS</div>
-                      )}
                     </div>
                     <div 
                       onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
@@ -996,16 +997,16 @@ const PromoTemplate: React.FC<any> = ({
                         padding: "10px 25px", 
                         borderRadius: 4, 
                         fontWeight: "900", 
-                        fontSize: config.title * (artist.toUpperCase().includes('JUAN 614') ? 0.22 : 0.28), 
+                        fontSize: config.title * 0.25, 
                         color: '#000', 
                         background: theme.accent, 
-                        letterSpacing: '0.3em', 
+                        letterSpacing: '0.4em', 
                         boxShadow: `0 8px 30px ${theme.accent}4d`, 
                         flexShrink: 0,
                         cursor: 'pointer'
                       }}
                     >
-                      {artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'DIOSMASGYM RECORDS'}
+                      {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 RECORDS' : 'DIOSMASGYM RECORDS'}
                     </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
                       <div style={{ width: config.title * 2.2, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -1022,6 +1023,24 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
+                </div>
+
+                {/* VERTICAL URL SIDEBAR (CHIDO STYLE) */}
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: '20%', 
+                  left: config.title * 0.3, 
+                  transformOrigin: 'bottom left', 
+                  transform: 'rotate(-90deg)', 
+                  fontSize: config.title * 0.15, 
+                  fontWeight: 900, 
+                  letterSpacing: '0.5em', 
+                  color: theme.accent, 
+                  opacity: 0.4,
+                  zIndex: 20,
+                  fontFamily: 'Inter'
+                }}>
+                  {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'MUSICA.DIOSMASGYM.COM'}
                 </div>
               </div>
             );
