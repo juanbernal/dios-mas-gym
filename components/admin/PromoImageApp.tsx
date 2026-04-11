@@ -981,21 +981,27 @@ const PromoTemplate: React.FC<any> = ({
                   )}
                 </div>
 
-                {/* FOOTER (ORIGINAL) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', borderTop: `1px solid ${theme.accent}33`, paddingTop: 15 }}>
-                    <div style={{ textAlign: 'left' }}>
+                {/* FOOTER (PRO REFINED) */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: `1px solid ${theme.accent}33`, paddingTop: 20 }}>
+                    <div style={{ textAlign: 'left', minWidth: config.title * 2 }}>
                       <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>{template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION</div>
                       <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
                     </div>
-                    <div style={{ padding: "12px 30px", borderRadius: 2, fontWeight: "900", fontSize: config.title * 0.3, color: '#000', background: theme.accent, letterSpacing: '0.4em', boxShadow: `0 10px 40px ${theme.accent}4d` }}>DIOSMASGYM.COM</div>
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                      <div style={{ width: config.title * 1.5, height: config.title * 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ padding: "10px 25px", borderRadius: 4, fontWeight: "900", fontSize: config.title * 0.28, color: '#000', background: theme.accent, letterSpacing: '0.4em', boxShadow: `0 8px 30px ${theme.accent}4d`, flexShrink: 0 }}>DIOSMASGYM.COM</div>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
+                      <div style={{ width: config.title * 2.2, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                          <img 
                             src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'} 
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 5px ${theme.accent}33)` }} 
+                            style={{ 
+                              maxWidth: '100%', 
+                              maxHeight: '100%', 
+                              objectFit: 'contain', 
+                              filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
+                              transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)' // Aumentar tamaño base
+                            }} 
                          />
                       </div>
-                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
+                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
                 </div>
               </div>
