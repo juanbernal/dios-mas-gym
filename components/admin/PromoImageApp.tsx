@@ -964,25 +964,6 @@ const PromoTemplate: React.FC<any> = ({
                           }} 
                         />
                       </div>
-                      
-                      {/* SLOGAN DE ARTISTA (ELEGANT SIDE WATERMARK) */}
-                      <div style={{
-                        position: 'absolute',
-                        right: config.title * 0.5,
-                        top: '50%',
-                        transform: 'translateY(-50%) rotate(90deg)',
-                        transformOrigin: 'center right',
-                        fontFamily: "'Caveat', cursive",
-                        fontSize: config.title * 0.65,
-                        color: textColor,
-                        opacity: 0.35, // MAS SUTIL COMO MARCA DE AGUA
-                        whiteSpace: 'nowrap',
-                        pointerEvents: 'none',
-                        letterSpacing: '0.1em',
-                        textShadow: `0 0 10px rgba(0,0,0,0.5)`
-                      }}>
-                        {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
-                      </div>
                     </div>
                   )}
                   <div style={{ marginBottom: 20 }}>
@@ -1047,8 +1028,15 @@ const PromoTemplate: React.FC<any> = ({
                       >
                         {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'DIOSMASGYM RECORDS'}
                       </div>
-                      <div style={{ fontSize: config.title * 0.12, color: theme.accent, fontWeight: 900, letterSpacing: '0.4em', opacity: 0.6 }}>
-                        {artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'MUSICA.DIOSMASGYM.COM'}
+                      <div style={{ 
+                        fontSize: config.title * 0.45, // Aumentado para que se vea bien como firma
+                        color: textColor, // Blanco como en la imagen
+                        fontFamily: "'Caveat', cursive", 
+                        letterSpacing: '0.05em', 
+                        marginTop: -5, // Pegado al nombre como firma
+                        textShadow: '0 4px 10px rgba(0,0,0,0.5)'
+                      }}>
+                        {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
