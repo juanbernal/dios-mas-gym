@@ -268,9 +268,11 @@ const PromoImageApp: React.FC = () => {
     console.log("[MASTER] MASTER IMAGES LOADED, STABILIZING 4K RASTER...");
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // 2. Load Fonts
+    // 2. Load Fonts (Wait for primary and master rasterization)
     try {
-      await document.fonts.ready;
+      if (typeof document !== 'undefined') {
+        await document.fonts.ready;
+      }
     } catch (e) { console.warn("Font loading fallback."); }
 
     // 3. Capture Native Master (Scale 1 because master is already huge)
@@ -1109,7 +1111,7 @@ const PromoTemplate: React.FC<any> = ({
                   </div>
                   {mode === "proximamente" && <div style={{ marginTop: 10, fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic' }}>{formatDate()}</div>}
                   {mode === "disponible" && (
-                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                    <div style={{ marginTop: config.title * 0.4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.3, color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
                          <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)`, width: 60 }}></div>
                          <span>PLATAFORMAS DIGITALES</span>
