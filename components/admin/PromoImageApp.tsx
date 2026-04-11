@@ -963,8 +963,7 @@ const PromoTemplate: React.FC<any> = ({
                           />
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                   <div style={{ marginBottom: 20 }}>
                     <h4 style={{ fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.8em', marginBottom: 15, fontFamily: 'Inter', textShadow: `0 4px 10px rgba(0,0,0,0.3)` }}>ESTRENO GLOBAL</h4>
                     <h1 style={{ 
