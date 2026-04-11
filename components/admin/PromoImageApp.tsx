@@ -18,17 +18,22 @@ const getHighResUrl = (url: string | null): string | null => {
   try {
     // 1. Handle Blogger/Google User Content URLs (=s... or =w...)
     if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com')) {
-       // Replace any size parameter (=s..., =w..., -s..., -w...) with =s0 (original)
-       let upgraded = url.replace(/=s\d+/g, '=s0')
-                        .replace(/=w\d+(-h\d+)?/g, '=s0')
-                        .replace(/\/s\d+\//g, '/s0/')
-                        .replace(/=w500-h500/g, '=s0');
-       return upgraded;
+       return url.replace(/=s\d+/g, '=s0')
+                 .replace(/=w\d+(-h\d+)?/g, '=s0')
+                 .replace(/\/s\d+\//g, '/s0/')
+                 .replace(/=w500-h500/g, '=s0');
     }
     
-    // 2. Handle Google Drive Thumbnail redirects
+    // 2. Handle YouTube Thumbnails (hqdefault -> maxresdefault)
+    if (url.includes('ytimg.com')) {
+       return url.replace('hqdefault', 'maxresdefault')
+                 .replace('mqdefault', 'maxresdefault')
+                 .replace('sddefault', 'maxresdefault');
+    }
+
+    // 3. Handle Google Drive Thumbnail redirects
     if (url.includes('drive.google.com/thumbnail')) {
-       return url.replace('thumbnail', 'uc') + '&export=download'; // Force direct stream
+       return url.replace('thumbnail', 'uc') + '&export=download';
     }
   } catch (e) {
     console.warn("URL Upgrade failed:", e);
@@ -420,22 +425,29 @@ const PromoImageApp: React.FC = () => {
         document.fonts.load('1em "Space Grotesk"')
       ]);
       
-      // 2. Asegurar cargado de imagen real
-      if (bg) {
+      // 2. Asegurar cargado de imagen REAL en alta resolución
+      const hiResBg = getHighResUrl(bg);
+      if (hiResBg) {
           const img = new Image();
           img.crossOrigin = "anonymous";
-          img.src = bg;
+          img.src = hiResBg;
           await new Promise(resolve => {
               if (img.complete) resolve(true);
               else { img.onload = () => resolve(true); img.onerror = () => resolve(false); }
           });
+          
+          // FORZAR ACTUALIZACIÓN EN EL DOM DEL MASTER ANTES DE LA CAPTURA
+          const masters = document.querySelectorAll('[data-export-master-img]');
+          masters.forEach(m => {
+             (m as HTMLElement).style.backgroundImage = `url("${hiResBg}")`;
+          });
       }
       
-      // 3. Pequeño retraso extra para estabilización de renderizado en off-screen
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 3. Pequeño retraso extra para estabilización
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(exportEl, {
-        scale: 4, // Óptimo para 4K sin saturar memoria del navegador
+        scale: 4, 
         useCORS: true,
         allowTaint: false,
         logging: false,
@@ -447,39 +459,37 @@ const PromoImageApp: React.FC = () => {
         windowWidth: config.w,
         windowHeight: config.h,
         onclone: (clonedDoc) => {
-          // 1. UPGRADE IMAGES TO ORIGINAL HIGH-RES FOR 4K DOWNLOAD
-          const hiRes = getHighResUrl(bg);
-          if (hiRes) {
-            const bgEl = clonedDoc.querySelector('[data-export-bg]') as HTMLElement;
-            if (bgEl) {
-                bgEl.style.backgroundImage = `url("${hiRes}")`;
-                bgEl.style.filter = 'contrast(1.05) saturate(1.1) brightness(1.05)';
-            }
-            
-            const coverEl = clonedDoc.querySelector('[data-export-cover]') as HTMLElement;
-            if (coverEl) {
-                coverEl.style.backgroundImage = `url("${hiRes}")`;
-                coverEl.style.filter = 'contrast(1.1) saturate(1.1)';
-            }
-          }
+          // Aplicar filtros finales de retoque pro
+          const bgEls = clonedDoc.querySelectorAll('[data-export-bg]');
+          bgEls.forEach(el => {
+            const h = el as HTMLElement;
+            h.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.05) sharpen(1.2) contrast(1.05)';
+            h.style.imageRendering = 'high-quality';
+          });
+          
+          const coverEls = clonedDoc.querySelectorAll('[data-export-cover]');
+          coverEls.forEach(el => {
+             const h = el as HTMLElement;
+             h.style.filter = 'contrast(1.1) saturate(1.1) brightness(1.02) contrast(1.05)';
+             h.style.imageRendering = 'high-quality';
+          });
 
-          // 2. CORRECCIÓN DE GRANO PARA EXPORTACIÓN (Fallback de mix-blend-mode)
+          // Grano Fallback
           const findAndFixNoise = (selector: string, opacity: number) => {
             const el = clonedDoc.querySelector(selector) as HTMLElement;
             if (el) {
                el.style.mixBlendMode = 'normal';
-               el.style.opacity = (opacity * 0.4).toString(); 
+               el.style.opacity = (opacity * 0.45).toString(); 
             }
           };
           findAndFixNoise('.noise-layer', grit);
           findAndFixNoise('.real-grain', grit);
           
-          // 3. Maximizar nitidez de texto y bordes
-          const imgs = clonedDoc.querySelectorAll('img');
-          imgs.forEach(i => i.style.imageRendering = 'high-quality');
-          
           const titleEl = clonedDoc.querySelector('h1') as HTMLElement;
-          if (titleEl) titleEl.style.textRendering = 'geometricPrecision';
+          if (titleEl) {
+            titleEl.style.textRendering = 'geometricPrecision';
+            titleEl.style.webkitFontSmoothing = 'antialiased';
+          }
         }
       });
 
@@ -953,6 +963,7 @@ const PromoTemplate: React.FC<any> = ({
           {bg && (
             <div 
               data-export-bg
+              data-export-master-img
               style={{ 
                 position: "absolute", 
                 inset: "-2%", // Ligero margen negativo para evitar bordes blancos
@@ -1028,6 +1039,7 @@ const PromoTemplate: React.FC<any> = ({
                         <div style={{ width: config.title * 6, height: config.title * 6, overflow: 'hidden', borderRadius: 2 }}>
                           <div 
                             data-export-cover
+                            data-export-master-img
                             style={{ 
                               width: '100%', 
                               height: '100%', 
