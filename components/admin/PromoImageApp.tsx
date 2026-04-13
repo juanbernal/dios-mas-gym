@@ -64,7 +64,7 @@ const PromoImageApp: React.FC = () => {
   const [artist, setArtist] = useState("Diosmasgym");
   const [bg, setBg] = useState<string | null>(null);
   const [mode, setMode] = useState("proximamente");
-  const [size, setSize] = useState<keyof typeof sizes>("story");
+  const [size, setSize] = useState<keyof typeof sizes>("instagram");
   const [date, setDate] = useState("2026-04-05T23:00");
   const [overlay, setOverlay] = useState(0.65);
   const [tracks, setTracks] = useState("INTRO\nTEMA UNO\nTEMA DOS");
@@ -596,6 +596,21 @@ const PromoImageApp: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* TRACKLIST FOR ALBUM/EP */}
+              {mode === 'album' && (
+                <div className="space-y-2 pt-4 border-t border-white/5">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Canciones del Álbum / EP</label>
+                  <textarea
+                    className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059] resize-none"
+                    rows={6}
+                    placeholder={"INTRO\nTEMA UNO\nTEMA DOS\nTEMA TRES"}
+                    value={tracks}
+                    onChange={(e) => setTracks(e.target.value)}
+                  />
+                  <p className="text-[8px] text-white/20 tracking-widest">Una canción por línea</p>
+                </div>
+              )}
 
               {/* NEW COUNTRY SELECTOR */}
               <div className="space-y-2 pt-4 border-t border-white/5">
@@ -1151,6 +1166,25 @@ const PromoTemplate: React.FC<any> = ({
                   )}
                 </div>
 
+                {/* ALBUM TRACKLIST IN TEMPLATE */}
+                {mode === 'album' && trackList && trackList.filter(t => t.trim()).length > 0 && (
+                  <div style={{ width: '100%', marginTop: config.title * 0.3, marginBottom: config.title * 0.2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: config.title * 0.15 }}>
+                      <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)` }}></div>
+                      <div style={{ fontSize: config.title * 0.2, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent }}>TRACKLIST</div>
+                      <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)` }}></div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: trackList.filter(t => t.trim()).length > 5 ? '1fr 1fr' : '1fr', gap: `${config.title * 0.1}px ${config.title * 0.6}px` }}>
+                      {trackList.filter(t => t.trim()).map((track, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07 }}>
+                          <span style={{ fontSize: config.title * 0.18, fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7 }}>{String(i + 1).padStart(2, '0')}</span>
+                          <span style={{ fontSize: config.title * 0.22, fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase' }}>{track.trim()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* FOOTER (PRO REFINED) */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: `1px solid ${theme.accent}33`, paddingTop: 20 }}>
                     <div style={{ textAlign: 'left', minWidth: config.title * 2 }}>
@@ -1182,6 +1216,18 @@ const PromoTemplate: React.FC<any> = ({
                       >
                         {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'DIOSMASGYM RECORDS'}
                       </div>
+                      {!artist.toUpperCase().includes('JUAN 614') && (
+                        <div style={{
+                          fontSize: config.title * 0.14,
+                          fontWeight: 700,
+                          color: theme.accent,
+                          letterSpacing: '0.12em',
+                          opacity: 0.75,
+                          marginTop: 2
+                        }}>
+                          musica.diosmasgym.com
+                        </div>
+                      )}
                       <div style={{ 
                         fontSize: config.title * 0.45, 
                         color: textColor, 
