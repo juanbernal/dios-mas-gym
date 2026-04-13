@@ -1045,12 +1045,16 @@ const PromoTemplate: React.FC<any> = ({
             <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${template==='beat-cyber'?'rgba(0,242,255,':template==='beat-crimson'?'rgba(255,68,68,':template==='beat-toxic'?'rgba(57,255,20,':template==='beat-platinum'?'rgba(229,228,226,':'rgba(197,160,89,'}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
           ))}
 
-          {/* === WATERMARK DMG === */}
-          <div style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', overflow:'hidden', opacity:0.035 }}>
-            {[...Array(8)].map((_,row) => (
-              <div key={row} style={{ display:'flex', gap:'60px', marginBottom:'40px', marginLeft: row%2===0?'0px':'-80px', whiteSpace:'nowrap' }}>
-                {[...Array(6)].map((_,col) => (
-                  <span key={col} style={{ fontSize:'28px', fontWeight:900, color:'#fff', letterSpacing:'0.3em', fontFamily:'Inter', userSelect:'none' }}>DMG</span>
+          {/* === WATERMARK LOGO TILES === */}
+          <div style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', overflow:'hidden', opacity:0.06 }}>
+            {[...Array(6)].map((_,row) => (
+              <div key={row} style={{ display:'flex', gap:'60px', marginBottom:'30px', marginTop: row===0?'40px':0, marginLeft: row%2===0?'20px':'-30px' }}>
+                {[...Array(5)].map((_,col) => (
+                  <img
+                    key={col}
+                    src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
+                    style={{ width:'70px', height:'70px', objectFit:'contain', filter:'grayscale(1) brightness(2)', flexShrink:0 }}
+                  />
                 ))}
               </div>
             ))}
@@ -1096,12 +1100,6 @@ const PromoTemplate: React.FC<any> = ({
               <div style={{ position: "relative", padding: config.title * 1.2, paddingLeft: config.title * 2.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
 
-                {/* === CORNER STAMP (TOP RIGHT) === */}
-                <div style={{ position:'absolute', top:0, right:0, width: config.title * 4, height: config.title * 4, overflow:'hidden', zIndex:20, pointerEvents:'none' }}>
-                  <div style={{ position:'absolute', top: config.title * 0.85, right: -config.title * 1.2, width: config.title * 5, padding: `${config.title * 0.2}px 0`, background: theme.accent, color:'#000', fontWeight:900, fontSize: config.title * 0.22, letterSpacing:'0.15em', textAlign:'center', transform:'rotate(45deg)', transformOrigin:'center', boxShadow:`0 4px 15px ${theme.accent}66`, fontFamily:'Inter' }}>
-                    {mode === 'proximamente' ? '✦ PRÓXIMO' : mode === 'disponible' ? '✦ YA FUERA' : '✦ ÁLBUM EP'}
-                  </div>
-                </div>
                 
                 {/* BRANDING LOGO REMOVED FROM TOP-RIGHT - MOVED TO FOOTER */}
 
@@ -1166,15 +1164,12 @@ const PromoTemplate: React.FC<any> = ({
                     <h1 style={{ 
                       fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), 
                       fontWeight: 900, 
-                      lineHeight: 0.8, 
+                      lineHeight: 0.85, 
                       fontFamily: "'Bebas Neue'", 
-                      letterSpacing: '-2px', 
-                      textShadow: `0px 20px 60px ${theme.accent}66, 0 10px 20px rgba(0,0,0,0.5)`,
-                      filter: stroke ? `drop-shadow(0 0 2px ${theme.accent})` : 'none',
-                      background: `linear-gradient(135deg, ${textColor} 0%, ${theme.accent} 50%, ${textColor} 100%)`,
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
+                      color: textColor,
+                      letterSpacing: '-1px', 
+                      textShadow: `0 0 80px ${theme.accent}88, 0 0 30px ${theme.accent}55, 0 10px 20px rgba(0,0,0,0.6)`,
+                      filter: stroke ? `drop-shadow(0 0 3px ${theme.accent})` : `drop-shadow(0 2px 8px rgba(0,0,0,0.8))`,
                     }}>{title}</h1>
                   </div>
                   {mode === "proximamente" && (
@@ -1242,16 +1237,16 @@ const PromoTemplate: React.FC<any> = ({
                   flexDirection: 'column',
                   width: '100%',
                   gap: config.title * 0.18,
-                  background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.82) 20%, rgba(0,0,0,0.92) 100%)`,
+                  background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.88) 25%, rgba(0,0,0,0.95) 100%)`,
                   borderTop: `2px solid ${theme.accent}55`,
                   boxShadow: `inset 0 1px 0 ${theme.accent}22, 0 -20px 60px rgba(0,0,0,0.6)`,
-                  padding: `${config.title * 0.5}px ${config.title * 0.4}px ${config.title * 0.4}px`,
-                  marginLeft: `-${config.title * 1.2}px`,
-                  marginRight: `-${config.title * 1.2}px`,
-                  marginBottom: `-${config.title * 1.2}px`,
-                  width: `calc(100% + ${config.title * 2.4}px)`,
-                  position: 'relative' as const,
+                  padding: `${config.title * 0.45}px ${config.title * 1.4}px`,
+                  position: 'absolute' as const,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
                   zIndex: 15,
+                  boxSizing: 'border-box' as const,
                 }}>
 
                   {/* MAIN FOOTER ROW */}
