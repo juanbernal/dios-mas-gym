@@ -20,8 +20,8 @@ interface LyricLine {
   text: string;
 }
 
-const INTRO_DURATION = 3;
-const OUTRO_DURATION = 5;
+const INTRO_DURATION = 4;
+const OUTRO_DURATION = 7;
 const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
 
 const LyricStudio: React.FC = () => {
@@ -307,171 +307,263 @@ const LyricStudio: React.FC = () => {
   };
 
   const renderIntro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
-    const alpha = Math.min(time / 1.0, 1) * Math.min((INTRO_DURATION - time) / 0.8, 1);
+    const fadeIn  = Math.min(time / 0.8, 1);
+    const fadeOut = Math.min((INTRO_DURATION - time) / 0.8, 1);
+    const alpha   = fadeIn * fadeOut;
     ctx.save();
-    
-    // 1. Solid Black Base
+
+    // 1. Deep Black Base
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
 
-    // 2. Cinematic Smoke/Reveal (Organic Gradient Swarm)
-    for(let i=0; i<6; i++) {
-        const motion = time * 0.4 + i;
-        const x = cw/2 + Math.cos(motion) * 100;
-        const y = ch/2 + Math.sin(motion * 0.8) * 80;
-        const size = 300 + Math.sin(time) * 50;
-        const smokeGrad = ctx.createRadialGradient(x, y, 0, x, y, size);
-        smokeGrad.addColorStop(0, `rgba(0, 255, 204, ${0.1 * alpha})`);
-        smokeGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = smokeGrad;
-        ctx.fillRect(0, 0, cw, ch);
+    // 2. Cinematic smoke rings
+    for (let i = 0; i < 5; i++) {
+      const motion = time * 0.3 + i * 1.2;
+      const x = cw / 2 + Math.cos(motion) * 140;
+      const y = ch / 2 + Math.sin(motion * 0.7) * 100;
+      const r  = 280 + Math.sin(time + i) * 40;
+      const g  = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(197,160,89,${0.07 * alpha})`);
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, cw, ch);
     }
 
-    // 3. Dynamic Spotlight
-    const lightX = cw/2 + Math.cos(time * 0.5) * 200;
-    const lightY = ch/2 + Math.sin(time * 0.3) * 300;
-    const spotlight = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, 600);
-    spotlight.addColorStop(0, `rgba(255, 255, 255, ${0.08 * alpha})`);
-    spotlight.addColorStop(1, 'transparent');
-    ctx.fillStyle = spotlight;
-    ctx.fillRect(0, 0, cw, ch);
-
-    // 4. Logo Reveal (Cinema Master)
-    if (logoStudioRef.current.complete) {
-        const logo = logoStudioRef.current;
-        const progress = Math.min(time / 1.5, 1);
-        const logoScale = (0.4 + (progress * 0.08)); // Very slow, majestic zoom
-        const lWidth = cw * logoScale;
-        const lHeight = (logo.height / logo.width) * lWidth;
-        
-        ctx.save();
-        ctx.translate(cw/2, ch/2 - 120);
-        ctx.globalAlpha = alpha * progress;
-        
-        // Faint Glow under logo
-        const logoGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, lWidth);
-        logoGlow.addColorStop(0, 'rgba(0, 255, 204, 0.2)');
-        logoGlow.addColorStop(1, 'transparent');
-        ctx.fillStyle = logoGlow;
-        ctx.beginPath(); ctx.arc(0, 0, lWidth, 0, Math.PI*2); ctx.fill();
-
-        ctx.drawImage(logo, -lWidth/2, -lHeight/2, lWidth, lHeight);
-        ctx.restore();
+    // 3. Golden particle rain
+    const seed = Math.floor(time * 30);
+    for (let i = 0; i < 60; i++) {
+      const px = ((i * 137 + seed * 31) % cw);
+      const py = ((i * 97  + seed * 17) % ch);
+      const ps = 1 + (i % 3);
+      const pa = (0.2 + (i % 5) * 0.08) * alpha;
+      ctx.save();
+      ctx.globalAlpha = pa;
+      ctx.fillStyle = '#c5a059';
+      ctx.shadowColor = '#c5a059';
+      ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(px, py, ps, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
 
-    // 5. Minimalist Premium Typography
-    ctx.textAlign = 'center';
-    
-    // Subtitle
-    ctx.font = '900 18px Montserrat';
-    ctx.letterSpacing = '16px';
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * alpha})`;
-    ctx.fillText("DIOSMASGYM RECORDS", cw/2, ch/2 + 100);
+    // 4. Logo reveal — use the real Diosmasgym Records logo
+    const logo = logoStudioRef.current;
+    if (logo.complete && logo.naturalWidth > 0) {
+      const prog = Math.min(time / 1.8, 1);
+      const logoH = ch * 0.38;
+      const logoW = (logo.width / logo.height) * logoH;
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2 - 60);
+      ctx.globalAlpha = alpha * prog;
+      // Subtle scale-up from 0.85 to 1.0
+      const s = 0.85 + prog * 0.15;
+      ctx.scale(s, s);
+      // Gold halo under logo
+      const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, logoW * 0.7);
+      halo.addColorStop(0, `rgba(197,160,89,${0.25 * alpha})`);
+      halo.addColorStop(1, 'transparent');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(0, 0, logoW * 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.drawImage(logo, -logoW / 2, -logoH / 2, logoW, logoH);
+      ctx.restore();
+    }
 
-    // Main Title with tracking animation
-    const progress = Math.min(time / 2.0, 1);
-    const tracking = progress * 15;
-    ctx.font = '900 85px Montserrat';
-    ctx.letterSpacing = `${tracking}px`;
-    
-    const textGrad = ctx.createLinearGradient(0, ch/2 + 160, 0, ch/2 + 260);
-    textGrad.addColorStop(0, '#ffffff');
-    textGrad.addColorStop(1, '#00ffcc');
-    
-    ctx.save();
-    ctx.translate(cw/2, ch/2 + 220);
-    ctx.fillStyle = textGrad;
-    ctx.shadowColor = 'rgba(0,255,204,0.6)';
-    ctx.shadowBlur = 40 * alpha;
-    ctx.globalAlpha = alpha * progress;
-    ctx.fillText("PRESENTA", 0, 0);
-    ctx.restore();
+    // 5. "PRESENTA" text with tracking animation
+    const txtProg = Math.min(Math.max((time - 1.2) / 1.2, 0), 1);
+    if (txtProg > 0) {
+      ctx.save();
+      ctx.globalAlpha = txtProg * fadeOut;
+      ctx.textAlign = 'center';
+      // Label
+      ctx.font = '700 22px Montserrat';
+      ctx.letterSpacing = '10px';
+      ctx.fillStyle = 'rgba(197,160,89,0.85)';
+      ctx.fillText('DIOSMASGYM RECORDS', cw / 2, ch / 2 + ch * 0.22);
+      // Separator line
+      const lineW = 80 * txtProg;
+      ctx.strokeStyle = 'rgba(197,160,89,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cw / 2 - lineW, ch / 2 + ch * 0.245);
+      ctx.lineTo(cw / 2 + lineW, ch / 2 + ch * 0.245);
+      ctx.stroke();
+      // PRESENTA
+      ctx.font = `900 ${68 + txtProg * 10}px Montserrat`;
+      ctx.letterSpacing = `${txtProg * 12}px`;
+      const tg = ctx.createLinearGradient(0, ch / 2 + ch * 0.26, 0, ch / 2 + ch * 0.35);
+      tg.addColorStop(0, '#fff');
+      tg.addColorStop(1, '#c5a059');
+      ctx.fillStyle = tg;
+      ctx.shadowColor = 'rgba(197,160,89,0.6)';
+      ctx.shadowBlur = 30 * alpha;
+      ctx.fillText('PRESENTA', cw / 2, ch / 2 + ch * 0.32);
+      ctx.restore();
+    }
 
     ctx.restore();
   };
 
   const renderOutro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
-    const alpha = Math.min(time / 1.0, 1);
+    const fadeIn = Math.min(time / 0.9, 1);
     ctx.save();
-    
-    // 1. Immersive Background (Integrated with Video)
+
+    // 1. Dark background with album art blur
     if (imgRef.current.src) {
-        const sourceImg = imgRef.current;
-        let scale = Math.max(cw / (sourceImg.width || cw), ch / (sourceImg.height || ch)) * 1.1;
-        ctx.save();
-        ctx.translate(cw/2, ch/2);
-        ctx.scale(scale, scale);
-        ctx.filter = 'blur(40px) brightness(0.3) saturate(0.5)';
-        ctx.drawImage(sourceImg, -sourceImg.width/2, -sourceImg.height/2);
-        ctx.restore();
+      const src = imgRef.current;
+      const sc = Math.max(cw / (src.width || cw), ch / (src.height || ch)) * 1.15;
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      ctx.scale(sc, sc);
+      ctx.filter = 'blur(50px) brightness(0.18) saturate(0.4)';
+      ctx.drawImage(src, -src.width / 2, -src.height / 2);
+      ctx.restore();
     } else {
-        ctx.fillStyle = '#05070a';
-        ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = '#08090e';
+      ctx.fillRect(0, 0, cw, ch);
+    }
+    ctx.filter = 'none';
+
+    // 2. Bokeh gold particles
+    const seed = Math.floor(time * 15);
+    for (let i = 0; i < 18; i++) {
+      const bx = ((i * 173 + seed * 41) % cw);
+      const by = ((i * 113 + seed * 29) % ch);
+      const br = 18 + (i % 4) * 12;
+      const bg2 = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+      bg2.addColorStop(0, `rgba(197,160,89,${(0.06 + (i%3)*0.02) * fadeIn})`);
+      bg2.addColorStop(1, 'transparent');
+      ctx.fillStyle = bg2;
+      ctx.fillRect(0, 0, cw, ch);
     }
 
-    // 2. Subtle Energy Swarm
-    ctx.globalAlpha = 0.2 * alpha;
-    for(let i=0; i<30; i++) {
-        const angle = i * 0.8 + time * 0.1;
-        const radius = 300 + Math.sin(time + i) * 50;
-        const px = cw/2 + Math.cos(angle) * radius;
-        const py = ch/2 + Math.sin(angle) * radius;
-        ctx.fillStyle = `rgba(0, 255, 204, 0.3)`;
-        ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI*2); ctx.fill();
+    // 3. Logo
+    const logo = logoStudioRef.current;
+    const logoProg = Math.min(time / 1.2, 1);
+    if (logo.complete && logo.naturalWidth > 0) {
+      const lH = ch * 0.22;
+      const lW = (logo.width / logo.height) * lH;
+      ctx.save();
+      ctx.globalAlpha = logoProg * fadeIn;
+      const s2 = 0.8 + logoProg * 0.2;
+      ctx.translate(cw / 2, ch * 0.175);
+      ctx.scale(s2, s2);
+      ctx.drawImage(logo, -lW / 2, -lH / 2, lW, lH);
+      ctx.restore();
     }
 
-    ctx.globalAlpha = alpha;
+    // 4. Headline
+    ctx.save();
+    ctx.globalAlpha = Math.min(Math.max((time - 0.5) / 0.8, 0), 1) * fadeIn;
     ctx.textAlign = 'center';
+    ctx.font = '900 54px Montserrat';
+    ctx.letterSpacing = '4px';
+    const hg = ctx.createLinearGradient(0, ch * 0.33, 0, ch * 0.42);
+    hg.addColorStop(0, '#ffffff');
+    hg.addColorStop(1, '#c5a059');
+    ctx.fillStyle = hg;
+    ctx.shadowColor = 'rgba(197,160,89,0.4)';
+    ctx.shadowBlur = 20;
+    ctx.fillText('\u00daNet', cw / 2, ch * 0.375);
+    ctx.font = '900 52px Montserrat';
+    ctx.fillText('a la comunidad', cw / 2, ch * 0.425);
+    // Thin separator
+    ctx.strokeStyle = 'rgba(197,160,89,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cw / 2 - 60, ch * 0.445);
+    ctx.lineTo(cw / 2 + 60, ch * 0.445);
+    ctx.stroke();
+    ctx.font = '400 20px Inter';
+    ctx.letterSpacing = '6px';
+    ctx.fillStyle = 'rgba(197,160,89,0.7)';
+    ctx.fillText('@DIOSMASGYM', cw / 2, ch * 0.468);
+    ctx.restore();
 
-    // 3. Floating social panels
-    const logos = [
-        { platform: 'Spotify', color: '#1DB954', delay: 0 },
-        { platform: 'Instagram', color: '#E1306C', delay: 0.2 },
-        { platform: 'YouTube', color: '#FF0000', delay: 0.4 }
+    // 5. Social platform cards
+    const platforms = [
+      { name: 'INSTAGRAM', handle: '@diosmasgym',   color: '#E1306C', icon: 'inst' },
+      { name: 'TIKTOK',    handle: '@diosmasgym',   color: '#ffffff', icon: 'tiktok' },
+      { name: 'YOUTUBE',   handle: 'Diosmasgym Records', color: '#FF0000', icon: 'yt' },
+      { name: 'SPOTIFY',   handle: 'Diosmasgym',    color: '#1DB954', icon: 'spot' },
     ];
 
-    // Follower Message
-    ctx.font = '900 32px Montserrat';
-    ctx.letterSpacing = '12px';
-    ctx.fillStyle = 'white';
-    ctx.shadowColor = 'rgba(0, 255, 204, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.fillText(outroMessage.toUpperCase(), cw/2, ch/2 - 350);
+    const cardW = cw * 0.82;
+    const cardH = ch * 0.075;
+    const cardX = (cw - cardW) / 2;
+    const startY = ch * 0.51;
+    const gap = cardH + ch * 0.014;
 
-    logos.forEach((logo, i) => {
-        const lAlpha = Math.min(Math.max((time - logo.delay) * 2, 0), 1);
-        const yBase = ch/2 + (i * 180) - 100;
-        const float = Math.sin(time * 1.2 + i) * 12;
-        const y = yBase + float;
-        
-        ctx.save();
-        ctx.globalAlpha = lAlpha * alpha;
-        ctx.translate(cw/2, y);
-        
-        // Glass Card
-        const cardW = 400, cardH = 140;
-        const grad = ctx.createLinearGradient(-cardW/2, -cardH/2, cardW/2, cardH/2);
-        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.02)');
-        ctx.fillStyle = grad;
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); (ctx as any).roundRect(-cardW/2, -cardH/2, cardW, cardH, 20); ctx.fill(); ctx.stroke();
-        
-        // Icon
-        ctx.save();
-        ctx.translate(-120, 0);
-        drawSocialLogo(ctx, logo, 0, 0);
-        ctx.restore();
-        
-        // Text
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'white';
-        ctx.font = '900 24px Montserrat';
-        ctx.fillText("@DIOSMASGYM", -40, 10);
-        
-        ctx.restore();
+    platforms.forEach((p, i) => {
+      const delay = 0.3 + i * 0.15;
+      const pAlpha = Math.min(Math.max((time - delay) / 0.5, 0), 1);
+      const slideY = (1 - pAlpha) * 40;
+
+      ctx.save();
+      ctx.globalAlpha = pAlpha * fadeIn;
+      const cy2 = startY + i * gap + slideY;
+
+      // Card background
+      const cg = ctx.createLinearGradient(cardX, cy2, cardX + cardW, cy2);
+      cg.addColorStop(0, 'rgba(255,255,255,0.09)');
+      cg.addColorStop(1, 'rgba(255,255,255,0.04)');
+      ctx.fillStyle = cg;
+      ctx.strokeStyle = `${p.color}44`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      (ctx as any).roundRect(cardX, cy2, cardW, cardH, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      // Color accent left strip
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      (ctx as any).roundRect(cardX, cy2, 5, cardH, [14, 0, 0, 14]);
+      ctx.fill();
+
+      // Icon circle
+      const iconX = cardX + cardH * 0.5 + 12;
+      const iconCY = cy2 + cardH / 2;
+      const iconR = cardH * 0.33;
+      ctx.fillStyle = `${p.color}22`;
+      ctx.beginPath(); ctx.arc(iconX, iconCY, iconR, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(iconX, iconCY, iconR * 0.55, 0, Math.PI * 2); ctx.fill();
+
+      // Platform name
+      ctx.textAlign = 'left';
+      ctx.font = `900 ${cardH * 0.32}px Montserrat`;
+      ctx.letterSpacing = '2px';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.fillText(p.name, iconX + iconR + 16, cy2 + cardH * 0.41);
+
+      // Handle
+      ctx.font = `400 ${cardH * 0.26}px Inter`;
+      ctx.letterSpacing = '0px';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(p.handle, iconX + iconR + 16, cy2 + cardH * 0.72);
+
+      // Arrow
+      ctx.textAlign = 'right';
+      ctx.font = `700 ${cardH * 0.3}px Inter`;
+      ctx.fillStyle = `${p.color}cc`;
+      ctx.fillText('\u2192', cardX + cardW - 18, cy2 + cardH / 2 + cardH * 0.1);
+
+      ctx.restore();
     });
+
+    // 6. Bottom tagline
+    const tagAlpha = Math.min(Math.max((time - 1.5) / 0.8, 0), 1) * fadeIn;
+    if (tagAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha = tagAlpha * 0.5;
+      ctx.textAlign = 'center';
+      ctx.font = '400 18px Inter';
+      ctx.letterSpacing = '3px';
+      ctx.fillStyle = '#c5a059';
+      ctx.fillText('musica.diosmasgym.com', cw / 2, ch * 0.965);
+      ctx.restore();
+    }
 
     ctx.restore();
   };
