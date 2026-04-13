@@ -1082,7 +1082,6 @@ const PromoTemplate: React.FC<any> = ({
             }[template] || { accent: '#c5a059', glow: 'rgba(197,160,89,0.15)', effect: null };
 
             return (
-              // OUTER: full height flex column, no padding — sidebar is absolute, footer is last child
               <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
 
@@ -1297,7 +1296,7 @@ const PromoTemplate: React.FC<any> = ({
                     </div>
                   </div>
                 </div>
-              </div>{/* END OUTER FLEX COLUMN */}
+              </div>
             );
           })()}
         </div>
