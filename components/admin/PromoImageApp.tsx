@@ -1040,6 +1040,47 @@ const PromoTemplate: React.FC<any> = ({
           {noise && <div className="real-grain" />}
           {industrial && <div className="industrial-overlay" />}
 
+          {/* === BOKEH BACKGROUND === */}
+          {[{x:'15%',y:'20%',s:80,o:0.07},{x:'75%',y:'10%',s:120,o:0.05},{x:'88%',y:'55%',s:60,o:0.08},{x:'5%',y:'70%',s:100,o:0.06},{x:'50%',y:'85%',s:90,o:0.05},{x:'30%',y:'40%',s:50,o:0.04}].map((b,i) => (
+            <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${theme && (template==='beat-cyber'?'rgba(0,242,255,':template==='beat-crimson'?'rgba(255,68,68,':template==='beat-toxic'?'rgba(57,255,20,':template==='beat-platinum'?'rgba(229,228,226,':'rgba(197,160,89,')}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
+          ))}
+
+          {/* === WATERMARK DMG === */}
+          <div style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', overflow:'hidden', opacity:0.035 }}>
+            {[...Array(8)].map((_,row) => (
+              <div key={row} style={{ display:'flex', gap:'60px', marginBottom:'40px', marginLeft: row%2===0?'0px':'-80px', whiteSpace:'nowrap' }}>
+                {[...Array(6)].map((_,col) => (
+                  <span key={col} style={{ fontSize:'28px', fontWeight:900, color:'#fff', letterSpacing:'0.3em', fontFamily:'Inter', userSelect:'none' }}>DMG</span>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* === DIAGONAL ACCENT LINES === */}
+          <div style={{ position:'absolute', inset:0, zIndex:11, pointerEvents:'none', overflow:'hidden' }}>
+            {/* Top-left corner lines */}
+            <div style={{ position:'absolute', top:0, left:0, width:'180px', height:'180px' }}>
+              <div style={{ position:'absolute', top:'30px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${contrastColor||'#c5a059'}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', top:'50px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${contrastColor||'#c5a059'}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+            </div>
+            {/* Bottom-right corner lines */}
+            <div style={{ position:'absolute', bottom:0, right:0, width:'180px', height:'180px' }}>
+              <div style={{ position:'absolute', bottom:'30px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${contrastColor||'#c5a059'}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', bottom:'50px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${contrastColor||'#c5a059'}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+            </div>
+          </div>
+
+          {/* === HORIZONTAL LIGHT SWEEP === */}
+          <div style={{ position:'absolute', left:0, right:0, top:'38%', height: config.title * 2.5, background:`linear-gradient(180deg, transparent 0%, ${(contrastColor||'#c5a059')}0a 30%, ${(contrastColor||'#c5a059')}18 50%, ${(contrastColor||'#c5a059')}0a 70%, transparent 100%)`, zIndex:11, pointerEvents:'none', mixBlendMode:'screen' as const }} />
+
+          {/* === VERTICAL SIDEBAR === */}
+          <div style={{ position:'absolute', left:0, top:0, bottom:0, width: config.title * 1.0, zIndex:13, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+            <div style={{ transform:'rotate(-90deg)', whiteSpace:'nowrap', fontSize: config.title * 0.13, fontWeight:900, letterSpacing:'0.35em', color:(contrastColor||'#c5a059'), opacity:0.55, fontFamily:'Inter', textTransform:'uppercase' as const }}>
+              {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 · JESUCRISTO · 2026 · DIOSMASGYM' : 'DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026'}
+            </div>
+            <div style={{ position:'absolute', right:0, top:'10%', bottom:'10%', width:'1px', background:`linear-gradient(to bottom, transparent, ${contrastColor||'#c5a059'}55, transparent)` }} />
+          </div>
+
           {/* STYLE-SPECIFIC RENDERING */}
           {/* THE BEAT SERIES (ORIGINAL LAYOUT VARIANTS) */}
           {(template === 'original-v1' || template.startsWith('beat-')) && (() => {
@@ -1052,8 +1093,15 @@ const PromoTemplate: React.FC<any> = ({
             }[template] || { accent: '#c5a059', glow: 'rgba(197,160,89,0.15)', effect: null };
 
             return (
-              <div style={{ position: "relative", padding: config.title * 1.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+              <div style={{ position: "relative", padding: config.title * 1.2, paddingLeft: config.title * 2.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
+
+                {/* === CORNER STAMP (TOP RIGHT) === */}
+                <div style={{ position:'absolute', top:0, right:0, width: config.title * 4, height: config.title * 4, overflow:'hidden', zIndex:20, pointerEvents:'none' }}>
+                  <div style={{ position:'absolute', top: config.title * 0.85, right: -config.title * 1.2, width: config.title * 5, padding: `${config.title * 0.2}px 0`, background: theme.accent, color:'#000', fontWeight:900, fontSize: config.title * 0.22, letterSpacing:'0.15em', textAlign:'center', transform:'rotate(45deg)', transformOrigin:'center', boxShadow:`0 4px 15px ${theme.accent}66`, fontFamily:'Inter' }}>
+                    {mode === 'proximamente' ? '✦ PRÓXIMO' : mode === 'disponible' ? '✦ YA FUERA' : '✦ ÁLBUM EP'}
+                  </div>
+                </div>
                 
                 {/* BRANDING LOGO REMOVED FROM TOP-RIGHT - MOVED TO FOOTER */}
 
@@ -1120,10 +1168,13 @@ const PromoTemplate: React.FC<any> = ({
                       fontWeight: 900, 
                       lineHeight: 0.8, 
                       fontFamily: "'Bebas Neue'", 
-                      color: textColor, 
                       letterSpacing: '-2px', 
                       textShadow: `0px 20px 60px ${theme.accent}66, 0 10px 20px rgba(0,0,0,0.5)`,
-                      filter: stroke ? `drop-shadow(0 0 2px ${theme.accent})` : 'none'
+                      filter: stroke ? `drop-shadow(0 0 2px ${theme.accent})` : 'none',
+                      background: `linear-gradient(135deg, ${textColor} 0%, ${theme.accent} 50%, ${textColor} 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
                     }}>{title}</h1>
                   </div>
                   {mode === "proximamente" && (
@@ -1250,19 +1301,31 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                     </div>
 
-                    {/* RIGHT: Logo + BPM tag */}
+                    {/* RIGHT: Logo + QR + BPM tag */}
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
-                      <div style={{ width: config.title * 2.4, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                        <img
-                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain',
-                            filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
-                            transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
-                          }}
-                        />
+                      <div style={{ display:'flex', alignItems:'center', gap: config.title * 0.3 }}>
+                        {/* QR CODE */}
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: config.title * 0.06 }}>
+                          <img
+                            crossOrigin="anonymous"
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/')}&color=ffffff&bgcolor=00000000&format=png`}
+                            style={{ width: config.title * 1.4, height: config.title * 1.4, imageRendering:'pixelated', opacity:0.7, filter:`drop-shadow(0 0 4px ${theme.accent}44)` }}
+                          />
+                          <span style={{ fontSize: config.title * 0.1, color: theme.accent, opacity:0.5, letterSpacing:'0.15em', fontWeight:700 }}>SCAN</span>
+                        </div>
+                        {/* LOGO */}
+                        <div style={{ width: config.title * 2.4, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                          <img
+                            src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              objectFit: 'contain',
+                              filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
+                              transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
+                            }}
+                          />
+                        </div>
                       </div>
                       <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
