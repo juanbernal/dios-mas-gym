@@ -1186,77 +1186,80 @@ const PromoTemplate: React.FC<any> = ({
                 )}
 
                 {/* FOOTER (PRO REFINED) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: `1px solid ${theme.accent}33`, paddingTop: 20 }}>
-                    <div style={{ textAlign: 'left', minWidth: config.title * 2 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: config.title * 0.18 }}>
+                  {/* TOP DIVIDER WITH ACCENT DOTS */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}66)` }}></div>
+                    <div style={{ width: config.title * 0.12, height: config.title * 0.12, borderRadius: '50%', background: theme.accent, opacity: 0.8 }}></div>
+                    <div style={{ width: config.title * 0.08, height: config.title * 0.08, borderRadius: '50%', background: theme.accent, opacity: 0.4 }}></div>
+                    <div style={{ width: config.title * 0.05, height: config.title * 0.05, borderRadius: '50%', background: theme.accent, opacity: 0.2 }}></div>
+                    <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}66)` }}></div>
+                  </div>
+
+                  {/* MAIN FOOTER ROW */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    {/* LEFT: Edition + Streaming icons */}
+                    <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
                       <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>{template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION</div>
-                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold' }}>&copy; 2026 RECORDS HUB PRO</div>
+                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold' }}>© 2026 RECORDS HUB PRO</div>
+                      {/* STREAMING PLATFORM ICONS */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.25, marginTop: config.title * 0.05, opacity: 0.55 }}>
+                        <i className="fab fa-spotify" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
+                        <i className="fab fa-apple" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
+                        <i className="fab fa-youtube" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
+                        <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
+                        <i className="fab fa-instagram" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
+                      </div>
                     </div>
-                    <div 
-                      style={{ 
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                        flexShrink: 0
-                      }}
-                    >
-                      <div 
+
+                    {/* CENTER: URL Badge + Slogan */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: config.title * 0.1, flexShrink: 0 }}>
+                      <div
                         onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
-                        style={{ 
-                          padding: "10px 25px", 
-                          borderRadius: 4, 
-                          fontWeight: "900", 
-                          fontSize: config.title * (artist.toUpperCase().includes('JUAN 614') ? 0.20 : 0.25), 
-                          color: '#000', 
-                          background: theme.accent, 
-                          letterSpacing: artist.toUpperCase().includes('JUAN 614') ? '0.2em' : '0.4em', 
-                          boxShadow: `0 8px 30px ${theme.accent}4d`, 
-                          cursor: 'pointer'
+                        style={{
+                          padding: `${config.title * 0.12}px ${config.title * 0.5}px`,
+                          borderRadius: 4,
+                          fontWeight: '900',
+                          fontSize: config.title * 0.2,
+                          color: '#000',
+                          background: theme.accent,
+                          letterSpacing: '0.18em',
+                          boxShadow: `0 8px 30px ${theme.accent}4d`,
+                          cursor: 'pointer',
+                          textTransform: 'uppercase' as const
                         }}
                       >
-                        {artist.toUpperCase().includes('JUAN 614') ? 'JUAN614.DIOSMASGYM.COM' : 'DIOSMASGYM RECORDS'}
+                        {artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
                       </div>
-                      {!artist.toUpperCase().includes('JUAN 614') && (
-                        <div style={{
-                          fontSize: config.title * 0.14,
-                          fontWeight: 700,
-                          color: theme.accent,
-                          letterSpacing: '0.12em',
-                          opacity: 0.75,
-                          marginTop: 2
-                        }}>
-                          musica.diosmasgym.com
-                        </div>
-                      )}
-                      <div style={{ 
-                        fontSize: config.title * 0.45, 
-                        color: textColor, 
-                        fontFamily: "'Satisfy', cursive", 
-                        fontStyle: 'normal',
-                        letterSpacing: '0.02em', 
-                        marginTop: -2, 
+                      <div style={{
+                        fontSize: config.title * 0.42,
+                        color: textColor,
+                        fontFamily: "'Satisfy', cursive",
+                        letterSpacing: '0.02em',
                         opacity: 1,
-                        textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-                        display: 'block'
+                        textShadow: '0 2px 10px rgba(0,0,0,0.3)'
                       }}>
                         {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: config.title * 2 }}>
-                      <div style={{ width: config.title * 2.2, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                         <img 
-                            src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'} 
-                            style={{ 
-                              maxWidth: '100%', 
-                              maxHeight: '100%', 
-                              objectFit: 'contain', 
-                              filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
-                              transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)' // Aumentar tamaño base
-                            }} 
-                         />
+
+                    {/* RIGHT: Logo + BPM tag */}
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
+                      <div style={{ width: config.title * 2.4, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <img
+                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
+                            transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
+                          }}
+                        />
                       </div>
-                      <div style={{ fontSize: config.title * 0.12, opacity: 0.3, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
+                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
                     </div>
+                  </div>
                 </div>
               </div>
             );
