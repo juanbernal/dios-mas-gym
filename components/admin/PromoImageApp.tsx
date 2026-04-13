@@ -1045,21 +1045,6 @@ const PromoTemplate: React.FC<any> = ({
             <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${template==='beat-cyber'?'rgba(0,242,255,':template==='beat-crimson'?'rgba(255,68,68,':template==='beat-toxic'?'rgba(57,255,20,':template==='beat-platinum'?'rgba(229,228,226,':'rgba(197,160,89,'}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
           ))}
 
-          {/* === WATERMARK LOGO TILES === */}
-          <div style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', overflow:'hidden', opacity:0.06 }}>
-            {[...Array(6)].map((_,row) => (
-              <div key={row} style={{ display:'flex', gap:'60px', marginBottom:'30px', marginTop: row===0?'40px':0, marginLeft: row%2===0?'20px':'-30px' }}>
-                {[...Array(5)].map((_,col) => (
-                  <img
-                    key={col}
-                    src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
-                    style={{ width:'70px', height:'70px', objectFit:'contain', filter:'grayscale(1) brightness(2)', flexShrink:0 }}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-
           {/* === DIAGONAL ACCENT LINES === */}
           <div style={{ position:'absolute', inset:0, zIndex:11, pointerEvents:'none', overflow:'hidden' }}>
             {/* Top-left corner lines */}
@@ -1097,10 +1082,13 @@ const PromoTemplate: React.FC<any> = ({
             }[template] || { accent: '#c5a059', glow: 'rgba(197,160,89,0.15)', effect: null };
 
             return (
-              <div style={{ position: "relative", padding: config.title * 1.2, paddingLeft: config.title * 2.2, display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", zIndex: 10 }}>
+              // OUTER: full height flex column, no padding — sidebar is absolute, footer is last child
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
                 {theme.effect === 'glitch' && <div className="glitch-scan" />}
 
-                
+                {/* INNER CONTENT AREA: padded, flex-1 so footer stays at bottom */}
+                <div style={{ flex: 1, padding: config.title * 1.2, paddingLeft: config.title * 2.2, paddingBottom: config.title * 0.6, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+
                 {/* BRANDING LOGO REMOVED FROM TOP-RIGHT - MOVED TO FOOTER */}
 
                 {/* HEADER (ORIGINAL) */}
@@ -1231,21 +1219,16 @@ const PromoTemplate: React.FC<any> = ({
                   </div>
                 )}
 
+                </div>{/* END INNER CONTENT AREA */}
+
+                {/* FOOTER — natural flex child, spans full width */}
                 {/* FOOTER (PRO REFINED) */}
                 <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '100%',
-                  gap: config.title * 0.18,
-                  background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.88) 25%, rgba(0,0,0,0.95) 100%)`,
-                  borderTop: `2px solid ${theme.accent}55`,
-                  boxShadow: `inset 0 1px 0 ${theme.accent}22, 0 -20px 60px rgba(0,0,0,0.6)`,
-                  padding: `${config.title * 0.45}px ${config.title * 1.4}px`,
-                  position: 'absolute' as const,
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 15,
+                  background: `linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.97) 100%)`,
+                  borderTop: `2px solid ${theme.accent}66`,
+                  boxShadow: `0 -8px 40px rgba(0,0,0,0.8), inset 0 1px 0 ${theme.accent}33`,
+                  padding: `${config.title * 0.5}px ${config.title * 1.4}px`,
+                  flexShrink: 0,
                   boxSizing: 'border-box' as const,
                 }}>
 
@@ -1296,37 +1279,25 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                     </div>
 
-                    {/* RIGHT: Logo + QR + BPM tag */}
+                    {/* RIGHT: Logo + BPM tag */}
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap: config.title * 0.3 }}>
-                        {/* QR CODE */}
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: config.title * 0.06 }}>
-                          <img
-                            crossOrigin="anonymous"
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/')}&color=ffffff&bgcolor=00000000&format=png`}
-                            style={{ width: config.title * 1.4, height: config.title * 1.4, imageRendering:'pixelated', opacity:0.7, filter:`drop-shadow(0 0 4px ${theme.accent}44)` }}
-                          />
-                          <span style={{ fontSize: config.title * 0.1, color: theme.accent, opacity:0.5, letterSpacing:'0.15em', fontWeight:700 }}>SCAN</span>
-                        </div>
-                        {/* LOGO */}
-                        <div style={{ width: config.title * 2.4, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                          <img
-                            src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
-                            style={{
-                              maxWidth: '100%',
-                              maxHeight: '100%',
-                              objectFit: 'contain',
-                              filter: `drop-shadow(0 0 8px ${theme.accent}44)`,
-                              transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
-                            }}
-                          />
-                        </div>
+                      <div style={{ width: config.title * 2.8, height: config.title * 1.4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <img
+                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            filter: `drop-shadow(0 0 10px ${theme.accent}55)`,
+                            transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
+                          }}
+                        />
                       </div>
-                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold', letterSpacing: '0.1em' }}>BPM: {template.startsWith('beat') ? 'SYNC' : '128'} // ID: {template.startsWith('beat') ? 'BEAT' : 'TACTICAL'}-6:14</div>
+                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold', letterSpacing: '0.1em' }}>© 2026 DIOSMASGYM RECORDS</div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>{/* END OUTER FLEX COLUMN */}
             );
           })()}
         </div>
