@@ -1186,15 +1186,22 @@ const PromoTemplate: React.FC<any> = ({
                 )}
 
                 {/* FOOTER (PRO REFINED) */}
-                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: config.title * 0.18 }}>
-                  {/* TOP DIVIDER WITH ACCENT DOTS */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}66)` }}></div>
-                    <div style={{ width: config.title * 0.12, height: config.title * 0.12, borderRadius: '50%', background: theme.accent, opacity: 0.8 }}></div>
-                    <div style={{ width: config.title * 0.08, height: config.title * 0.08, borderRadius: '50%', background: theme.accent, opacity: 0.4 }}></div>
-                    <div style={{ width: config.title * 0.05, height: config.title * 0.05, borderRadius: '50%', background: theme.accent, opacity: 0.2 }}></div>
-                    <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}66)` }}></div>
-                  </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '100%',
+                  gap: config.title * 0.18,
+                  background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.82) 20%, rgba(0,0,0,0.92) 100%)`,
+                  borderTop: `2px solid ${theme.accent}55`,
+                  boxShadow: `inset 0 1px 0 ${theme.accent}22, 0 -20px 60px rgba(0,0,0,0.6)`,
+                  padding: `${config.title * 0.5}px ${config.title * 0.4}px ${config.title * 0.4}px`,
+                  marginLeft: `-${config.title * 1.2}px`,
+                  marginRight: `-${config.title * 1.2}px`,
+                  marginBottom: `-${config.title * 1.2}px`,
+                  width: `calc(100% + ${config.title * 2.4}px)`,
+                  position: 'relative' as const,
+                  zIndex: 15,
+                }}>
 
                   {/* MAIN FOOTER ROW */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
