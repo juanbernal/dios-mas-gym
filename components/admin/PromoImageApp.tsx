@@ -1158,6 +1158,18 @@ const PromoTemplate: React.FC<any> = ({
                       textShadow: `0 0 80px ${theme.accent}88, 0 0 30px ${theme.accent}55, 0 10px 20px rgba(0,0,0,0.6)`,
                       filter: stroke ? `drop-shadow(0 0 3px ${theme.accent})` : `drop-shadow(0 2px 8px rgba(0,0,0,0.8))`,
                     }}>{title}</h1>
+                    <h2 style={{
+                      fontSize: config.title * 0.45,
+                      fontWeight: 700,
+                      color: theme.accent,
+                      marginTop: config.title * 0.2,
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      textShadow: `0 2px 10px rgba(0,0,0,0.5)`,
+                      fontFamily: 'Inter'
+                    }}>
+                      {artist}
+                    </h2>
                   </div>
                   {mode === "proximamente" && (
                     <div style={{ marginTop: config.title * 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
