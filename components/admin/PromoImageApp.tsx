@@ -1157,19 +1157,27 @@ const PromoTemplate: React.FC<any> = ({
                       letterSpacing: '-1px', 
                       textShadow: `0 0 80px ${theme.accent}88, 0 0 30px ${theme.accent}55, 0 10px 20px rgba(0,0,0,0.6)`,
                       filter: stroke ? `drop-shadow(0 0 3px ${theme.accent})` : `drop-shadow(0 2px 8px rgba(0,0,0,0.8))`,
+                      paddingBottom: config.title * 0.1
                     }}>{title}</h1>
-                    <h2 style={{
-                      fontSize: config.title * 0.45,
-                      fontWeight: 700,
-                      color: theme.accent,
-                      marginTop: config.title * 0.2,
-                      letterSpacing: '0.2em',
-                      textTransform: 'uppercase',
-                      textShadow: `0 2px 10px rgba(0,0,0,0.5)`,
-                      fontFamily: 'Inter'
-                    }}>
-                      {artist}
-                    </h2>
+                    <div style={{ marginTop: config.title * 0.3 }}>
+                      <h2 style={{
+                        fontSize: config.title * 0.35,
+                        fontWeight: 700,
+                        color: theme.accent,
+                        letterSpacing: '0.3em',
+                        textTransform: 'uppercase',
+                        textShadow: `0 2px 10px rgba(0,0,0,0.5)`,
+                        fontFamily: 'Inter',
+                        display: 'inline-block',
+                        background: 'rgba(0,0,0,0.4)',
+                        backdropFilter: 'blur(10px)',
+                        padding: `${config.title * 0.15}px ${config.title * 0.5}px`,
+                        borderRadius: 100,
+                        border: `1px solid ${theme.accent}33`
+                      }}>
+                        {artist}
+                      </h2>
+                    </div>
                   </div>
                   {mode === "proximamente" && (
                     <div style={{ marginTop: config.title * 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
