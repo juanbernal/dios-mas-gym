@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// ESTA VERSIÓN ELIMINA LAS DESCARGAS EXTERNAS PARA EVITAR EL ERROR DE "OPENTYPE"
+// VERSIÓN "SATORI-STRICT": Cada div con hijos tiene display: flex explícito
 export const config = {
   runtime: 'edge',
 };
@@ -35,7 +35,7 @@ function parseMusicCSV(csvText: string) {
   for (let i = startIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const values: string [] = [];
+    const values: string[] = [];
     let current = '';
     let inQuotes = false;
     for (let char of line) {
@@ -78,7 +78,7 @@ export default async function handler(req: Request) {
     const accent = template.color;
     const bgUrl = song.cover;
 
-    // GENERACIÓN DE IMAGEN CON FUENTES DEL SISTEMA (Hacked version)
+    // GENERACIÓN DE IMAGEN VERSIÓN ULTRA-ESTRICTA
     const imageResponse = new ImageResponse(
       (
         <div
@@ -92,68 +92,69 @@ export default async function handler(req: Request) {
             overflow: 'hidden',
           }}
         >
-          {/* Capas de Fondo */}
+          {/* Fondo */}
           {bgUrl && (
             <div style={{ position: 'absolute', inset: -100, display: 'flex' }}>
               <img src={bgUrl} style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(1.02)' }} />
             </div>
           )}
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex' }} />
           
           {/* Luces Bokeh */}
-          {[
-            {x:'15%',y:'20%',s:250,o:0.15},
-            {x:'75%',y:'10%',s:350,o:0.12},
-            {x:'85%',y:'55%',s:200,o:0.15},
-            {x:'5%',y:'70%',s:300,o:0.12}
-          ].map((b,i) => (
-            <div key={i} style={{ 
-              position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', 
-              background: `radial-gradient(circle, ${accent}${Math.floor(b.o*255).toString(16)} 0%, transparent 70%)`,
-              filter: 'blur(35px)', zIndex: 1
-            }} />
-          ))}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+            {[
+                {x:'15%',y:'20%',s:250,o:0.15},
+                {x:'75%',y:'10%',s:350,o:0.12},
+                {x:'85%',y:'55%',s:200,o:0.15},
+                {x:'5%',y:'70%',s:300,o:0.12}
+            ].map((b,i) => (
+                <div key={i} style={{ 
+                position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', 
+                background: `radial-gradient(circle, ${accent}${Math.floor(b.o*255).toString(16)} 0%, transparent 70%)`,
+                filter: 'blur(35px)', display: 'flex'
+                }} />
+            ))}
+          </div>
 
           {/* Grano y Scanlines */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")', zIndex: 2 }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%)', backgroundSize: '100% 4px', zIndex: 3 }} />
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")', display: 'flex' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%)', backgroundSize: '100% 4px', display: 'flex' }} />
 
-          {/* Sidebar Master Version */}
+          {/* Sidebar */}
           <div style={{ 
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
              <div style={{ 
-               transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent, opacity: 0.6, textTransform: 'uppercase'
+               transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent, opacity: 0.6, textTransform: 'uppercase', display: 'flex'
              }}>
                 DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026
              </div>
-             <div style={{ position: 'absolute', right: 0, top: '10%', bottom: '10%', width: '1px', background: `linear-gradient(to bottom, transparent, ${accent}55, transparent)` }} />
+             <div style={{ position: 'absolute', right: 0, top: '10%', bottom: '10%', width: '1px', background: `linear-gradient(to bottom, transparent, ${accent}55, transparent)`, display: 'flex' }} />
           </div>
 
           {/* Contenido Principal */}
-          <div style={{ flex: 1, padding: '100px', paddingLeft: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5 }}>
+          <div style={{ flex: 1, padding: '100px', paddingLeft: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             
-            {/* Header */}
+            {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '0.5em', color: accent }}>{artist.toUpperCase()} RECORDS</div>
-                  <div style={{ fontSize: 14, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold' }}>REFLECTIONS // HUB PRO V5.1 // PURO CHIHUAHUA</div>
+                  <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '0.5em', color: accent, display: 'flex' }}>{artist.toUpperCase()} RECORDS</div>
+                  <div style={{ fontSize: 14, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', display: 'flex' }}>REFLECTIONS // HUB PRO V5.1 // PURO CHIHUAHUA</div>
                </div>
-               <div style={{ padding: "10px 28px", borderRadius: 4, border: `1px solid ${accent}66`, background: "rgba(0, 0, 0, 0.4)", color: accent, fontSize: 18, fontWeight: '900', letterSpacing: '0.2em' }}>
+               <div style={{ padding: "10px 28px", borderRadius: 4, border: `1px solid ${accent}66`, background: "rgba(0, 0, 0, 0.4)", color: accent, fontSize: 18, fontWeight: '900', letterSpacing: '0.2em', display: 'flex' }}>
                   YA DISPONIBLE
                </div>
             </div>
 
-            {/* Centro: Portada y Título */}
+            {/* Centro Portrait */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: '40px' }}>
-               <div style={{ position: 'relative', padding: 12, background: `linear-gradient(135deg, ${accent} 0%, transparent 50%, ${accent} 100%)`, borderRadius: 10, boxShadow: "0 80px 180px rgba(0,0,0,0.9)" }}>
-                  <div style={{ width: 550, height: 550, overflow: 'hidden', borderRadius: 6 }}>
+               <div style={{ position: 'relative', padding: 12, background: `linear-gradient(135deg, ${accent} 0%, transparent 50%, ${accent} 100%)`, borderRadius: 10, boxShadow: "0 80px 180px rgba(0,0,0,0.9)", display: 'flex' }}>
+                  <div style={{ width: 550, height: 550, overflow: 'hidden', borderRadius: 6, display: 'flex' }}>
                      <img src={bgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                </div>
 
                <div style={{ marginTop: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  {/* TÍTULO HACK: Simulamos Bebas Neue estrechando la fuente Sans del sistema */}
                   <div style={{ 
                     fontSize: 160, 
                     fontWeight: 900, 
@@ -161,13 +162,14 @@ export default async function handler(req: Request) {
                     lineHeight: 0.85, 
                     letterSpacing: '-2px',
                     textShadow: `0 0 80px ${accent}88, 0 10px 40px rgba(0,0,0,0.8)`,
-                    transform: 'scaleX(0.7)', // Aquí está la magia: esto la hace alta y delgada
-                    textTransform: 'uppercase'
+                    transform: 'scaleX(0.7)', 
+                    textTransform: 'uppercase',
+                    display: 'flex'
                   }}>
                     {song.name}
                   </div>
 
-                  <div style={{ marginTop: '20px' }}>
+                  <div style={{ marginTop: '20px', display: 'flex' }}>
                     <div style={{ 
                       fontSize: 38, color: accent, fontWeight: 900, letterSpacing: '0.3em',
                       background: 'rgba(0,0,0,0.5)', padding: '14px 70px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'flex'
@@ -178,10 +180,11 @@ export default async function handler(req: Request) {
                </div>
             </div>
 
-            <div style={{ flex: 1 }} />
+            {/* Espaciador */}
+            <div style={{ flex: 1, display: 'flex' }} />
           </div>
 
-          {/* Footer Master */}
+          {/* Footer Area */}
           <div style={{
             background: `linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,1) 100%)`,
             borderTop: `2px solid ${accent}66`,
@@ -189,26 +192,26 @@ export default async function handler(req: Request) {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-               <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent }}>{template.label} EDITION</div>
-               <div style={{ fontSize: 13, opacity: 0.3, color: 'white' }}>© 2026 RECORDS HUB PRO</div>
+               <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent, display: 'flex' }}>{template.label} EDITION</div>
+               <div style={{ fontSize: 13, opacity: 0.3, color: 'white', display: 'flex' }}>© 2026 RECORDS HUB PRO</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                <div style={{ 
-                 padding: "12px 50px", borderRadius: 4, backgroundColor: accent, color: 'black', fontWeight: 900, fontSize: 22, letterSpacing: '0.2em'
+                 padding: "12px 50px", borderRadius: 4, backgroundColor: accent, color: 'black', fontWeight: 900, fontSize: 22, letterSpacing: '0.2em', display: 'flex'
                }}>
                   MUSICA.DIOSMASGYM.COM
                </div>
                <div style={{ 
-                 fontSize: 54, color: 'white', fontStyle: 'italic', opacity: 0.9, textShadow: '0 4px 12px rgba(0,0,0,0.6)'
+                 fontSize: 54, color: 'white', fontStyle: 'italic', opacity: 0.9, textShadow: '0 4px 12px rgba(0,0,0,0.6)', display: 'flex'
                }}>
                   {artist.toLowerCase().includes('juan') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-               <div style={{ fontSize: 24, fontWeight: 900, color: 'white', letterSpacing: '0.2em' }}>STUDIO AI</div>
-               <div style={{ fontSize: 12, opacity: 0.3, letterSpacing: '0.1em' }}>POWERED BY DIOSMASGYM</div>
+               <div style={{ fontSize: 24, fontWeight: 900, color: 'white', letterSpacing: '0.2em', display: 'flex' }}>STUDIO AI</div>
+               <div style={{ fontSize: 12, opacity: 0.3, letterSpacing: '0.1em', display: 'flex' }}>POWERED BY DIOSMASGYM</div>
             </div>
           </div>
         </div>
@@ -216,7 +219,6 @@ export default async function handler(req: Request) {
       {
         width: 1080,
         height: 1350,
-        // Eliminamos las fuentes para máxima estabilidad
       }
     );
 
@@ -236,7 +238,7 @@ export default async function handler(req: Request) {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      status: "Ultra-Stable Mode Activated (No external fonts)" 
+      status: "Ultra-Stable Mode Activated (Satori-Strict Layout)" 
     }), { status: 200 });
 
   } catch (error: any) {
