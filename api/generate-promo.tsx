@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// VERSIÓN "SATORI-STRICT": Cada div con hijos tiene display: flex explícito
+// VERSIÓN MASTER 4K (Restaurada con Carga Blindada)
 export const config = {
   runtime: 'edge',
 };
@@ -65,7 +65,23 @@ export default async function handler(req: Request) {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    // DATA
+    // 1. CARGA DE FUENTES CON LINKS DE ALTA DISPONIBILIDAD (TTF)
+    const fontResults = await Promise.allSettled([
+      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf').then(r => r.arrayBuffer()),
+      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/static/Inter-Bold.ttf').then(r => r.arrayBuffer()),
+      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/satisfy/Satisfy-Regular.ttf').then(r => r.arrayBuffer())
+    ]);
+
+    const bebasData = fontResults[0].status === 'fulfilled' ? fontResults[0].value : null;
+    const interData = fontResults[1].status === 'fulfilled' ? fontResults[1].value : null;
+    const satisfyData = fontResults[2].status === 'fulfilled' ? fontResults[2].value : null;
+
+    // VALIDACIÓN CRÍTICA: Si el archivo empieza con "<!DO" es HTML (error) y no lo usamos
+    const safeBebas = (bebasData && new Uint8Array(bebasData)[0] !== 60) ? bebasData : null;
+    const safeInter = (interData && new Uint8Array(interData)[0] !== 60) ? interData : null;
+    const safeSatisfy = (satisfyData && new Uint8Array(satisfyData)[0] !== 60) ? satisfyData : null;
+
+    // 2. DATA
     const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
     const catalog = csvResults.flatMap(csv => parseMusicCSV(csv));
     const song = catalog[Math.floor(Math.random() * catalog.length)];
@@ -78,7 +94,12 @@ export default async function handler(req: Request) {
     const accent = template.color;
     const bgUrl = song.cover;
 
-    // GENERACIÓN DE IMAGEN VERSIÓN ULTRA-ESTRICTA
+    // 3. DISEÑO MASTER
+    const fonts: any[] = [];
+    if (safeBebas) fonts.push({ name: 'Bebas Neue', data: safeBebas, style: 'normal' });
+    if (safeInter) fonts.push({ name: 'Inter', data: safeInter, style: 'normal' });
+    if (safeSatisfy) fonts.push({ name: 'Satisfy', data: safeSatisfy, style: 'normal' });
+
     const imageResponse = new ImageResponse(
       (
         <div
@@ -92,154 +113,94 @@ export default async function handler(req: Request) {
             overflow: 'hidden',
           }}
         >
-          {/* Fondo */}
+          {/* Fondo Blur */}
           {bgUrl && (
-            <div style={{ position: 'absolute', inset: -100, display: 'flex' }}>
-              <img src={bgUrl} style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(1.02)' }} />
+            <div style={{ position: 'absolute', inset: -50, display: 'flex' }}>
+              <img src={bgUrl} style={{ width: '110%', height: '110%', objectFit: 'cover', filter: 'blur(80px) brightness(1.02)' }} />
             </div>
           )}
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex' }} />
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', display: 'flex' }} />
           
-          {/* Luces Bokeh */}
+          {/* Bokeh */}
           <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-            {[
-                {x:'15%',y:'20%',s:250,o:0.15},
-                {x:'75%',y:'10%',s:350,o:0.12},
-                {x:'85%',y:'55%',s:200,o:0.15},
-                {x:'5%',y:'70%',s:300,o:0.12}
-            ].map((b,i) => (
-                <div key={i} style={{ 
-                position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', 
-                background: `radial-gradient(circle, ${accent}${Math.floor(b.o*255).toString(16)} 0%, transparent 70%)`,
-                filter: 'blur(35px)', display: 'flex'
-                }} />
+            {[ {x:'15%',y:'20%',s:200,o:0.1}, {x:'75%',y:'10%',s:300,o:0.08}, {x:'88%',y:'55%',s:150,o:0.12}, {x:'5%',y:'70%',s:250,o:0.1} ].map((b,i) => (
+              <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background: `radial-gradient(circle, ${accent}${Math.floor(b.o*255).toString(16)} 0%, transparent 70%)`, filter: 'blur(30px)', display: 'flex' }} />
             ))}
           </div>
 
-          {/* Grano y Scanlines */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")', display: 'flex' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%)', backgroundSize: '100% 4px', display: 'flex' }} />
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")', display: 'flex' }} />
 
           {/* Sidebar */}
-          <div style={{ 
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-             <div style={{ 
-               transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent, opacity: 0.6, textTransform: 'uppercase', display: 'flex'
-             }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+             <div style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 18, fontWeight: 900, letterSpacing: '0.4em', color: accent, opacity: 0.6, fontFamily: safeInter ? 'Inter' : 'sans-serif', textTransform: 'uppercase', display: 'flex' }}>
                 DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026
              </div>
              <div style={{ position: 'absolute', right: 0, top: '10%', bottom: '10%', width: '1px', background: `linear-gradient(to bottom, transparent, ${accent}55, transparent)`, display: 'flex' }} />
           </div>
 
-          {/* Contenido Principal */}
-          <div style={{ flex: 1, padding: '100px', paddingLeft: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {/* Header Area */}
+          {/* Contenido */}
+          <div style={{ flex: 1, padding: '80px', paddingLeft: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '0.5em', color: accent, display: 'flex' }}>{artist.toUpperCase()} RECORDS</div>
-                  <div style={{ fontSize: 14, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', display: 'flex' }}>REFLECTIONS // HUB PRO V5.1 // PURO CHIHUAHUA</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '0.5em', color: accent, fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>{artist.toUpperCase()} RECORDS</div>
+                  <div style={{ fontSize: 12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>REFLECTIONS // HUB PRO V5.1 // PURO CHIHUAHUA</div>
                </div>
-               <div style={{ padding: "10px 28px", borderRadius: 4, border: `1px solid ${accent}66`, background: "rgba(0, 0, 0, 0.4)", color: accent, fontSize: 18, fontWeight: '900', letterSpacing: '0.2em', display: 'flex' }}>
+               <div style={{ padding: "8px 24px", borderRadius: 4, border: `1px solid ${accent}66`, background: "rgba(0, 0, 0, 0.4)", color: accent, fontSize: 16, fontWeight: '900', letterSpacing: '0.2em', fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>
                   YA DISPONIBLE
                </div>
             </div>
 
-            {/* Centro Portrait */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: '40px' }}>
-               <div style={{ position: 'relative', padding: 12, background: `linear-gradient(135deg, ${accent} 0%, transparent 50%, ${accent} 100%)`, borderRadius: 10, boxShadow: "0 80px 180px rgba(0,0,0,0.9)", display: 'flex' }}>
-                  <div style={{ width: 550, height: 550, overflow: 'hidden', borderRadius: 6, display: 'flex' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+               <div style={{ position: 'relative', padding: 10, background: `linear-gradient(135deg, ${accent} 0%, transparent 50%, ${accent} 100%)`, borderRadius: 8, boxShadow: "0 60px 150px rgba(0,0,0,0.8)", display: 'flex' }}>
+                  <div style={{ width: 600, height: 600, overflow: 'hidden', borderRadius: 4, display: 'flex' }}>
                      <img src={bgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                </div>
-
-               <div style={{ marginTop: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ 
-                    fontSize: 160, 
-                    fontWeight: 900, 
-                    color: 'white', 
-                    lineHeight: 0.85, 
-                    letterSpacing: '-2px',
-                    textShadow: `0 0 80px ${accent}88, 0 10px 40px rgba(0,0,0,0.8)`,
-                    transform: 'scaleX(0.7)', 
-                    textTransform: 'uppercase',
-                    display: 'flex'
-                  }}>
+               <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ fontSize: 180, fontWeight: 900, fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif', color: 'white', lineHeight: 0.85, letterSpacing: '-2px', textShadow: `0 0 80px ${accent}88, 0 10px 40px rgba(0,0,0,0.8)`, textTransform: 'uppercase', display: 'flex', transform: safeBebas ? 'none' : 'scaleX(0.7)' }}>
                     {song.name}
                   </div>
-
-                  <div style={{ marginTop: '20px', display: 'flex' }}>
-                    <div style={{ 
-                      fontSize: 38, color: accent, fontWeight: 900, letterSpacing: '0.3em',
-                      background: 'rgba(0,0,0,0.5)', padding: '14px 70px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'flex'
-                    }}>
+                  <div style={{ marginTop: '30px', display: 'flex' }}>
+                    <div style={{ fontSize: 34, color: accent, fontWeight: 900, letterSpacing: '0.3em', fontFamily: safeInter ? 'Inter' : 'sans-serif', background: 'rgba(0,0,0,0.5)', padding: '12px 60px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'flex' }}>
                       {artist.toUpperCase()}
                     </div>
                   </div>
                </div>
             </div>
-
-            {/* Espaciador */}
             <div style={{ flex: 1, display: 'flex' }} />
           </div>
 
-          {/* Footer Area */}
-          <div style={{
-            background: `linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,1) 100%)`,
-            borderTop: `2px solid ${accent}66`,
-            padding: `50px 100px 50px 240px`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-          }}>
+          <div style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,1) 100%)`, borderTop: `2px solid ${accent}66`, padding: `40px 80px 40px 220px`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-               <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.4em', color: accent, display: 'flex' }}>{template.label} EDITION</div>
-               <div style={{ fontSize: 13, opacity: 0.3, color: 'white', display: 'flex' }}>© 2026 RECORDS HUB PRO</div>
+               <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.4em', color: accent, display: 'flex' }}>{template.label} EDITION</div>
+               <div style={{ fontSize: 12, opacity: 0.3, color: 'white', display: 'flex' }}>© 2026 RECORDS HUB PRO</div>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-               <div style={{ 
-                 padding: "12px 50px", borderRadius: 4, backgroundColor: accent, color: 'black', fontWeight: 900, fontSize: 22, letterSpacing: '0.2em', display: 'flex'
-               }}>
-                  MUSICA.DIOSMASGYM.COM
-               </div>
-               <div style={{ 
-                 fontSize: 54, color: 'white', fontStyle: 'italic', opacity: 0.9, textShadow: '0 4px 12px rgba(0,0,0,0.6)', display: 'flex'
-               }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+               <div style={{ padding: "10px 40px", borderRadius: 4, backgroundColor: accent, color: 'black', fontWeight: 900, fontSize: 20, letterSpacing: '0.2em', display: 'flex' }}>MUSICA.DIOSMASGYM.COM</div>
+               <div style={{ fontSize: 48, color: 'white', fontFamily: safeSatisfy ? 'Satisfy' : 'sans-serif', opacity: 0.9, textShadow: '0 4px 10px rgba(0,0,0,0.5)', fontStyle: safeSatisfy ? 'normal' : 'italic', display: 'flex' }}>
                   {artist.toLowerCase().includes('juan') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
                </div>
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-               <div style={{ fontSize: 24, fontWeight: 900, color: 'white', letterSpacing: '0.2em', display: 'flex' }}>STUDIO AI</div>
-               <div style={{ fontSize: 12, opacity: 0.3, letterSpacing: '0.1em', display: 'flex' }}>POWERED BY DIOSMASGYM</div>
+               <div style={{ fontSize: 20, fontWeight: 900, color: 'white', letterSpacing: '0.2em', display: 'flex' }}>STUDIO AI</div>
+               <div style={{ fontSize: 10, opacity: 0.3, letterSpacing: '0.1em', display: 'flex' }}>POWERED BY DIOSMASGYM</div>
             </div>
           </div>
         </div>
       ),
-      {
-        width: 1080,
-        height: 1350,
-      }
+      { width: 1080, height: 1350, fonts: fonts.length > 0 ? fonts : undefined }
     );
 
     const arrayBuffer = await imageResponse.arrayBuffer();
     const formData = new FormData();
-    const file = new Blob([arrayBuffer], { type: 'image/png' });
-    
     formData.append("chat_id", CHAT_ID);
-    formData.append("photo", file, "promo.png");
+    formData.append("photo", new Blob([arrayBuffer], { type: 'image/png' }), "promo.png");
     formData.append("caption", `🎧 *${song.name}* - ${artist}\n🔥 Estreno automático.\n\nEscúchalo aquí: ${song.url}`);
     formData.append("parse_mode", "Markdown");
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: "POST",
-      body: formData
-    });
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      status: "Ultra-Stable Mode Activated (Satori-Strict Layout)" 
-    }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, font_status: fonts.length > 0 ? "Master Fonts Loaded" : "Fallback Applied" }), { status: 200 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error_system: error.message }), { status: 500 });
