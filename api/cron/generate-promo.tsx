@@ -1,5 +1,4 @@
 import { ImageResponse } from '@vercel/og';
-import { NextRequest } from 'next/server';
 
 export const config = {
   runtime: 'edge',
@@ -10,8 +9,6 @@ const CSV_URLS = [
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv',
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv'
 ];
-
-const MAKE_WEBHOOK = 'https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4';
 
 const templates = [
   { id: 'gold', color: '#c5a059', label: 'GOLD CLASSIC' },
@@ -78,7 +75,7 @@ function parseMusicCSV(csvText: string) {
   return music;
 }
 
-export default async function handler(req: NextRequest) {
+export default async function (req: Request) {
   try {
     // 1. Cargar fuentes (Opcional, pero mejora mucho el diseño)
     const fontData = await fetch(
