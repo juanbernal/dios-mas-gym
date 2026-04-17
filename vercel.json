@@ -22,7 +22,7 @@
   ],
   "crons": [
     {
-      "path": "/api/generate-promo",
+      "path": "/api/test-promo",
       "schedule": "0 15 * * *"
     }
   ]

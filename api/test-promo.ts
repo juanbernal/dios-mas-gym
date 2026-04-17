@@ -1,7 +1,10 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// URLS DE LOS CATÁLOGOS (CSV de Google Sheets)
+// --- CONFIGURACIÓN DE PRUEBA ---
+const DEPLOY_ID = "VERIFICACION_PATH_NUEVO_2326"; // ID único para confirmar subida
+// -------------------------------
+
 const CSV_URLS = [
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv',
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv'
@@ -42,13 +45,12 @@ export default async function handler(req, res) {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    // 1. Catálogo (Texto plano)
+    // 1. Data
     const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
     const fullCatalog = csvResults.flatMap(csv => parseMusicCSV(csv));
-    const song = fullCatalog[Math.floor(Math.random() * fullCatalog.length)] || { name: "Error", artist: "Unknown", url: "" };
+    const song = fullCatalog[Math.floor(Math.random() * fullCatalog.length)] || { name: "Test", artist: "System" };
 
-    // 2. DISEÑO ULTRA-SEGURO (SIN IMÁGENES, SIN FUENTES EXTERNAS)
-    // Usamos puras divs y colores para validar si el runtime funciona.
+    // 2. Imagen "Test"
     const design = React.createElement(
       'div',
       {
@@ -59,60 +61,38 @@ export default async function handler(req, res) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          color: 'white',
+          backgroundColor: '#000',
+          color: '#0f0',
           padding: '40px',
         },
       },
       [
-         React.createElement('div', { 
-           style: { 
-             fontSize: '60px', 
-             fontWeight: 'bold', 
-             marginBottom: '20px',
-             textTransform: 'uppercase',
-             textAlign: 'center'
-           } 
-         }, song.name),
-         React.createElement('div', { 
-           style: { 
-             fontSize: '30px', 
-             opacity: 0.5,
-             marginBottom: '60px'
-           } 
-         }, song.artist),
-         React.createElement('div', { 
-           style: { 
-             padding: '20px 40px', 
-             backgroundColor: '#3b82f6', 
-             borderRadius: '100px',
-             fontSize: '20px'
-           } 
-         }, 'DALE PLAY')
+         React.createElement('div', { style: { fontSize: '40px', marginBottom: '20px' } }, "PRUEBA DE CONEXIÓN"),
+         React.createElement('div', { style: { fontSize: '20px', color: '#fff' } }, `ID: ${DEPLOY_ID}`),
+         React.createElement('div', { style: { fontSize: '60px', marginTop: '40px' } }, song.name)
       ]
     );
 
-    const imageRes = new ImageResponse(design, { width: 800, height: 800 });
+    const imageRes = new ImageResponse(design, { width: 800, height: 600 });
     const buffer = Buffer.from(await imageRes.arrayBuffer());
 
     // 3. Telegram
     const formData = new FormData();
     const file = new Blob([buffer], { type: 'image/png' });
     formData.append("chat_id", CHAT_ID);
-    formData.append("photo", file, "promo.png");
-    formData.append("caption", `🚀 ¡Recomendación del día!\n\n🎵 *${song.name}*\n👤 ${song.artist}\n\nEscucha aquí: ${song.url}`);
-    formData.append("parse_mode", "Markdown");
+    formData.append("photo", file, "test.png");
+    formData.append("caption", `✅ Prueba de Deploy: ${DEPLOY_ID}`);
 
-    const telRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
-    
-    if (!telRes.ok) {
-        const err = await telRes.json();
-        return res.status(500).json({ error_telegram: err });
-    }
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
 
-    return res.status(200).json({ success: true, mode: "ultra-safe-mode", song: song.name });
+    return res.status(200).json({ 
+        deployed: true, 
+        id: DEPLOY_ID, 
+        song: song.name,
+        message: "Si ves esto, el código nuevo SÍ se subió." 
+    });
 
   } catch (error) {
-    return res.status(500).json({ error_node: error.message });
+    return res.status(500).json({ error_deploy: error.message, id: DEPLOY_ID });
   }
 }
