@@ -1,5 +1,6 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // URLS DE LOS CATÁLOGOS (CSV de Google Sheets)
 const CSV_URLS = [
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
     if (artist.toLowerCase().includes("juan")) artist = "Juan 614";
     if (artist.toLowerCase().includes("dios")) artist = "Diosmasgym";
 
-    // 3. Diseño con React.createElement (Evita líos de .tsx)
+    // 3. Diseño con React.createElement (NO FONT CUSTOM para evitar errores de red)
     const design = React.createElement(
       'div',
       {
@@ -105,11 +106,11 @@ export default async function handler(req, res) {
         },
       },
       [
-        // Fondo
+        // Fondo con Blur
         React.createElement('div', { style: { display: 'flex', position: 'absolute', inset: -100 } }, [
           React.createElement('img', { src: song.cover, style: { width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: 0.8 } })
         ]),
-        // Marco
+        // Marco Neon
         React.createElement('div', {
           style: {
              display: 'flex',
@@ -127,13 +128,19 @@ export default async function handler(req, res) {
         }, [
           React.createElement('div', { style: { position: 'absolute', top: 30, left: 30, width: 40, height: 40, borderTop: `4px solid ${template.color}`, borderLeft: `4px solid ${template.color}` } }),
           React.createElement('div', { style: { position: 'absolute', bottom: 30, right: 30, width: 40, height: 40, borderBottom: `4px solid ${template.color}`, borderRight: `4px solid ${template.color}` } }),
-          React.createElement('div', { style: { display: 'flex', borderRadius: '20px', overflow: 'hidden', marginBottom: '60px' } }, [
+          
+          React.createElement('div', { style: { display: 'flex', borderRadius: '20px', overflow: 'hidden', marginBottom: '60px', boxShadow: `0 0 50px ${template.color}33` } }, [
              React.createElement('img', { src: song.cover, style: { width: '450px', height: '450px', objectFit: 'cover' } })
           ]),
-          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } }, [
+          
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }, [
              React.createElement('div', { style: { fontSize: 16, color: template.color, letterSpacing: '0.6em', marginBottom: '20px' } }, 'RECOMENDACIÓN HOY'),
-             React.createElement('div', { style: { fontSize: 72, fontWeight: 900, color: 'white', marginBottom: '10px' } }, song.name),
-             React.createElement('div', { style: { fontSize: 32, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', marginBottom: '60px' } }, artist)
+             React.createElement('div', { style: { fontSize: 72, fontWeight: 900, color: 'white', marginBottom: '10px', textTransform: 'uppercase' } }, song.name),
+             React.createElement('div', { style: { fontSize: 32, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', marginBottom: '60px' } }, artist),
+             
+             React.createElement('div', { style: { display: 'flex', gap: '20px' } }, [
+                React.createElement('div', { style: { padding: '10px 30px', backgroundColor: template.color, color: 'black', borderRadius: '50px', fontSize: 14, fontWeight: 'bold' } }, 'ESCUCHAR AHORA')
+             ])
           ])
         ])
       ]
@@ -151,11 +158,15 @@ export default async function handler(req, res) {
     formData.append("parse_mode", "Markdown");
 
     const telRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
-    if (!telRes.ok) return res.status(500).json({ error: "Telegram failed" });
+    
+    if (!telRes.ok) {
+        const err = await telRes.json();
+        return res.status(500).json({ error_telegram: err });
+    }
 
-    return res.status(200).json({ success: true, song: song.name });
+    return res.status(200).json({ success: true, song: song.name, mode: "no-custom-fonts" });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error_node: error.message });
   }
 }
