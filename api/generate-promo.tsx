@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// VERSIÓN "CLEAN & INDESTRUCTIBLE": Fuentes de Unpkg con validación de firma
+// VERSIÓN 2.1: Anti-Cache + Transformación Explícita
 export const config = {
   runtime: 'edge',
 };
@@ -65,26 +65,22 @@ export default async function handler(req: Request) {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    // 1. CARGA DE FUENTES DESDE UNPKG (Formato WOFF/TTF validado)
+    // 1. CARGA DE FUENTES
     const fontResults = await Promise.allSettled([
       fetch('https://unpkg.com/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff').then(r => r.arrayBuffer()),
       fetch('https://unpkg.com/@fontsource/inter/files/inter-latin-700-normal.woff').then(r => r.arrayBuffer())
     ]);
 
-    const bebasData = fontResults[0].status === 'fulfilled' ? fontResults[0].value : null;
-    const interData = fontResults[1].status === 'fulfilled' ? fontResults[1].value : null;
-
-    // EL ESCUDO DEFINITIVO: Solo usamos la letra si la firma NO es HTML (60) ni PACK (80)
     const validateFont = (data: any) => {
         if (!data) return null;
         const head = new Uint8Array(data.slice(0, 4));
-        if (head[0] === 60) return null; // Corresponde a '<' (HTML Error)
-        if (head[0] === 80 && head[1] === 97) return null; // Corresponde a 'Pa' (Pack/Zip Archive)
+        if (head[0] === 60) return null;
+        if (head[0] === 80 && head[1] === 97) return null;
         return data;
     };
 
-    const safeBebas = validateFont(bebasData);
-    const safeInter = validateFont(interData);
+    const safeBebas = validateFont(fontResults[0].status === 'fulfilled' ? fontResults[0].value : null);
+    const safeInter = validateFont(fontResults[1].status === 'fulfilled' ? fontResults[1].value : null);
 
     // 2. DATA
     const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
@@ -99,10 +95,12 @@ export default async function handler(req: Request) {
     const accent = template.color;
     const bgUrl = song.cover;
 
-    // 3. DISEÑO "CLEAN & PRO"
+    // 3. DISEÑO
     const fonts: any[] = [];
     if (safeBebas) fonts.push({ name: 'Bebas Neue', data: safeBebas, style: 'normal' });
     if (safeInter) fonts.push({ name: 'Inter', data: safeInter, style: 'normal' });
+
+    const finalTransform = safeBebas ? 'scale(1)' : 'scale(0.7, 1.0)';
 
     const imageResponse = new ImageResponse(
       (
@@ -152,22 +150,30 @@ export default async function handler(req: Request) {
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ fontSize: 18, color: accent, letterSpacing: '0.8em', marginBottom: '25px', textTransform: 'uppercase', display: 'flex', fontWeight: 'bold' }}>THE BEAT SERIES</div>
-              <div style={{ fontSize: 100, fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif', color: 'white', marginBottom: '15px', textTransform: 'uppercase', maxWidth: '750px', lineHeight: 0.9, letterSpacing: '0.05em', display: 'flex', transform: safeBebas ? 'scaleX(1)' : 'scaleX(0.7)' }}>
+              
+              <div style={{ 
+                fontSize: 100, 
+                fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif',
+                color: 'white', 
+                marginBottom: '15px', 
+                textTransform: 'uppercase', 
+                maxWidth: '750px', 
+                lineHeight: 0.9, 
+                letterSpacing: '0.05em',
+                display: 'flex',
+                transform: finalTransform
+              }}>
                 {song.name}
               </div>
+              
               <div style={{ fontSize: 34, color: 'rgba(255,255,255,0.4)', marginBottom: '80px', textTransform: 'uppercase', letterSpacing: '0.2em', display: 'flex', fontWeight: 'bold' }}>
                 {artist}
               </div>
+              
               <div style={{ padding: '16px 60px', backgroundColor: 'white', color: 'black', borderRadius: '100px', fontSize: 18, fontWeight: 900, letterSpacing: '0.3em', boxShadow: '0 10px 30px rgba(255,255,255,0.2)', display: 'flex' }}>
                 ESCUCHAR AHORA
               </div>
             </div>
-          </div>
-          
-          <div style={{ position: 'absolute', bottom: '50px', display: 'flex', alignItems: 'center', gap: '30px', opacity: 0.2 }}>
-            <div style={{ width: '80px', height: '1px', backgroundColor: 'white', display: 'flex' }} />
-            <div style={{ color: 'white', fontSize: 14, fontWeight: 900, letterSpacing: '0.6em', textTransform: 'uppercase', display: 'flex' }}>DiosMasGym • STUDIO AI</div>
-            <div style={{ width: '80px', height: '1px', backgroundColor: 'white', display: 'flex' }} />
           </div>
         </div>
       ),
@@ -187,7 +193,11 @@ export default async function handler(req: Request) {
 
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
 
-    return new Response(JSON.stringify({ success: true, mode: "Clean-Pro-AntiCrash" }), { status: 200 });
+    return new Response(JSON.stringify({ 
+      success: true, 
+      version: "2.1-AntiCache",
+      status: "Mastering Finalization" 
+    }), { status: 200 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error_system: error.message }), { status: 500 });
