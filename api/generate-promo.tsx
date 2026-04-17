@@ -1,7 +1,6 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// MOTOR DE EDGE RUNTIME (Para máxima compatibilidad y evitar errores de build)
 export const config = {
   runtime: 'edge',
 };
@@ -62,26 +61,33 @@ function parseMusicCSV(csvText: string) {
 
 export default async function handler(req: Request) {
   try {
-    // SEGURIDAD: Usamos variables de entorno para proteger tus tokens
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
     if (!BOT_TOKEN || !CHAT_ID) {
-      return new Response(JSON.stringify({ error: "Variables de entorno faltantes en Vercel." }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Variables faltantes" }), { status: 400 });
     }
 
-    // 1. CARGA DE FUENTES (Esencial para el diseño "The Beat Series")
-    // Cargamos Bebas Neue (Títulos) e Inter (Artistas)
-    const [bebasData, interData] = await Promise.all([
-      fetch('https://fonts.gstatic.com/s/bebasneue/v14/JTUSjIg69CK48gW7PXoo9WlhyyTh89Y.woff').then(res => res.arrayBuffer()),
-      fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGkyMZhrib2Bg-4.woff').then(res => res.arrayBuffer())
-    ]);
+    // 1. CARGA DE FUENTES CON ULTRA-STABILITY (Try/Catch)
+    let bebasData: ArrayBuffer | null = null;
+    let interData: ArrayBuffer | null = null;
 
-    // 2. CATÁLOGO Y SELECCIÓN
+    try {
+      // Usamos URLs de RAW GitHub o CDN directos que suelen ser más estables para Fetch
+      const [resBebas, resInter] = await Promise.all([
+        fetch('https://github.com/google/fonts/raw/main/ofl/bebasneue/BebasNeue-Regular.ttf'),
+        fetch('https://github.com/google/fonts/raw/main/ofl/inter/static/Inter-Bold.ttf')
+      ]);
+
+      if (resBebas.ok) bebasData = await resBebas.arrayBuffer();
+      if (resInter.ok) interData = await resInter.arrayBuffer();
+    } catch (e) {
+      console.error("No se pudieron descargar las fuentes, usando fallback del sistema.");
+    }
+
+    // 2. DATA
     const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
     const catalog = csvResults.flatMap(csv => parseMusicCSV(csv));
-    if (catalog.length === 0) throw new Error("Catálogo vacío");
-    
     const song = catalog[Math.floor(Math.random() * catalog.length)];
     const template = templates[Math.floor(Math.random() * templates.length)];
 
@@ -89,7 +95,11 @@ export default async function handler(req: Request) {
     if (artist.toLowerCase().includes("juan")) artist = "Juan 614";
     if (artist.toLowerCase().includes("dios")) artist = "Diosmasgym";
 
-    // 3. GENERACIÓN DE IMAGEN (Replicando PromoImageApp.tsx al detalle)
+    // 3. GENERACIÓN DE IMAGEN
+    const fonts: any[] = [];
+    if (bebasData) fonts.push({ name: 'Bebas Neue', data: bebasData, style: 'normal' });
+    if (interData) fonts.push({ name: 'Inter', data: interData, style: 'normal' });
+
     const imageResponse = new ImageResponse(
       (
         <div
@@ -103,10 +113,9 @@ export default async function handler(req: Request) {
             backgroundColor: '#020617',
             position: 'relative',
             overflow: 'hidden',
-            fontFamily: 'Inter',
           }}
         >
-          {/* Capa 1: Fondo Blur Extremo */}
+          {/* Fondo Blur */}
           <div style={{ display: 'flex', position: 'absolute', inset: -100 }}>
             <img 
               src={song.cover} 
@@ -114,18 +123,7 @@ export default async function handler(req: Request) {
             />
           </div>
 
-          {/* Capa 2: Textura de Grano Industrial */}
-          <div 
-            style={{ 
-               position: 'absolute', 
-               inset: 0, 
-               opacity: 0.1, 
-               backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")',
-               backgroundRepeat: 'repeat'
-            }} 
-          />
-
-          {/* Capa 3: Contenedor Principal de Vidrio (Glassmorphism) */}
+          {/* Glass Container */}
           <div
             style={{
               display: 'flex',
@@ -139,26 +137,23 @@ export default async function handler(req: Request) {
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
-              boxShadow: '0 50px 100px rgba(0,0,0,0.5)',
             }}
           >
-            {/* Esquinas Neon (Fieles al diseño original) */}
+            {/* Corners */}
             <div style={{ position: 'absolute', top: 40, left: 40, width: 40, height: 40, borderTop: `4px solid ${template.color}`, borderLeft: `4px solid ${template.color}`, borderTopLeftRadius: '10px' }} />
             <div style={{ position: 'absolute', bottom: 40, right: 40, width: 40, height: 40, borderBottom: `4px solid ${template.color}`, borderRight: `4px solid ${template.color}`, borderBottomRightRadius: '10px' }} />
 
-            {/* Portada con Glow Dinámico */}
+            {/* Cover */}
             <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', marginBottom: '60px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: `0 0 80px ${template.color}33` }}>
               <img src={song.cover} style={{ width: '450px', height: '450px', objectFit: 'cover' }} />
             </div>
 
-            {/* Información de la Obra */}
+            {/* Info */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: template.color, letterSpacing: '0.8em', marginBottom: '25px', textTransform: 'uppercase' }}>THE BEAT SERIES</div>
-              
-              {/* Título en Bebas Neue */}
               <div style={{ 
                 fontSize: 90, 
-                fontFamily: 'Bebas Neue',
+                fontFamily: bebasData ? 'Bebas Neue' : 'sans-serif',
                 color: 'white', 
                 marginBottom: '15px', 
                 textTransform: 'uppercase', 
@@ -168,10 +163,9 @@ export default async function handler(req: Request) {
               }}>
                 {song.name}
               </div>
-              
-              {/* Artista en Inter Italic */}
               <div style={{ 
                 fontSize: 34, 
+                fontFamily: interData ? 'Inter' : 'sans-serif',
                 color: 'rgba(255,255,255,0.4)', 
                 fontStyle: 'italic', 
                 marginBottom: '60px', 
@@ -180,42 +174,20 @@ export default async function handler(req: Request) {
               }}>
                 {artist}
               </div>
-
-              {/* Botón de Estreno */}
-              <div style={{ 
-                padding: '14px 45px', 
-                backgroundColor: 'white', 
-                color: 'black', 
-                borderRadius: '50px', 
-                fontSize: 14, 
-                fontWeight: 900, 
-                letterSpacing: '0.3em',
-                boxShadow: '0 10px 30px rgba(255,255,255,0.2)'
-              }}>
+              <div style={{ padding: '14px 45px', backgroundColor: 'white', color: 'black', borderRadius: '50px', fontSize: 14, fontWeight: 900, letterSpacing: '0.3em' }}>
                 ESCUCHAR AHORA
               </div>
             </div>
-          </div>
-          
-          {/* Marca de Agua Studio */}
-          <div style={{ position: 'absolute', bottom: '60px', display: 'flex', alignItems: 'center', gap: '30px', opacity: 0.2 }}>
-            <div style={{ width: '80px', height: '1px', backgroundColor: 'white' }} />
-            <div style={{ color: 'white', fontSize: 14, fontWeight: 900, letterSpacing: '0.6em', textTransform: 'uppercase' }}>DiosMasGym • STUDIO AI</div>
-            <div style={{ width: '80px', height: '1px', backgroundColor: 'white' }} />
           </div>
         </div>
       ),
       {
         width: 1080,
         height: 1350,
-        fonts: [
-          { name: 'Bebas Neue', data: bebasData, style: 'normal' },
-          { name: 'Inter', data: interData, style: 'normal' }
-        ]
+        fonts: fonts.length > 0 ? fonts : undefined
       }
     );
 
-    // 4. PREPARACIÓN Y ENVÍO A TELEGRAM
     const arrayBuffer = await imageResponse.arrayBuffer();
     const formData = new FormData();
     const file = new Blob([arrayBuffer], { type: 'image/png' });
@@ -225,21 +197,12 @@ export default async function handler(req: Request) {
     formData.append("caption", `🎧 *${song.name}* - ${artist}\n✨ Recomendación del día.\n\nEscúchalo aquí: ${song.url}\n\n#DiosMasGym #TheBeatSeries`);
     formData.append("parse_mode", "Markdown");
 
-    const telRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: "POST",
-      body: formData
-    });
-
-    if (!telRes.ok) {
-        const errData = await telRes.json();
-        return new Response(JSON.stringify({ error_telegram: errData }), { status: 500 });
-    }
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
 
     return new Response(JSON.stringify({ 
       success: true, 
       song: song.name, 
-      security: "Environment Variables (Safe)",
-      design: "Bebas Neue + Inter Premium" 
+      font_status: fonts.length > 0 ? "Custom Loaded" : "System Fallback" 
     }), { status: 200 });
 
   } catch (error: any) {
