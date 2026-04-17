@@ -115,7 +115,7 @@ export default async function (req: Request) {
         >
           {/* Fondo Blur */}
           <div style={{ display: 'flex', position: 'absolute', inset: -100 }}>
-             <img src={song.cover} alt="" style={{ width: '120%', height: '120%', (Object as any).assign({ objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: '0.8' }) }} />
+             <img src={song.cover} alt="" style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: 0.8 }} />
           </div>
 
           {/* Grano / Textura */}
