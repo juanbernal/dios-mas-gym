@@ -1,8 +1,7 @@
+import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-export const config = {
-  runtime: 'edge',
-};
+export const runtime = 'edge';
 
 // URLS DE LOS CATÁLOGOS (CSV de Google Sheets)
 const CSV_URLS = [
@@ -77,7 +76,7 @@ function parseMusicCSV(csvText: string) {
 
 export default async function (req: Request) {
   try {
-    // 1. Cargar fuentes (Opcional, pero mejora mucho el diseño)
+    // 1. Cargar fuentes
     const fontData = await fetch(
       new URL('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGkyMZhrib2Bg-4.woff', import.meta.url)
     ).then((res) => res.arrayBuffer());
@@ -116,7 +115,7 @@ export default async function (req: Request) {
         >
           {/* Fondo Blur */}
           <div style={{ display: 'flex', position: 'absolute', inset: -100 }}>
-             <img src={song.cover} alt="" style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: 0.8 }} />
+             <img src={song.cover} alt="" style={{ width: '120%', height: '120%', (Object as any).assign({ objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: '0.8' }) }} />
           </div>
 
           {/* Grano / Textura */}
@@ -140,8 +139,8 @@ export default async function (req: Request) {
             }}
           >
             {/* Esquinas Neon */}
-            <div style={{ position: 'absolute', top: 30, left: 30, width: 40, height: 40, borderTop: `4px solid ${template.color}`, borderLeft: `4px solid ${template.color}`, borderTopLeftRadius: '10px' }} />
-            <div style={{ position: 'absolute', bottom: 30, right: 30, width: 40, height: 40, borderBottom: `4px solid ${template.color}`, borderRight: `4px solid ${template.color}`, borderBottomRightRadius: '10px' }} />
+            <div style={{ position: 'absolute', top: 30, left: 30, width: 40, height: 40, borderTop: `4px solid ${template.color}`, borderLeft: `4px solid ${template.color}` }} />
+            <div style={{ position: 'absolute', bottom: 30, right: 30, width: 40, height: 40, borderBottom: `4px solid ${template.color}`, borderRight: `4px solid ${template.color}` }} />
 
             {/* Cover con Glow */}
             <div style={{ display: 'flex', boxShadow: `0 0 80px ${template.color}33`, borderRadius: '20px', overflow: 'hidden', marginBottom: '60px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -229,6 +228,7 @@ export default async function (req: Request) {
       song: song.name, 
       artist: normalizedArtist
     }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
 
