@@ -188,7 +188,7 @@ export default async function handler(req: Request) {
     const formData = new FormData();
     formData.append("chat_id", CHAT_ID);
     formData.append("photo", new Blob([arrayBuffer], { type: 'image/png' }), "promo.png");
-    formData.append("caption", `🎧 *${song.name}* - ${artist}\n✨ Recomendación del día.\n\nEscúchalo aquí: ${song.url}`);
+    formData.append("caption", `🎧 *NUEVA RECOMENDACIÓN*\n━━━━━━━━━━━━━━━━━━\n🎵 *${song.name.toUpperCase()}*\n👤 Artista: *${artist}*\n\n🔥 _"The Beat Series" - Una experiencia única._\n\n👇 *Escúchalo aquí:*\n${song.url}\n\n#${artist.replace(/\s+/g, '')} #TheBeatSeries #NuevaMusica`);
     formData.append("parse_mode", "Markdown");
 
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
