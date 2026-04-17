@@ -170,7 +170,7 @@ export default async function handler(req: Request) {
                   <div style={{ marginTop: '20px' }}>
                     <div style={{ 
                       fontSize: 38, color: accent, fontWeight: 900, letterSpacing: '0.3em',
-                      background: 'rgba(0,0,0,0.5)', padding: '14px 70px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'inline-block'
+                      background: 'rgba(0,0,0,0.5)', padding: '14px 70px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'flex'
                     }}>
                       {artist.toUpperCase()}
                     </div>
