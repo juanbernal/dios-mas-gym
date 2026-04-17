@@ -152,7 +152,7 @@ export default async function handler(req: Request) {
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ fontSize: 18, color: accent, letterSpacing: '0.8em', marginBottom: '25px', textTransform: 'uppercase', display: 'flex', fontWeight: 'bold' }}>THE BEAT SERIES</div>
-              <div style={{ fontSize: 100, fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif', color: 'white', marginBottom: '15px', textTransform: 'uppercase', maxWidth: '750px', lineHeight: 0.9, letterSpacing: '0.05em', display: 'flex', transform: safeBebas ? 'none' : 'scaleX(0.7)' }}>
+              <div style={{ fontSize: 100, fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif', color: 'white', marginBottom: '15px', textTransform: 'uppercase', maxWidth: '750px', lineHeight: 0.9, letterSpacing: '0.05em', display: 'flex', transform: safeBebas ? undefined : 'scaleX(0.7)' }}>
                 {song.name}
               </div>
               <div style={{ fontSize: 34, color: 'rgba(255,255,255,0.4)', marginBottom: '80px', textTransform: 'uppercase', letterSpacing: '0.2em', display: 'flex', fontWeight: 'bold' }}>
