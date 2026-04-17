@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
-// VERSIÓN MASTER 4K (Restaurada con Carga Blindada)
+// VERSIÓN "CLEAN & PRO" (Reversión al diseño preferido por el usuario)
 export const config = {
   runtime: 'edge',
 };
@@ -65,21 +65,18 @@ export default async function handler(req: Request) {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    // 1. CARGA DE FUENTES CON LINKS DE ALTA DISPONIBILIDAD (TTF)
+    // 1. CARGA DE FUENTES (Solo las esenciales para el Clean Look)
     const fontResults = await Promise.allSettled([
       fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf').then(r => r.arrayBuffer()),
-      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/static/Inter-Bold.ttf').then(r => r.arrayBuffer()),
-      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/satisfy/Satisfy-Regular.ttf').then(r => r.arrayBuffer())
+      fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/inter/static/Inter-Bold.ttf').then(r => r.arrayBuffer())
     ]);
 
     const bebasData = fontResults[0].status === 'fulfilled' ? fontResults[0].value : null;
     const interData = fontResults[1].status === 'fulfilled' ? fontResults[1].value : null;
-    const satisfyData = fontResults[2].status === 'fulfilled' ? fontResults[2].value : null;
 
-    // VALIDACIÓN CRÍTICA: Si el archivo empieza con "<!DO" es HTML (error) y no lo usamos
+    // Validación binaria básica
     const safeBebas = (bebasData && new Uint8Array(bebasData)[0] !== 60) ? bebasData : null;
     const safeInter = (interData && new Uint8Array(interData)[0] !== 60) ? interData : null;
-    const safeSatisfy = (satisfyData && new Uint8Array(satisfyData)[0] !== 60) ? satisfyData : null;
 
     // 2. DATA
     const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
@@ -94,11 +91,10 @@ export default async function handler(req: Request) {
     const accent = template.color;
     const bgUrl = song.cover;
 
-    // 3. DISEÑO MASTER
+    // 3. DISEÑO "CLEAN & PRO" (Inspirado en la imagen enviada por el usuario)
     const fonts: any[] = [];
     if (safeBebas) fonts.push({ name: 'Bebas Neue', data: safeBebas, style: 'normal' });
     if (safeInter) fonts.push({ name: 'Inter', data: safeInter, style: 'normal' });
-    if (safeSatisfy) fonts.push({ name: 'Satisfy', data: safeSatisfy, style: 'normal' });
 
     const imageResponse = new ImageResponse(
       (
@@ -108,99 +104,122 @@ export default async function handler(req: Request) {
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: '#000',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#020617',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          {/* Fondo Blur */}
+          {/* Fondo Difuminado */}
           {bgUrl && (
-            <div style={{ position: 'absolute', inset: -50, display: 'flex' }}>
-              <img src={bgUrl} style={{ width: '110%', height: '110%', objectFit: 'cover', filter: 'blur(80px) brightness(1.02)' }} />
+            <div style={{ position: 'absolute', inset: -100, display: 'flex' }}>
+              <img src={bgUrl} style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: 0.8 }} />
             </div>
           )}
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', display: 'flex' }} />
-          
-          {/* Bokeh */}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-            {[ {x:'15%',y:'20%',s:200,o:0.1}, {x:'75%',y:'10%',s:300,o:0.08}, {x:'88%',y:'55%',s:150,o:0.12}, {x:'5%',y:'70%',s:250,o:0.1} ].map((b,i) => (
-              <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background: `radial-gradient(circle, ${accent}${Math.floor(b.o*255).toString(16)} 0%, transparent 70%)`, filter: 'blur(30px)', display: 'flex' }} />
-            ))}
-          </div>
 
+          {/* Textura de Grano Sutil */}
           <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")', display: 'flex' }} />
 
-          {/* Sidebar */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-             <div style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 18, fontWeight: 900, letterSpacing: '0.4em', color: accent, opacity: 0.6, fontFamily: safeInter ? 'Inter' : 'sans-serif', textTransform: 'uppercase', display: 'flex' }}>
-                DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026
-             </div>
-             <div style={{ position: 'absolute', right: 0, top: '10%', bottom: '10%', width: '1px', background: `linear-gradient(to bottom, transparent, ${accent}55, transparent)`, display: 'flex' }} />
-          </div>
+          {/* Contenedor de Vidrio (Rounded Glass Card) */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              width: '850px',
+              height: '1100px',
+              border: `1px solid ${accent}44`,
+              backgroundColor: 'rgba(5, 10, 25, 0.7)',
+              borderRadius: '40px',
+              padding: '60px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              boxShadow: '0 50px 100px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Esquinas Neon Minimalistas */}
+            <div style={{ position: 'absolute', top: 40, left: 40, width: 40, height: 40, borderTop: `4px solid ${accent}`, borderLeft: `4px solid ${accent}`, borderTopLeftRadius: '10px', display: 'flex' }} />
+            <div style={{ position: 'absolute', bottom: 40, right: 40, width: 40, height: 40, borderBottom: `4px solid ${accent}`, borderRight: `4px solid ${accent}`, borderBottomRightRadius: '10px', display: 'flex' }} />
 
-          {/* Contenido */}
-          <div style={{ flex: 1, padding: '80px', paddingLeft: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '0.5em', color: accent, fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>{artist.toUpperCase()} RECORDS</div>
-                  <div style={{ fontSize: 12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>REFLECTIONS // HUB PRO V5.1 // PURO CHIHUAHUA</div>
-               </div>
-               <div style={{ padding: "8px 24px", borderRadius: 4, border: `1px solid ${accent}66`, background: "rgba(0, 0, 0, 0.4)", color: accent, fontSize: 16, fontWeight: '900', letterSpacing: '0.2em', fontFamily: safeInter ? 'Inter' : 'sans-serif', display: 'flex' }}>
-                  YA DISPONIBLE
-               </div>
+            {/* Portada con Brillo Sutil */}
+            <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', marginBottom: '60px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: `0 0 80px ${accent}33` }}>
+              <img src={bgUrl} style={{ width: '450px', height: '450px', objectFit: 'cover' }} />
             </div>
 
+            {/* Textos Centrales */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-               <div style={{ position: 'relative', padding: 10, background: `linear-gradient(135deg, ${accent} 0%, transparent 50%, ${accent} 100%)`, borderRadius: 8, boxShadow: "0 60px 150px rgba(0,0,0,0.8)", display: 'flex' }}>
-                  <div style={{ width: 600, height: 600, overflow: 'hidden', borderRadius: 4, display: 'flex' }}>
-                     <img src={bgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-               </div>
-               <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ fontSize: 180, fontWeight: 900, fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif', color: 'white', lineHeight: 0.85, letterSpacing: '-2px', textShadow: `0 0 80px ${accent}88, 0 10px 40px rgba(0,0,0,0.8)`, textTransform: 'uppercase', display: 'flex', transform: safeBebas ? 'none' : 'scaleX(0.7)' }}>
-                    {song.name}
-                  </div>
-                  <div style={{ marginTop: '30px', display: 'flex' }}>
-                    <div style={{ fontSize: 34, color: accent, fontWeight: 900, letterSpacing: '0.3em', fontFamily: safeInter ? 'Inter' : 'sans-serif', background: 'rgba(0,0,0,0.5)', padding: '12px 60px', borderRadius: 100, border: `1px solid ${accent}44`, display: 'flex' }}>
-                      {artist.toUpperCase()}
-                    </div>
-                  </div>
-               </div>
-            </div>
-            <div style={{ flex: 1, display: 'flex' }} />
-          </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: accent, letterSpacing: '0.8em', marginBottom: '25px', textTransform: 'uppercase', display: 'flex', fontFamily: safeInter ? 'Inter' : 'sans-serif' }}>THE BEAT SERIES</div>
+              
+              <div style={{ 
+                fontSize: 100, 
+                fontFamily: safeBebas ? 'Bebas Neue' : 'sans-serif',
+                color: 'white', 
+                marginBottom: '15px', 
+                textTransform: 'uppercase', 
+                maxWidth: '750px', 
+                lineHeight: 0.9, 
+                letterSpacing: '0.05em',
+                display: 'flex',
+                transform: safeBebas ? 'none' : 'scaleX(0.7)'
+              }}>
+                {song.name}
+              </div>
+              
+              <div style={{ 
+                fontSize: 34, 
+                color: 'rgba(255,255,255,0.4)', 
+                marginBottom: '60px', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.2em',
+                display: 'flex',
+                fontFamily: safeInter ? 'Inter' : 'sans-serif'
+              }}>
+                {artist}
+              </div>
 
-          <div style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,1) 100%)`, borderTop: `2px solid ${accent}66`, padding: `40px 80px 40px 220px`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-               <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.4em', color: accent, display: 'flex' }}>{template.label} EDITION</div>
-               <div style={{ fontSize: 12, opacity: 0.3, color: 'white', display: 'flex' }}>© 2026 RECORDS HUB PRO</div>
+              {/* Botón Escuchar Ahora (Pill Button) */}
+              <div style={{ 
+                padding: '16px 50px', 
+                backgroundColor: 'white', 
+                color: 'black', 
+                borderRadius: '50px', 
+                fontSize: 16, 
+                fontWeight: 900, 
+                letterSpacing: '0.3em',
+                boxShadow: '0 10px 30px rgba(255,255,255,0.2)',
+                display: 'flex'
+              }}>
+                ESCUCHAR AHORA
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-               <div style={{ padding: "10px 40px", borderRadius: 4, backgroundColor: accent, color: 'black', fontWeight: 900, fontSize: 20, letterSpacing: '0.2em', display: 'flex' }}>MUSICA.DIOSMASGYM.COM</div>
-               <div style={{ fontSize: 48, color: 'white', fontFamily: safeSatisfy ? 'Satisfy' : 'sans-serif', opacity: 0.9, textShadow: '0 4px 10px rgba(0,0,0,0.5)', fontStyle: safeSatisfy ? 'normal' : 'italic', display: 'flex' }}>
-                  {artist.toLowerCase().includes('juan') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
-               </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-               <div style={{ fontSize: 20, fontWeight: 900, color: 'white', letterSpacing: '0.2em', display: 'flex' }}>STUDIO AI</div>
-               <div style={{ fontSize: 10, opacity: 0.3, letterSpacing: '0.1em', display: 'flex' }}>POWERED BY DIOSMASGYM</div>
-            </div>
+          </div>
+          
+          {/* Marca de Agua Studio AI Minimal */}
+          <div style={{ position: 'absolute', bottom: '50px', display: 'flex', alignItems: 'center', gap: '30px', opacity: 0.2 }}>
+            <div style={{ width: '80px', height: '1px', backgroundColor: 'white', display: 'flex' }} />
+            <div style={{ color: 'white', fontSize: 14, fontWeight: 900, letterSpacing: '0.6em', textTransform: 'uppercase', display: 'flex' }}>DiosMasGym • STUDIO AI</div>
+            <div style={{ width: '80px', height: '1px', backgroundColor: 'white', display: 'flex' }} />
           </div>
         </div>
       ),
-      { width: 1080, height: 1350, fonts: fonts.length > 0 ? fonts : undefined }
+      {
+        width: 1080,
+        height: 1350,
+        fonts: fonts.length > 0 ? fonts : undefined
+      }
     );
 
     const arrayBuffer = await imageResponse.arrayBuffer();
     const formData = new FormData();
     formData.append("chat_id", CHAT_ID);
     formData.append("photo", new Blob([arrayBuffer], { type: 'image/png' }), "promo.png");
-    formData.append("caption", `🎧 *${song.name}* - ${artist}\n🔥 Estreno automático.\n\nEscúchalo aquí: ${song.url}`);
+    formData.append("caption", `🎧 *${song.name}* - ${artist}\n✨ Recomendación del día.\n\nEscúchalo aquí: ${song.url}\n\n#DiosMasGym #TheBeatSeries`);
     formData.append("parse_mode", "Markdown");
 
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
 
-    return new Response(JSON.stringify({ success: true, font_status: fonts.length > 0 ? "Master Fonts Loaded" : "Fallback Applied" }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, mode: "Clean & Pro Reversion" }), { status: 200 });
 
   } catch (error: any) {
     return new Response(JSON.stringify({ error_system: error.message }), { status: 500 });
