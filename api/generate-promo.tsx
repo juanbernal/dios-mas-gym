@@ -1,13 +1,30 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const runtime = 'edge';
-
+// URLS DE LOS CATÁLOGOS (CSV de Google Sheets)
 const CSV_URLS = [
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv',
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv'
 ];
 
+const templates = [
+  { id: 'gold', color: '#c5a059', label: 'GOLD CLASSIC' },
+  { id: 'crimson', color: '#ff4444', label: 'CRIMSON STEEL' },
+  { id: 'cyber', color: '#00f2ff', label: 'CYBER ELECTRIC' },
+  { id: 'platinum', color: '#e5e4e2', label: 'PLATINUM GHOST' },
+  { id: 'toxic', color: '#39ff14', label: 'TOXIC EMERALD' }
+];
+
+const catchyTexts = [
+  "💎 ¡Una joya que no puedes dejar de escuchar!",
+  "🔥 Energía pura para tu día. ¡Dale play!",
+  "🎧 ¿Buscas algo nuevo? Esta es la señal.",
+  "✨ Directo a tus favoritos. ¡Escúchalo ya!",
+  "🧨 ¡Esto está rompiendo! ¿Ya lo escuchaste?"
+];
+
+// Lógica de parseo del CSV
 function parseMusicCSV(csvText: string) {
   const lines = csvText.split(/\r?\n/);
   if (lines.length < 2) return [];
@@ -49,30 +66,39 @@ function parseMusicCSV(csvText: string) {
   return music;
 }
 
-export default async function (req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
     if (!BOT_TOKEN || !CHAT_ID) {
-      return new Response(JSON.stringify({ 
-        error: "Faltan variables de entorno: TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID",
-        check: "Asegúrate de haberlas guardado en Vercel Dashboard -> Settings -> Environment Variables y que estén disponibles para 'Production'"
-      }), { status: 400 });
+      return res.status(400).json({ error: "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not found in env variables." });
     }
 
-    // 1. Cargar catálogos
-    const results = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
-    const fullCatalog = results.flatMap(csv => parseMusicCSV(csv));
+    // 1. Cargar fuentes (Inter)
+    const fontData = await fetch(
+      new URL('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGkyMZhrib2Bg-4.woff', import.meta.url)
+    ).then((r) => r.arrayBuffer());
+
+    // 2. Cargar catálogos
+    const csvResults = await Promise.all(CSV_URLS.map(url => fetch(url).then(r => r.text())));
+    const fullCatalog = csvResults.flatMap(csv => parseMusicCSV(csv));
     
     if (fullCatalog.length === 0) {
-      return new Response(JSON.stringify({ error: "El catálogo de música está vacío o falló la descarga del CSV" }), { status: 400 });
+      return res.status(500).json({ error: "Music catalog is empty." });
     }
 
+    // 3. Selección aleatoria
     const song = fullCatalog[Math.floor(Math.random() * fullCatalog.length)];
+    const template = templates[Math.floor(Math.random() * templates.length)];
+    const caption = catchyTexts[Math.floor(Math.random() * catchyTexts.length)];
 
-    // 2. Generar Imagen SIMPLE (Sin fuentes externas ni filtros pesados)
-    const imageResponse = new ImageResponse(
+    let normalizedArtist = song.artist;
+    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+
+    // 4. Generar Imagen Premium con @vercel/og
+    const ogResponse = new ImageResponse(
       (
         <div
           style={{
@@ -83,31 +109,100 @@ export default async function (req: Request) {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#020617',
-            color: 'white',
-            padding: '40px',
-            textAlign: 'center'
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 20, color: '#00f2ff' }}>DIOSMASGYM PROMO</div>
-          <div style={{ fontSize: 80, fontWeight: 'bold', marginBottom: 20 }}>{song.name}</div>
-          <div style={{ fontSize: 40, opacity: 0.6 }}>{song.artist}</div>
-          <div style={{ position: 'absolute', bottom: 40, opacity: 0.2 }}>Safe Mode Diagnostic</div>
+          {/* Fondo Blur */}
+          <div style={{ display: 'flex', position: 'absolute', inset: -100 }}>
+             <img src={song.cover} alt="" style={{ width: '120%', height: '120%', objectFit: 'cover', filter: 'blur(80px) brightness(0.3)', opacity: 0.8 }} />
+          </div>
+
+          {/* Grano / Textura */}
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'url("https://www.transparenttextures.com/patterns/asfalt-dark.png")' }} />
+
+          {/* Marco Estilo "The Beat" */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              width: '850px',
+              height: '1100px',
+              border: `1px solid ${template.color}44`,
+              backgroundColor: 'rgba(5, 10, 25, 0.7)',
+              borderRadius: '40px',
+              padding: '60px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 40px 100px rgba(0,0,0,0.6), 0 0 60px ${template.color}11`,
+              position: 'relative',
+            }}
+          >
+            {/* Esquinas Neon */}
+            <div style={{ position: 'absolute', top: 30, left: 30, width: 40, height: 40, borderTop: `4px solid ${template.color}`, borderLeft: `4px solid ${template.color}`, borderTopLeftRadius: '10px' }} />
+            <div style={{ position: 'absolute', bottom: 30, right: 30, width: 40, height: 40, borderBottom: `4px solid ${template.color}`, borderRight: `4px solid ${template.color}`, borderBottomRightRadius: '10px' }} />
+
+            {/* Cover con Glow */}
+            <div style={{ display: 'flex', boxShadow: `0 0 80px ${template.color}33`, borderRadius: '20px', overflow: 'hidden', marginBottom: '60px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <img src={song.cover} alt="" style={{ width: '450px', height: '450px', objectFit: 'cover' }} />
+            </div>
+
+            {/* Info de la obra */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: template.color, letterSpacing: '0.6em', marginBottom: '20px', textTransform: 'uppercase' }}>
+                Recomendación Hoy
+              </div>
+              <div style={{ fontSize: 72, fontWeight: 900, color: 'white', marginBottom: '10px', textTransform: 'uppercase', maxWidth: '700px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                {song.name}
+              </div>
+              <div style={{ fontSize: 32, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', marginBottom: '60px', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                {normalizedArtist}
+              </div>
+
+              {/* Plataformas UI */}
+              <div style={{ display: 'flex', gap: '30px' }}>
+                <div style={{ padding: '12px 30px', backgroundColor: 'white', color: 'black', borderRadius: '50px', fontSize: 14, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                  Escuchar Ahora
+                </div>
+                <div style={{ padding: '12px 30px', border: '2px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '50px', fontSize: 14, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                  Ver Video
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Watermark UI */}
+          <div style={{ position: 'absolute', bottom: '60px', display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.2 }}>
+             <div style={{ width: '100px', height: '1px', backgroundColor: 'white' }} />
+             <div style={{ color: 'white', fontSize: 12, fontWeight: 900, letterSpacing: '0.5em', textTransform: 'uppercase' }}>DiosMasGym • Studio AI</div>
+             <div style={{ width: '100px', height: '1px', backgroundColor: 'white' }} />
+          </div>
         </div>
       ),
       {
         width: 1080,
         height: 1350,
+        fonts: [
+          {
+            name: 'Inter',
+            data: fontData,
+            style: 'normal',
+          },
+        ],
       }
     );
 
-    const imageData = await imageResponse.arrayBuffer();
+    // 5. Convertir a Buffer y enviar a Telegram
+    const buffer = Buffer.from(await ogResponse.arrayBuffer());
     
-    // 3. Enviar a Telegram
+    const fullCaption = `${caption}\n\n🎧 *${song.name}* - ${normalizedArtist}\n✨ Escúchalo aquí: ${song.url}\n\n#DiosMasGym #Juan614 #PromoDiaria`;
+
     const formData = new FormData();
-    const file = new Blob([imageData], { type: 'image/png' });
+    const file = new Blob([buffer], { type: 'image/png' });
     formData.append("chat_id", CHAT_ID);
-    formData.append("photo", file, "simple-promo.png");
-    formData.append("caption", `🚀 Promo de prueba: ${song.name} - ${song.artist}\nLink: ${song.url}`);
+    formData.append("photo", file, "promo.png");
+    formData.append("caption", fullCaption);
+    formData.append("parse_mode", "Markdown");
 
     const telegramRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
       method: "POST",
@@ -116,16 +211,18 @@ export default async function (req: Request) {
 
     if (!telegramRes.ok) {
       const errorData = await telegramRes.json();
-      return new Response(JSON.stringify({ error_telegram: errorData }), { status: 500 });
+      return res.status(500).json({ error_telegram: errorData });
     }
 
-    return new Response(JSON.stringify({ 
+    return res.status(200).json({ 
       success: true, 
-      mode: "diagnostic-safe",
-      song: song.name 
-    }), { status: 200 });
+      runtime: "nodejs-handler",
+      song: song.name, 
+      artist: normalizedArtist
+    });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error_crash: error.message }), { status: 500 });
+    console.error("Cron Error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
