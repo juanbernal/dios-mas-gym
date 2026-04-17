@@ -1,6 +1,5 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // URLS DE LOS CATÁLOGOS (CSV de Google Sheets)
 const CSV_URLS = [
@@ -24,7 +23,7 @@ const catchyTexts = [
   "🧨 ¡Esto está rompiendo! ¿Ya lo escuchaste?"
 ];
 
-function parseMusicCSV(csvText: string) {
+function parseMusicCSV(csvText) {
   const lines = csvText.split(/\r?\n/);
   if (lines.length < 2) return [];
   let startIndex = 0;
@@ -36,11 +35,11 @@ function parseMusicCSV(csvText: string) {
   }
   const headerLine = lines[startIndex];
   const headers = headerLine.split(',').map(h => h.trim().toLowerCase());
-  const music: any[] = [];
+  const music = [];
   for (let i = startIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const values: string[] = [];
+    const values = [];
     let current = '';
     let inQuotes = false;
     for (let char of line) {
@@ -52,7 +51,7 @@ function parseMusicCSV(csvText: string) {
     }
     values.push(current.trim());
     if (values.length < 4) continue;
-    const entry: any = {};
+    const entry = {};
     headers.forEach((header, index) => {
       let val = (values[index] || '').replace(/^"|"$/g, '').trim();
       if (header === 'nombre') entry.name = val;
@@ -65,13 +64,13 @@ function parseMusicCSV(csvText: string) {
   return music;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   try {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
     if (!BOT_TOKEN || !CHAT_ID) {
-      return res.status(400).json({ error: "Missing env variables." });
+      return res.status(400).json({ error: "Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID." });
     }
 
     // 1. Cargar fuentes (Inter)
@@ -94,7 +93,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (artist.toLowerCase().includes("dios")) artist = "Diosmasgym";
 
     // 3. GENERAR DISEÑO USANDO React.createElement (Evita errores de .tsx en Vercel Builder)
-    // Replicamos el diseño de PromoImageApp.tsx punto por punto
     const imageResponse = new ImageResponse(
       React.createElement(
         'div',
@@ -212,11 +210,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ 
       success: true, 
-      method: "no-jsx-design-nodejs",
+      final_method: "mjs-native-esm-design",
       song: song.name 
     });
 
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({ error_node: error.message });
   }
 }
