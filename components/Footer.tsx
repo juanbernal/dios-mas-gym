@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <footer className="py-32 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
       {/* Background Decor */}
@@ -38,10 +41,10 @@ const Footer: React.FC = () => {
           <div className="flex flex-col items-center md:items-start">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Plataformas</h4>
             <div className="flex gap-6 text-white/40 text-xl">
-              <a href="#" className="hover:text-white transition-colors"><i className="fab fa-youtube"></i></a>
-              <a href="#" className="hover:text-white transition-colors"><i className="fab fa-spotify"></i></a>
-              <a href="#" className="hover:text-white transition-colors"><i className="fab fa-instagram"></i></a>
-              <a href="#" className="hover:text-white transition-colors"><i className="fab fa-tiktok"></i></a>
+              <a href="https://www.youtube.com/@Diosmasgym" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-youtube"></i></a>
+              <a href="https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-spotify"></i></a>
+              <a href="https://music.apple.com/us/artist/diosmasgym/1789494422" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-apple"></i></a>
+              <a href="https://www.tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-tiktok"></i></a>
             </div>
           </div>
         </div>
@@ -51,9 +54,16 @@ const Footer: React.FC = () => {
           <p className="text-[9px] font-black tracking-[0.5em] text-white/20 uppercase mb-4">
             &copy; {new Date().getFullYear()} REFLECTIONS HUB PRO
           </p>
-          <div className="text-[8px] font-bold tracking-[0.3em] text-white/10 uppercase">
+          <div className="text-[8px] font-bold tracking-[0.3em] text-white/10 uppercase mb-8">
              Armando guerreros de luz
           </div>
+          
+          <button 
+            onClick={() => navigate('/admin')} 
+            className="text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.05] hover:text-[#c5a059]/60 transition-all py-2 px-4 border border-white/[0.03] hover:border-[#c5a059]/20 rounded-sm"
+          >
+            [ MODO OPERADOR ]
+          </button>
         </div>
       </div>
     </footer>
