@@ -14,6 +14,7 @@ import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
 import UpcomingReleases from "./components/UpcomingReleases";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import Footer from './components/Footer';
 import CommentSection from './components/CommentSection';
 import RecommendedSongs from './components/RecommendedSongs';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
@@ -346,7 +347,7 @@ const App: React.FC = () => {
       </main>
       <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />
       <PWAInstallPrompt />
-      <footer className="py-40 bg-[#05070a] border-t border-white/5 relative overflow-hidden text-center"><h2 className="font-serif italic text-6xl md:text-8xl mb-16 text-white/90">Dios Más Gym</h2><div className="flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.5em] text-[#c5a059] uppercase opacity-40"><span>Fe</span><span>Valentía</span><span>Disciplina</span></div><div className="mt-24 h-px w-40 bg-gradient-to-r from-transparent via-white/10 to-transparent mx-auto"></div><p className="mt-12 text-[9px] font-bold tracking-[0.4em] text-white/20 uppercase">&copy; 2026 REFLECTIONS HUB PRO</p><button onClick={() => navigate('/admin')} className="mt-8 text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.03] hover:text-[#c5a059]/40 transition-all">[ MODO OPERADOR ]</button></footer>
+      <Footer />
       {isSearchOpen && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
     </div>
   );
@@ -355,8 +356,8 @@ const App: React.FC = () => {
 const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (song: MusicItem) => void; randomSong?: MusicItem | null }> = ({ artist, catalog, onPlay, randomSong }) => {
   const isDios = artist === 'diosmasgym';
   const description = isDios 
-    ? "Música urbana, y es Diosmasgym" 
-    : "Música de corridos tumbados, banda sinaloense";
+    ? "Musica urbana" 
+    : "música de corridos tumbados, banda sinaloense";
 
   return (
     <section className={`py-32 relative overflow-hidden transition-all duration-1000 ${isDios ? 'bg-[#05070a] border-y border-[#c5a059]/10' : 'bg-[#0a0c14]'}`}>
@@ -372,7 +373,7 @@ const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (so
             </div>
             <div>
               <h2 className="font-serif italic text-5xl md:text-7xl capitalize mb-2 group-hover:tracking-wider transition-all duration-700">
-                {artist} <span className="text-[#c5a059]">{isDios ? 'Records' : ''}</span>
+                {artist}
               </h2>
               <p className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">
                 {description}
