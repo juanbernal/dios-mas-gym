@@ -15,6 +15,7 @@ import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
 import UpcomingReleases from "./components/UpcomingReleases";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import CommentSection from './components/CommentSection';
+import RecommendedSongs from './components/RecommendedSongs';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -351,10 +352,62 @@ const App: React.FC = () => {
   );
 };
 
-const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (s: MusicItem) => void; randomSong?: MusicItem | null }> = ({ artist, catalog, onPlay, randomSong }) => {
+const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (song: MusicItem) => void; randomSong?: MusicItem | null }> = ({ artist, catalog, onPlay, randomSong }) => {
+  const isDios = artist === 'diosmasgym';
+  const description = isDios 
+    ? "Música urbana, y es Diosmasgym" 
+    : "Música de corridos tumbados, banda sinaloense";
+
   return (
-    <section className={`py-32 ${artist === 'diosmasgym' ? 'bg-[#05070a] border-y border-[#c5a059]/10' : 'bg-[#0a0c14]'}`}>
-      <div className="section-container relative z-10"><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-20 gap-8"><div className="flex items-center gap-8"><div className="w-16 h-16 rounded-full border-2 border-[#c5a059] flex items-center justify-center animate-spin-slow"><div className="w-4 h-4 bg-[#c5a059] rounded-full"></div></div><h2 className="font-serif italic text-5xl md:text-7xl capitalize">{artist} <span className="text-[#c5a059]">{artist === 'diosmasgym' ? 'Records' : ''}</span></h2></div>{randomSong && ( <div className="bg-[#c5a059]/5 border border-[#c5a059]/20 p-6 rounded-sm max-w-sm w-full"><h5 className="font-serif text-xl font-bold mb-1 truncate">{randomSong.name}</h5><button onClick={() => onPlay(randomSong)} className="inline-block w-full py-3 bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.3em] hover:bg-white mt-4">Reproducir Sugerencia</button></div> )}</div><div className="grid grid-cols-12 gap-6">{catalog.slice(0, 6).map(item => <div key={item.id} className="col-span-12 md:col-span-6 lg:col-span-4"><MusicCard item={item} onPlay={() => onPlay(item)} /></div>)}</div></div>
+    <section className={`py-32 relative overflow-hidden transition-all duration-1000 ${isDios ? 'bg-[#05070a] border-y border-[#c5a059]/10' : 'bg-[#0a0c14]'}`}>
+      {/* Visual Effect: Background Glow */}
+      <div className={`absolute top-0 ${isDios ? 'right-0' : 'left-0'} w-[500px] h-[500px] bg-[#c5a059]/5 blur-[120px] rounded-full -translate-y-1/2 opacity-50`}></div>
+      
+      <div className="section-container relative z-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-20 gap-8">
+          <div className="flex items-center gap-8 group">
+            <div className="w-20 h-20 rounded-full border-2 border-[#c5a059]/30 flex items-center justify-center relative overflow-hidden group-hover:border-[#c5a059] transition-all duration-700">
+              <div className="absolute inset-0 bg-[#c5a059]/5 group-hover:animate-pulse"></div>
+              <div className="w-6 h-6 bg-[#c5a059] rounded-full animate-spin-slow shadow-[0_0_20px_rgba(197,160,89,0.5)]"></div>
+            </div>
+            <div>
+              <h2 className="font-serif italic text-5xl md:text-7xl capitalize mb-2 group-hover:tracking-wider transition-all duration-700">
+                {artist} <span className="text-[#c5a059]">{isDios ? 'Records' : ''}</span>
+              </h2>
+              <p className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">
+                {description}
+              </p>
+            </div>
+          </div>
+          
+          {randomSong && ( 
+            <div className="bg-[#c5a059]/5 border border-[#c5a059]/10 p-6 rounded-sm max-w-sm w-full backdrop-blur-sm hover:border-[#c5a059]/40 transition-all duration-500 group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-1 h-8 bg-[#c5a059]"></div>
+                <h5 className="font-serif text-xl font-bold truncate text-white/90 group-hover:text-[#c5a059] transition-colors">{randomSong.name}</h5>
+              </div>
+              <button 
+                onClick={() => onPlay(randomSong)} 
+                className="relative overflow-hidden inline-block w-full py-4 bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl"
+              >
+                <span className="relative z-10">Reproducir Sugerencia</span>
+              </button>
+            </div> 
+          )}
+        </div>
+        
+        <div className="grid grid-cols-12 gap-6">
+          {catalog.slice(0, 6).map((item, idx) => (
+            <div 
+              key={item.id} 
+              className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-700 hover:-translate-y-2"
+              style={{ transitionDelay: `${idx * 100}ms` }}
+            >
+              <MusicCard item={item} onPlay={() => onPlay(item)} />
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 };
@@ -472,7 +525,14 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
                 />
               </div>
 
-              <CommentSection url={window.location.href} />
+              {/* Sección de Canciones Recomendadas que sustituye a Disqus */}
+              <RecommendedSongs 
+                songs={[...state.musicDiosmasgym, ...state.musicJuan614]
+                  .sort(() => 0.5 - Math.random())
+                  .slice(0, 3)
+                } 
+                onPlay={(s) => setState((p: any) => ({ ...p, activeSong: s }))}
+              />
           </div>
       </article>
       <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10"><div className="section-container"><h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3><div className="grid grid-cols-12 gap-8">{state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => ( <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}</div></div></section>
