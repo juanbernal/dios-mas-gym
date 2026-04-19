@@ -418,6 +418,13 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
+  // 0. PRECOMPUTE RECOMMENDED SONGS (Hooks must be at the top level)
+  const recommendedSongs = useMemo(() => {
+    return [...state.musicDiosmasgym, ...state.musicJuan614]
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
+  }, [slug, state.musicDiosmasgym.length, state.musicJuan614.length]);
+
   // 1. LOAD POST LOGIC
   useEffect(() => {
     const load = async () => {
@@ -527,20 +534,10 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
               </div>
 
               {/* Sección de Canciones Recomendadas que sustituye a Disqus */}
-              {(() => {
-                const songs = useMemo(() => {
-                  return [...state.musicDiosmasgym, ...state.musicJuan614]
-                    .sort(() => 0.5 - Math.random())
-                    .slice(0, 3);
-                }, [slug, state.musicDiosmasgym.length, state.musicJuan614.length, state.activeSong?.id]);
-
-                return (
-                  <RecommendedSongs 
-                    songs={songs} 
-                    onPlay={(s) => setState((p: any) => ({ ...p, activeSong: s }))}
-                  />
-                );
-              })()}
+              <RecommendedSongs 
+                songs={recommendedSongs} 
+                onPlay={(s) => setState((p: any) => ({ ...p, activeSong: s }))}
+              />
           </div>
       </article>
       <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10"><div className="section-container"><h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3><div className="grid grid-cols-12 gap-8">{state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => ( <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}</div></div></section>

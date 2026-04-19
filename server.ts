@@ -53,9 +53,12 @@ async function startServer() {
         }
       });
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));
-        throw new Error(errData.error?.message || `Blogger API responded with ${response.status}`);
+        return res.status(response.status).json({ 
+          error: errData.error?.message || `Blogger API responded with ${response.status}`,
+          details: errData.error || null
+        });
       }
       
       const data = await response.json();

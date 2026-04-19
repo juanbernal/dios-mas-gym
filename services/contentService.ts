@@ -16,8 +16,12 @@ const toTitleCase = (str: string) => {
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string, q?: string) => {
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
+      const hostname = window.location.hostname;
+      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+      // Si estamos en Vercel o local, usamos el mismo origen.
+      const apiBase = (isLocal || hostname.includes('vercel.app')) 
+        ? window.location.origin 
+        : (hostname.includes('diosmasgym.com') ? window.location.origin : 'https://app.diosmasgym.com');
       
       const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());
@@ -101,7 +105,7 @@ export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null>
       url.searchParams.append('q', q);
       const res = await fetch(url.toString());
       if (!res.ok) return { posts: [] };
-      return processApiV3Data(await res.ok ? await res.json() : {});
+      return processApiV3Data(res.ok ? await res.json() : {});
     };
 
     const targetSlug = slug.toLowerCase();
