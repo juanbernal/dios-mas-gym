@@ -22,6 +22,7 @@ interface LyricLine {
 
 const INTRO_DURATION = 4;
 const OUTRO_DURATION = 7;
+const MAX_VIDEO_DURATION = 90; // Límite estricto para TikTok (1:30 minutos)
 const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
 
 const LyricStudio: React.FC = () => {
@@ -54,6 +55,7 @@ const LyricStudio: React.FC = () => {
   const [blurAmount, setBlurAmount] = useState(25);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, hidden
+  const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,6 +70,7 @@ const LyricStudio: React.FC = () => {
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const requestRef = useRef<number>();
   const logoStudioRef = useRef<HTMLImageElement>(new Image());
+  const outroImagesRef = useRef<HTMLImageElement[]>([new Image(), new Image()]);
 
   useEffect(() => {
     // Initial Particles
@@ -107,6 +110,17 @@ const LyricStudio: React.FC = () => {
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
   }, []);
+
+  // Effect to load outro images when branding changes
+  useEffect(() => {
+    if (branding === 'juan614') {
+        outroImagesRef.current[0].src = "/outros/outro_juan_1.png";
+        outroImagesRef.current[1].src = "/outros/outro_juan_2.png";
+    } else if (branding === 'diosmasgym') {
+        outroImagesRef.current[0].src = "/outros/outro_dios_1.png";
+        outroImagesRef.current[1].src = "/outros/outro_dios_2.png";
+    }
+  }, [branding]);
 
   const setupAudio = useCallback(() => {
     if (audioCtxRef.current) return;
@@ -405,6 +419,21 @@ const LyricStudio: React.FC = () => {
   const renderOutro = (ctx: CanvasRenderingContext2D, time: number, cw: number, ch: number) => {
     const fadeIn = Math.min(time / 0.9, 1);
     ctx.save();
+
+    // Try to draw branding image from /outros/ if available
+    const brandingImg = outroImagesRef.current[outroImageIndex];
+    if (brandingImg && brandingImg.complete && brandingImg.naturalWidth > 0) {
+        ctx.save();
+        ctx.globalAlpha = fadeIn;
+        // Cover logic
+        const s = Math.max(cw / brandingImg.width, ch / brandingImg.height);
+        ctx.translate(cw/2, ch/2);
+        ctx.scale(s, s);
+        ctx.drawImage(brandingImg, -brandingImg.width/2, -brandingImg.height/2);
+        ctx.restore();
+        ctx.restore();
+        return;
+    }
 
     // 1. Dark background with album art blur
     if (imgRef.current.src) {
@@ -1018,7 +1047,12 @@ const LyricStudio: React.FC = () => {
     if (!audioRef.current) return;
     
     // Aplicación de corrección automática fija (+0.25s para compensar latencia/adelanto)
-    const correctedTime = (audioRef.current.currentTime + SYNC_CORRECTION).toFixed(2);
+    const rawTime = audioRef.current.currentTime + SYNC_CORRECTION;
+    if (rawTime > MAX_VIDEO_DURATION) {
+        setIsSyncing(false);
+        return;
+    }
+    const correctedTime = rawTime.toFixed(2);
     setLyricsInput(prev => prev + `${correctedTime} | ${syncLines[syncIndex]}\n`);
     const nextIdx = syncIndex + 1;
     setSyncIndex(nextIdx);
@@ -1031,7 +1065,9 @@ const LyricStudio: React.FC = () => {
   const markSilence = () => {
     if (!isSyncing) return;
     if (!audioRef.current) return;
-    const time = (audioRef.current.currentTime + SYNC_CORRECTION).toFixed(2);
+    const rawTime = audioRef.current.currentTime + SYNC_CORRECTION;
+    if (rawTime > MAX_VIDEO_DURATION) return;
+    const time = rawTime.toFixed(2);
     setLyricsInput(prev => prev + `${time} | [SILENCIO]\n`);
   };
 
@@ -1085,8 +1121,18 @@ const LyricStudio: React.FC = () => {
           <audio 
             ref={audioRef} 
             className="hidden" 
-            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            onLoadedMetadata={(e) => {
+                const d = Math.min(e.currentTarget.duration, MAX_VIDEO_DURATION);
+                setDuration(d);
+            }}
+            onTimeUpdate={(e) => {
+                if (e.currentTarget.currentTime > MAX_VIDEO_DURATION) {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = MAX_VIDEO_DURATION;
+                    setIsPlaying(false);
+                }
+                setCurrentTime(e.currentTarget.currentTime);
+            }}
           />
         </div>
       </main>
@@ -1146,13 +1192,32 @@ const LyricStudio: React.FC = () => {
                     <input type="checkbox" checked={includeOutro} onChange={(e) => setIncludeOutro(e.target.checked)} className="accent-[#00ffcc]" />
                 </div>
                 {includeOutro && (
-                    <input 
-                        type="text" 
-                        value={outroMessage}
-                        onChange={(e) => setOutroMessage(e.target.value)}
-                        placeholder="Mensaje Outro..."
-                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none focus:border-[#00ffcc]/30"
-                    />
+                    <>
+                        <div className="pt-2">
+                            <label className="text-[9px] uppercase font-bold text-[#c5a059] mb-2 block">Estilo de Imagen Final (Outro)</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button 
+                                    onClick={() => setOutroImageIndex(0)}
+                                    className={`p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${outroImageIndex === 0 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
+                                >
+                                    Estilo A
+                                </button>
+                                <button 
+                                    onClick={() => setOutroImageIndex(1)}
+                                    className={`p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${outroImageIndex === 1 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
+                                >
+                                    Estilo B
+                                </button>
+                            </div>
+                        </div>
+                        <input 
+                            type="text" 
+                            value={outroMessage}
+                            onChange={(e) => setOutroMessage(e.target.value)}
+                            placeholder="Mensaje Outro..."
+                            className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none focus:border-[#00ffcc]/30"
+                        />
+                    </>
                 )}
             </div>
         </div>
