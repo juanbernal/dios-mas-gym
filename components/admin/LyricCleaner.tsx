@@ -64,6 +64,13 @@ const LyricCleaner: React.FC = () => {
                 // primera letra mayúscula
                 t = t.charAt(0).toUpperCase() + t.slice(1);
             }
+            
+            // Asegurar mayúsculas para nombres divinos
+            t = t.replace(/\bdios\b/gi, "Dios");
+            t = t.replace(/\bjesucristo\b/gi, "Jesucristo");
+            // Para nombres con acentos la frontera \b falla a veces en JS, usamos lookarounds simples
+            t = t.replace(/(^|[\s.,!?"'()[\]])(jes[uú]s)(?=[\s.,!?"'()[\]]|$)/gi, "$1Jesús");
+            t = t.replace(/(^|[\s.,!?"'()[\]])(se[ñn]or)(?=[\s.,!?"'()[\]]|$)/gi, "$1Señor");
 
             return t;
         };
