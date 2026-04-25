@@ -39,15 +39,18 @@ const LyricCleaner: React.FC = () => {
             // Reemplazar comillas raras por estándar
             t = t.replace(/[‘’´`]/g, "'").replace(/[“”]/g, '"');
 
-            // Eliminar caracteres que no sean estándar o acentos españoles
-            // Permite: letras, números, espacios, y puntuación básica
+            // Eliminar espacios de cero ancho y espacios no divisibles
+            t = t.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ');
+
+            // Eliminar caracteres que no sean estándar
             t = t.replace(/[^a-zA-Z0-9\s.,!?'"()áéíóúÁÉÍÓÚñÑüÜ¿¡-]/g, "");
 
             // Reemplazar múltiples espacios por uno solo
             t = t.replace(/\s+/g, ' ');
 
-            // Quitar puntos, comas, dos puntos, punto y coma al final de la línea
-            t = t.replace(/[,.;:]+$/, "");
+            // Quitar ABSOLUTAMENTE cualquier puntuación al inicio o final
+            t = t.replace(/^[.,;:\-!?"'()[\]]+/, "");
+            t = t.replace(/[.,;:\-!?"'()[\]]+$/, "");
 
             const letters = t.replace(/[^a-zA-ZáéíóúñÁÉÍÓÚÑ]/g, "");
             const upperCount = letters.split('').filter(l => l === l.toUpperCase()).length;
@@ -56,15 +59,18 @@ const LyricCleaner: React.FC = () => {
                 t = t.toLowerCase();
             }
 
-            // primera letra mayúscula
-            t = t.charAt(0).toUpperCase() + t.slice(1);
+            t = t.trim();
+            if (t.length > 0) {
+                // primera letra mayúscula
+                t = t.charAt(0).toUpperCase() + t.slice(1);
+            }
 
-            return t.trim();
+            return t;
         };
 
         const lines = text.split('\n')
             .map(normalizeLine)
-            .filter(l => l !== "");
+            .filter(l => l.trim() !== "");
 
         // insertar espacio entre versos cada 4 líneas
         const formatted: string[] = [];
@@ -75,7 +81,13 @@ const LyricCleaner: React.FC = () => {
             }
         });
 
-        setFinalLyrics(formatted.join('\n'));
+        let finalOutput = formatted.join('\n');
+        // Remover líneas en blanco consecutivas fuertemente (si las hubiera)
+        finalOutput = finalOutput.replace(/\n{3,}/g, '\n\n'); 
+        // Remover cualquier salto de línea final o inicial
+        finalOutput = finalOutput.trim();
+
+        setFinalLyrics(finalOutput);
     };
 
     return (
