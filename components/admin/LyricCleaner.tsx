@@ -36,8 +36,18 @@ const LyricCleaner: React.FC = () => {
             let t = line.trim();
             if (!t) return "";
 
-            // quitar puntos al final
-            t = t.replace(/\.+$/, "");
+            // Reemplazar comillas raras por estándar
+            t = t.replace(/[‘’´`]/g, "'").replace(/[“”]/g, '"');
+
+            // Eliminar caracteres que no sean estándar o acentos españoles
+            // Permite: letras, números, espacios, y puntuación básica
+            t = t.replace(/[^a-zA-Z0-9\s.,!?'"()áéíóúÁÉÍÓÚñÑüÜ¿¡-]/g, "");
+
+            // Reemplazar múltiples espacios por uno solo
+            t = t.replace(/\s+/g, ' ');
+
+            // Quitar puntos, comas, dos puntos, punto y coma al final de la línea
+            t = t.replace(/[,.;:]+$/, "");
 
             const letters = t.replace(/[^a-zA-ZáéíóúñÁÉÍÓÚÑ]/g, "");
             const upperCount = letters.split('').filter(l => l === l.toUpperCase()).length;
@@ -49,7 +59,7 @@ const LyricCleaner: React.FC = () => {
             // primera letra mayúscula
             t = t.charAt(0).toUpperCase() + t.slice(1);
 
-            return t;
+            return t.trim();
         };
 
         const lines = text.split('\n')
