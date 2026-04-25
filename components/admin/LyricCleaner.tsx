@@ -68,7 +68,25 @@ const LyricCleaner: React.FC = () => {
             return t;
         };
 
-        const lines = text.split('\n')
+        let rawLines = text.split('\n');
+        let splitRawLines: string[] = [];
+
+        rawLines.forEach(l => {
+            let remaining = l;
+            while (remaining.length > 65) {
+                let splitIndex = remaining.lastIndexOf(' ', 65);
+                if (splitIndex === -1) {
+                    splitIndex = 65; // Force split if no spaces 
+                }
+                splitRawLines.push(remaining.substring(0, splitIndex));
+                remaining = remaining.substring(splitIndex);
+            }
+            if (remaining.trim().length > 0) {
+                splitRawLines.push(remaining);
+            }
+        });
+
+        const lines = splitRawLines
             .map(normalizeLine)
             .filter(l => l.trim() !== "");
 
