@@ -47,13 +47,40 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
           <div className="flex items-center gap-6 flex-1 min-w-0">
             {/* Cover Small */}
-            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 shadow-lg">
-              <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover" />
+            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 shadow-lg relative group">
+              <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-[#c5a059]/20 mix-blend-overlay"></div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <h5 className="text-[#c5a059] font-serif text-lg font-bold truncate tracking-tight">{activeSong.name}</h5>
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-black">{activeSong.artist}</p>
+            <div className="flex-1 min-w-0 flex items-center gap-8">
+              <div>
+                <h5 className="text-[#c5a059] font-serif text-lg font-bold truncate tracking-tight">{activeSong.name}</h5>
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-black mt-1">{activeSong.artist}</p>
+              </div>
+
+              {/* Soundcloud/Spotify Audio Visualizer */}
+              <div className="hidden sm:flex items-end gap-[3px] h-6 opacity-70">
+                <style>{`
+                  @keyframes bounceBar {
+                    0%, 100% { transform: scaleY(0.2); }
+                    50% { transform: scaleY(1); }
+                  }
+                  .visualizer-bar {
+                    transform-origin: bottom;
+                    animation: bounceBar infinite ease-in-out;
+                  }
+                `}</style>
+                {[...Array(16)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="w-[3px] h-full bg-gradient-to-t from-[#c5a059]/20 to-[#c5a059] rounded-t-sm visualizer-bar"
+                    style={{
+                      animationDelay: `${(i % 5) * 0.15 + Math.random() * 0.2}s`,
+                      animationDuration: `${0.5 + Math.random() * 0.5}s`
+                    }}
+                  ></div>
+                ))}
+              </div>
             </div>
           </div>
 
