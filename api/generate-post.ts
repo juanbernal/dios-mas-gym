@@ -6,13 +6,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { content } = req.body;
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) return res.status(500).json({ error: 'Falta la clave en Vercel.' });
+    if (!apiKey) return res.status(500).json({ error: 'Falta GEMINI_API_KEY en Vercel.' });
 
-    const promptText = `Crea un post viral para: ${content}`;
+    const promptText = `Eres un experto viral. Crea un post para: ${content}. Usa emojis y hashtags.`;
     
-    // Lista ampliada con el nuevo modelo 8B
+    // Lista de modelos limpia y sin parámetros extra en la URL
     const configs = [
-        { v: 'v1beta', m: 'gemini-1.5-flash-8b' },
         { v: 'v1beta', m: 'gemini-1.5-flash' },
         { v: 'v1', m: 'gemini-pro' }
     ];
@@ -21,11 +20,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (const config of configs) {
         try {
-            const url = `https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}&t=${Date.now()}`;
+            // URL LIMPIA sin parámetros extra que puedan causar 404
+            const url = `https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}`;
+            
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }]
+                })
             });
 
             const data = await response.json();
@@ -39,9 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(500).json({ 
-        error: "Diagnóstico v1.3.3", 
-        key_identity: apiKey.substring(0, 10) + "...", // Verificador de identidad
+        error: "Final Trace v1.3.4", 
+        key_id: apiKey.substring(0, 8),
         google_error: lastError,
-        tip: "Si el ID de la clave es el antiguo, haz Redeploy en Vercel."
+        tip: "Si el error es 404 con URL limpia, verifica que Gemini esté disponible en tu país."
     });
 }
