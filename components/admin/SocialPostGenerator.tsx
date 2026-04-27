@@ -9,7 +9,7 @@ const SocialPostGenerator: React.FC = () => {
     const [error, setError] = useState<any>(null);
     const [copied, setCopied] = useState(false);
 
-    const VERSION = "v1.2.6 Inspector-Mode";
+    const VERSION = "v1.2.7 Emergency-Bridge";
 
     const [formData, setFormData] = useState({
         input: '',
