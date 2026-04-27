@@ -12,10 +12,7 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        // BLOGGER_API_KEY removed from here to ensure security. 
-        // It is now strictly handled by the /api/arsenal serverless function.
+        // AI Keys are now strictly handled by serverless functions.
       },
       resolve: {
         alias: {

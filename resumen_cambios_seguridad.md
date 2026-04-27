@@ -3,7 +3,6 @@
 Este documento detalla los cambios realizados para asegurar la API y proteger tus credenciales.
 
 ## 🔐 Credenciales Privadas
-**BLOGGER_API_KEY**: `AIzaSyDA0Aruc7oYRf4K1tbwtKEfLy2dsTllxwU`
 > [!IMPORTANT]
 > Esta clave ya no está en el código. Debes ponerla en el panel de Vercel (**Settings > Environment Variables**) con el nombre `BLOGGER_API_KEY`.
 
