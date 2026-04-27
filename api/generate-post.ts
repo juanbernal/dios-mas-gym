@@ -13,29 +13,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (!content) {
-        return res.status(400).json({ error: 'El contenido es requerido.' });
+        return res.status(400).json({ error: 'El contexto es requerido.' });
     }
 
     const prompt = `
-        Actúa como un experto en marketing digital y estratega de redes sociales viral. 
-        Tu objetivo es crear un post para Instagram/TikTok/Facebook que se vuelva viral.
+        Actúa como un estratega de contenido viral de élite y copywriter experto en psicología de audiencias. 
+        Tu objetivo es crear una publicación de impacto masivo utilizando el contexto proporcionado.
         
-        El contenido base es la siguiente letra o título de canción:
-        "${content}"
+        CONTEXTO DETALLADO:
+        ${content}
         
-        Instrucciones:
-        1. Escribe un copy extremadamente llamativo y emocional que conecte con la audiencia.
-        2. Usa un tono motivador, espiritual o de superación personal (según el contexto de la letra).
-        3. Incluye una "llamada a la acción" (CTA) efectiva.
-        4. Agrega los mejores hashtags para que el algoritmo lo posicione (mezcla hashtags populares y específicos).
-        5. Usa emojis de forma estratégica para mejorar la legibilidad y el impacto visual.
-        6. El formato debe estar listo para copiar y pegar.
+        ESTRUCTURA DEL POST:
+        1. GANCHO (Hook): Una primera frase demoledora que detenga el scroll.
+        2. CUERPO: Texto emocional, rítmico y con autoridad. Usa saltos de línea estratégicos.
+        3. VALOR/REFLEXIÓN: Una enseñanza o pensamiento poderoso basado en el contenido.
+        4. CTA (Llamada a la acción): Instrucción clara para comentar, compartir o guardar.
+        5. HASHTAGS: Bloque de etiquetas premium (mezcla entre 500k-1M posts y nicho específico).
         
-        Responde solo con el texto del post, sin explicaciones adicionales.
+        REGLAS DE ORO:
+        - Usa emojis que refuercen el mensaje (no de relleno).
+        - Mantén el tono solicitado rigurosamente.
+        - Si el contenido es una letra de canción, destaca los versos más fuertes.
+        - Escribe en español latino de forma natural y poderosa.
+        
+        Responde DIRECTAMENTE con el texto final del post, listo para ser copiado.
     `;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // Intentamos con la URL de producción estable v1
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -48,8 +54,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         const data = await response.json();
+        
         if (data.error) {
-            throw new Error(data.error.message);
+            // Si v1 falla, intentamos con v1beta y el nombre completo del modelo
+            console.warn("v1 failed, trying v1beta...");
+            const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }]
+                })
+            });
+            const fallbackData = await fallbackResponse.json();
+            
+            if (fallbackData.error) {
+                throw new Error(fallbackData.error.message || 'Error en la API de Gemini');
+            }
+            
+            const resultText = fallbackData.candidates[0].content.parts[0].text;
+            return res.status(200).json({ text: resultText });
         }
 
         const resultText = data.candidates[0].content.parts[0].text;
