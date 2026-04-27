@@ -6,14 +6,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { content } = req.body;
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) return res.status(500).json({ error: 'Falta GEMINI_API_KEY.' });
+    if (!apiKey) return res.status(500).json({ error: 'Falta la clave en Vercel.' });
 
-    const promptText = `Escribe un post viral para: ${content}. Emojis y hashtags incluidos.`;
+    const promptText = `Crea un post viral para: ${content}`;
     
-    // Configuraciones Anti-Caché y Multiversión
+    // Lista ampliada con el nuevo modelo 8B
     const configs = [
+        { v: 'v1beta', m: 'gemini-1.5-flash-8b' },
         { v: 'v1beta', m: 'gemini-1.5-flash' },
-        { v: 'v1', m: 'gemini-1.5-flash' },
         { v: 'v1', m: 'gemini-pro' }
     ];
 
@@ -21,36 +21,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (const config of configs) {
         try {
-            // Añadimos un parámetro 't' para evitar el caché de Vercel/Google
-            const timestamp = Date.now();
-            const url = `https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}&t=${timestamp}`;
-            
+            const url = `https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}&t=${Date.now()}`;
             const response = await fetch(url, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
             const data = await response.json();
-            
             if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
                 return res.status(200).json({ text: data.candidates[0].content.parts[0].text });
             }
-            
             lastError = data.error;
-            if (data.error?.code === 503) break; // Si está ocupado, paramos para que el usuario reintente
         } catch (e: any) {
             lastError = { message: e.message };
         }
     }
 
     return res.status(500).json({ 
-        error: "Diagnóstico Final", 
+        error: "Diagnóstico v1.3.3", 
+        key_identity: apiKey.substring(0, 10) + "...", // Verificador de identidad
         google_error: lastError,
-        note: "Si el error persiste, la clave de API actual tiene un problema de permisos en Google Studio."
+        tip: "Si el ID de la clave es el antiguo, haz Redeploy en Vercel."
     });
 }

@@ -9,7 +9,7 @@ const SocialPostGenerator: React.FC = () => {
     const [error, setError] = useState<any>(null);
     const [copied, setCopied] = useState(false);
 
-    const VERSION = "v1.3.2 Deep-Impact";
+    const VERSION = "v1.3.3 Identity-Check";
 
     const [formData, setFormData] = useState({
         input: '',
