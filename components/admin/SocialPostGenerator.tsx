@@ -15,8 +15,7 @@ const SocialPostGenerator: React.FC = () => {
         input: '',
         platform: 'Instagram/TikTok',
         goal: 'Inspirar y Viralizar',
-        tone: 'Épico y Motivador',
-        audience: 'Jóvenes valientes y guerreros de fe'
+        tone: 'Épico y Motivador'
     });
 
     const handleGenerate = async () => {
@@ -25,19 +24,18 @@ const SocialPostGenerator: React.FC = () => {
         setError('');
         setCopied(false);
         try {
-            // Send the full context to the service
+            // Send the context to the service
             const context = `
                 CONTENIDO BASE: ${formData.input}
                 PLATAFORMA: ${formData.platform}
                 OBJETIVO: ${formData.goal}
                 TONO: ${formData.tone}
-                AUDIENCIA: ${formData.audience}
             `;
             const post = await generateSocialPost(context);
             setResult(post);
             setStep(2);
         } catch (err: any) {
-            setError(err.message || 'Error al generar el post. Verifica la configuración del servidor.');
+            setError(err.message || 'Error al generar el post.');
         } finally {
             setLoading(false);
         }
@@ -91,7 +89,7 @@ const SocialPostGenerator: React.FC = () => {
                                     value={formData.input}
                                     onChange={(e) => setFormData({...formData, input: e.target.value})}
                                     placeholder="Pega aquí la letra o la idea que quieres viralizar..."
-                                    className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white font-['Poppins'] min-h-[120px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
+                                    className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white font-['Poppins'] min-h-[150px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
                                 />
                             </div>
 
@@ -145,20 +143,6 @@ const SocialPostGenerator: React.FC = () => {
                                     <option>Directo y Agresivo (Gym-style)</option>
                                     <option>Cercano y Amigable</option>
                                 </select>
-                            </div>
-
-                            {/* Question 5 */}
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">
-                                    5. ¿A quién le hablas?
-                                </label>
-                                <input 
-                                    type="text"
-                                    value={formData.audience}
-                                    onChange={(e) => setFormData({...formData, audience: e.target.value})}
-                                    placeholder="Ej: Jóvenes valientes, artistas, deportistas..."
-                                    className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white font-['Poppins'] focus:border-[#c5a059]/50 outline-none transition-all"
-                                />
                             </div>
                         </div>
 

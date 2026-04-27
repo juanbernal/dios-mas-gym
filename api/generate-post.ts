@@ -28,19 +28,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         2. CUERPO: Texto emocional, rítmico y con autoridad. Usa saltos de línea estratégicos.
         3. VALOR/REFLEXIÓN: Una enseñanza o pensamiento poderoso basado en el contenido.
         4. CTA (Llamada a la acción): Instrucción clara para comentar, compartir o guardar.
-        5. HASHTAGS: Bloque de etiquetas premium (mezcla entre 500k-1M posts y nicho específico).
+        5. HASHTAGS: Bloque de etiquetas premium.
         
         REGLAS DE ORO:
-        - Usa emojis que refuercen el mensaje (no de relleno).
+        - Usa emojis que refuercen el mensaje.
         - Mantén el tono solicitado rigurosamente.
-        - Si el contenido es una letra de canción, destaca los versos más fuertes.
         - Escribe en español latino de forma natural y poderosa.
         
         Responde DIRECTAMENTE con el texto final del post, listo para ser copiado.
     `;
 
     try {
-        // Intentamos con la URL de producción estable v1
+        // Intentamos con gemini-1.5-flash en v1
         const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
@@ -56,9 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const data = await response.json();
         
         if (data.error) {
-            // Si v1 falla, intentamos con v1beta y el nombre completo del modelo
-            console.warn("v1 failed, trying v1beta...");
-            const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            console.warn("Gemini 1.5 Flash failed, trying Gemini Pro (v1)...");
+            // Fallback a gemini-pro que es el modelo más estable en v1
+            const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -72,7 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const fallbackData = await fallbackResponse.json();
             
             if (fallbackData.error) {
-                throw new Error(fallbackData.error.message || 'Error en la API de Gemini');
+                // Si todo falla, devolvemos el error amigable
+                throw new Error(`Error de API: ${fallbackData.error.message}`);
             }
             
             const resultText = fallbackData.candidates[0].content.parts[0].text;
