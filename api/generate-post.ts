@@ -8,49 +8,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta GEMINI_API_KEY en Vercel.' });
 
-    // MODO ESCÁNER: Vamos a preguntar a Google qué modelos tiene esta clave
-    try {
-        const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const listData = await listResponse.json();
-        
-        if (listData.error) {
-            return res.status(500).json({ 
-                error: "Error al listar modelos", 
-                google_error: listData.error,
-                key_prefix: apiKey.substring(0, 10)
+    // Intento directo y veloz
+    const prompt = `Crea un post viral impactante para: ${content}`;
+    
+    // Solo 2 intentos para evitar timeouts en Vercel
+    const configs = [
+        { v: 'v1beta', m: 'gemini-1.5-flash' },
+        { v: 'v1', m: 'gemini-1.5-flash' }
+    ];
+
+    let lastError = null;
+
+    for (const config of configs) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seg de límite cada intento
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+            const data = await response.json();
+
+            if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                return res.status(200).json({ text: data.candidates[0].content.parts[0].text });
+            }
+            lastError = data.error;
+        } catch (e: any) {
+            lastError = { message: e.message === 'The user aborted a request.' ? 'Tiempo de espera agotado' : e.message };
         }
-
-        // Si tenemos la lista, buscamos uno que soporte generateContent
-        const availableModels = listData.models || [];
-        const supportedModel = availableModels.find((m: any) => m.supportedGenerationMethods.includes('generateContent'));
-
-        if (!supportedModel) {
-            return res.status(404).json({ 
-                error: "No se encontraron modelos compatibles con este API Key.",
-                available_list: availableModels.map((m: any) => m.name)
-            });
-        }
-
-        // Intentamos generar contenido con el modelo que Google nos dijo que SÍ existe
-        const promptText = `Crea un post viral para: ${content}`;
-        const genResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/${supportedModel.name}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-        });
-
-        const genData = await genResponse.json();
-        if (genData.candidates) {
-            return res.status(200).json({ 
-                text: genData.candidates[0].content.parts[0].text,
-                model_auto_detected: supportedModel.name 
-            });
-        }
-
-        return res.status(500).json({ error: "Fallo en generación", details: genData });
-
-    } catch (e: any) {
-        return res.status(500).json({ error: "Error de red en el servidor", message: e.message });
     }
+
+    return res.status(500).json({ 
+        error: "Fallo de conexión rápida", 
+        google_error: lastError,
+        note: "Si el error es 404, prueba crear una clave nueva en un proyecto nuevo de Google AI Studio." 
+    });
 }
