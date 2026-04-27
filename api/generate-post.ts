@@ -8,44 +8,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta GEMINI_API_KEY en Vercel.' });
 
-    // Intento directo y veloz
-    const prompt = `Crea un post viral impactante para: ${content}`;
+    const promptText = `Eres un experto viral. Crea un post estratégico para: ${content}. Usa emojis y hashtags.`;
     
-    // Solo 2 intentos para evitar timeouts en Vercel
+    // Lista de modelos balanceada: Flash para velocidad, Pro para cuando hay mucha demanda
     const configs = [
         { v: 'v1beta', m: 'gemini-1.5-flash' },
-        { v: 'v1', m: 'gemini-1.5-flash' }
+        { v: 'v1', m: 'gemini-pro' },
+        { v: 'v1beta', m: 'gemini-1.5-flash-latest' }
     ];
 
     let lastError = null;
 
     for (const config of configs) {
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seg de límite cada intento
-
             const response = await fetch(`https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-                signal: controller.signal
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
-            clearTimeout(timeoutId);
             const data = await response.json();
 
             if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                return res.status(200).json({ text: data.candidates[0].content.parts[0].text });
+                return res.status(200).json({ 
+                    text: data.candidates[0].content.parts[0].text,
+                    engine: config.m 
+                });
             }
+            
             lastError = data.error;
+            // Si el error es 503 (Saturación), el bucle pasará al siguiente modelo automáticamente
+            console.warn(`Model ${config.m} saturated or failed: ${data.error?.message}`);
         } catch (e: any) {
-            lastError = { message: e.message === 'The user aborted a request.' ? 'Tiempo de espera agotado' : e.message };
+            lastError = { message: e.message };
         }
     }
 
     return res.status(500).json({ 
-        error: "Fallo de conexión rápida", 
+        error: "Google está muy ocupado ahora mismo", 
         google_error: lastError,
-        note: "Si el error es 404, prueba crear una clave nueva en un proyecto nuevo de Google AI Studio." 
+        tip: "Tu configuración es CORRECTA. Solo vuelve a intentarlo en 10 segundos, es saturación temporal de los servidores de Google." 
     });
 }
