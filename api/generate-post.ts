@@ -10,61 +10,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
 
     if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
-        return res.status(500).json({ error: 'API Key no configurada en Vercel.' });
+        return res.status(500).json({ error: 'La API Key no está configurada en Vercel.' });
     }
 
-    const prompt = `Actúa como estratega viral. Crea un post para: ${content}. Usa emojis y hashtags.`;
+    const prompt = `Crea un post viral para: ${content}`;
 
-    // Lista exhaustiva de modelos (incluyendo sugerencias del usuario y variantes)
     const models = [
         { v: 'v1beta', m: 'gemini-1.5-flash' },
-        { v: 'v1beta', m: 'gemini-1.5-flash-latest' },
-        { v: 'v1beta', m: 'gemini-1.5-pro' },
         { v: 'v1', m: 'gemini-1.5-flash' },
-        { v: 'v1', m: 'gemini-pro' }, 
-        { v: 'v1', m: 'gemini-1.0-pro' },
-        { v: 'v1', m: 'gemini-pro-vision' }, // Sugerido por el usuario (Legacy)
-        { v: 'v1beta', m: 'gemini-1.0-pro' }
+        { v: 'v1', m: 'gemini-pro' }
     ];
 
-    let lastError = '';
+    let lastRawError = null;
 
     for (const model of models) {
         try {
-            console.log(`Intentando conectar con: ${model.m} (${model.v})`);
-            const response = await fetch(`https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${apiKey}`, {
+            const url = `https://generativelanguage.googleapis.com/${model.v}/models/${model.m}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
 
-            // ERROR EN MI LOGICA ANTERIOR: model.version y model.name no existian, era model.v y model.m
-            // REPARADO AHORA
-            const finalUrl = `https://generativelanguage.googleapis.com/${model.v}/models/${model.m}:generateContent?key=${apiKey}`;
-            const realResponse = await fetch(finalUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            
-            const data = await realResponse.json();
+            const data = await response.json();
             
             if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                return res.status(200).json({ 
-                    text: data.candidates[0].content.parts[0].text,
-                    success_model: `${model.m} (${model.v})`
-                });
-            } else if (data.error) {
-                lastError = `${model.m}: ${data.error.message}`;
-            }
+                return res.status(200).json({ text: data.candidates[0].content.parts[0].text });
+            } 
+            
+            lastRawError = data.error;
         } catch (e: any) {
-            lastError = e.message;
+            lastRawError = { message: e.message };
         }
     }
 
+    // Diagnostic information for the user
     return res.status(500).json({ 
-        error: "Bucle de respaldo agotado.",
-        details: lastError,
-        help: "Tu clave de API parece no tener acceso a los modelos de Gemini. Verifica los servicios habilitados en Google AI Studio."
+        error: "Diagnóstico de API",
+        google_error: lastRawError,
+        check: {
+            key_length: apiKey.length,
+            key_start: apiKey.substring(0, 7) + "...",
+            env_var_name: "GEMINI_API_KEY"
+        },
+        instruction: "Si ves un error 403, tu API Key no tiene permisos. Si ves un error 400, el formato es inválido. Genera una nueva clave en https://aistudio.google.com/app/apikey"
     });
 }
