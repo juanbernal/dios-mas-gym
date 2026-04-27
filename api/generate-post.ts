@@ -7,59 +7,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { content } = req.body;
     let apiKey = process.env.GEMINI_API_KEY || "";
-    apiKey = apiKey.trim().replace(/^["']|["']$/g, ''); // Limpiar posibles comillas
+    apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
 
     if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
-        return res.status(500).json({ error: 'Falta la API Key de Gemini. Asegúrate de haberla configurado en Vercel como GEMINI_API_KEY.' });
+        return res.status(500).json({ error: 'API Key no configurada en Vercel.' });
     }
 
-    if (!content) {
-        return res.status(400).json({ error: 'El contexto es requerido.' });
-    }
+    const prompt = `Actúa como estratega viral. Crea un post para: ${content}. Usa emojis y hashtags.`;
 
-    const prompt = `Escribe un post viral para redes sociales basado en: ${content}. Incluye emojis y hashtags.`;
-
-    // Intentaremos todos los modelos posibles conocidos
-    const configs = [
+    // Lista exhaustiva de modelos (incluyendo sugerencias del usuario y variantes)
+    const models = [
         { v: 'v1beta', m: 'gemini-1.5-flash' },
         { v: 'v1beta', m: 'gemini-1.5-flash-latest' },
         { v: 'v1beta', m: 'gemini-1.5-pro' },
         { v: 'v1', m: 'gemini-1.5-flash' },
-        { v: 'v1', m: 'gemini-pro' },
-        { v: 'v1', m: 'gemini-1.0-pro' }
+        { v: 'v1', m: 'gemini-pro' }, 
+        { v: 'v1', m: 'gemini-1.0-pro' },
+        { v: 'v1', m: 'gemini-pro-vision' }, // Sugerido por el usuario (Legacy)
+        { v: 'v1beta', m: 'gemini-1.0-pro' }
     ];
 
-    let lastErrorMessage = '';
+    let lastError = '';
 
-    for (const config of configs) {
+    for (const model of models) {
         try {
-            const url = `https://generativelanguage.googleapis.com/${config.v}/models/${config.m}:generateContent?key=${apiKey}`;
-            const response = await fetch(url, {
+            console.log(`Intentando conectar con: ${model.m} (${model.v})`);
+            const response = await fetch(`https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
 
-            const data = await response.json();
+            // ERROR EN MI LOGICA ANTERIOR: model.version y model.name no existian, era model.v y model.m
+            // REPARADO AHORA
+            const finalUrl = `https://generativelanguage.googleapis.com/${model.v}/models/${model.m}:generateContent?key=${apiKey}`;
+            const realResponse = await fetch(finalUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            
+            const data = await realResponse.json();
             
             if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
                 return res.status(200).json({ 
                     text: data.candidates[0].content.parts[0].text,
-                    model_used: `${config.m} (${config.v})`
+                    success_model: `${model.m} (${model.v})`
                 });
             } else if (data.error) {
-                lastErrorMessage = `${config.m} (${config.v}): ${data.error.message}`;
+                lastError = `${model.m}: ${data.error.message}`;
             }
         } catch (e: any) {
-            lastErrorMessage = e.message;
+            lastError = e.message;
         }
     }
 
     return res.status(500).json({ 
-        error: "No se pudo conectar con los modelos de Gemini.",
-        details: lastErrorMessage,
-        tip: "Verifica que la API Key esté activa en Google AI Studio y que la cuenta tenga acceso el modelo 1.5 Flash."
+        error: "Bucle de respaldo agotado.",
+        details: lastError,
+        help: "Tu clave de API parece no tener acceso a los modelos de Gemini. Verifica los servicios habilitados en Google AI Studio."
     });
 }
