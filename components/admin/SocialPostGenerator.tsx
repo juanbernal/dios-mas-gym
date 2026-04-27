@@ -10,6 +10,8 @@ const SocialPostGenerator: React.FC = () => {
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
 
+    const VERSION = "v1.2.1 Stable";
+
     // Questionnaire State
     const [formData, setFormData] = useState({
         input: '',
@@ -24,7 +26,6 @@ const SocialPostGenerator: React.FC = () => {
         setError('');
         setCopied(false);
         try {
-            // Send the context to the service
             const context = `
                 CONTENIDO BASE: ${formData.input}
                 PLATAFORMA: ${formData.platform}
@@ -58,16 +59,23 @@ const SocialPostGenerator: React.FC = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-12">
-                    <button 
-                        onClick={() => navigate('/admin')}
-                        className="mb-8 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group"
-                    >
-                        <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> 
-                        Volver al Panel
-                    </button>
-                    <h1 className="font-serif italic text-5xl md:text-7xl text-white mb-4">
-                        Post Viral <span className="text-[#c5a059]">Generator</span>
-                    </h1>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <button 
+                                onClick={() => navigate('/admin')}
+                                className="mb-8 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group"
+                            >
+                                <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> 
+                                Volver al Panel
+                            </button>
+                            <h1 className="font-serif italic text-5xl md:text-7xl text-white mb-4">
+                                Post Viral <span className="text-[#c5a059]">Generator</span>
+                            </h1>
+                        </div>
+                        <span className="text-[9px] font-black px-4 py-2 bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/20 rounded-full">
+                            {VERSION}
+                        </span>
+                    </div>
                     <p className="text-[#94a3b8] text-sm tracking-widest uppercase font-bold">
                         Estrategia Digital Personalizada
                     </p>
