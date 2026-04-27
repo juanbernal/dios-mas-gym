@@ -10,7 +10,7 @@ const SocialPostGenerator: React.FC = () => {
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
 
-    const VERSION = "v1.2.1 Stable";
+    const VERSION = "v1.2.2 Super-Stable";
 
     // Questionnaire State
     const [formData, setFormData] = useState({
