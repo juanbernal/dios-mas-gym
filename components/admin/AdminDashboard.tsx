@@ -49,6 +49,14 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-rocket',
             color: '#ff4b2b',
             route: '/admin/proximos-lanzamientos'
+        },
+        {
+            id: 'social-post',
+            title: 'Viral Post Generator',
+            description: 'Convierte letras y títulos en publicaciones de alto impacto para redes sociales con IA estratégica.',
+            icon: 'fa-bullhorn',
+            color: '#fbbf24',
+            route: '/admin/social-post'
         }
     ];
 
