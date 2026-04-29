@@ -225,17 +225,14 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo ultra difuminado (más claro) */}
-                                    <img 
-                                        src={coverImage}
-                                        className="absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-70"
-                                        style={{ filter: getFilterStyle() }}
-                                        crossOrigin="anonymous"
-                                        alt=""
-                                    />
+                                    {/* Fondo texturizado oscuro (sin blur ni scale para que el export sea 100% idéntico al preview en html2canvas) */}
+                                    <div 
+                                        className="absolute inset-0 bg-cover bg-center opacity-20"
+                                        style={{ backgroundImage: `url(${coverImage})`, filter: getFilterStyle() }}
+                                    ></div>
                                     
-                                    {/* Capa de oscurecimiento intensa para que el export se vea bien aunque html2canvas no soporte blur */}
-                                    <div className="absolute inset-0 bg-black/80 z-[5]"></div>
+                                    {/* Capa de base negra para dar el tono oscuro */}
+                                    <div className="absolute inset-0 bg-[#05070a]/60 z-[5]"></div>
 
                                     {/* Sombra suave interna (menos oscura) */}
                                     <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.3)] z-10 pointer-events-none"></div>
