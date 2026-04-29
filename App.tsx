@@ -9,6 +9,7 @@ import GlobalPlayer from './components/GlobalPlayer';
 import ArtistPromo from './components/ArtistPromo';
 import AdminDashboard from "./components/admin/AdminDashboard";
 import PromoImageApp from "./components/admin/PromoImageApp";
+import TemplatePromoApp from "./components/admin/TemplatePromoApp";
 import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
@@ -388,6 +389,7 @@ const App: React.FC = () => {
           <Route path="/post/:slug" element={<PostView state={state} setState={setState} getSlugFromUrl={getSlugFromUrl} readingHistory={readingHistory} setReadingHistory={setReadingHistory} />} />
           <Route path="/admin" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
           <Route path="/admin/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
+          <Route path="/admin/plantillas-premium" element={<AdminAuthWrapper><TemplatePromoApp/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
           <Route path="/admin/proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />

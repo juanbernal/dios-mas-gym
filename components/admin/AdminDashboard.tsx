@@ -57,6 +57,14 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-bullhorn',
             color: '#fbbf24',
             route: '/admin/social-post'
+        },
+        {
+            id: 'plantillas-premium',
+            title: 'Plantillas Premium',
+            description: 'Generador avanzado de imágenes usando plantillas base. Añade textos mágicos y sombras sobre tus propios fondos.',
+            icon: 'fa-layer-group',
+            color: '#e879f9',
+            route: '/admin/plantillas-premium'
         }
     ];
 
