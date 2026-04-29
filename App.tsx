@@ -11,6 +11,7 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import PromoImageApp from "./components/admin/PromoImageApp";
 import SmartLinksAdmin from "./components/admin/SmartLinksAdmin";
 import EPKGenerator from "./components/admin/EPKGenerator";
+import CanvasCreator from "./components/admin/CanvasCreator";
 import SmartLinkView from "./components/SmartLinkView";
 import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
@@ -395,6 +396,7 @@ const App: React.FC = () => {
           <Route path="/admin/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
           <Route path="/admin/smart-links" element={<AdminAuthWrapper><SmartLinksAdmin/></AdminAuthWrapper>} />
           <Route path="/admin/epk-generator" element={<AdminAuthWrapper><EPKGenerator/></AdminAuthWrapper>} />
+          <Route path="/admin/canvas-creator" element={<AdminAuthWrapper><CanvasCreator/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
           <Route path="/link/:id" element={<SmartLinkView />} />

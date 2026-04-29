@@ -73,6 +73,14 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-file-pdf',
             color: '#f43f5e',
             route: '/admin/epk-generator'
+        },
+        {
+            id: 'canvas-creator',
+            title: 'Spotify Canvas Creator',
+            description: 'Convierte tus portadas cuadradas en visuales verticales (9:16) con efectos y texturas.',
+            icon: 'fa-mobile-screen-button',
+            color: '#1DB954',
+            route: '/admin/canvas-creator'
         }
     ];
 

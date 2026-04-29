@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { fetchMusicCatalog } from '../../services/musicService';
+import { MusicItem } from '../../types';
 
 const EPKGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -20,14 +24,86 @@ const EPKGenerator: React.FC = () => {
         manager: 'Juan Bernal'
     });
 
-    const [songs, setSongs] = useState([
-        { title: 'El Comienzo', streams: '100K' },
-        { title: 'Fe Intacta', streams: '85K' },
-        { title: 'Disciplina', streams: '50K' }
-    ]);
+    const [songs, setSongs] = useState<{title: string, streams: string}[]>([]);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isLoadingData, setIsLoadingData] = useState(true);
 
-    const handlePrint = () => {
-        window.print();
+    // Auto-Llenado basado en el artista seleccionado
+    useEffect(() => {
+        const loadArtistData = async () => {
+            setIsLoadingData(true);
+            
+            // Textos automáticos
+            if (artist === 'diosmasgym') {
+                setBio('Diosmasgym Records es un proyecto urbano enfocado en disciplina, fe y transformación personal. A través de rap, trap y ritmos potentes, llevamos un mensaje directo sobre el crecimiento espiritual y físico.');
+                setContact(prev => ({ ...prev, email: 'contacto@diosmasgym.com' }));
+            } else {
+                setBio('Juan 614 es un ministerio acústico y regional que busca volver a las raíces de la adoración pura. Con guitarras de madera, docerolas y letras sinceras, creamos un ambiente de paz y conexión espiritual profunda.');
+                setContact(prev => ({ ...prev, email: 'booking@juan614.com' }));
+            }
+
+            try {
+                // Sincronizar con catálogo real
+                const catalog = await fetchMusicCatalog(artist);
+                if (catalog.length > 0) {
+                    // Tomar las 3 últimas (más recientes) o aleatorias
+                    const top3 = catalog.slice(0, 3).map(song => ({
+                        title: song.name,
+                        streams: '10K+' // Stream estimado ya que no está en DB
+                    }));
+                    
+                    // Si no tiene 3, rellenar
+                    while (top3.length < 3) {
+                        top3.push({ title: 'Próximo Lanzamiento', streams: '---' });
+                    }
+                    
+                    setSongs(top3);
+                } else {
+                    setSongs([
+                        { title: 'El Comienzo', streams: '100K' },
+                        { title: 'Fe Intacta', streams: '85K' },
+                        { title: 'Disciplina', streams: '50K' }
+                    ]);
+                }
+            } catch (err) {
+                console.error("Error auto-filling EPK data:", err);
+            } finally {
+                setIsLoadingData(false);
+            }
+        };
+
+        loadArtistData();
+    }, [artist]);
+
+    const handleExportPDF = async () => {
+        const element = document.getElementById('epk-document');
+        if (!element) return;
+
+        try {
+            setIsExporting(true);
+            
+            const canvas = await html2canvas(element, {
+                scale: 2, // Alta resolución
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: artist === 'juan614' ? '#FAF9F6' : '#05070a'
+            });
+
+            // Dimensiones formato A4
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`EPK_${artist.toUpperCase()}_${new Date().getFullYear()}.pdf`);
+            
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+            alert("Hubo un error al generar el PDF. Asegúrate de que todas las imágenes externas hayan cargado correctamente.");
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const isJuan = artist === 'juan614';
@@ -56,8 +132,9 @@ const EPKGenerator: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">EPK <span className="text-[#c5a059]">Generator</span></h1>
                     </div>
-                    <button onClick={handlePrint} className="bg-[#c5a059] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all">
-                        <i className="fas fa-file-pdf mr-2"></i> Exportar PDF
+                    <button onClick={handleExportPDF} disabled={isExporting || isLoadingData} className={`bg-[#c5a059] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
+                        <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i> 
+                        {isExporting ? 'Exportando...' : 'Descargar PDF'}
                     </button>
                 </div>
 
@@ -124,15 +201,17 @@ const EPKGenerator: React.FC = () => {
                             </div>
                         </div>
                         
-                        <div className="text-center text-white/30 text-xs">
-                            <i className="fas fa-info-circle mr-2"></i> Usa Ctrl+P o CMD+P si el botón falla. Asegúrate de activar "Gráficos de fondo" en la ventana de impresión.
+                        <div className="text-center text-white/30 text-[10px] mt-4">
+                            <i className="fas fa-magic mr-2 text-[#c5a059]"></i> Los datos base han sido sincronizados automáticamente con tu catálogo.
                         </div>
                     </div>
 
                     {/* Previsualización del PDF */}
                     <div className="lg:col-span-8 flex justify-center overflow-auto pb-20">
-                        <div id="epk-document" className="w-[800px] min-h-[1130px] shadow-2xl relative transition-all duration-500 overflow-hidden" style={{ backgroundColor: theme.bg, color: theme.text }}>
-                            {/* Diseño Interno del Documento */}
+                        {/* scale wrapper for viewing convenience without affecting real export size */}
+                        <div className="transform scale-[0.6] sm:scale-75 md:scale-90 lg:scale-100 origin-top">
+                            <div id="epk-document" className="w-[794px] h-[1123px] shadow-2xl relative overflow-hidden" style={{ backgroundColor: theme.bg, color: theme.text }}>
+                                {/* Diseño Interno del Documento (A4 Size: 210x297mm -> ~794x1123px a 96DPI) */}
                             
                             {/* Cabecera / Portada */}
                             <div className="h-[400px] relative flex items-center justify-center overflow-hidden">
@@ -236,40 +315,6 @@ const EPKGenerator: React.FC = () => {
                     </div>
                 </div>
             </div>
-
-            {/* VISTA EXCLUSIVA PARA IMPRESIÓN */}
-            <div className="hidden print:block">
-                {/* 
-                    Aquí clonamos la estructura visual, pero sin contenedores con scroll.
-                    Tailwind 'print:' maneja la visibilidad. 
-                    El #epk-document ya tiene el tamaño de un A4/Carta (800x1130 aprox).
-                    Cuando se hace window.print(), el navegador solo imprimirá lo que esté visible.
-                    Para asegurar que el fondo se imprima, el navegador requiere que el usuario
-                    marque la casilla "Imprimir gráficos de fondo".
-                */}
-            </div>
-            
-            {/* 
-               Estilo global para la impresión. 
-               Ocultamos TODO el body EXCEPTO el epk-document.
-            */}
-            <style dangerouslySetInnerHTML={{__html: `
-                @media print {
-                    @page { size: A4 portrait; margin: 0; }
-                    body * { visibility: hidden; }
-                    #epk-document, #epk-document * { visibility: visible; }
-                    #epk-document { 
-                        position: absolute; 
-                        left: 0; 
-                        top: 0; 
-                        width: 100% !important; 
-                        height: 100% !important; 
-                        box-shadow: none !important;
-                        -webkit-print-color-adjust: exact !important; 
-                        print-color-adjust: exact !important;
-                    }
-                }
-            `}} />
         </div>
     );
 };
