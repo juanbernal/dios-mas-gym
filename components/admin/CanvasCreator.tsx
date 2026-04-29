@@ -122,7 +122,7 @@ const CanvasCreator: React.FC = () => {
                     Volver
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.6</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.7</span></h1>
                 </div>
                 <button onClick={handleExport} disabled={isExporting || !coverImage} className={`bg-[#1DB954] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting || !coverImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                     <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-download'} mr-2`}></i> 
@@ -209,14 +209,16 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado (estirado al 100% para asegurar que no queden barras laterales en html2canvas) */}
+                                    {/* Fondo texturizado (Usando DIV para compatibilidad máxima) */}
                                     <div 
-                                        className="absolute inset-0 opacity-20"
+                                        className="absolute inset-0 opacity-30"
                                         style={{ 
                                             backgroundImage: `url(${coverImage})`, 
-                                            backgroundSize: '100% 100%',
+                                            backgroundSize: 'cover',
                                             backgroundPosition: 'center',
-                                            filter: getFilterStyle() 
+                                            filter: getFilterStyle(),
+                                            width: '100%',
+                                            height: '100%'
                                         }}
                                     ></div>
                                     
@@ -229,15 +231,17 @@ const CanvasCreator: React.FC = () => {
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
 
-                                    {/* Elemento Central (Portada o Textos) */}
+                                    {/* Elemento Central (Portada usando DIV para evitar barras laterales en html2canvas) */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
-                                        <img 
-                                            src={coverImage} 
-                                            alt="Cover" 
-                                            className="w-full aspect-square object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-sm mb-12"
-                                            style={{ filter: getFilterStyle() }}
-                                            crossOrigin="anonymous"
-                                        />
+                                        <div 
+                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
+                                            style={{ 
+                                                backgroundImage: `url(${coverImage})`,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                                filter: getFilterStyle()
+                                            }}
+                                        ></div>
                                         
                                         {(songTitle || phrase) && (
                                             <div className="text-center w-full">
