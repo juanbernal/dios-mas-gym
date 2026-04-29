@@ -40,11 +40,11 @@ const CanvasCreator: React.FC = () => {
         loadCatalog();
     }, [artist]);
 
-    const handleSongSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleSongSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const songName = e.target.value;
+        setSongTitle(songName); // Allow typing and updating title freely
         const selected = catalog.find(s => s.name === songName);
         if (selected) {
-            setSongTitle(selected.name);
             setCoverImage(selected.cover);
         }
     };
@@ -97,16 +97,16 @@ const CanvasCreator: React.FC = () => {
     const filterOverlays = {
         'none': null,
         'vhs': (
-            <div className="absolute inset-0 pointer-events-none z-20 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px)' }}></div>
+            <div className="absolute inset-0 pointer-events-none z-20 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px)' }}></div>
         ),
         'gold-dust': (
-            <div className="absolute inset-0 pointer-events-none z-20 opacity-30 mix-blend-color-dodge bg-[#c5a059]" style={{ backgroundImage: 'radial-gradient(circle, transparent 20%, #000 100%)' }}></div>
+            <div className="absolute inset-0 pointer-events-none z-20 opacity-40 bg-[#c5a059]/20" style={{ backgroundImage: 'radial-gradient(circle, transparent 20%, #000 100%)' }}></div>
         ),
         'dark-vignette': (
-            <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)]"></div>
+            <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]"></div>
         ),
         'neon-glow': (
-            <div className="absolute inset-0 pointer-events-none z-20 bg-gradient-to-t from-[#c5a059]/30 to-transparent mix-blend-screen"></div>
+            <div className="absolute inset-0 pointer-events-none z-20 bg-gradient-to-t from-[#1DB954]/40 to-transparent"></div>
         )
     };
 
@@ -149,23 +149,20 @@ const CanvasCreator: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Canción (Autocompletado)</label>
-                                    <select 
+                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Canción (Buscador)</label>
+                                    <input 
+                                        list="songs-list"
                                         value={songTitle} 
                                         onChange={handleSongSelect}
                                         disabled={isLoading || catalog.length === 0}
+                                        placeholder={isLoading ? "Cargando catálogo..." : "Escribe para buscar o selecciona..."}
                                         className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
-                                    >
-                                        {isLoading ? (
-                                            <option>Cargando catálogo...</option>
-                                        ) : catalog.length === 0 ? (
-                                            <option>No hay canciones disponibles</option>
-                                        ) : (
-                                            catalog.map(song => (
-                                                <option key={song.id} value={song.name}>{song.name}</option>
-                                            ))
-                                        )}
-                                    </select>
+                                    />
+                                    <datalist id="songs-list">
+                                        {catalog.map(song => (
+                                            <option key={song.id} value={song.name} />
+                                        ))}
+                                    </datalist>
                                 </div>
                                 <div className="col-span-2">
                                     <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Frase Viral (Opcional)</label>
@@ -237,8 +234,8 @@ const CanvasCreator: React.FC = () => {
                                         alt=""
                                     />
                                     
-                                    {/* Capa de oscurecimiento muy leve para legibilidad */}
-                                    <div className="absolute inset-0 bg-black/20 z-[5]"></div>
+                                    {/* Capa de oscurecimiento intensa para que el export se vea bien aunque html2canvas no soporte blur */}
+                                    <div className="absolute inset-0 bg-black/80 z-[5]"></div>
 
                                     {/* Sombra suave interna (menos oscura) */}
                                     <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.3)] z-10 pointer-events-none"></div>
