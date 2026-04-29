@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { fetchMusicCatalog } from '../../services/musicService';
+import { MusicItem } from '../../types';
 
 type FilterType = 'none' | 'vhs' | 'gold-dust' | 'dark-vignette' | 'neon-glow';
 
@@ -9,21 +11,45 @@ const CanvasCreator: React.FC = () => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [songTitle, setSongTitle] = useState('');
-    const [artist, setArtist] = useState('DIOSMASGYM');
+    const [artist, setArtist] = useState<'diosmasgym' | 'juan614'>('diosmasgym');
+    const [catalog, setCatalog] = useState<MusicItem[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [phrase, setPhrase] = useState('');
     const [filter, setFilter] = useState<FilterType>('none');
     const [isExporting, setIsExporting] = useState(false);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setCoverImage(event.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+    useEffect(() => {
+        const loadCatalog = async () => {
+            setIsLoading(true);
+            try {
+                const data = await fetchMusicCatalog(artist);
+                setCatalog(data);
+                if (data.length > 0) {
+                    setSongTitle(data[0].name);
+                    setCoverImage(data[0].cover);
+                } else {
+                    setSongTitle('');
+                    setCoverImage(null);
+                }
+            } catch (error) {
+                console.error("Error fetching catalog", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadCatalog();
+    }, [artist]);
+
+    const handleSongSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const songName = e.target.value;
+        const selected = catalog.find(s => s.name === songName);
+        if (selected) {
+            setSongTitle(selected.name);
+            setCoverImage(selected.cover);
         }
     };
+
+
 
     const handleExport = async () => {
         if (!canvasRef.current) return;
@@ -108,38 +134,37 @@ const CanvasCreator: React.FC = () => {
                 {/* Controles */}
                 <div className="lg:col-span-5 space-y-6">
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <h2 className="text-[#1DB954] text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">1. Elementos Base</h2>
+                        <h2 className="text-[#1DB954] text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">1. Identidad</h2>
                         <div className="space-y-4">
-                            <div>
-                                <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Portada Cuadrada (Alta Calidad)</label>
-                                <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:border-[#1DB954] transition-all bg-black/50 group">
-                                    <div className="text-center group-hover:text-[#1DB954]">
-                                        <i className="fas fa-upload mb-2 text-xl"></i>
-                                        <div className="text-[10px] font-black uppercase tracking-widest">Subir Imagen</div>
-                                    </div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                                </label>
-                            </div>
-
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Título (Opcional)</label>
-                                    <input 
-                                        type="text" 
-                                        value={songTitle} 
-                                        onChange={(e) => setSongTitle(e.target.value)}
-                                        className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
-                                    />
-                                </div>
                                 <div>
                                     <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Artista</label>
                                     <select 
                                         value={artist} 
-                                        onChange={(e) => setArtist(e.target.value)}
+                                        onChange={(e) => setArtist(e.target.value as any)}
                                         className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
                                     >
-                                        <option value="DIOSMASGYM">Diosmasgym</option>
-                                        <option value="JUAN 614">Juan 614</option>
+                                        <option value="diosmasgym">Diosmasgym</option>
+                                        <option value="juan614">Juan 614</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Canción (Autocompletado)</label>
+                                    <select 
+                                        value={songTitle} 
+                                        onChange={handleSongSelect}
+                                        disabled={isLoading || catalog.length === 0}
+                                        className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
+                                    >
+                                        {isLoading ? (
+                                            <option>Cargando catálogo...</option>
+                                        ) : catalog.length === 0 ? (
+                                            <option>No hay canciones disponibles</option>
+                                        ) : (
+                                            catalog.map(song => (
+                                                <option key={song.id} value={song.name}>{song.name}</option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                                 <div className="col-span-2">
@@ -181,13 +206,13 @@ const CanvasCreator: React.FC = () => {
                         <div className="absolute inset-0 pointer-events-none z-50 flex flex-col justify-between p-4 opacity-50">
                             <div className="flex justify-between items-center text-xs">
                                 <i className="fas fa-chevron-down"></i>
-                                <span className="font-bold text-[9px] uppercase tracking-widest">{artist}</span>
+                                <span className="font-bold text-[9px] uppercase tracking-widest">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</span>
                                 <i className="fas fa-ellipsis-v"></i>
                             </div>
                             <div className="flex justify-between items-end pb-8">
                                 <div>
                                     <h4 className="font-bold text-lg leading-tight">{songTitle || 'Título'}</h4>
-                                    <p className="text-[10px] opacity-80">{artist}</p>
+                                    <p className="text-[10px] opacity-80">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
                                 </div>
                                 <div className="flex flex-col gap-4 text-xl">
                                     <i className="far fa-heart"></i>
@@ -204,10 +229,13 @@ const CanvasCreator: React.FC = () => {
                             {coverImage ? (
                                 <>
                                     {/* Fondo ultra difuminado (más claro) */}
-                                    <div 
-                                        className="absolute inset-0 bg-cover bg-center scale-125 blur-xl opacity-70"
-                                        style={{ backgroundImage: `url(${coverImage})`, filter: getFilterStyle() }}
-                                    ></div>
+                                    <img 
+                                        src={coverImage}
+                                        className="absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-70"
+                                        style={{ filter: getFilterStyle() }}
+                                        crossOrigin="anonymous"
+                                        alt=""
+                                    />
                                     
                                     {/* Capa de oscurecimiento muy leve para legibilidad */}
                                     <div className="absolute inset-0 bg-black/20 z-[5]"></div>
@@ -225,13 +253,14 @@ const CanvasCreator: React.FC = () => {
                                             alt="Cover" 
                                             className="w-full aspect-square object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-sm mb-12"
                                             style={{ filter: getFilterStyle() }}
+                                            crossOrigin="anonymous"
                                         />
                                         
                                         {(songTitle || phrase) && (
                                             <div className="text-center w-full">
                                                 {phrase && <p className="text-white/80 text-xs italic font-serif mb-4 px-4 leading-relaxed">"{phrase}"</p>}
                                                 {songTitle && <h1 className="font-serif italic text-4xl mb-2 drop-shadow-xl text-white">{songTitle}</h1>}
-                                                <p className="text-[#c5a059] text-[9px] font-black uppercase tracking-[0.4em] drop-shadow-md">{artist}</p>
+                                                <p className="text-[#c5a059] text-[9px] font-black uppercase tracking-[0.4em] drop-shadow-md">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
                                             </div>
                                         )}
                                     </div>
