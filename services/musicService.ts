@@ -1,5 +1,9 @@
 import { MusicItem } from '../types';
 
+const generateSlug = (text: string) => {
+    return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
+
 /**
  * Fetches music catalog for a specific artist via the backend proxy.
  */
@@ -78,8 +82,18 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     });
 
     if (entry.name && entry.url) {
-      // Create a unique ID
-      entry.id = entry.url.split('v=')[1] || Math.random().toString(36).substr(2, 9);
+      // Extraer el ID de YouTube de forma segura o usar un slug determinista
+      let videoId = '';
+      try {
+        if (entry.url.includes('youtube.com') && entry.url.includes('v=')) {
+          videoId = entry.url.split('v=')[1].split('&')[0];
+        } else if (entry.url.includes('youtu.be/')) {
+          videoId = entry.url.split('youtu.be/')[1].split('?')[0];
+        }
+      } catch (e) {}
+
+      // Si no hay videoId de YouTube, crear un slug determinista con el artista y nombre
+      entry.id = videoId || generateSlug(`${entry.artist}-${entry.name}`);
       music.push(entry as MusicItem);
     }
   }
