@@ -9,6 +9,7 @@ const SmartLinkView: React.FC = () => {
     const location = useLocation();
     const [song, setSong] = useState<MusicItem | null>(null);
     const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
         const loadSong = async () => {
@@ -50,12 +51,12 @@ const SmartLinkView: React.FC = () => {
                     // Actualizar Meta Tags dinámicamente
                     document.title = `${found.name} - ${found.artist}`;
                 } else {
-                    // Si no se encuentra, redirigir a inicio
-                    navigate('/');
+                    // Si no se encuentra, mostrar error en lugar de redirigir
+                    setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Error cargando el smart link:", err);
-                navigate('/');
+                setErrorMsg(`Error de carga: ${err.message}`);
             } finally {
                 setLoading(false);
             }
@@ -67,6 +68,19 @@ const SmartLinkView: React.FC = () => {
         return (
             <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
                 <div className="w-12 h-12 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full"></div>
+            </div>
+        );
+    }
+
+    if (errorMsg) {
+        return (
+            <div className="min-h-screen bg-[#05070a] text-white flex flex-col items-center justify-center p-8">
+                <i className="fas fa-exclamation-triangle text-4xl text-[#c5a059] mb-4"></i>
+                <h1 className="text-2xl font-serif italic mb-2 text-center">Enlace no disponible</h1>
+                <p className="text-white/50 text-xs mb-8 text-center">{errorMsg}</p>
+                <button onClick={() => navigate('/')} className="bg-[#c5a059] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all">
+                    Volver al Inicio
+                </button>
             </div>
         );
     }
