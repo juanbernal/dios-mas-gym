@@ -3,6 +3,129 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../services/musicService';
 import { MusicItem } from '../types';
 
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const playerRef = React.useRef<any>(null);
+
+    useEffect(() => {
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            if (firstScriptTag && firstScriptTag.parentNode) {
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            } else {
+                document.head.appendChild(tag);
+            }
+            
+            window.onYouTubeIframeAPIReady = () => {
+                initPlayer();
+            };
+        } else if (window.YT && window.YT.Player) {
+            initPlayer();
+        }
+
+        function initPlayer() {
+            if (playerRef.current) return;
+            playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
+                height: '0',
+                width: '0',
+                videoId: videoId,
+                playerVars: {
+                    autoplay: 0,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    playsinline: 1
+                },
+                events: {
+                    onStateChange: (event: any) => {
+                        if (event.data === window.YT.PlayerState.PLAYING) {
+                            setIsPlaying(true);
+                        } else {
+                            setIsPlaying(false);
+                        }
+                    }
+                }
+            });
+        }
+    }, [videoId]);
+
+    useEffect(() => {
+        let interval: any;
+        if (isPlaying) {
+            interval = setInterval(() => {
+                if (playerRef.current && playerRef.current.getCurrentTime) {
+                    const time = playerRef.current.getCurrentTime();
+                    setProgress((time / 60) * 100);
+                    if (time >= 60) {
+                        playerRef.current.pauseVideo();
+                        playerRef.current.seekTo(0);
+                        setIsPlaying(false);
+                        setProgress(0);
+                    }
+                }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isPlaying]);
+
+    const togglePlay = () => {
+        if (!playerRef.current || !playerRef.current.playVideo) return;
+        if (isPlaying) {
+            playerRef.current.pauseVideo();
+        } else {
+            playerRef.current.playVideo();
+        }
+    };
+
+    const accentColor = isJuan ? '#c89d53' : '#c5a059';
+
+    return (
+        <div className={`w-full max-w-md mb-8 rounded-3xl p-4 border shadow-xl flex flex-col gap-4 relative overflow-hidden ${isJuan ? 'bg-[#2a221f] border-[#8B5A2B]/20' : 'bg-white/5 border-white/10 backdrop-blur-xl'}`}>
+            <div id={`yt-player-${videoId}`} className="hidden"></div>
+            
+            {/* Background progress indicator pulse */}
+            {isPlaying && <div className="absolute inset-0 opacity-10 animate-pulse" style={{ backgroundColor: accentColor }}></div>}
+            
+            <div className="flex justify-between items-center relative z-10 px-2">
+                <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-2" style={{ color: accentColor }}>
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    Previa (60 Segundos)
+                </span>
+                <span className={`text-[8px] uppercase tracking-widest ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
+                    Escucha un fragmento
+                </span>
+            </div>
+
+            <div className="flex items-center gap-4 relative z-10">
+                <button onClick={togglePlay} className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform" style={{ backgroundColor: accentColor }}>
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-black text-xl ${!isPlaying ? 'ml-1' : ''}`}></i>
+                </button>
+                <div className="flex-1 pr-2">
+                    <div className={`flex justify-between text-[9px] font-black uppercase tracking-widest mb-3 ${isJuan ? 'text-[#e8dcc5]/70' : 'text-white/70'}`}>
+                        <span>{isPlaying ? 'Reproduciendo...' : 'Listo para escuchar'}</span>
+                        <span className="font-mono">{Math.floor(progress * 0.6)}s / 60s</span>
+                    </div>
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${isJuan ? 'bg-black/30' : 'bg-white/10'}`}>
+                        <div className="h-full transition-all duration-1000 ease-linear rounded-full" style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: accentColor }}></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -117,9 +240,9 @@ const SmartLinkView: React.FC = () => {
             if (urlStr.includes('tidal.com')) return song.url;
             return `https://tidal.com/search?q=${query}`;
         }
-        if (platform === 'SoundCloud') {
-            if (urlStr.includes('soundcloud.com')) return song.url;
-            return `https://soundcloud.com/search?q=${query}`;
+        if (platform === 'Audiomack') {
+            if (urlStr.includes('audiomack.com')) return song.url;
+            return `https://audiomack.com/search?q=${query}`;
         }
         if (platform === 'Pandora') {
             if (urlStr.includes('pandora.com')) return song.url;
@@ -128,21 +251,20 @@ const SmartLinkView: React.FC = () => {
         return song.url;
     };
 
-    // Helper to get embed URL for 1-minute preview
-    const getEmbedUrl = () => {
+    const getEmbedData = () => {
         const urlStr = song.url;
         if (urlStr.includes('youtube.com') || urlStr.includes('youtu.be')) {
             const videoId = urlStr.includes('youtu.be') ? urlStr.split('/').pop() : new URLSearchParams(new URL(urlStr).search).get('v');
-            if (videoId) return `https://www.youtube.com/embed/${videoId}?end=60&controls=1&rel=0`;
+            if (videoId) return { type: 'youtube', id: videoId };
         }
         if (urlStr.includes('spotify.com/track')) {
             const trackId = urlStr.split('track/')[1]?.split('?')[0];
-            if (trackId) return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator`;
+            if (trackId) return { type: 'spotify', url: `https://open.spotify.com/embed/track/${trackId}?utm_source=generator` };
         }
         return null;
     };
 
-    const embedUrl = getEmbedUrl();
+    const embedData = getEmbedData();
 
     // === TEMA DIOSMASGYM (Urbano / Oscuro / Dorado) ===
     if (!isJuan) {
@@ -168,19 +290,23 @@ const SmartLinkView: React.FC = () => {
                     <h1 className="font-serif italic text-3xl md:text-5xl text-center mb-2 drop-shadow-xl font-bold">{song.name}</h1>
                     <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-8 text-center">{song.artist}</p>
 
-                    {embedUrl && (
+                    {embedData?.type === 'youtube' && (
+                        <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
+                    )}
+                    
+                    {embedData?.type === 'spotify' && (
                         <div className="w-full max-w-md mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/10 bg-black/40 p-2 backdrop-blur-md">
                             <div className="flex items-center justify-between mb-3 px-2 pt-2">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                    Previa (60 Segundos)
+                                    <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
+                                    Previa Spotify
                                 </span>
                                 <span className="text-[8px] uppercase tracking-widest text-white/40">Escucha un fragmento</span>
                             </div>
                             <iframe 
-                                src={embedUrl} 
+                                src={embedData.url} 
                                 width="100%" 
-                                height={embedUrl.includes('spotify') ? '80' : '200'} 
+                                height="80" 
                                 frameBorder="0" 
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
                                 loading="lazy"
@@ -203,7 +329,7 @@ const SmartLinkView: React.FC = () => {
                             <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
                             <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
                             <div className="col-span-2">
-                                <PlatformButton platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                                <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
                             </div>
                         </div>
                     </div>
@@ -222,11 +348,11 @@ const SmartLinkView: React.FC = () => {
         );
     }
 
-    // === TEMA JUAN 614 (Acústico / Norteño / Tierra) ===
+    // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
     return (
-        <div className="min-h-screen bg-[#FAF9F6] text-[#2c2c2c] font-['Poppins'] flex flex-col relative overflow-hidden">
-            {/* Background Texture (Papel/Madera/Ruido) */}
-            <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(#d3c19e 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+        <div className="min-h-screen bg-[#1a1412] text-[#e8dcc5] font-['Poppins'] flex flex-col relative overflow-hidden">
+            {/* Background Texture (Papel/Madera/Ruido) en oscuro */}
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#d3c19e 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-12 md:py-20 w-full max-w-2xl mx-auto">
                 <div className="relative mb-8 group">
@@ -239,22 +365,26 @@ const SmartLinkView: React.FC = () => {
                     <div className="absolute -inset-4 border-2 border-[#8B5A2B] opacity-20 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500"></div>
                 </div>
                 
-                <h1 className="font-['Playfair_Display',serif] italic text-3xl md:text-5xl text-center mb-2 text-[#4A3B2C] font-bold">{song.name}</h1>
-                <p className="text-[#8B5A2B] text-[10px] font-black uppercase tracking-[0.4em] mb-8 text-center">{song.artist}</p>
+                <h1 className="font-['Playfair_Display',serif] italic text-3xl md:text-5xl text-center mb-2 text-[#e8dcc5] font-bold">{song.name}</h1>
+                <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-8 text-center">{song.artist}</p>
 
-                {embedUrl && (
-                    <div className="w-full max-w-md mb-8 rounded-xl overflow-hidden shadow-xl border border-[#8B5A2B]/10 bg-white/80 p-2 backdrop-blur-md">
+                {embedData?.type === 'youtube' && (
+                    <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
+                )}
+                
+                {embedData?.type === 'spotify' && (
+                    <div className="w-full max-w-md mb-8 rounded-xl overflow-hidden shadow-xl border border-[#8B5A2B]/20 bg-[#2a221f] p-2 backdrop-blur-md">
                         <div className="flex items-center justify-between mb-3 px-2 pt-2">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-[#8B5A2B] flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                Previa (60 Segundos)
+                            <span className="text-[9px] font-black uppercase tracking-widest text-[#1DB954] flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
+                                Previa Spotify
                             </span>
-                            <span className="text-[8px] uppercase tracking-widest text-[#8B5A2B]/50">Escucha un fragmento</span>
+                            <span className="text-[8px] uppercase tracking-widest text-[#e8dcc5]/50">Escucha un fragmento</span>
                         </div>
                         <iframe 
-                            src={embedUrl} 
+                            src={embedData.url} 
                             width="100%" 
-                            height={embedUrl.includes('spotify') ? '80' : '200'} 
+                            height="80" 
                             frameBorder="0" 
                             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
                             loading="lazy"
@@ -263,33 +393,33 @@ const SmartLinkView: React.FC = () => {
                     </div>
                 )}
 
-                <div className="w-full max-w-md relative z-20 backdrop-blur-xl bg-white/60 p-4 md:p-6 rounded-3xl border border-[#8B5A2B]/10 shadow-xl">
+                <div className="w-full max-w-md relative z-20 backdrop-blur-xl bg-[#2a221f]/80 p-4 md:p-6 rounded-3xl border border-[#8B5A2B]/20 shadow-2xl">
                     <div className="flex flex-col items-center justify-center mb-6">
-                        <div className="bg-[#8B5A2B] text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(139,90,43,0.4)] flex items-center gap-2">
+                        <div className="bg-[#c89d53] text-[#1a1412] text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(200,157,83,0.4)] flex items-center gap-2">
                             ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <PlatformButton light platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
-                        <PlatformButton light platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
-                        <PlatformButton light platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
-                        <PlatformButton light platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
-                        <PlatformButton light platform="Tidal" icon="fas fa-water" color="#000000" url={getPlatformUrl('Tidal')} />
-                        <PlatformButton light platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
+                        <PlatformButton light={false} platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
+                        <PlatformButton light={false} platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
+                        <PlatformButton light={false} platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
+                        <PlatformButton light={false} platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
+                        <PlatformButton light={false} platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
+                        <PlatformButton light={false} platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
                         <div className="col-span-2">
-                            <PlatformButton light platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                            <PlatformButton light={false} platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
                         </div>
                     </div>
                 </div>
 
                 <div className="mt-16 text-center w-full max-w-md border-t border-[#8B5A2B]/20 pt-8 relative z-20">
-                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#8B5A2B]/70 mb-6">Sígueme en Redes</h3>
+                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#e8dcc5]/50 mb-6">Sígueme en Redes</h3>
                     <div className="flex justify-center gap-6">
-                        <a href="https://instagram.com/juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#E1306C] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-instagram text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
-                        <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
-                        <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
+                        <a href="https://instagram.com/juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#E1306C] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-instagram text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
+                        <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
+                        <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                     </div>
-                    <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8B5A2B]/50">© {new Date().getFullYear()} {song.artist}. v2.0</p>
+                    <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v2.1</p>
                 </div>
             </div>
         </div>
