@@ -32,11 +32,11 @@ const CanvasCreator: React.FC = () => {
             setIsExporting(true);
             
             const canvas = await html2canvas(canvasRef.current, {
-                scale: 2, // Calidad alta
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#000000'
-            });
+            scale: 2, // Mejor resolución
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null // Fondo transparente para que use el contenedor real
+        });
 
             // Descargar imagen
             const link = document.createElement('a');
@@ -96,7 +96,7 @@ const CanvasCreator: React.FC = () => {
                     Volver
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#1DB954]">Canvas</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.3</span></h1>
                 </div>
                 <button onClick={handleExport} disabled={isExporting || !coverImage} className={`bg-[#1DB954] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting || !coverImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                     <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-download'} mr-2`}></i> 
@@ -197,15 +197,24 @@ const CanvasCreator: React.FC = () => {
                         </div>
 
                         {/* ESTE ES EL CANVAS REAL QUE SE EXPORTA */}
-                        <div ref={canvasRef} className="absolute inset-0 w-full h-full bg-[#05070a] overflow-hidden">
+                        <div 
+                                    ref={canvasRef}
+                                    className="relative w-full aspect-[9/16] bg-[#111111] overflow-hidden rounded-lg"
+                                >
                             {coverImage ? (
                                 <>
                                     {/* Fondo ultra difuminado (más claro) */}
                                     <div 
-                                        className="absolute inset-0 bg-cover bg-center scale-125 blur-xl opacity-40"
+                                        className="absolute inset-0 bg-cover bg-center scale-125 blur-xl opacity-70"
                                         style={{ backgroundImage: `url(${coverImage})`, filter: getFilterStyle() }}
                                     ></div>
                                     
+                                    {/* Capa de oscurecimiento muy leve para legibilidad */}
+                                    <div className="absolute inset-0 bg-black/20 z-[5]"></div>
+
+                                    {/* Sombra suave interna (menos oscura) */}
+                                    <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.3)] z-10 pointer-events-none"></div>
+
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
 

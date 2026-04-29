@@ -16,11 +16,11 @@ const SmartLinksAdmin: React.FC = () => {
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
                 ]);
-                // Combinar y ordenar por fecha (asumiendo que date es YYYY-MM-DD o similar)
                 const fullCatalog = [...dM, ...j6].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setCatalog(fullCatalog);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Error loading catalog:", err);
+                // Si falla el primero, probaremos mostrar el error en consola, pero no crashear
             } finally {
                 setIsLoading(false);
             }
@@ -98,7 +98,7 @@ const SmartLinksAdmin: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Smart <span className="text-[#c5a059]">Links</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Smart <span className="text-[#c5a059]">Links</span> <span className="text-white/20 ml-2">v1.2</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
