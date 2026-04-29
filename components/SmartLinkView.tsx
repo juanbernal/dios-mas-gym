@@ -189,15 +189,23 @@ const SmartLinkView: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="w-full max-w-md space-y-3 relative z-20 backdrop-blur-xl bg-white/5 p-4 md:p-6 rounded-3xl border border-white/10 shadow-2xl">
-                        <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 text-center mb-6">Escuchar Completa En</h3>
-                        <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
-                        <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
-                        <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
-                        <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
-                        <PlatformButton platform="Tidal" icon="fas fa-water" color="#000000" url={getPlatformUrl('Tidal')} light={true} />
-                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
-                        <PlatformButton platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                    <div className="w-full max-w-md relative z-20 backdrop-blur-xl bg-white/5 p-4 md:p-6 rounded-3xl border border-white/10 shadow-2xl">
+                        <div className="flex flex-col items-center justify-center mb-6">
+                            <div className="bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(197,160,89,0.4)] flex items-center gap-2">
+                                ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
+                            <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
+                            <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
+                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
+                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
+                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
+                            <div className="col-span-2">
+                                <PlatformButton platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="mt-16 text-center w-full max-w-md border-t border-white/10 pt-8 relative z-20">
@@ -207,7 +215,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                             <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                         </div>
-                        <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. Todos los derechos reservados.</p>
+                        <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v2.0</p>
                     </div>
                 </div>
             </div>
@@ -255,15 +263,23 @@ const SmartLinkView: React.FC = () => {
                     </div>
                 )}
 
-                <div className="w-full max-w-md space-y-3 relative z-20 backdrop-blur-xl bg-white/60 p-4 md:p-6 rounded-3xl border border-[#8B5A2B]/10 shadow-xl">
-                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#8B5A2B]/50 text-center mb-6">Escuchar Completa En</h3>
-                    <PlatformButton light platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
-                    <PlatformButton light platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
-                    <PlatformButton light platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
-                    <PlatformButton light platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
-                    <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
-                    <PlatformButton light platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
-                    <PlatformButton light platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                <div className="w-full max-w-md relative z-20 backdrop-blur-xl bg-white/60 p-4 md:p-6 rounded-3xl border border-[#8B5A2B]/10 shadow-xl">
+                    <div className="flex flex-col items-center justify-center mb-6">
+                        <div className="bg-[#8B5A2B] text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(139,90,43,0.4)] flex items-center gap-2">
+                            ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <PlatformButton light platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
+                        <PlatformButton light platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
+                        <PlatformButton light platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
+                        <PlatformButton light platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
+                        <PlatformButton light platform="Tidal" icon="fas fa-water" color="#000000" url={getPlatformUrl('Tidal')} />
+                        <PlatformButton light platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
+                        <div className="col-span-2">
+                            <PlatformButton light platform="SoundCloud" icon="fab fa-soundcloud" color="#FF5500" url={getPlatformUrl('SoundCloud')} />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="mt-16 text-center w-full max-w-md border-t border-[#8B5A2B]/20 pt-8 relative z-20">
@@ -273,7 +289,7 @@ const SmartLinkView: React.FC = () => {
                         <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
                         <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
                     </div>
-                    <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8B5A2B]/50">© {new Date().getFullYear()} {song.artist}. Todos los derechos reservados.</p>
+                    <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8B5A2B]/50">© {new Date().getFullYear()} {song.artist}. v2.0</p>
                 </div>
             </div>
         </div>
@@ -287,17 +303,12 @@ const PlatformButton = ({ platform, icon, color, url, light }: { platform: strin
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 ${light ? 'bg-white border border-gray-100 shadow-sm hover:shadow-xl' : (isDarkBg ? 'bg-black border border-white/20 shadow-lg' : 'bg-white/5 border border-white/10 hover:bg-white/10')}`}
+            className={`w-full p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 ${light ? 'bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200' : (isDarkBg ? 'bg-black border border-white/20 shadow-lg' : 'bg-white/5 border border-white/10 hover:bg-white/10')}`}
         >
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5" style={{ color }}>
-                    <i className={`${icon} text-2xl`}></i>
-                </div>
-                <span className={`font-bold tracking-wide ${light ? 'text-gray-800' : 'text-white'}`}>{platform}</span>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${light ? 'bg-gray-50' : 'bg-black/20'}`} style={{ color }}>
+                <i className={`${icon} text-3xl drop-shadow-md`}></i>
             </div>
-            <span className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full flex items-center gap-2 ${light ? 'bg-gray-100 text-gray-600 group-hover:bg-[#c5a059] group-hover:text-white transition-colors' : 'bg-white/10 text-white/70 hover:bg-white hover:text-black transition-colors'}`}>
-                <i className="fas fa-play text-[8px]"></i> Play
-            </span>
+            <span className={`font-bold tracking-wide text-[10px] uppercase ${light ? 'text-gray-800' : 'text-white'}`}>{platform}</span>
         </a>
     );
 };
