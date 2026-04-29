@@ -122,7 +122,7 @@ const CanvasCreator: React.FC = () => {
                     Volver
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.4</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.5</span></h1>
                 </div>
                 <button onClick={handleExport} disabled={isExporting || !coverImage} className={`bg-[#1DB954] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting || !coverImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                     <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-download'} mr-2`}></i> 
@@ -221,18 +221,21 @@ const CanvasCreator: React.FC = () => {
                         {/* ESTE ES EL CANVAS REAL QUE SE EXPORTA */}
                         <div 
                                     ref={canvasRef}
-                                    className="relative w-full aspect-[9/16] bg-[#111111] overflow-hidden rounded-lg"
+                                    style={{ width: '360px', height: '640px' }}
+                                    className="relative bg-[#111111] overflow-hidden rounded-lg"
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado oscuro (sin blur ni scale para que el export sea 100% idéntico al preview en html2canvas) */}
-                                    <div 
-                                        className="absolute inset-0 bg-cover bg-center opacity-20"
-                                        style={{ backgroundImage: `url(${coverImage})`, filter: getFilterStyle() }}
-                                    ></div>
+                                    {/* Fondo texturizado (estirado manualmente para asegurar compatibilidad total con html2canvas) */}
+                                    <img 
+                                        src={coverImage}
+                                        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, opacity: 0.2, objectFit: 'cover' }}
+                                        crossOrigin="anonymous"
+                                        alt=""
+                                    />
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
-                                    <div className="absolute inset-0 bg-[#05070a]/60 z-[5]"></div>
+                                    <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
 
                                     {/* Sombra suave interna (menos oscura) */}
                                     <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.3)] z-10 pointer-events-none"></div>
