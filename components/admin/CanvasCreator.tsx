@@ -122,7 +122,7 @@ const CanvasCreator: React.FC = () => {
                     Volver
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.5</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.6</span></h1>
                 </div>
                 <button onClick={handleExport} disabled={isExporting || !coverImage} className={`bg-[#1DB954] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting || !coverImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                     <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-download'} mr-2`}></i> 
@@ -199,24 +199,7 @@ const CanvasCreator: React.FC = () => {
                 {/* Lienzo de previsualización 9:16 */}
                 <div className="lg:col-span-7 flex justify-center">
                     <div className="relative w-[360px] h-[640px] shadow-[0_0_50px_rgba(29,185,84,0.1)] rounded-sm overflow-hidden flex-shrink-0 bg-[#05070a] ring-1 ring-white/10">
-                        {/* Indicadores de UI de Spotify falsos (solo para preview visual, NO se exportarán) */}
-                        <div className="absolute inset-0 pointer-events-none z-50 flex flex-col justify-between p-4 opacity-50">
-                            <div className="flex justify-between items-center text-xs">
-                                <i className="fas fa-chevron-down"></i>
-                                <span className="font-bold text-[9px] uppercase tracking-widest">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</span>
-                                <i className="fas fa-ellipsis-v"></i>
-                            </div>
-                            <div className="flex justify-between items-end pb-8">
-                                <div>
-                                    <h4 className="font-bold text-lg leading-tight">{songTitle || 'Título'}</h4>
-                                    <p className="text-[10px] opacity-80">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
-                                </div>
-                                <div className="flex flex-col gap-4 text-xl">
-                                    <i className="far fa-heart"></i>
-                                    <i className="fas fa-share-alt"></i>
-                                </div>
-                            </div>
-                        </div>
+
 
                         {/* ESTE ES EL CANVAS REAL QUE SE EXPORTA */}
                         <div 
@@ -226,13 +209,16 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado (estirado manualmente para asegurar compatibilidad total con html2canvas) */}
-                                    <img 
-                                        src={coverImage}
-                                        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, opacity: 0.2, objectFit: 'cover' }}
-                                        crossOrigin="anonymous"
-                                        alt=""
-                                    />
+                                    {/* Fondo texturizado (estirado al 100% para asegurar que no queden barras laterales en html2canvas) */}
+                                    <div 
+                                        className="absolute inset-0 opacity-20"
+                                        style={{ 
+                                            backgroundImage: `url(${coverImage})`, 
+                                            backgroundSize: '100% 100%',
+                                            backgroundPosition: 'center',
+                                            filter: getFilterStyle() 
+                                        }}
+                                    ></div>
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
                                     <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
@@ -264,6 +250,25 @@ const CanvasCreator: React.FC = () => {
 
                                     {/* Viñeta base sutil en los bordes para mejorar legibilidad */}
                                     <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.5)] pointer-events-none z-10"></div>
+
+                                    {/* Indicadores de UI de Spotify (AHORA SE EXPORTAN PARA QUE SE VEA IGUAL AL PREVIEW) */}
+                                    <div className="absolute inset-0 pointer-events-none z-50 flex flex-col justify-between p-4 opacity-40">
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <i className="fas fa-chevron-down"></i>
+                                            <span className="font-bold text-[8px] uppercase tracking-[0.3em]">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</span>
+                                            <i className="fas fa-ellipsis-v"></i>
+                                        </div>
+                                        <div className="flex justify-between items-end pb-12">
+                                            <div className="text-left">
+                                                <h4 className="font-bold text-base leading-tight drop-shadow-lg">{songTitle || 'Título'}</h4>
+                                                <p className="text-[9px] opacity-70 tracking-widest">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
+                                            </div>
+                                            <div className="flex flex-col gap-5 text-lg opacity-80">
+                                                <i className="far fa-heart"></i>
+                                                <i className="fas fa-share-alt"></i>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </>
                             ) : (
                                 <div className="absolute inset-0 flex items-center justify-center text-white/20 flex-col">
