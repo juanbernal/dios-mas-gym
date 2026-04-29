@@ -57,6 +57,14 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-bullhorn',
             color: '#fbbf24',
             route: '/admin/social-post'
+        },
+        {
+            id: 'smart-links',
+            title: 'Smart Links',
+            description: 'Genera enlaces únicos (Pre-Saves) para tus canciones con landing pages dinámicas para cada artista.',
+            icon: 'fa-link',
+            color: '#3b82f6',
+            route: '/admin/smart-links'
         }
     ];
 
