@@ -28,6 +28,48 @@ const SmartLinksAdmin: React.FC = () => {
         loadCatalog();
     }, []);
 
+    const [manualForm, setManualForm] = useState({
+        title: '',
+        artist: 'diosmasgym',
+        coverUrl: '',
+        targetUrl: ''
+    });
+
+    const handleCopyManualLink = () => {
+        if (!manualForm.title || !manualForm.coverUrl) {
+            alert("El título y la URL de la portada son obligatorios.");
+            return;
+        }
+        
+        const params = new URLSearchParams({
+            title: manualForm.title,
+            artist: manualForm.artist,
+            cover: manualForm.coverUrl,
+            url: manualForm.targetUrl
+        });
+        
+        const url = `${window.location.origin}/link/custom?${params.toString()}`;
+        navigator.clipboard.writeText(url)
+            .then(() => alert(`¡Enlace manual copiado al portapapeles!\n${url}`))
+            .catch(() => alert('Error al copiar el enlace'));
+    };
+
+    const handlePreviewManual = () => {
+        if (!manualForm.title || !manualForm.coverUrl) {
+            alert("El título y la URL de la portada son obligatorios.");
+            return;
+        }
+        
+        const params = new URLSearchParams({
+            title: manualForm.title,
+            artist: manualForm.artist,
+            cover: manualForm.coverUrl,
+            url: manualForm.targetUrl
+        });
+        
+        window.open(`/link/custom?${params.toString()}`, '_blank');
+    };
+
     const filteredCatalog = catalog.filter(song => 
         song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.artist.toLowerCase().includes(searchQuery.toLowerCase())
@@ -68,7 +110,78 @@ const SmartLinksAdmin: React.FC = () => {
                     <p className="text-white/40 text-sm max-w-xl mx-auto">Selecciona una canción de tu catálogo para generar su "Smart Link" (Pre-save / Multi-plataforma). El diseño se adaptará automáticamente si es de Diosmasgym o Juan 614.</p>
                 </div>
 
+                {/* Sección Manual para Próximos Lanzamientos */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-sm mb-12">
+                    <h3 className="text-[#c5a059] text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">
+                        <i className="fas fa-plus-circle mr-2"></i> Link Manual (Próximos Lanzamientos)
+                    </h3>
+                    <p className="text-white/50 text-[10px] uppercase tracking-widest mb-6">Usa esto si la canción aún no está en el catálogo oficial.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Título de la Canción *</label>
+                            <input 
+                                type="text" 
+                                value={manualForm.title}
+                                onChange={e => setManualForm({...manualForm, title: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#c5a059]"
+                                placeholder="Ej. El Comienzo"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Artista *</label>
+                            <select 
+                                value={manualForm.artist}
+                                onChange={e => setManualForm({...manualForm, artist: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#c5a059]"
+                            >
+                                <option value="diosmasgym">Diosmasgym</option>
+                                <option value="juan614">Juan 614</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">URL de la Portada (Imagen) *</label>
+                            <input 
+                                type="text" 
+                                value={manualForm.coverUrl}
+                                onChange={e => setManualForm({...manualForm, coverUrl: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#c5a059]"
+                                placeholder="https://..."
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">URL de Destino (Opcional)</label>
+                            <input 
+                                type="text" 
+                                value={manualForm.targetUrl}
+                                onChange={e => setManualForm({...manualForm, targetUrl: e.target.value})}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#c5a059]"
+                                placeholder="Link de Pre-Save / Spotify..."
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={handlePreviewManual}
+                            className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 border border-white/20 rounded-xl transition-all"
+                        >
+                            <i className="fas fa-eye mr-2"></i> Previsualizar
+                        </button>
+                        <button 
+                            onClick={handleCopyManualLink}
+                            className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-black bg-[#c5a059] hover:bg-white rounded-xl transition-all"
+                        >
+                            <i className="fas fa-copy mr-2"></i> Generar & Copiar Link
+                        </button>
+                    </div>
+                </div>
+
+                {/* Sección Catálogo */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl backdrop-blur-sm mb-12">
+                    <h3 className="text-[#c5a059] text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">
+                        <i className="fas fa-database mr-2"></i> Desde el Catálogo Oficial
+                    </h3>
                     <div className="relative mb-8">
                         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#c5a059]/40">
                             <i className="fas fa-search"></i>

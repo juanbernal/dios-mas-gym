@@ -1,18 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../services/musicService';
 import { MusicItem } from '../types';
 
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [song, setSong] = useState<MusicItem | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadSong = async () => {
             try {
-                // Buscamos en ambos catálogos
+                if (id === 'custom') {
+                    // Cargar desde parámetros de la URL para enlaces generados manualmente
+                    const queryParams = new URLSearchParams(location.search);
+                    const title = queryParams.get('title');
+                    const artist = queryParams.get('artist');
+                    const cover = queryParams.get('cover');
+                    const url = queryParams.get('url') || '#';
+                    
+                    if (title && artist && cover) {
+                        const manualSong: MusicItem = {
+                            id: 'custom',
+                            name: title,
+                            artist: artist,
+                            cover: cover,
+                            url: url,
+                            type: 'Manual',
+                            date: new Date().toISOString()
+                        };
+                        setSong(manualSong);
+                        document.title = `${manualSong.name} - ${manualSong.artist}`;
+                        setLoading(false);
+                        return; // Termina aquí
+                    }
+                }
+
+                // Buscamos en ambos catálogos para enlaces normales
                 const [dM, j6] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
@@ -35,7 +61,7 @@ const SmartLinkView: React.FC = () => {
             }
         };
         if (id) loadSong();
-    }, [id, navigate]);
+    }, [id, navigate, location.search]);
 
     if (loading) {
         return (

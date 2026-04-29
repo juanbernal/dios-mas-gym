@@ -65,6 +65,14 @@ const AdminDashboard: React.FC = () => {
             icon: 'fa-link',
             color: '#3b82f6',
             route: '/admin/smart-links'
+        },
+        {
+            id: 'epk-generator',
+            title: 'EPK Generator',
+            description: 'Construye y exporta en PDF tu Electronic Press Kit (Presskit) profesional con tus fotos, bio y métricas.',
+            icon: 'fa-file-pdf',
+            color: '#f43f5e',
+            route: '/admin/epk-generator'
         }
     ];
 

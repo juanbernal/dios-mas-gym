@@ -10,6 +10,7 @@ import ArtistPromo from './components/ArtistPromo';
 import AdminDashboard from "./components/admin/AdminDashboard";
 import PromoImageApp from "./components/admin/PromoImageApp";
 import SmartLinksAdmin from "./components/admin/SmartLinksAdmin";
+import EPKGenerator from "./components/admin/EPKGenerator";
 import SmartLinkView from "./components/SmartLinkView";
 import LyricStudio from "./components/admin/LyricStudio";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
@@ -298,10 +299,12 @@ const App: React.FC = () => {
     );
   }
 
+  const isSmartLinkRoute = location.pathname.startsWith('/link/');
+
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
-      <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />
-      <main className="pt-20">
+      {!isSmartLinkRoute && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
+      <main className={!isSmartLinkRoute ? "pt-20" : ""}>
         <Routes>
           <Route path="/" element={
             <>
@@ -391,6 +394,7 @@ const App: React.FC = () => {
           <Route path="/admin" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
           <Route path="/admin/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
           <Route path="/admin/smart-links" element={<AdminAuthWrapper><SmartLinksAdmin/></AdminAuthWrapper>} />
+          <Route path="/admin/epk-generator" element={<AdminAuthWrapper><EPKGenerator/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
           <Route path="/admin/lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
           <Route path="/link/:id" element={<SmartLinkView />} />
@@ -398,10 +402,10 @@ const App: React.FC = () => {
           <Route path="/admin/social-post" element={<AdminAuthWrapper><SocialPostGenerator/></AdminAuthWrapper>} />
         </Routes>
       </main>
-      <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />
-      <PWAInstallPrompt />
-      <Footer />
-      {isSearchOpen && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
+      {!isSmartLinkRoute && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}
+      {!isSmartLinkRoute && <PWAInstallPrompt />}
+      {!isSmartLinkRoute && <Footer />}
+      {isSearchOpen && !isSmartLinkRoute && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
     </div>
   );
 };
