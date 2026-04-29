@@ -48,7 +48,7 @@ const SmartLinksAdmin: React.FC = () => {
             url: manualForm.targetUrl
         });
         
-        const url = `${window.location.origin}/link/custom?${params.toString()}`;
+        const url = `${window.location.origin}/#/link/custom?${params.toString()}`;
         navigator.clipboard.writeText(url)
             .then(() => alert(`¡Enlace manual copiado al portapapeles!\n${url}`))
             .catch(() => alert('Error al copiar el enlace'));
@@ -67,7 +67,7 @@ const SmartLinksAdmin: React.FC = () => {
             url: manualForm.targetUrl
         });
         
-        window.open(`/link/custom?${params.toString()}`, '_blank');
+        window.open(`/#/link/custom?${params.toString()}`, '_blank');
     };
 
     const filteredCatalog = catalog.filter(song => 
@@ -76,14 +76,14 @@ const SmartLinksAdmin: React.FC = () => {
     );
 
     const handleCopyLink = (id: string) => {
-        const url = `${window.location.origin}/link/${id}`;
+        const url = `${window.location.origin}/#/link/${id}`;
         navigator.clipboard.writeText(url)
             .then(() => alert(`¡Enlace copiado al portapapeles!\n${url}`))
             .catch(() => alert('Error al copiar el enlace'));
     };
 
     const handlePreview = (id: string) => {
-        window.open(`/link/${id}`, '_blank');
+        window.open(`/#/link/${id}`, '_blank');
     };
 
     return (
