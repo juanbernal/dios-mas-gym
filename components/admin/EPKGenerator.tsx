@@ -24,7 +24,8 @@ const EPKGenerator: React.FC = () => {
         manager: 'Juan Bernal'
     });
 
-    const [songs, setSongs] = useState<{title: string, streams: string}[]>([]);
+    const [songs, setSongs] = useState<{title: string, streams: string, cover?: string}[]>([]);
+    const [randomCover, setRandomCover] = useState<string>('');
     const [isExporting, setIsExporting] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
@@ -49,7 +50,8 @@ const EPKGenerator: React.FC = () => {
                     // Tomar las 3 últimas (más recientes) o aleatorias
                     const top3 = catalog.slice(0, 3).map(song => ({
                         title: song.name,
-                        streams: '10K+' // Stream estimado ya que no está en DB
+                        streams: '10K+', // Stream estimado ya que no está en DB
+                        cover: song.cover
                     }));
                     
                     // Si no tiene 3, rellenar
@@ -58,12 +60,19 @@ const EPKGenerator: React.FC = () => {
                     }
                     
                     setSongs(top3);
+
+                    // Elegir una portada aleatoria del catálogo para el fondo
+                    if (catalog.length > 0) {
+                        const random = catalog[Math.floor(Math.random() * catalog.length)];
+                        setRandomCover(random.cover);
+                    }
                 } else {
                     setSongs([
                         { title: 'El Comienzo', streams: '100K' },
                         { title: 'Fe Intacta', streams: '85K' },
                         { title: 'Disciplina', streams: '50K' }
                     ]);
+                    setRandomCover(isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600");
                 }
             } catch (err) {
                 console.error("Error auto-filling EPK data:", err);
@@ -215,12 +224,11 @@ const EPKGenerator: React.FC = () => {
                             
                             {/* Cabecera / Portada */}
                             <div className="h-[400px] relative flex items-center justify-center overflow-hidden">
-                                <div className="absolute inset-0 bg-black/40 z-10"></div>
-                                {/* Usando imágenes genéricas placeholder para el EPK. En el futuro se pueden conectar al storage. */}
+                                <div className="absolute inset-0 bg-black/50 z-10"></div>
                                 <img 
-                                    src={isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"} 
-                                    className="absolute inset-0 w-full h-full object-cover" 
-                                    style={{ filter: isJuan ? 'sepia(30%)' : 'grayscale(100%)' }} 
+                                    src={randomCover || (isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600")} 
+                                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm" 
+                                    style={{ filter: isJuan ? 'sepia(30%) brightness(0.8)' : 'grayscale(100%) brightness(0.6)' }} 
                                     alt="Hero" 
                                 />
                                 

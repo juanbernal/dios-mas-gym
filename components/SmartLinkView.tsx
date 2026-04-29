@@ -44,7 +44,7 @@ const SmartLinkView: React.FC = () => {
                     fetchMusicCatalog('juan614')
                 ]);
                 const fullCatalog = [...dM, ...j6];
-                const found = fullCatalog.find(s => s.id === id);
+                const found = fullCatalog.find(s => s.id === id || (s.url && s.url.includes(id || '')));
                 if (found) {
                     setSong(found);
                     // Actualizar Meta Tags dinámicamente

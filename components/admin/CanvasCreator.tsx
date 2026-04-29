@@ -10,6 +10,7 @@ const CanvasCreator: React.FC = () => {
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [songTitle, setSongTitle] = useState('');
     const [artist, setArtist] = useState('DIOSMASGYM');
+    const [phrase, setPhrase] = useState('');
     const [filter, setFilter] = useState<FilterType>('none');
     const [isExporting, setIsExporting] = useState(false);
 
@@ -70,16 +71,16 @@ const CanvasCreator: React.FC = () => {
     const filterOverlays = {
         'none': null,
         'vhs': (
-            <div className="absolute inset-0 pointer-events-none z-20 opacity-30 mix-blend-overlay" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px)' }}></div>
+            <div className="absolute inset-0 pointer-events-none z-20 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px)' }}></div>
         ),
         'gold-dust': (
-            <div className="absolute inset-0 pointer-events-none z-20 opacity-40 mix-blend-color-dodge bg-[#c5a059]" style={{ backgroundImage: 'radial-gradient(circle, transparent 20%, #000 100%)' }}></div>
+            <div className="absolute inset-0 pointer-events-none z-20 opacity-30 mix-blend-color-dodge bg-[#c5a059]" style={{ backgroundImage: 'radial-gradient(circle, transparent 20%, #000 100%)' }}></div>
         ),
         'dark-vignette': (
-            <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]"></div>
+            <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)]"></div>
         ),
         'neon-glow': (
-            <div className="absolute inset-0 pointer-events-none z-20 bg-gradient-to-t from-[#c5a059]/40 to-transparent mix-blend-screen"></div>
+            <div className="absolute inset-0 pointer-events-none z-20 bg-gradient-to-t from-[#c5a059]/30 to-transparent mix-blend-screen"></div>
         )
     };
 
@@ -132,11 +133,23 @@ const CanvasCreator: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Artista</label>
-                                    <input 
-                                        type="text" 
+                                    <select 
                                         value={artist} 
                                         onChange={(e) => setArtist(e.target.value)}
                                         className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
+                                    >
+                                        <option value="DIOSMASGYM">Diosmasgym</option>
+                                        <option value="JUAN 614">Juan 614</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Frase Viral (Opcional)</label>
+                                    <input 
+                                        type="text" 
+                                        value={phrase} 
+                                        onChange={(e) => setPhrase(e.target.value)}
+                                        className="w-full bg-black/50 border border-white/10 rounded-lg p-3 outline-none text-sm focus:border-[#1DB954]"
+                                        placeholder="Ej. Para esos días difíciles..."
                                     />
                                 </div>
                             </div>
@@ -187,9 +200,9 @@ const CanvasCreator: React.FC = () => {
                         <div ref={canvasRef} className="absolute inset-0 w-full h-full bg-[#05070a] overflow-hidden">
                             {coverImage ? (
                                 <>
-                                    {/* Fondo ultra difuminado */}
+                                    {/* Fondo ultra difuminado (más claro) */}
                                     <div 
-                                        className="absolute inset-0 bg-cover bg-center scale-125 blur-xl opacity-60"
+                                        className="absolute inset-0 bg-cover bg-center scale-125 blur-xl opacity-40"
                                         style={{ backgroundImage: `url(${coverImage})`, filter: getFilterStyle() }}
                                     ></div>
                                     
@@ -201,20 +214,21 @@ const CanvasCreator: React.FC = () => {
                                         <img 
                                             src={coverImage} 
                                             alt="Cover" 
-                                            className="w-full aspect-square object-cover shadow-2xl rounded-sm mb-12"
+                                            className="w-full aspect-square object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-sm mb-12"
                                             style={{ filter: getFilterStyle() }}
                                         />
                                         
-                                        {songTitle && (
+                                        {(songTitle || phrase) && (
                                             <div className="text-center w-full">
-                                                <h1 className="font-serif italic text-4xl mb-2 drop-shadow-xl text-white">{songTitle}</h1>
+                                                {phrase && <p className="text-white/80 text-xs italic font-serif mb-4 px-4 leading-relaxed">"{phrase}"</p>}
+                                                {songTitle && <h1 className="font-serif italic text-4xl mb-2 drop-shadow-xl text-white">{songTitle}</h1>}
                                                 <p className="text-[#c5a059] text-[9px] font-black uppercase tracking-[0.4em] drop-shadow-md">{artist}</p>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Viñeta base sutil en los bordes para mejorar legibilidad */}
-                                    <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none z-10"></div>
+                                    <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.5)] pointer-events-none z-10"></div>
                                 </>
                             ) : (
                                 <div className="absolute inset-0 flex items-center justify-center text-white/20 flex-col">
