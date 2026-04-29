@@ -155,7 +155,7 @@ const EPKGenerator: React.FC = () => {
                         Volver al Panel
                     </button>
                     <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">EPK <span className="text-[#c5a059]">Generator</span> <span className="text-white/20 ml-2">v1.4</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">EPK <span className="text-[#c5a059]">Generator</span> <span className="text-white/20 ml-2">v1.5</span></h1>
                 </div>
                     <button onClick={handleExportPDF} disabled={isExporting || isLoadingData} className={`bg-[#c5a059] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                         <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i> 
