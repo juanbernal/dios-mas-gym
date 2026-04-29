@@ -58,10 +58,13 @@ const CanvasCreator: React.FC = () => {
             setIsExporting(true);
             
             const canvas = await html2canvas(canvasRef.current, {
-            scale: 4, // Resolución ultra alta (4x)
+            scale: 5, // Resolución masiva (5x) para máxima nitidez
             useCORS: true,
             allowTaint: true,
-            backgroundColor: null // Fondo transparente para que use el contenedor real
+            backgroundColor: '#0a0f1d',
+            logging: false,
+            width: 360,
+            height: 640
         });
 
             // Descargar imagen
@@ -122,7 +125,7 @@ const CanvasCreator: React.FC = () => {
                     Volver
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.7</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Spotify <span className="text-[#c5a059]">Canvas</span> <span className="text-white/20 ml-2">v1.8</span></h1>
                 </div>
                 <button onClick={handleExport} disabled={isExporting || !coverImage} className={`bg-[#1DB954] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isExporting || !coverImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                     <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-download'} mr-2`}></i> 
@@ -244,10 +247,11 @@ const CanvasCreator: React.FC = () => {
                                         ></div>
                                         
                                         {(songTitle || phrase) && (
-                                            <div className="text-center w-full">
-                                                {phrase && <p className="text-white/80 text-xs italic font-serif mb-4 px-4 leading-relaxed">"{phrase}"</p>}
-                                                {songTitle && <h1 className="font-serif italic text-4xl mb-2 drop-shadow-xl text-white">{songTitle}</h1>}
-                                                <p className="text-[#c5a059] text-[9px] font-black uppercase tracking-[0.4em] drop-shadow-md">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
+                                            <div className="text-center w-full px-4">
+                                                {phrase && <p className="text-white/90 text-xs italic font-serif mb-6 px-6 leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">"{phrase}"</p>}
+                                                {songTitle && <h1 className="font-serif italic text-5xl mb-4 drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)] text-white tracking-tight">{songTitle}</h1>}
+                                                <div className="h-[1px] w-12 bg-[#c5a059]/40 mx-auto mb-4"></div>
+                                                <p className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.6em] drop-shadow-lg">{artist === 'diosmasgym' ? 'DIOSMASGYM' : 'JUAN 614'}</p>
                                             </div>
                                         )}
                                     </div>
