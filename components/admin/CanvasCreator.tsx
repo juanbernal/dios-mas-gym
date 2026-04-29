@@ -32,7 +32,7 @@ const CanvasCreator: React.FC = () => {
             setIsExporting(true);
             
             const canvas = await html2canvas(canvasRef.current, {
-            scale: 2, // Mejor resolución
+            scale: 4, // Resolución ultra alta (4x)
             useCORS: true,
             allowTaint: true,
             backgroundColor: null // Fondo transparente para que use el contenedor real
@@ -41,7 +41,7 @@ const CanvasCreator: React.FC = () => {
             // Descargar imagen
             const link = document.createElement('a');
             link.download = `SpotifyCanvas_${songTitle || 'Master'}.jpg`;
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.href = canvas.toDataURL('image/jpeg', 1.0); // Calidad máxima 100%
             link.click();
             
         } catch (error) {
