@@ -89,6 +89,29 @@ const SmartLinkView: React.FC = () => {
 
     const isJuan = song.artist.toLowerCase().includes('juan');
 
+    const getPlatformUrl = (platform: string) => {
+        const urlStr = song.url.toLowerCase();
+        const query = encodeURIComponent(`${song.name} ${song.artist}`);
+        
+        if (platform === 'Spotify') {
+            if (urlStr.includes('spotify.com')) return song.url;
+            return `https://open.spotify.com/search/${query}`;
+        }
+        if (platform === 'YouTube') {
+            if (urlStr.includes('youtube.com') || urlStr.includes('youtu.be')) return song.url;
+            return `https://www.youtube.com/results?search_query=${query}`;
+        }
+        if (platform === 'Apple Music') {
+            if (urlStr.includes('apple.com')) return song.url;
+            return `https://music.apple.com/us/search?term=${query}`;
+        }
+        if (platform === 'Deezer') {
+            if (urlStr.includes('deezer.com')) return song.url;
+            return `https://www.deezer.com/search/${query}`;
+        }
+        return song.url;
+    };
+
     // === TEMA DIOSMASGYM (Urbano / Oscuro / Dorado) ===
     if (!isJuan) {
         return (
@@ -109,11 +132,21 @@ const SmartLinkView: React.FC = () => {
                     <h1 className="font-serif italic text-4xl md:text-6xl text-center mb-2 drop-shadow-xl">{song.name}</h1>
                     <p className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.4em] mb-12 text-center">{song.artist}</p>
 
-                    <div className="w-full max-w-md space-y-4">
-                        <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={song.url} />
-                        <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={song.url} />
-                        <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={song.url} />
-                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={song.url} />
+                    <div className="w-full max-w-md space-y-4 relative z-20">
+                        <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
+                        <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
+                        <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
+                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
+                    </div>
+
+                    <div className="mt-16 text-center w-full max-w-md border-t border-white/10 pt-8 relative z-20">
+                        <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/50 mb-6">Únete a la Comunidad</h3>
+                        <div className="flex justify-center gap-6">
+                            <a href="https://instagram.com/diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#E1306C] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-instagram text-xl text-white"></i></a>
+                            <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
+                            <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
+                        </div>
+                        <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. Todos los derechos reservados.</p>
                     </div>
                 </div>
             </div>
@@ -140,11 +173,21 @@ const SmartLinkView: React.FC = () => {
                 <h1 className="font-['Playfair_Display',serif] italic text-4xl md:text-6xl text-center mb-2 text-[#4A3B2C]">{song.name}</h1>
                 <p className="text-[#8B5A2B] text-xs font-bold uppercase tracking-[0.3em] mb-12 text-center">{song.artist}</p>
 
-                <div className="w-full max-w-md space-y-4">
-                    <PlatformButton light platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={song.url} />
-                    <PlatformButton light platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={song.url} />
-                    <PlatformButton light platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={song.url} />
-                    <PlatformButton light platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={song.url} />
+                <div className="w-full max-w-md space-y-4 relative z-20">
+                    <PlatformButton light platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
+                    <PlatformButton light platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
+                    <PlatformButton light platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
+                    <PlatformButton light platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
+                </div>
+
+                <div className="mt-16 text-center w-full max-w-md border-t border-[#8B5A2B]/20 pt-8 relative z-20">
+                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#8B5A2B]/70 mb-6">Sígueme en Redes</h3>
+                    <div className="flex justify-center gap-6">
+                        <a href="https://instagram.com/juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#E1306C] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-instagram text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
+                        <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
+                        <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#8B5A2B] group-hover:text-white transition-colors"></i></a>
+                    </div>
+                    <p className="mt-10 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8B5A2B]/50">© {new Date().getFullYear()} {song.artist}. Todos los derechos reservados.</p>
                 </div>
             </div>
         </div>
