@@ -277,28 +277,28 @@ const SmartLinkView: React.FC = () => {
                 ></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-[#05070a]/50 via-[#05070a] to-[#05070a]"></div>
 
-                <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-8 md:gap-16 px-4 py-12 md:py-20 w-full max-w-5xl mx-auto">
+                <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto">
                     
                     {/* LEFT COLUMN: Art & Player */}
                     <div className="flex flex-col items-center w-full max-w-sm shrink-0">
-                        <div className="relative group mb-8">
+                        <div className="relative group mb-4 md:mb-8">
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
                             <img 
                                 src={song.cover} 
                                 alt={song.name} 
-                                className="relative w-56 h-56 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl border border-white/10"
+                                className="relative w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl border border-white/10"
                             />
                         </div>
                         
-                        <h1 className="font-serif italic text-3xl md:text-5xl text-center mb-2 drop-shadow-xl font-bold px-2">{song.name}</h1>
-                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-8 text-center">{song.artist}</p>
+                        <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-xl font-bold px-2">{song.name}</h1>
+                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                         {embedData?.type === 'youtube' && (
                             <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
                         )}
                         
                         {embedData?.type === 'spotify' && (
-                            <div className="w-full mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/10 bg-black/40 p-2 backdrop-blur-md">
+                            <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/10 bg-black/40 p-2 backdrop-blur-md">
                                 <div className="flex items-center justify-between mb-3 px-2 pt-2">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
@@ -321,13 +321,13 @@ const SmartLinkView: React.FC = () => {
 
                     {/* RIGHT COLUMN: Links & Social */}
                     <div className="flex flex-col items-center w-full max-w-md">
-                        <div className="w-full relative z-20 backdrop-blur-xl bg-white/5 p-4 md:p-6 rounded-3xl border border-white/10 shadow-2xl">
-                            <div className="flex flex-col items-center justify-center mb-6">
-                                <div className="bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(197,160,89,0.4)] flex items-center gap-2">
+                        <div className="w-full relative z-20 backdrop-blur-xl bg-white/5 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
+                            <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
+                                <div className="bg-[#c5a059] text-black text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(197,160,89,0.4)] flex items-center gap-2">
                                     ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2 md:gap-3">
                                 <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
                                 <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
                                 <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
@@ -366,29 +366,29 @@ const SmartLinkView: React.FC = () => {
             {/* Background Texture (Papel/Madera/Ruido) en oscuro */}
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#d3c19e 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
-            <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-8 md:gap-16 px-4 py-12 md:py-20 w-full max-w-5xl mx-auto">
+            <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto">
                 
                 {/* LEFT COLUMN: Art & Player */}
                 <div className="flex flex-col items-center w-full max-w-sm shrink-0">
-                    <div className="relative mb-8 group">
+                    <div className="relative mb-4 md:mb-8 group">
                         <img 
                             src={song.cover} 
                             alt={song.name} 
-                            className="w-56 h-56 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl z-10 relative group-hover:scale-105 transition-transform duration-500"
+                            className="w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl z-10 relative group-hover:scale-105 transition-transform duration-500"
                         />
                         {/* Elemento de diseño de fondo */}
                         <div className="absolute -inset-4 border-2 border-[#8B5A2B] opacity-20 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500"></div>
                     </div>
                     
-                    <h1 className="font-['Playfair_Display',serif] italic text-3xl md:text-5xl text-center mb-2 text-[#e8dcc5] font-bold px-2">{song.name}</h1>
-                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-8 text-center">{song.artist}</p>
+                    <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2">{song.name}</h1>
+                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                     {embedData?.type === 'youtube' && (
                         <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
                     )}
                     
                     {embedData?.type === 'spotify' && (
-                        <div className="w-full mb-8 rounded-xl overflow-hidden shadow-xl border border-[#8B5A2B]/20 bg-[#2a221f] p-2 backdrop-blur-md">
+                        <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-xl border border-[#8B5A2B]/20 bg-[#2a221f] p-2 backdrop-blur-md">
                             <div className="flex items-center justify-between mb-3 px-2 pt-2">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-[#1DB954] flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
@@ -411,13 +411,13 @@ const SmartLinkView: React.FC = () => {
 
                 {/* RIGHT COLUMN: Links & Social */}
                 <div className="flex flex-col items-center w-full max-w-md">
-                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/80 p-4 md:p-6 rounded-3xl border border-[#8B5A2B]/20 shadow-2xl">
-                        <div className="flex flex-col items-center justify-center mb-6">
-                            <div className="bg-[#c89d53] text-[#1a1412] text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(200,157,83,0.4)] flex items-center gap-2">
+                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/80 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#8B5A2B]/20 shadow-2xl">
+                        <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
+                            <div className="bg-[#c89d53] text-[#1a1412] text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(200,157,83,0.4)] flex items-center gap-2">
                                 ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2 md:gap-3">
                             <PlatformButton light={false} platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
                             <PlatformButton light={false} platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
                             <PlatformButton light={false} platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
@@ -452,12 +452,12 @@ const PlatformButton = ({ platform, icon, color, url, light }: { platform: strin
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-full p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 ${light ? 'bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200' : (isDarkBg ? 'bg-black border border-white/20 shadow-lg' : 'bg-white/5 border border-white/10 hover:bg-white/10')}`}
+            className={`w-full p-2.5 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 ${light ? 'bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200' : (isDarkBg ? 'bg-black border border-white/20 shadow-lg' : 'bg-white/5 border border-white/10 hover:bg-white/10')}`}
         >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${light ? 'bg-gray-50' : 'bg-black/20'}`} style={{ color }}>
-                <i className={`${icon} text-3xl drop-shadow-md`}></i>
+            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-inner ${light ? 'bg-gray-50' : 'bg-black/20'}`} style={{ color }}>
+                <i className={`${icon} text-xl md:text-3xl drop-shadow-md`}></i>
             </div>
-            <span className={`font-bold tracking-wide text-[10px] uppercase ${light ? 'text-gray-800' : 'text-white'}`}>{platform}</span>
+            <span className={`font-bold tracking-wide text-[8px] md:text-[10px] uppercase ${light ? 'text-gray-800' : 'text-white'}`}>{platform}</span>
         </a>
     );
 };
