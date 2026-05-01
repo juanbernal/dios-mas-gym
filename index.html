@@ -43,23 +43,24 @@
         }
     </script>
     <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
-    window.deferredPWAEvent = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        console.log('✅ PWA: Evento beforeinstallprompt capturado');
-        window.deferredPWAEvent = e;
-        window.dispatchEvent(new CustomEvent('pwa-ready'));
-    });
-
-    // REGISTRO DEL SERVICE WORKER (Habilitado para PWA)
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('🚀 Service Worker registrado con éxito'))
-                .catch(err => console.log('❌ Error al registrar Service Worker:', err));
+    <script type="module" src="/index.tsx"></script>
+    <script>
+        window.deferredPWAEvent = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            console.log('✅ PWA: Evento beforeinstallprompt capturado');
+            window.deferredPWAEvent = e;
+            window.dispatchEvent(new CustomEvent('pwa-ready'));
         });
-    }
-</script>
+
+        // REGISTRO DEL SERVICE WORKER (Habilitado para PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('🚀 Service Worker registrado con éxito'))
+                    .catch(err => console.log('❌ Error al registrar Service Worker:', err));
+            });
+        }
+    </script>
 </body>
 </html>

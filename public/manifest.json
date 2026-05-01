@@ -1,6 +1,6 @@
 {
-  "short_name": "Arsenal",
-  "name": "Diosmasgym Records - El Arsenal",
+  "short_name": "Panel",
+  "name": "Panel de Control - Diosmasgym",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -14,9 +14,10 @@
     }
   ],
   "start_url": "/admin",
+  "scope": "/admin",
   "background_color": "#05070a",
   "display": "standalone",
   "theme_color": "#c5a059",
-  "description": "Panel de herramientas estratégicas de Diosmasgym Records.",
+  "description": "Herramientas de gestión y creación para Diosmasgym Records.",
   "orientation": "portrait"
 }
