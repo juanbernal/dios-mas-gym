@@ -2,11 +2,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- PWA_VERSION: 3.0.1 -->
     <script>
         (function() {
-            var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || document.referrer.includes('android-app://');
+            console.log('📱 PWA Check:', isStandalone, window.location.pathname);
             if (isStandalone && !window.location.pathname.startsWith('/admin')) {
-                window.location.replace('/admin?source=pwa_redirect');
+                window.location.replace('/admin?pwa_force=true');
             }
         })();
     </script>
