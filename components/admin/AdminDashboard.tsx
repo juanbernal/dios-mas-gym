@@ -32,7 +32,7 @@ const AdminDashboard: React.FC = () => {
         const link = document.createElement('link');
         link.id = manifestId;
         link.rel = 'manifest';
-        link.href = '/admin-manifest.json?v=force-' + Date.now();
+        link.href = '/admin-app.json?v=final-' + Date.now();
         document.head.appendChild(link);
 
         // Comprobar si ya existe el evento capturado globalmente
