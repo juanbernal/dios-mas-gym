@@ -149,48 +149,77 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8">
             <div className="max-w-6xl mx-auto">
-                <div className="mb-20 text-center relative font-['Poppins']">
-                    <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Panel de <span className="text-[#c5a059]">Control</span></h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-10">Herramientas Estratégicas de Creación</p>
+                {/* Header / Saludo */}
+                <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div>
+                        <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] mb-4 flex items-center gap-4">
+                            <span className="w-12 h-px bg-[#c5a059]"></span> Centro de Mando
+                        </h1>
+                        <h2 className="font-serif italic text-6xl md:text-8xl text-white">Hola, <span className="text-[#c5a059]">Juan</span></h2>
+                    </div>
+                    <div className="flex gap-10">
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Herramientas</p>
+                            <p className="text-2xl font-serif italic text-white">{tools.length}</p>
+                        </div>
+                        <div className="text-right border-l border-white/10 pl-10">
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Estado PWA</p>
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${isInstalled ? 'text-green-500' : 'text-[#c5a059]'}`}>
+                                {isInstalled ? 'SISTEMA INSTALADO' : 'MODO NAVEGADOR'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 font-['Poppins']">
-                    {/* Botón Destacado de Instalar PWA */}
-                    {!isInstalled && deferredPrompt && (
-                        <div 
-                            onClick={handleInstall}
-                            className="col-span-1 md:col-span-2 group relative bg-gradient-to-br from-[#c5a059]/20 to-black border border-[#c5a059]/40 p-12 rounded-2xl cursor-pointer hover:border-[#c5a059] transition-all hover:scale-[1.01] shadow-2xl overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-all">
-                                <i className="fas fa-download text-[180px] text-[#c5a059]"></i>
-                            </div>
-
-                            <div className="flex items-center gap-6 mb-4">
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all font-bold text-2xl bg-[#c5a059] text-black">
-                                    <i className="fas fa-mobile-alt"></i>
-                                </div>
-                                <h2 className="text-4xl font-serif italic text-white group-hover:text-[#c5a059] transition-colors">Instalar App (Panel)</h2>
-                            </div>
+                {/* Sección de Instalación Mejorada */}
+                {!isInstalled && (
+                    <div className="mb-20">
+                        <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-3xl p-1 md:p-2 overflow-hidden shadow-2xl relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#c5a059]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                             
-                            <p className="text-[#94a3b8] text-lg leading-relaxed mb-10 max-w-2xl">
-                                Descarga este panel de herramientas directamente en tu computadora o celular para un acceso instantáneo, más rápido y sin distracciones.
-                            </p>
+                            <div className="bg-[#05070a] rounded-[1.4rem] p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 relative z-10">
+                                <div className="w-24 h-24 bg-[#c5a059] rounded-3xl flex items-center justify-center shrink-0 shadow-[0_15px_40px_rgba(197,160,89,0.4)] rotate-3 group-hover:rotate-0 transition-transform">
+                                    <i className="fas fa-mobile-screen text-black text-4xl"></i>
+                                </div>
+                                
+                                <div className="flex-1 text-center md:text-left">
+                                    <h3 className="text-2xl font-serif italic text-white mb-2">Instalar Panel de Control</h3>
+                                    <p className="text-[#94a3b8] text-sm max-w-xl">
+                                        Acceso instantáneo sin navegador. Instalando la App tendrás un acceso directo en tu pantalla de inicio y una experiencia más rápida y fluida.
+                                    </p>
+                                </div>
 
-                            <div className="flex items-center gap-4 text-[12px] font-black uppercase tracking-widest text-[#c5a059] group-hover:gap-6 transition-all">
-                                Descargar Ahora
-                                <i className="fas fa-arrow-right"></i>
+                                <div className="w-full md:w-auto">
+                                    {deferredPrompt ? (
+                                        <button 
+                                            onClick={handleInstall}
+                                            className="w-full md:px-12 py-6 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white transition-all transform active:scale-95 shadow-xl"
+                                        >
+                                            INSTALAR AHORA
+                                        </button>
+                                    ) : (
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl px-8 py-4 text-center">
+                                            <p className="text-[9px] font-black text-[#c5a059] uppercase tracking-widest mb-1">Instrucción Manual</p>
+                                            <p className="text-[10px] text-white/50 uppercase tracking-widest">
+                                                Toca <i className="fas fa-share-square mx-1 text-[#c5a059]"></i> o <i className="fas fa-ellipsis-v mx-1 text-[#c5a059]"></i> <br/>
+                                                y selecciona <span className="text-white">"Añadir a inicio"</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
 
-                <div className="space-y-24 mt-16 font-['Poppins']">
+                <div className="space-y-24 font-['Poppins']">
                     {Object.entries(toolsByCategory).map(([category, categoryTools]) => (
-                        <div key={category}>
-                            <h3 className="text-white text-2xl font-serif italic border-b border-white/10 pb-4 mb-8 flex items-center gap-4">
-                                <i className="fas fa-layer-group text-[#c5a059] text-xl"></i> {category}
+                        <div key={category} className="animate-fade-in-up">
+                            <h3 className="text-white text-sm font-black uppercase tracking-[0.4em] mb-10 flex items-center gap-6">
+                                <span className="text-[#c5a059]">{category}</span>
+                                <div className="h-px bg-white/5 flex-1"></div>
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {categoryTools.map(tool => (
                                     <div 
                                         key={tool.id}
@@ -201,27 +230,31 @@ const AdminDashboard: React.FC = () => {
                                                 navigate(tool.route);
                                             }
                                         }}
-                                        className="group relative bg-[#0f111a] border border-white/5 p-12 rounded-2xl cursor-pointer hover:border-[#c5a059]/30 transition-all hover:scale-[1.02] shadow-2xl overflow-hidden"
+                                        className="group relative bg-[#0f111a] border border-white/5 p-10 rounded-3xl cursor-pointer hover:border-[#c5a059]/40 transition-all hover:-translate-y-2 shadow-2xl overflow-hidden flex flex-col h-full"
                                     >
-                                        <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
-                                            <i className={`fas ${tool.icon} text-[180px]`}></i>
-                                        </div>
+                                        {/* Glow effect on hover */}
+                                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#c5a059]/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                                         <div 
-                                            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-all font-bold text-2xl"
-                                            style={{ backgroundColor: `${tool.color}20`, color: tool.color, border: `1px solid ${tool.color}40` }}
+                                            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-inner transition-all group-hover:scale-110"
+                                            style={{ backgroundColor: `${tool.color}10`, color: tool.color, border: `1px solid ${tool.color}20` }}
                                         >
-                                            <i className={`fas ${tool.icon}`}></i>
+                                            <i className={`fas ${tool.icon} text-xl`}></i>
                                         </div>
 
-                                        <h2 className="text-3xl font-serif italic text-white mb-4 group-hover:text-[#c5a059] transition-colors">{tool.title}</h2>
-                                        <p className="text-[#94a3b8] text-sm leading-relaxed mb-10 max-w-sm">
+                                        <h2 className="text-2xl font-serif italic text-white mb-4 group-hover:text-[#c5a059] transition-colors">{tool.title}</h2>
+                                        <p className="text-white/40 text-[11px] leading-relaxed mb-8 flex-1">
                                             {tool.description}
                                         </p>
 
-                                        <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest group-hover:gap-6 transition-all" style={{ color: tool.color }}>
-                                            {'url' in tool ? 'Abrir Base de Datos' : 'Abrir Herramienta'} 
-                                            <i className="fas fa-arrow-right"></i>
+                                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-white/20 group-hover:text-white/40 transition-colors">ACCEDER</span>
+                                            <div 
+                                                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 group-hover:bg-[#c5a059] group-hover:text-black transition-all"
+                                                style={{ color: tool.color }}
+                                            >
+                                                <i className="fas fa-chevron-right text-[10px]"></i>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
