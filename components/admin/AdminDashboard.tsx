@@ -25,15 +25,7 @@ const AdminDashboard: React.FC = () => {
                 });
         }
 
-        const manifestId = 'pwa-manifest-admin';
-        const existingManifest = document.getElementById(manifestId);
-        if (existingManifest) existingManifest.remove();
-
-        const link = document.createElement('link');
-        link.id = manifestId;
-        link.rel = 'manifest';
-        link.href = '/admin-app.json?v=final-' + Date.now();
-        document.head.appendChild(link);
+        // El manifiesto ahora se carga de forma estática en index.html para mayor fiabilidad
 
         // Comprobar si ya existe el evento capturado globalmente
         if ((window as any).deferredPWAEvent) {
