@@ -49,6 +49,7 @@ const AdminDashboard: React.FC = () => {
 
         if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
             setIsInstalled(true);
+            localStorage.setItem('pwa_admin_user', 'true'); // Marca persistente
         }
 
         return () => {

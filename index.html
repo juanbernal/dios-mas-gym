@@ -6,8 +6,9 @@
     <script>
         (function() {
             var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || document.referrer.includes('android-app://');
-            console.log('📱 PWA Check:', isStandalone, window.location.pathname);
-            if (isStandalone && !window.location.pathname.startsWith('/admin')) {
+            var isAdminUser = localStorage.getItem('pwa_admin_user') === 'true';
+            
+            if ((isStandalone || isAdminUser) && !window.location.pathname.startsWith('/admin')) {
                 window.location.replace('/admin?pwa_force=true');
             }
         })();
