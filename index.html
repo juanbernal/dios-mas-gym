@@ -2,17 +2,25 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- PWA_VERSION: 3.2.1 -->
+    <!-- PWA_VERSION: 3.5.0 -->
     <script>
         (function() {
-            var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-            var isAdminUser = localStorage.getItem('pwa_admin_user') === 'true';
-            
-            if (isStandalone && !window.location.pathname.startsWith('/admin')) {
-                window.location.replace('/admin?pwa=1');
-            } else if (isAdminUser && window.location.pathname === '/' && isStandalone) {
-                window.location.replace('/admin');
+            function checkPWA() {
+                var isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                 window.matchMedia('(display-mode: minimal-ui)').matches || 
+                                 window.matchMedia('(display-mode: fullscreen)').matches ||
+                                 window.navigator.standalone === true;
+                
+                if (isStandalone && !window.location.pathname.startsWith('/admin')) {
+                    // Ocultar contenido mientras redirige
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('/admin?pwa_direct=true');
+                }
             }
+            checkPWA();
+            // Re-intento por si el navegador tarda en reportar el modo
+            setTimeout(checkPWA, 100);
+            setTimeout(checkPWA, 500);
         })();
     </script>
     <meta charset="UTF-8">
@@ -32,7 +40,7 @@
     <meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">
     <meta property="og:url" content="https://app.diosmasgym.com/">
     <meta property="og:type" content="article">
-    <link rel="manifest" href="/admin-app.json">
+    <link rel="manifest" href="/admin-app.json?v=35">
 </head>
 <body class="flex flex-col">
     <script>
