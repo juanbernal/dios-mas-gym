@@ -412,7 +412,7 @@ const App: React.FC = () => {
         </Routes>
       </main>
       {!hideGlobalUI && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}
-      {!hideGlobalUI && <PWAInstallPrompt />}
+      {location.pathname.startsWith('/admin') && <PWAInstallPrompt />}
       {!hideGlobalUI && <Footer />}
       {isSearchOpen && !hideGlobalUI && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
     </div>
