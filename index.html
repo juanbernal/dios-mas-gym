@@ -7,11 +7,12 @@
         (function() {
             var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
             var isAdmin = document.cookie.indexOf('is_admin_user=true') !== -1 || localStorage.getItem('pwa_admin_user') === 'true';
+            var currentPath = window.location.pathname + window.location.hash;
             
-            if (isPWA && !window.location.pathname.startsWith('/admin')) {
-                window.location.replace('/admin?pwa=4');
-            } else if (isAdmin && isPWA && window.location.pathname === '/') {
-                window.location.replace('/admin');
+            if (isPWA && !currentPath.includes('/admin')) {
+                window.location.replace('/#/admin?pwa=hash');
+            } else if (isAdmin && isPWA && (currentPath === '/' || currentPath === '/#/' || currentPath === '')) {
+                window.location.replace('/#/admin');
             }
         })();
     </script>
