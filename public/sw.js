@@ -1,8 +1,8 @@
-const CACHE_NAME = 'diosmasgym-v2.0.4';
+const CACHE_NAME = 'diosmasgym-v2.0.5';
 const ASSETS_TO_CACHE = [
-  '/',
+  '/admin',
   '/index.html',
-  '/manifest.json',
+  '/admin-manifest.json',
   '/icon-192.png',
   '/icon-512.png'
 ];
@@ -29,7 +29,21 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  // Estrategia: Network First para documentos y manifiestos para evitar caché vieja
+  if (event.request.mode === 'navigate' || event.request.url.includes('manifest')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+  } else {
+    // Para lo demás: Cache First o Network fallthrough
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
+      })
+    );
+  }
 });
