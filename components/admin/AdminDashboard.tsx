@@ -180,7 +180,7 @@ const AdminDashboard: React.FC = () => {
                         </h1>
                         <h2 className="font-serif italic text-6xl md:text-8xl text-white">
                             Hola, <span className="text-[#c5a059]">Juan</span>
-                            <span className="text-[8px] opacity-20 ml-4 font-sans not-italic tracking-widest">BUILD 3.2.0</span>
+                            <span className="text-[8px] opacity-20 ml-4 font-sans not-italic tracking-widest">BUILD 3.5.0</span>
                         </h2>
                     </div>
                     <div className="flex gap-10">
