@@ -29,6 +29,8 @@ const EPKGenerator: React.FC = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
+    const isJuan = artist === 'juan614';
+
     // Auto-Llenado basado en el artista seleccionado
     useEffect(() => {
         const loadArtistData = async () => {
@@ -131,7 +133,7 @@ const EPKGenerator: React.FC = () => {
         }
     };
 
-    const isJuan = artist === 'juan614';
+
 
     const theme = {
         bg: isJuan ? '#FAF9F6' : '#05070a',

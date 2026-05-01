@@ -49,6 +49,19 @@ const CanvasCreator: React.FC = () => {
         }
     };
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    setCoverImage(event.target.result as string);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
 
 
     const handleExport = async () => {
@@ -168,6 +181,15 @@ const CanvasCreator: React.FC = () => {
                                     </datalist>
                                 </div>
                                 <div className="col-span-2">
+                                    <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block text-[#1DB954]">Subir Portada HD Manual (Recomendado)</label>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="w-full bg-[#1DB954]/10 border border-[#1DB954]/20 rounded-lg p-2 outline-none text-xs text-[#1DB954] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:uppercase file:bg-[#1DB954] file:text-black hover:file:bg-white cursor-pointer"
+                                    />
+                                </div>
+                                <div className="col-span-2">
                                     <label className="text-[10px] text-white/50 uppercase tracking-widest mb-2 block">Frase Viral (Opcional)</label>
                                     <input 
                                         type="text" 
@@ -212,18 +234,16 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado (Usando DIV para compatibilidad máxima) */}
-                                    <div 
-                                        className="absolute inset-0 opacity-30"
+                                    {/* Fondo texturizado (Usando IMG para evitar pérdida de calidad en html2canvas) */}
+                                    <img 
+                                        src={coverImage}
+                                        crossOrigin="anonymous"
+                                        className="absolute inset-0 opacity-30 object-cover w-full h-full"
                                         style={{ 
-                                            backgroundImage: `url(${coverImage})`, 
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            filter: getFilterStyle(),
-                                            width: '100%',
-                                            height: '100%'
+                                            filter: getFilterStyle()
                                         }}
-                                    ></div>
+                                        alt="Background"
+                                    />
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
                                     <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
@@ -234,17 +254,17 @@ const CanvasCreator: React.FC = () => {
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
 
-                                    {/* Elemento Central (Portada usando DIV para evitar barras laterales en html2canvas) */}
+                                    {/* Elemento Central (Portada usando IMG para máxima nitidez en exportación) */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
-                                        <div 
-                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
+                                        <img 
+                                            src={coverImage}
+                                            crossOrigin="anonymous"
+                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12 object-cover"
                                             style={{ 
-                                                backgroundImage: `url(${coverImage})`,
-                                                backgroundSize: 'cover',
-                                                backgroundPosition: 'center',
                                                 filter: getFilterStyle()
                                             }}
-                                        ></div>
+                                            alt="Cover"
+                                        />
                                         
                                         {(songTitle || phrase) && (
                                             <div className="text-center w-full px-4">
