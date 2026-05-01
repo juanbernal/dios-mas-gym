@@ -7,19 +7,26 @@ const AdminDashboard: React.FC = () => {
     const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
-        // ACTIVAR PWA DINÁMICAMENTE (Solo para el Panel)
+        // ACTIVAR PWA DINÁMICAMENTE (Exclusivo para el Panel)
         const manifestId = 'pwa-manifest-admin';
-        if (!document.getElementById(manifestId)) {
-            const link = document.createElement('link');
-            link.id = manifestId;
-            link.rel = 'manifest';
-            link.href = '/manifest.json?v=5';
-            document.head.appendChild(link);
+        const existingManifest = document.getElementById(manifestId);
+        
+        if (existingManifest) {
+            existingManifest.remove();
         }
+
+        const link = document.createElement('link');
+        link.id = manifestId;
+        link.rel = 'manifest';
+        link.href = '/admin-manifest.json?v=' + Date.now(); // Cache buster total
+        document.head.appendChild(link);
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js', { scope: '/admin' })
-                .then(() => console.log('🚀 SW registrado para /admin'))
+                .then(reg => {
+                    console.log('🚀 SW registrado solo para el Panel (/admin)');
+                    reg.update(); // Forzar actualización
+                })
                 .catch(err => console.log('❌ Error SW:', err));
         }
 
