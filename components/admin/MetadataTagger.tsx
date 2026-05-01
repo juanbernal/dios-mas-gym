@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ID3Writer } from 'browser-id3-writer';
+import { WaveFile } from 'wavefile';
 
 const MetadataTagger: React.FC = () => {
     const navigate = useNavigate();
@@ -59,45 +60,67 @@ const MetadataTagger: React.FC = () => {
         setSuccessMessage('');
 
         try {
-            // Leer archivo de audio original
             const arrayBuffer = await audioFile.arrayBuffer();
-
-            // Iniciar Writer
-            const writer = new ID3Writer(arrayBuffer);
-            writer.setFrame('TIT2', metadata.title || 'Sin Título')
-                  .setFrame('TPE1', [metadata.artist])
-                  .setFrame('TALB', metadata.album || metadata.title)
-                  .setFrame('TYER', metadata.year)
-                  .setFrame('TCON', [metadata.genre]);
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const isWav = audioFile.name.toLowerCase().endsWith('.wav');
             
-            if (metadata.isrc) {
-                writer.setFrame('TSRC', metadata.isrc); // ISRC
-            }
+            let finalBuffer: ArrayBuffer | Uint8Array;
+            let extension = isWav ? 'wav' : 'mp3';
 
-            if (coverBuffer) {
-                writer.setFrame('APIC', {
-                    type: 3,
-                    data: coverBuffer,
-                    description: 'Cover'
-                });
-            }
+            if (isWav) {
+                // Procesar WAV usando wavefile
+                const wav = new WaveFile(uint8Array);
+                
+                // Inyectar etiquetas RIFF INFO estándar
+                wav.setTag('INAM', metadata.title); // Song Title
+                wav.setTag('IART', metadata.artist); // Artist
+                wav.setTag('IPRD', metadata.album || metadata.title); // Album
+                wav.setTag('ICRD', metadata.year); // Creation Date
+                wav.setTag('IGNR', metadata.genre); // Genre
+                
+                if (metadata.isrc) {
+                    wav.setTag('ISRC', metadata.isrc); // ISRC
+                }
 
-            writer.addTag();
+                finalBuffer = wav.toBuffer();
+            } else {
+                // Procesar MP3 usando ID3Writer
+                const writer = new ID3Writer(arrayBuffer);
+                writer.setFrame('TIT2', metadata.title || 'Sin Título')
+                      .setFrame('TPE1', [metadata.artist])
+                      .setFrame('TALB', metadata.album || metadata.title)
+                      .setFrame('TYER', metadata.year)
+                      .setFrame('TCON', [metadata.genre]);
+                
+                if (metadata.isrc) {
+                    writer.setFrame('TSRC', metadata.isrc);
+                }
+
+                if (coverBuffer) {
+                    writer.setFrame('APIC', {
+                        type: 3,
+                        data: coverBuffer,
+                        description: 'Cover'
+                    });
+                }
+
+                writer.addTag();
+                finalBuffer = writer.arrayBuffer;
+            }
 
             // Generar descarga
-            const taggedSongBuffer = writer.arrayBuffer;
-            const blob = new Blob([taggedSongBuffer], { type: 'audio/mpeg' });
+            const blob = new Blob([finalBuffer], { type: isWav ? 'audio/wav' : 'audio/mpeg' });
             const url = URL.createObjectURL(blob);
             
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${metadata.artist} - ${metadata.title} (Master).mp3`;
+            link.download = `${metadata.artist} - ${metadata.title} (Master).${extension}`;
             link.click();
             
-            setSuccessMessage('¡Metadatos inyectados y archivo descargado!');
+            setSuccessMessage(`¡Metadatos inyectados en ${extension.toUpperCase()} y archivo descargado!`);
         } catch (error) {
             console.error('Error inyectando metadatos:', error);
-            alert('Hubo un error procesando el audio. Asegúrate de que sea un archivo MP3 válido.');
+            alert('Hubo un error procesando el audio. Asegúrate de que sea un archivo válido.');
         } finally {
             setIsProcessing(false);
         }
@@ -122,12 +145,12 @@ const MetadataTagger: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
                         {/* Audio Upload */}
                         <div className="col-span-2">
-                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">1. Pista Original (.mp3)</label>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">1. Pista Original (.mp3 o .wav)</label>
                             <div 
                                 onClick={() => fileInputRef.current?.click()}
                                 className={`border-2 border-dashed ${audioFile ? 'border-[#10b981] bg-[#10b981]/5' : 'border-white/20 hover:border-[#c5a059]'} rounded-2xl p-8 text-center cursor-pointer transition-all`}
                             >
-                                <input type="file" accept="audio/mpeg, audio/mp3" className="hidden" ref={fileInputRef} onChange={handleAudioSelect} />
+                                <input type="file" accept="audio/mpeg, audio/mp3, audio/wav, audio/x-wav" className="hidden" ref={fileInputRef} onChange={handleAudioSelect} />
                                 <i className={`fas ${audioFile ? 'fa-check-circle text-[#10b981]' : 'fa-music text-white/40'} text-4xl mb-4`}></i>
                                 <p className="text-sm font-bold text-white/80">{audioFile ? audioFile.name : 'Click para subir canción'}</p>
                             </div>
