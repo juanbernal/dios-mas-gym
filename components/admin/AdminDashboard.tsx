@@ -7,6 +7,22 @@ const AdminDashboard: React.FC = () => {
     const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
+        // ACTIVAR PWA DINÁMICAMENTE (Solo para el Panel)
+        const manifestId = 'pwa-manifest-admin';
+        if (!document.getElementById(manifestId)) {
+            const link = document.createElement('link');
+            link.id = manifestId;
+            link.rel = 'manifest';
+            link.href = '/manifest.json?v=5';
+            document.head.appendChild(link);
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/admin' })
+                .then(() => console.log('🚀 SW registrado para /admin'))
+                .catch(err => console.log('❌ Error SW:', err));
+        }
+
         // Comprobar si ya existe el evento capturado globalmente
         if ((window as any).deferredPWAEvent) {
             setDeferredPrompt((window as any).deferredPWAEvent);
@@ -14,6 +30,7 @@ const AdminDashboard: React.FC = () => {
 
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
+            console.log('✅ PWA: Capturado en Dashboard');
             setDeferredPrompt(e);
         };
 
@@ -26,13 +43,14 @@ const AdminDashboard: React.FC = () => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.addEventListener('pwa-ready', handlePWAReady);
 
-        if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
             setIsInstalled(true);
         }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('pwa-ready', handlePWAReady);
+            // Opcional: no removemos el manifest para que la App siga funcionando tras instalar
         };
     }, []);
 
