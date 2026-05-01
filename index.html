@@ -19,6 +19,14 @@
     <meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">
     <meta property="og:url" content="https://app.diosmasgym.com/">
     <meta property="og:type" content="article">
+    <script>
+        // BLOQUEO DE NAVEGACIÓN PARA LA APP (PWA)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            if (!window.location.pathname.startsWith('/admin')) {
+                window.location.href = '/admin';
+            }
+        }
+    </script>
 </head>
 <body class="flex flex-col">
     <script>
