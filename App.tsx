@@ -303,8 +303,8 @@ const App: React.FC = () => {
   }
 
   const isSmartLinkRoute = location.pathname.startsWith('/link/');
-  // Ocultar Navbar global en herramientas específicas del admin para que no se superpongan
-  const isToolRoute = location.pathname.startsWith('/admin/') && location.pathname !== '/admin';
+  // Ocultar Navbar global en TODO el ecosistema admin
+  const isToolRoute = location.pathname.startsWith('/admin');
   const hideGlobalUI = isSmartLinkRoute || isToolRoute;
 
   return (

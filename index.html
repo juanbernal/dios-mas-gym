@@ -20,12 +20,13 @@
     <meta property="og:url" content="https://app.diosmasgym.com/">
     <meta property="og:type" content="article">
     <script>
-        // BLOQUEO DE NAVEGACIÓN PARA LA APP (PWA)
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            if (!window.location.pathname.startsWith('/admin')) {
-                window.location.href = '/admin';
+        // BLOQUEO TOTAL PARA LA APP (PWA)
+        (function() {
+            var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            if (isStandalone && !window.location.pathname.startsWith('/admin')) {
+                window.location.replace('/admin');
             }
-        }
+        })();
     </script>
 </head>
 <body class="flex flex-col">
