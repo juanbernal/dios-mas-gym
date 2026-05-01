@@ -19,6 +19,7 @@
     <meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">
     <meta property="og:url" content="https://app.diosmasgym.com/">
     <meta property="og:type" content="article">
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body class="flex flex-col">
     <script>
@@ -43,20 +44,20 @@
     </script>
     <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
-<script>
     window.deferredPWAEvent = null;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
+        console.log('✅ PWA: Evento beforeinstallprompt capturado');
         window.deferredPWAEvent = e;
         window.dispatchEvent(new CustomEvent('pwa-ready'));
     });
 
-    // PWA DESACTIVADA - LIMPIEZA OBLIGATORIA
+    // REGISTRO DEL SERVICE WORKER (Habilitado para PWA)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) { 
-                registration.unregister(); 
-            }
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('🚀 Service Worker registrado con éxito'))
+                .catch(err => console.log('❌ Error al registrar Service Worker:', err));
         });
     }
 </script>

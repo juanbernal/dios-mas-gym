@@ -7,12 +7,24 @@ const AdminDashboard: React.FC = () => {
     const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
+        // Comprobar si ya existe el evento capturado globalmente
+        if ((window as any).deferredPWAEvent) {
+            setDeferredPrompt((window as any).deferredPWAEvent);
+        }
+
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
         };
 
+        const handlePWAReady = () => {
+            if ((window as any).deferredPWAEvent) {
+                setDeferredPrompt((window as any).deferredPWAEvent);
+            }
+        };
+
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('pwa-ready', handlePWAReady);
 
         if (window.matchMedia('(display-mode: standalone)').matches) {
             setIsInstalled(true);
@@ -20,6 +32,7 @@ const AdminDashboard: React.FC = () => {
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('pwa-ready', handlePWAReady);
         };
     }, []);
 
