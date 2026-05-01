@@ -47,9 +47,9 @@ const AdminDashboard: React.FC = () => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.addEventListener('pwa-ready', handlePWAReady);
 
+        localStorage.setItem('pwa_admin_user', 'true'); // Marca persistente siempre que entre al panel
         if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
             setIsInstalled(true);
-            localStorage.setItem('pwa_admin_user', 'true'); // Marca persistente
         }
 
         return () => {
