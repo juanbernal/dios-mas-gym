@@ -7,28 +7,33 @@ const AdminDashboard: React.FC = () => {
     const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
-        // ACTIVAR PWA DINÁMICAMENTE (Exclusivo para el Panel)
+        // LIMPIEZA AGRESIVA DE CACHÉ Y SW VIEJOS
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    if (!registration.active?.scriptURL.includes('sw-v3.js')) {
+                        registration.unregister();
+                        console.log('🧹 SW viejo eliminado');
+                    }
+                }
+            });
+            
+            navigator.serviceWorker.register('/sw-v3.js', { scope: '/admin' })
+                .then(reg => {
+                    console.log('🚀 Nuevo SW-V3 registrado para /admin');
+                    reg.update();
+                });
+        }
+
         const manifestId = 'pwa-manifest-admin';
         const existingManifest = document.getElementById(manifestId);
-        
-        if (existingManifest) {
-            existingManifest.remove();
-        }
+        if (existingManifest) existingManifest.remove();
 
         const link = document.createElement('link');
         link.id = manifestId;
         link.rel = 'manifest';
-        link.href = '/admin-manifest.json?v=' + Date.now(); // Cache buster total
+        link.href = '/admin-manifest.json?v=force-' + Date.now();
         document.head.appendChild(link);
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/admin' })
-                .then(reg => {
-                    console.log('🚀 SW registrado solo para el Panel (/admin)');
-                    reg.update(); // Forzar actualización
-                })
-                .catch(err => console.log('❌ Error SW:', err));
-        }
 
         // Comprobar si ya existe el evento capturado globalmente
         if ((window as any).deferredPWAEvent) {
