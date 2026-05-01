@@ -6,13 +6,12 @@
     <script>
         (function() {
             var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-            var isAdmin = document.cookie.indexOf('is_admin_user=true') !== -1 || localStorage.getItem('pwa_admin_user') === 'true';
             var currentPath = window.location.pathname + window.location.hash;
             
             if (isPWA && !currentPath.includes('/admin')) {
-                window.location.replace('/#/admin?pwa=hash');
-            } else if (isAdmin && isPWA && (currentPath === '/' || currentPath === '/#/' || currentPath === '')) {
-                window.location.replace('/#/admin');
+                // Alerta temporal para confirmar detección (se quitará luego)
+                console.log('PWA DETECTADA - REDIRIGIENDO AL PANEL');
+                window.location.replace('/#/admin?pwa=final_v4');
             }
         })();
     </script>

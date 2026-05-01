@@ -1,12 +1,17 @@
-// SW Minimalista - Evita caché persistente de la página principal
+// SW V4 - TOTAL NETWORK FIRST PARA HTML
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('fetch', (event) => {
-  // Siempre intentar red primero para documentos críticos
-  if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  // NO CACHEAR NADA DE HTML NI MANIFIESTOS
+  if (event.request.mode === 'navigate' || event.request.url.includes('manifest') || event.request.url.includes('.json')) {
+    event.respondWith(fetch(event.request));
   } else {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    // Para lo demás (imágenes, fuentes), caché si existe o red
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
+      })
+    );
   }
 });
