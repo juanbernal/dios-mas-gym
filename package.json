@@ -15,6 +15,7 @@
     "@google/genai": "^1.42.0",
     "@types/express": "^5.0.6",
     "@vercel/og": "^0.11.1",
+    "browser-id3-writer": "^6.3.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "form-data": "^4.0.5",

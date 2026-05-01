@@ -234,16 +234,18 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado (Usando IMG para evitar pérdida de calidad en html2canvas) */}
-                                    <img 
-                                        src={coverImage}
-                                        crossOrigin="anonymous"
-                                        className="absolute inset-0 opacity-30 object-cover w-full h-full"
+                                    {/* Fondo texturizado (Usando DIV para compatibilidad máxima con html2canvas) */}
+                                    <div 
+                                        className="absolute inset-0 opacity-30"
                                         style={{ 
-                                            filter: getFilterStyle()
+                                            backgroundImage: `url(${coverImage})`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            filter: getFilterStyle(),
+                                            width: '100%',
+                                            height: '100%'
                                         }}
-                                        alt="Background"
-                                    />
+                                    ></div>
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
                                     <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
@@ -254,17 +256,17 @@ const CanvasCreator: React.FC = () => {
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
 
-                                    {/* Elemento Central (Portada usando IMG para máxima nitidez en exportación) */}
+                                    {/* Elemento Central (Portada usando DIV para evitar fallos de object-fit en html2canvas) */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
-                                        <img 
-                                            src={coverImage}
-                                            crossOrigin="anonymous"
-                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12 object-cover"
+                                        <div 
+                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
                                             style={{ 
+                                                backgroundImage: `url(${coverImage})`,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
                                                 filter: getFilterStyle()
                                             }}
-                                            alt="Cover"
-                                        />
+                                        ></div>
                                         
                                         {(songTitle || phrase) && (
                                             <div className="text-center w-full px-4">

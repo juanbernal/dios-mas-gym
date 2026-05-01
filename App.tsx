@@ -19,6 +19,7 @@ import ProximosLanzamientos from "./components/admin/ProximosLanzamientos";
 import LyricCleaner from "./components/admin/LyricCleaner";
 import SocialPostGenerator from "./components/admin/SocialPostGenerator";
 import AIPressRelease from "./components/admin/AIPressRelease";
+import MetadataTagger from "./components/admin/MetadataTagger";
 import UpcomingReleases from "./components/UpcomingReleases";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import Footer from './components/Footer';
@@ -407,6 +408,7 @@ const App: React.FC = () => {
           <Route path="/admin/proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />
           <Route path="/admin/social-post" element={<AdminAuthWrapper><SocialPostGenerator/></AdminAuthWrapper>} />
           <Route path="/admin/press-release" element={<AdminAuthWrapper><AIPressRelease/></AdminAuthWrapper>} />
+          <Route path="/admin/metadata-tagger" element={<AdminAuthWrapper><MetadataTagger/></AdminAuthWrapper>} />
         </Routes>
       </main>
       {!hideGlobalUI && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}
