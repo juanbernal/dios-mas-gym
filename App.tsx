@@ -303,9 +303,17 @@ const App: React.FC = () => {
   }
 
   const isSmartLinkRoute = location.pathname.startsWith('/link/');
-  // Ocultar Navbar global en herramientas específicas del admin para que no se superpongan
-  const isToolRoute = location.pathname.startsWith('/admin/') && location.pathname !== '/admin';
-  const hideGlobalUI = isSmartLinkRoute || isToolRoute;
+  const isPWA = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+  
+  // Redirigir al panel si se intenta salir de él dentro de la App
+  useEffect(() => {
+    if (isPWA && !location.pathname.startsWith('/admin')) {
+      navigate('/admin');
+    }
+  }, [isPWA, location.pathname, navigate]);
+
+  const isToolRoute = location.pathname.startsWith('/admin');
+  const hideGlobalUI = isSmartLinkRoute || isToolRoute || isPWA;
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
