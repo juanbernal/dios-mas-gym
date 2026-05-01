@@ -177,7 +177,10 @@ const AdminDashboard: React.FC = () => {
                         <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] mb-4 flex items-center gap-4">
                             <span className="w-12 h-px bg-[#c5a059]"></span> Centro de Mando
                         </h1>
-                        <h2 className="font-serif italic text-6xl md:text-8xl text-white">Hola, <span className="text-[#c5a059]">Juan</span></h2>
+                        <h2 className="font-serif italic text-6xl md:text-8xl text-white">
+                            Hola, <span className="text-[#c5a059]">Juan</span>
+                            <span className="text-[8px] opacity-20 ml-4 font-sans not-italic tracking-widest">BUILD 3.2.0</span>
+                        </h2>
                     </div>
                     <div className="flex gap-10">
                         <div className="text-right">
