@@ -48,6 +48,7 @@ const AdminDashboard: React.FC = () => {
         window.addEventListener('pwa-ready', handlePWAReady);
 
         localStorage.setItem('pwa_admin_user', 'true'); // Marca persistente siempre que entre al panel
+        document.cookie = "is_admin_user=true; path=/; max-age=31536000; samesite=lax"; // Cookie de respaldo
         if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
             setIsInstalled(true);
         }

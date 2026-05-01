@@ -2,25 +2,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- PWA_VERSION: 3.5.0 -->
+    <!-- PWA_VERSION: 4.0.0 -->
     <script>
         (function() {
-            function checkPWA() {
-                var isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                                 window.matchMedia('(display-mode: minimal-ui)').matches || 
-                                 window.matchMedia('(display-mode: fullscreen)').matches ||
-                                 window.navigator.standalone === true;
-                
-                if (isStandalone && !window.location.pathname.startsWith('/admin')) {
-                    // Ocultar contenido mientras redirige
-                    document.documentElement.style.display = 'none';
-                    window.location.replace('/admin?pwa_direct=true');
-                }
+            var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            var isAdmin = document.cookie.indexOf('is_admin_user=true') !== -1 || localStorage.getItem('pwa_admin_user') === 'true';
+            
+            if (isPWA && !window.location.pathname.startsWith('/admin')) {
+                window.location.replace('/admin?pwa=4');
+            } else if (isAdmin && isPWA && window.location.pathname === '/') {
+                window.location.replace('/admin');
             }
-            checkPWA();
-            // Re-intento por si el navegador tarda en reportar el modo
-            setTimeout(checkPWA, 100);
-            setTimeout(checkPWA, 500);
         })();
     </script>
     <meta charset="UTF-8">
