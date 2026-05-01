@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ID3Writer from 'browser-id3-writer';
+import { ID3Writer } from 'browser-id3-writer';
 
 const MetadataTagger: React.FC = () => {
     const navigate = useNavigate();
