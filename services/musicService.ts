@@ -7,7 +7,7 @@ const generateSlug = (text: string) => {
 /**
  * Fetches music catalog for a specific artist via the backend proxy.
  */
-export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614'): Promise<MusicItem[]> => {
+export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceRefresh = false): Promise<MusicItem[]> => {
   try {
     const isVercel = window.location.hostname.includes('vercel');
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -15,8 +15,9 @@ export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614'): Promi
     
     const url = new URL('/api/music', apiBase);
     url.searchParams.append('artist', artist);
+    if (forceRefresh) url.searchParams.append('refresh', Date.now().toString());
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), forceRefresh ? { cache: 'no-store' } : undefined);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     
     const csvText = await response.text();

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchMusicCatalog } from '../../services/musicService';
+import { MusicItem } from '../../types';
 
 const SocialPostGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -8,6 +10,9 @@ const SocialPostGenerator: React.FC = () => {
     const [result, setResult] = useState('');
     const [error, setError] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+    const [catalog, setCatalog] = useState<MusicItem[]>([]);
+    const [catalogLoading, setCatalogLoading] = useState(false);
+    const [selectedSongId, setSelectedSongId] = useState('');
 
     const VERSION = "v1.3.6 Future-Flash";
 
@@ -17,6 +22,37 @@ const SocialPostGenerator: React.FC = () => {
         goal: 'Inspirar y Viralizar',
         tone: 'Épico y Motivador'
     });
+
+    useEffect(() => {
+        const loadCatalog = async () => {
+            setCatalogLoading(true);
+            try {
+                const [diosmasgym, juan614] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614')
+                ]);
+                setCatalog([...diosmasgym, ...juan614]);
+            } catch (err) {
+                console.error('Error loading music catalog:', err);
+            } finally {
+                setCatalogLoading(false);
+            }
+        };
+        loadCatalog();
+    }, []);
+
+    const handleSongSelect = (songId: string) => {
+        setSelectedSongId(songId);
+        const song = catalog.find(item => item.id === songId);
+        if (!song) return;
+
+        setFormData({
+            input: `Crear una promo para la cancion "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}. Genera un caption fuerte, llamado a la accion, hashtags y una version corta para historia.`,
+            platform: 'Instagram/TikTok',
+            goal: 'Promocionar canción',
+            tone: 'Épico y Motivador'
+        });
+    };
 
     const handleGenerate = async () => {
         if (!formData.input.trim()) return;
@@ -78,6 +114,41 @@ const SocialPostGenerator: React.FC = () => {
                 {step === 1 ? (
                     <div className="bg-[#0f111a] border border-white/5 p-10 rounded-2xl shadow-2xl relative overflow-hidden">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                            <div className="col-span-2 bg-[#05070a] border border-[#c5a059]/20 rounded-2xl p-6">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-2">Promo automática desde canción</label>
+                                        <p className="text-white/35 text-xs">Selecciona una canción y el generador prepara el brief promocional solo.</p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            setCatalogLoading(true);
+                                            try {
+                                                const [diosmasgym, juan614] = await Promise.all([
+                                                    fetchMusicCatalog('diosmasgym', true),
+                                                    fetchMusicCatalog('juan614', true)
+                                                ]);
+                                                setCatalog([...diosmasgym, ...juan614]);
+                                            } finally {
+                                                setCatalogLoading(false);
+                                            }
+                                        }}
+                                        disabled={catalogLoading}
+                                        className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] hover:text-white transition-all disabled:opacity-40"
+                                    >
+                                        <i className={`fas ${catalogLoading ? 'fa-spinner fa-spin' : 'fa-rotate'} mr-2`}></i>
+                                        Actualizar catálogo
+                                    </button>
+                                </div>
+                                <select
+                                    value={selectedSongId}
+                                    onChange={(e) => handleSongSelect(e.target.value)}
+                                    className="w-full bg-[#0f111a] border border-white/10 rounded-xl p-5 text-white focus:border-[#c5a059]/50 outline-none appearance-none cursor-pointer"
+                                >
+                                    <option value="">{catalogLoading ? 'Cargando canciones...' : 'Elegir canción del catálogo'}</option>
+                                    {catalog.map(song => <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>)}
+                                </select>
+                            </div>
                             <div className="col-span-2">
                                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">1. Contenido Base</label>
                                 <textarea 

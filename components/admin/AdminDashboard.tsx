@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchMusicCatalog } from '../../services/musicService';
+import { MusicItem } from '../../types';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [musicCatalog, setMusicCatalog] = useState<MusicItem[]>([]);
+    const [isSyncingMusic, setIsSyncingMusic] = useState(false);
+    const [lastMusicSync, setLastMusicSync] = useState<string>('Pendiente');
+
+    const loadMusicCatalog = async (forceRefresh = false) => {
+        setIsSyncingMusic(true);
+        try {
+            const [diosmasgym, juan614] = await Promise.all([
+                fetchMusicCatalog('diosmasgym', forceRefresh),
+                fetchMusicCatalog('juan614', forceRefresh)
+            ]);
+            setMusicCatalog([...diosmasgym, ...juan614]);
+            setLastMusicSync(new Date().toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' }));
+        } catch (error) {
+            console.error('Error sincronizando musica:', error);
+        } finally {
+            setIsSyncingMusic(false);
+        }
+    };
 
     useEffect(() => {
         // LIMPIEZA AGRESIVA DE CACHÉ Y SW VIEJOS
@@ -58,6 +79,10 @@ const AdminDashboard: React.FC = () => {
             window.removeEventListener('pwa-ready', handlePWAReady);
             // Opcional: no removemos el manifest para que la App siga funcionando tras instalar
         };
+    }, []);
+
+    useEffect(() => {
+        loadMusicCatalog();
     }, []);
 
     const handleInstall = async () => {
@@ -170,6 +195,18 @@ const AdminDashboard: React.FC = () => {
         return acc;
     }, {} as Record<string, typeof tools>);
 
+    const musicStats = {
+        total: musicCatalog.length,
+        diosmasgym: musicCatalog.filter(song => song.artist.toLowerCase().includes('dios')).length,
+        juan614: musicCatalog.filter(song => song.artist.toLowerCase().includes('juan')).length,
+        missingCover: musicCatalog.filter(song => !song.cover).length,
+        missingDate: musicCatalog.filter(song => !song.date).length,
+        latest: [...musicCatalog]
+            .filter(song => song.date)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 3)
+    };
+
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8">
             <div className="max-w-6xl mx-auto">
@@ -238,6 +275,71 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                <div className="mb-20 bg-[#0f111a] border border-[#c5a059]/20 rounded-[2rem] p-8 md:p-10 shadow-2xl overflow-hidden relative font-['Poppins']">
+                    <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#c5a059]/10 rounded-full blur-[100px]"></div>
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10 mb-10">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-3">Base musical</p>
+                            <h3 className="font-serif italic text-4xl md:text-5xl text-white">Control del catálogo</h3>
+                            <p className="text-white/40 text-xs mt-3 max-w-2xl">Estadísticas rápidas de Diosmasgym y Juan 614. Usa sincronizar para revisar cambios nuevos del Google Sheet sin esperar el cache normal.</p>
+                        </div>
+                        <button
+                            onClick={() => loadMusicCatalog(true)}
+                            disabled={isSyncingMusic}
+                            className="px-8 py-5 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                            <i className={`fas ${isSyncingMusic ? 'fa-spinner fa-spin' : 'fa-rotate'} mr-3`}></i>
+                            {isSyncingMusic ? 'Sincronizando' : 'Sincronizar ahora'}
+                        </button>
+                    </div>
+
+                    <div className="relative z-10 grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                        {[
+                            { label: 'Total', value: musicStats.total, icon: 'fa-music' },
+                            { label: 'Diosmasgym', value: musicStats.diosmasgym, icon: 'fa-dumbbell' },
+                            { label: 'Juan 614', value: musicStats.juan614, icon: 'fa-microphone-lines' },
+                            { label: 'Sin portada', value: musicStats.missingCover, icon: 'fa-image' },
+                            { label: 'Sin fecha', value: musicStats.missingDate, icon: 'fa-calendar-xmark' }
+                        ].map(stat => (
+                            <div key={stat.label} className="bg-[#05070a] border border-white/5 rounded-2xl p-5">
+                                <i className={`fas ${stat.icon} text-[#c5a059] mb-4`}></i>
+                                <p className="text-3xl font-serif italic text-white">{stat.value}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">{stat.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-[#05070a] border border-white/5 rounded-2xl p-6">
+                            <div className="flex items-center justify-between mb-5">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Últimos lanzamientos</p>
+                                <span className="text-[9px] text-[#c5a059] uppercase tracking-widest">Sync: {lastMusicSync}</span>
+                            </div>
+                            <div className="space-y-3">
+                                {musicStats.latest.length > 0 ? musicStats.latest.map(song => (
+                                    <div key={song.id} className="flex items-center gap-4 border-b border-white/5 pb-3 last:border-0 last:pb-0">
+                                        <img src={song.cover || '/logo-diosmasgym.png'} alt={song.name} className="w-12 h-12 rounded-xl object-cover bg-white/5" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-white text-sm font-bold truncate">{song.name}</p>
+                                            <p className="text-white/30 text-[10px] uppercase tracking-widest truncate">{song.artist} · {song.date}</p>
+                                        </div>
+                                    </div>
+                                )) : <p className="text-white/30 text-xs">Sin fechas registradas todavía.</p>}
+                            </div>
+                        </div>
+                        <div className="bg-[#05070a] border border-white/5 rounded-2xl p-6 flex flex-col justify-between gap-6">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3">Promos rápidas</p>
+                                <p className="text-white/50 text-xs leading-relaxed">Crea una imagen promocional o un post viral usando canciones del catálogo musical ya sincronizado.</p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button onClick={() => navigate('/admin/promo-image')} className="py-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white hover:border-[#c5a059] transition-all">Imagen promo</button>
+                                <button onClick={() => navigate('/admin/social-post')} className="py-4 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white hover:border-[#c5a059] transition-all">Post automático</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="space-y-24 font-['Poppins']">
                     {Object.entries(toolsByCategory).map(([category, categoryTools]) => (
