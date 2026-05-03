@@ -31,7 +31,7 @@ export default async function handler(
     const csvData = await response.text();
     
     // Set cache headers
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     res.setHeader('Content-Type', 'text/csv');
     
     return res.status(200).send(csvData);
