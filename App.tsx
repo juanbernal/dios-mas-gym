@@ -422,33 +422,37 @@ const App: React.FC = () => {
 const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (song: MusicItem) => void; randomSong?: MusicItem | null }> = ({ artist, catalog, onPlay, randomSong }) => {
   const isDios = artist === 'diosmasgym';
   const description = isDios 
-    ? "Musica urbana" 
-    : "música de corridos tumbados, banda sinaloense";
+    ? "Urbano cristiano, disciplina y fe en movimiento" 
+    : "Corridos, banda sinaloense y calle con propósito";
+  const artistLogo = isDios ? '/logo-diosmasgym.png' : '/logo-juan614-v2.jpg';
+  const artistUrl = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
 
   return (
-    <section className={`py-32 relative overflow-hidden transition-all duration-1000 ${isDios ? 'bg-[#05070a] border-y border-[#c5a059]/10' : 'bg-[#0a0c14]'}`}>
-      {/* Visual Effect: Background Glow */}
-      <div className={`absolute top-0 ${isDios ? 'right-0' : 'left-0'} w-[500px] h-[500px] bg-[#c5a059]/5 blur-[120px] rounded-full -translate-y-1/2 opacity-50`}></div>
+    <section className={`py-28 md:py-36 relative overflow-hidden transition-all duration-1000 ${isDios ? 'bg-[#05070a] border-y border-[#c5a059]/10' : 'bg-[#0a0c14]'}`}>
+      <div className={`absolute top-0 ${isDios ? 'right-0' : 'left-0'} w-[720px] h-[720px] ${isDios ? 'bg-[#c5a059]/8' : 'bg-[#8B5A2B]/12'} blur-[130px] rounded-full -translate-y-1/2 opacity-70`}></div>
+      <div className="absolute inset-0 opacity-[0.05] bg-[linear-gradient(115deg,#fff_1px,transparent_1px)] bg-[size:36px_36px]"></div>
       
       <div className="section-container relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-20 gap-8">
-          <div className="flex items-center gap-8 group">
-            <div className="w-20 h-20 rounded-full border-2 border-[#c5a059]/30 flex items-center justify-center relative overflow-hidden group-hover:border-[#c5a059] transition-all duration-700">
-              <div className="absolute inset-0 bg-[#c5a059]/5 group-hover:animate-pulse"></div>
-              <div className="w-6 h-6 bg-[#c5a059] rounded-full animate-spin-slow shadow-[0_0_20px_rgba(197,160,89,0.5)]"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-end mb-16">
+          <div className="lg:col-span-8 flex items-center gap-6 md:gap-8 group">
+            <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-[2rem] overflow-hidden border border-[#c5a059]/30 shadow-[0_30px_80px_rgba(0,0,0,0.45)] group-hover:rotate-2 transition-transform duration-700">
+              <img src={artistLogo} alt={artist} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
             </div>
             <div>
-              <h2 className="font-serif italic text-5xl md:text-7xl capitalize mb-2 group-hover:tracking-wider transition-all duration-700">
+              <p className="text-[9px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-3">Catálogo oficial</p>
+              <h2 className="font-serif italic text-5xl md:text-8xl capitalize mb-3 group-hover:tracking-wide transition-all duration-700">
                 {artist}
               </h2>
-              <p className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.4em] opacity-60 group-hover:opacity-100 transition-opacity">
+              <p className="text-white/45 text-xs md:text-sm font-bold uppercase tracking-[0.25em] max-w-xl leading-relaxed">
                 {description}
               </p>
             </div>
           </div>
           
-          {randomSong && ( 
-            <div className="bg-[#c5a059]/5 border border-[#c5a059]/10 p-6 rounded-sm max-w-sm w-full backdrop-blur-sm hover:border-[#c5a059]/40 transition-all duration-500 group">
+          <div className="lg:col-span-4 grid gap-4">
+            {randomSong && ( 
+            <div className="bg-[#c5a059]/8 border border-[#c5a059]/15 p-6 rounded-[1.5rem] w-full backdrop-blur-sm hover:border-[#c5a059]/40 transition-all duration-500 group gold-border-glow">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-1 h-8 bg-[#c5a059]"></div>
                 <h5 className="font-serif text-xl font-bold truncate text-white/90 group-hover:text-[#c5a059] transition-colors">{randomSong.name}</h5>
@@ -460,7 +464,9 @@ const MusicSection: React.FC<{ artist: string; catalog: MusicItem[]; onPlay: (so
                 <span className="relative z-10">Reproducir Sugerencia</span>
               </button>
             </div> 
-          )}
+            )}
+            <a href={artistUrl} target="_blank" rel="noreferrer" className="text-center py-4 rounded-full border border-white/10 bg-white/[0.03] text-[9px] font-black uppercase tracking-[0.3em] text-white/50 hover:text-black hover:bg-[#c5a059] transition-all">Ver página del artista</a>
+          </div>
         </div>
         
         <div className="grid grid-cols-12 gap-6">

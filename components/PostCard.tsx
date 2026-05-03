@@ -12,16 +12,19 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav }) => {
   return (
     <div 
-      className="group relative flex flex-col h-full bg-[#0f111a] border border-white/5 rounded-sm overflow-hidden cursor-pointer hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-500" 
+      className="group relative flex flex-col h-full bg-[#0f111a]/90 border border-white/5 rounded-[1.75rem] overflow-hidden cursor-pointer hover:shadow-[0_35px_90px_-25px_rgba(197,160,89,0.28)] hover:border-[#c5a059]/25 transition-all duration-500 gold-border-glow" 
       onClick={onClick}
     >
-      <div className="relative h-[480px] overflow-hidden">
+      <div className="relative h-[360px] md:h-[440px] overflow-hidden">
         <img 
           src={post.images?.[0]?.url || 'https://placehold.co/800x1200/05070a/c5a059?text=Reflections'} 
           className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" 
           alt={post.title} 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-[#05070a]/20 to-transparent opacity-90 group-hover:opacity-60 transition-opacity"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-[#05070a]/35 to-transparent opacity-95 group-hover:opacity-65 transition-opacity"></div>
+        <div className="absolute left-6 bottom-6 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl text-[8px] font-black uppercase tracking-[0.35em] text-[#c5a059]">
+          Lectura
+        </div>
         
         <button 
           onClick={onFav} 
@@ -35,7 +38,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav
         </button>
       </div>
 
-      <div className="p-8 flex-1 flex flex-col relative z-10">
+      <div className="p-7 md:p-8 flex-1 flex flex-col relative z-10">
         <div className="flex gap-4 mb-4">
            {post.labels?.slice(0, 1).map(l => (
               <span key={l} className="text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059]">
@@ -44,7 +47,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav
            ))}
         </div>
         
-        <h4 className="font-serif text-3xl font-bold mb-8 leading-[1.15] text-white/95 group-hover:text-[#c5a059] transition-colors">
+        <h4 className="font-serif text-2xl md:text-3xl font-bold mb-8 leading-[1.12] text-white/95 group-hover:text-[#c5a059] transition-colors">
           {post.title}
         </h4>
 

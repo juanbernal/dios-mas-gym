@@ -23,15 +23,17 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
   };
 
   const videoId = getVideoId(activeSong.url);
+  const isJuan = activeSong.artist.toLowerCase().includes('juan');
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-[3000] p-4 transition-transform duration-500 ${isMinimized ? 'translate-y-[calc(100%-10px)]' : 'translate-y-0'}`}>
-      <div className="max-w-5xl mx-auto bg-[#0f111a]/95 backdrop-blur-2xl border border-white/10 rounded-t-xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+    <div className={`fixed bottom-0 left-0 right-0 z-[3000] p-3 md:p-5 transition-transform duration-500 ${isMinimized ? 'translate-y-[calc(100%-10px)]' : 'translate-y-0'}`}>
+      <div className="max-w-5xl mx-auto bg-[#0f111a]/95 backdrop-blur-2xl border border-[#c5a059]/20 rounded-[1.75rem] shadow-[0_-25px_80px_rgba(0,0,0,0.55)] overflow-hidden relative">
+        <div className={`absolute inset-0 opacity-20 bg-gradient-to-r ${isJuan ? 'from-[#8B5A2B]/30' : 'from-[#c5a059]/30'} via-transparent to-transparent`}></div>
         
         {/* Toggle Bar */}
-        <div className="h-1 bg-white/5 cursor-pointer hover:bg-[#c5a059]/40 transition-colors" onClick={() => setIsMinimized(!isMinimized)}></div>
+        <div className="relative z-10 h-2 bg-white/5 cursor-pointer hover:bg-[#c5a059]/40 transition-colors" onClick={() => setIsMinimized(!isMinimized)}></div>
 
-        <div className="p-4 md:p-6 flex items-center justify-between gap-6">
+        <div className="relative z-10 p-4 md:p-6 flex items-center justify-between gap-4 md:gap-6">
           {/* Hidden YouTube Iframe (Audio only) */}
           <div className="absolute opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
             {videoId && (
@@ -47,14 +49,20 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
           <div className="flex items-center gap-6 flex-1 min-w-0">
             {/* Cover Small */}
-            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 shadow-lg relative group">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group">
               <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
               <div className="absolute inset-0 bg-[#c5a059]/20 mix-blend-overlay"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#c5a059] text-black flex items-center justify-center shadow-lg">
+                  <i className="fas fa-play text-[10px] ml-0.5"></i>
+                </div>
+              </div>
             </div>
 
             <div className="flex-1 min-w-0 flex items-center gap-8">
               <div>
-                <h5 className="text-[#c5a059] font-serif text-lg font-bold truncate tracking-tight">{activeSong.name}</h5>
+                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/25 mb-1">Reproduciendo ahora</p>
+                <h5 className="text-[#c5a059] font-serif text-lg md:text-2xl font-bold truncate tracking-tight">{activeSong.name}</h5>
                 <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-black mt-1">{activeSong.artist}</p>
               </div>
 
@@ -90,7 +98,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                 href={activeSong.artist.toLowerCase().includes('juan') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.2em] hover:bg-[#c5a059] hover:text-black transition-all"
+                 className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.2em] hover:bg-[#c5a059] hover:text-black transition-all"
              >
                 Ver más de {activeSong.artist}
              </a>
@@ -105,7 +113,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
         </div>
 
         {/* Playback Simulation Bar (Visual only) */}
-        <div className="h-1 bg-white/5 relative overflow-hidden">
+        <div className="relative z-10 h-1 bg-white/5 relative overflow-hidden">
            <div className="absolute inset-0 bg-gradient-to-r from-[#c5a059] to-[#c5a059]/30 animate-progress-bar"></div>
         </div>
       </div>
