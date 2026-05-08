@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
 import { LinkBioData } from '../types';
+// VERSION: 1.1.0
 
 const LinkBioPublic: React.FC = () => {
     const [data, setData] = useState<LinkBioData | null>(null);
@@ -87,7 +87,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    Dios Mas Gym Records
+                    Dios Mas Gym Records v1.1
                 </div>
             </div>
         </div>

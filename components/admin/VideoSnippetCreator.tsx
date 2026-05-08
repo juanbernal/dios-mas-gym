@@ -121,43 +121,69 @@ const VideoSnippetCreator: React.FC = () => {
 
     const startRecording = async () => {
         if (!canvasRef.current || !audioRef.current) return;
-        setIsRecording(true);
         
-        const canvas = canvasRef.current;
-        const stream = canvas.captureStream(30); // 30 FPS
-        
-        // Mix Audio
-        const audioStream = (audioRef.current as any).captureStream ? (audioRef.current as any).captureStream() : null;
-        if (audioStream) {
-            audioStream.getAudioTracks().forEach((track: any) => stream.addTrack(track));
-        }
+        try {
+            setIsRecording(true);
+            const canvas = canvasRef.current;
+            
+            // Forzar carga de imagen antes de empezar para evitar parpadeos
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = selectedSong!.cover;
+            await new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
 
-        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
-        const chunks: Blob[] = [];
+            const stream = canvas.captureStream(60); // 60 FPS para máxima fluidez
+            
+            // Audio Capture con AudioContext para mayor compatibilidad
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(audioRef.current);
+            const destination = audioCtx.createMediaStreamDestination();
+            source.connect(destination);
+            source.connect(audioCtx.destination); // Para que el usuario también escuche
+            
+            destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Snippet_${selectedSong?.name.replace(/\s/g, '_')}.webm`;
-            a.click();
+            const recorder = new MediaRecorder(stream, { 
+                mimeType: 'video/webm;codecs=vp9,opus',
+                videoBitsPerSecond: 5000000 // 5Mbps para alta calidad
+            });
+            
+            const chunks: Blob[] = [];
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Snippet_${selectedSong?.name.replace(/\s/g, '_')}_HQ.webm`;
+                a.click();
+                setIsRecording(false);
+                // Limpiar
+                audioCtx.close();
+            };
+
+            audioRef.current.currentTime = startTime;
+            audioRef.current.play();
+            setIsPlaying(true);
+            recorder.start();
+
+            setTimeout(() => {
+                if (recorder.state === 'recording') {
+                    recorder.stop();
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                        setIsPlaying(false);
+                    }
+                }
+            }, duration * 1000);
+        } catch (err) {
+            console.error("Error en grabación:", err);
+            alert("No se pudo iniciar la exportación. Asegúrate de que el navegador permita capturar audio.");
             setIsRecording(false);
-        };
-
-        audioRef.current.currentTime = startTime;
-        audioRef.current.play();
-        setIsPlaying(true);
-        recorder.start();
-
-        setTimeout(() => {
-            recorder.stop();
-            if (audioRef.current) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-            }
-        }, duration * 1000);
+        }
     };
 
     const filteredCatalog = catalog.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -174,7 +200,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.0</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.1</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -276,6 +302,7 @@ const VideoSnippetCreator: React.FC = () => {
                                 ref={audioRef} 
                                 src={selectedSong.url} 
                                 onEnded={() => setIsPlaying(false)}
+                                onError={() => alert("Error al cargar el audio. Verifica el formato o la conexión.")}
                                 crossOrigin="anonymous"
                             />
                         </div>
