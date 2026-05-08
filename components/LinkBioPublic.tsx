@@ -9,6 +9,7 @@ const LinkBioPublic: React.FC = () => {
         fetch('/api/links')
             .then(res => res.json())
             .then(json => {
+                console.log("Public Bio API response:", json);
                 setData(json);
                 setIsLoading(false);
             })
@@ -87,7 +88,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    Dios Mas Gym Records v1.1
+                    Dios Mas Gym Records v1.2
                 </div>
             </div>
         </div>

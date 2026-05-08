@@ -25,6 +25,7 @@ const LinkBioAdmin: React.FC = () => {
         fetch('/api/links')
             .then(res => res.json())
             .then(json => {
+                console.log("Links API response:", json);
                 if (json.links) setData(json);
                 setIsLoading(false);
             })
@@ -98,7 +99,7 @@ const LinkBioAdmin: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Link <span className="text-[#c5a059]">Bio</span> <span className="text-white/20 ml-2">v1.1</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Link <span className="text-[#c5a059]">Bio</span> <span className="text-white/20 ml-2">v1.2</span></h1>
                 </div>
                 <button 
                     onClick={saveData}
