@@ -16,6 +16,7 @@ const VideoSnippetCreator: React.FC = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
+    const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,14 +43,25 @@ const VideoSnippetCreator: React.FC = () => {
             setLocalFileUrl(url);
             setSelectedSong({
                 id: 'local',
-                name: file.name.split('.')[0],
-                artist: 'Archivo Local',
-                cover: selectedSong?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
+                name: selectedSong?.id === 'local' ? selectedSong.name : file.name.split('.')[0],
+                artist: selectedSong?.id === 'local' ? selectedSong.artist : 'Archivo Local',
+                cover: localCoverUrl || selectedSong?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
                 url: url,
                 type: 'Local',
                 date: new Date().toISOString()
             });
             setStartTime(0);
+        }
+    };
+
+    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setLocalCoverUrl(url);
+            if (selectedSong) {
+                setSelectedSong({ ...selectedSong, cover: url });
+            }
         }
     };
 
@@ -219,7 +231,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.2</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.3</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -260,15 +272,28 @@ const VideoSnippetCreator: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="mt-8 pt-8 border-t border-white/5">
-                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Alternativa: Cargar MP3</h3>
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <i className="fas fa-cloud-upload-alt text-2xl text-[#c5a059] mb-3"></i>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Subir MP3 Local</p>
-                                </div>
-                                <input type="file" className="hidden" accept="audio/*" onChange={handleFileUpload} />
-                            </label>
+                        <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
+                            <div>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 1: Subir MP3</h3>
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i className="fas fa-music text-xl text-[#c5a059] mb-2"></i>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localFileUrl ? "Archivo MP3 Cargado" : "Seleccionar MP3"}</p>
+                                    </div>
+                                    <input type="file" className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                                </label>
+                            </div>
+
+                            <div>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir Portada (Opcional)</h3>
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localCoverUrl ? "Portada Cargada" : "Seleccionar Imagen"}</p>
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
+                                </label>
+                            </div>
                         </div>
                     </div>
 
