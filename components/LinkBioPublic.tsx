@@ -1,5 +1,19 @@
+import React, { useState, useEffect } from 'react';
 import { LinkBioData } from '../types';
-// VERSION: 1.1.0
+
+const FALLBACK_DATA: LinkBioData = {
+    profile: {
+        name: "Dios Mas Gym",
+        bio: "El Arsenal de Fe | Música, Disciplina y Transformación",
+        avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"
+    },
+    links: [
+        { id: "1", title: "Escuchar en Spotify", url: "https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do", icon: "fab fa-spotify", enabled: true, type: "special" },
+        { id: "2", title: "Suscríbete en YouTube", url: "https://www.youtube.com/@Diosmasgym", icon: "fab fa-youtube", enabled: true, type: "primary" },
+        { id: "3", title: "Sígueme en Instagram", url: "https://instagram.com/diosmasgym", icon: "fab fa-instagram", enabled: true, type: "primary" },
+        { id: "6", title: "Catálogo de Música", url: "https://musica.diosmasgym.com", icon: "fas fa-globe", enabled: true, type: "secondary" }
+    ]
+};
 
 const LinkBioPublic: React.FC = () => {
     const [data, setData] = useState<LinkBioData | null>(null);
@@ -7,14 +21,23 @@ const LinkBioPublic: React.FC = () => {
 
     useEffect(() => {
         fetch('/api/links')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("API failed");
+                return res.json();
+            })
             .then(json => {
                 console.log("Public Bio API response:", json);
-                setData(json);
+                if (json && json.profile && json.links && json.links.length > 0) {
+                    setData(json);
+                } else {
+                    console.warn("API returned empty data, using fallback.");
+                    setData(FALLBACK_DATA);
+                }
                 setIsLoading(false);
             })
             .catch(err => {
-                console.error("Error loading bio links:", err);
+                console.error("Error loading bio links, using fallback:", err);
+                setData(FALLBACK_DATA);
                 setIsLoading(false);
             });
     }, []);
@@ -25,7 +48,7 @@ const LinkBioPublic: React.FC = () => {
                 <i className="fas fa-spinner fa-spin text-[#c5a059] text-4xl mb-4"></i>
                 <h1 className="text-xl font-bold mb-2">Cargando Bio...</h1>
                 <p className="text-white/40 text-sm">Si esto tarda mucho, refresca la página.</p>
-                <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.3 DEBUG</div>
+                <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.5 PRODUCTION FALLBACK</div>
             </div>
         </div>
     );
@@ -83,7 +106,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    Dios Mas Gym Records v1.3
+                    Dios Mas Gym Records v1.5
                 </div>
             </div>
         </div>
