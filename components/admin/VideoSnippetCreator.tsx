@@ -154,7 +154,7 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
         ctx.font = '400 35px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '15px';
-        ctx.fillText(selectedSong.artist.toUpperCase(), 540, 1600);
+        ctx.fillText((selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1600);
 
         // 7. Barra de Progreso Premium
         const progress = isRecording ? recordingProgress : ((audioRef.current?.currentTime || 0) - startTime) / duration;
@@ -267,7 +267,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.4</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.5</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -330,6 +330,35 @@ const VideoSnippetCreator: React.FC = () => {
                                     <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
                                 </label>
                             </div>
+
+                            {selectedSong?.id === 'local' && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <div>
+                                        <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-2">Paso 3: Detalles Personalizados</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[8px] text-white/40 uppercase tracking-widest mb-1 block">Nombre Canción</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={selectedSong.name}
+                                                    onChange={e => setSelectedSong({...selectedSong, name: e.target.value})}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-[#c5a059] outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] text-white/40 uppercase tracking-widest mb-1 block">Artista / Feat</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={selectedSong.artist}
+                                                    onChange={e => setSelectedSong({...selectedSong, artist: e.target.value})}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-[#c5a059] outline-none"
+                                                    placeholder="Ej: Juan 614 ft Dios Mas Gym"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
