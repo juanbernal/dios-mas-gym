@@ -306,9 +306,10 @@ const App: React.FC = () => {
   }
 
   const isSmartLinkRoute = location.pathname.startsWith('/link/');
-  // Ocultar Navbar global en TODO el ecosistema admin
+  // Ocultar Navbar global en TODO el ecosistema admin y la bio pública
   const isToolRoute = location.pathname.startsWith('/admin');
-  const hideGlobalUI = isSmartLinkRoute || isToolRoute;
+  const isBioRoute = location.pathname === '/bio';
+  const hideGlobalUI = isSmartLinkRoute || isToolRoute || isBioRoute;
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">

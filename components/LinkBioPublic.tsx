@@ -19,18 +19,13 @@ const LinkBioPublic: React.FC = () => {
             });
     }, []);
 
-    if (isLoading) return (
-        <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-[#c5a059]/20 border-t-[#c5a059] rounded-full animate-spin"></div>
-        </div>
-    );
-
-    if (!data) return (
+    if (!data || !data.profile) return (
         <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-8 text-center font-['Poppins']">
             <div>
-                <i className="fas fa-exclamation-triangle text-[#c5a059] text-4xl mb-4"></i>
-                <h1 className="text-xl font-bold mb-2">Página no disponible</h1>
-                <p className="text-white/40 text-sm">Vuelve a intentarlo más tarde.</p>
+                <i className="fas fa-spinner fa-spin text-[#c5a059] text-4xl mb-4"></i>
+                <h1 className="text-xl font-bold mb-2">Cargando Bio...</h1>
+                <p className="text-white/40 text-sm">Si esto tarda mucho, refresca la página.</p>
+                <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.3 DEBUG</div>
             </div>
         </div>
     );
@@ -88,7 +83,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    Dios Mas Gym Records v1.2
+                    Dios Mas Gym Records v1.3
                 </div>
             </div>
         </div>
