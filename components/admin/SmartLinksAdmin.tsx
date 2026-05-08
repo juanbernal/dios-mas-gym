@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
@@ -8,6 +8,12 @@ const SmartLinksAdmin: React.FC = () => {
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [toast, setToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+
+    const showToast = useCallback((msg: string) => {
+        setToast({ show: true, msg });
+        setTimeout(() => setToast({ show: false, msg: '' }), 3000);
+    }, []);
 
     useEffect(() => {
         const loadCatalog = async () => {
@@ -37,7 +43,7 @@ const SmartLinksAdmin: React.FC = () => {
 
     const handleCopyManualLink = () => {
         if (!manualForm.title || !manualForm.coverUrl) {
-            alert("El título y la URL de la portada son obligatorios.");
+            showToast("Título y Portada obligatorios");
             return;
         }
         
@@ -50,13 +56,13 @@ const SmartLinksAdmin: React.FC = () => {
         
         const url = `${window.location.origin}/#/link/custom?${params.toString()}`;
         navigator.clipboard.writeText(url)
-            .then(() => alert(`¡Enlace manual copiado al portapapeles!\n${url}`))
-            .catch(() => alert('Error al copiar el enlace'));
+            .then(() => showToast("Enlace manual copiado"))
+            .catch(() => showToast("Error al copiar enlace"));
     };
 
     const handlePreviewManual = () => {
         if (!manualForm.title || !manualForm.coverUrl) {
-            alert("El título y la URL de la portada son obligatorios.");
+            showToast("Título y Portada obligatorios");
             return;
         }
         
@@ -78,8 +84,8 @@ const SmartLinksAdmin: React.FC = () => {
     const handleCopyLink = (id: string) => {
         const url = `${window.location.origin}/#/link/${id}`;
         navigator.clipboard.writeText(url)
-            .then(() => alert(`¡Enlace copiado al portapapeles!\n${url}`))
-            .catch(() => alert('Error al copiar el enlace'));
+            .then(() => showToast("¡Enlace copiado!"))
+            .catch(() => showToast("Error al copiar enlace"));
     };
 
     const handlePreview = (id: string) => {
@@ -236,6 +242,23 @@ const SmartLinksAdmin: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Notification Toast */}
+            {toast.show && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] animate-bounce-subtle">
+                    <div className="bg-black/80 backdrop-blur-xl border border-[#c5a059]/30 px-8 py-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_20px_rgba(197,160,89,0.1)] flex items-center gap-4 transition-all scale-110">
+                        <div className="w-10 h-10 bg-[#c5a059] rounded-xl flex items-center justify-center text-black shadow-[0_0_15px_rgba(197,160,89,0.5)]">
+                            <i className="fas fa-check text-lg"></i>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]">Éxito</span>
+                            <span className="text-xs font-medium text-white/90 tracking-wide">
+                                {toast.msg}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
