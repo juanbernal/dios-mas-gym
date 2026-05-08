@@ -15,6 +15,7 @@ const VideoSnippetCreator: React.FC = () => {
     const [duration, setDuration] = useState(60); // 60 segundos por defecto
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -28,11 +29,29 @@ const VideoSnippetCreator: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedSong && audioRef.current) {
+        if ((selectedSong || localFileUrl) && audioRef.current) {
             audioRef.current.currentTime = startTime;
-            if (isPlaying) audioRef.current.play();
+            if (isPlaying) audioRef.current.play().catch(e => console.error("Auto-play blocked or failed", e));
         }
-    }, [startTime, selectedSong]);
+    }, [startTime, selectedSong, localFileUrl]);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setLocalFileUrl(url);
+            setSelectedSong({
+                id: 'local',
+                name: file.name.split('.')[0],
+                artist: 'Archivo Local',
+                cover: selectedSong?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
+                url: url,
+                type: 'Local',
+                date: new Date().toISOString()
+            });
+            setStartTime(0);
+        }
+    };
 
     const handlePlayPause = () => {
         if (!audioRef.current) return;
@@ -200,7 +219,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.1</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.2</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -234,6 +253,22 @@ const VideoSnippetCreator: React.FC = () => {
                                     </div>
                                 </button>
                             ))}
+                            {filteredCatalog.length === 0 && (
+                                <div className="text-center py-10 opacity-30 text-[10px] uppercase font-black tracking-widest">
+                                    No se encontraron resultados
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-8 pt-8 border-t border-white/5">
+                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Alternativa: Cargar MP3</h3>
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i className="fas fa-cloud-upload-alt text-2xl text-[#c5a059] mb-3"></i>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Subir MP3 Local</p>
+                                </div>
+                                <input type="file" className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                            </label>
                         </div>
                     </div>
 
