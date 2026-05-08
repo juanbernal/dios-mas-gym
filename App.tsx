@@ -296,7 +296,12 @@ const App: React.FC = () => {
     if (location.search.includes('m=1') && path === '/') { navigate('/', { replace: true }); }
   }, [location.pathname, location.search, navigate]);
 
-  if (showSplash) {
+  const isSmartLinkRoute = location.pathname.startsWith('/link/');
+  const isToolRoute = location.pathname.startsWith('/admin');
+  const isBioRoute = location.pathname === '/bio';
+  const hideGlobalUI = isSmartLinkRoute || isToolRoute || isBioRoute;
+
+  if (showSplash && !isBioRoute && !isSmartLinkRoute) {
     return (
       <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden">
         <div className="relative"><div className="text-[#c5a059] font-serif italic text-8xl md:text-9xl opacity-20 animate-pulse">Reflections</div><div className="absolute inset-0 flex items-center justify-center"><div className="h-px w-32 bg-gradient-to-r from-transparent via-[#c5a059]/40 to-transparent"></div></div></div>
@@ -304,12 +309,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-  const isSmartLinkRoute = location.pathname.startsWith('/link/');
-  // Ocultar Navbar global en TODO el ecosistema admin y la bio pública
-  const isToolRoute = location.pathname.startsWith('/admin');
-  const isBioRoute = location.pathname === '/bio';
-  const hideGlobalUI = isSmartLinkRoute || isToolRoute || isBioRoute;
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
