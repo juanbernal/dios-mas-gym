@@ -185,6 +185,24 @@ const AdminDashboard: React.FC = () => {
             color: '#a855f7',
             route: '/admin/metadata-tagger',
             category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'link-bio',
+            title: 'Link-in-Bio Manager',
+            description: 'Gestiona tu página de enlaces para Instagram y TikTok con el diseño premium de la marca.',
+            icon: 'fa-user-astronaut',
+            color: '#c5a059',
+            route: '/admin/links',
+            category: 'Marketing & Social'
+        },
+        {
+            id: 'video-snippet',
+            title: 'Video Snippet Creator',
+            description: 'Genera clips de 60 segundos para Reels/TikTok eligiendo cualquier parte de tus canciones.',
+            icon: 'fa-film',
+            color: '#c5a059',
+            route: '/admin/video-snippet',
+            category: 'Contenido Audiovisual'
         }
     ];
 

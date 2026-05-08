@@ -81,6 +81,31 @@ async function startServer() {
     }
   });
 
+  // Link-in-Bio API
+  const LINKS_FILE = path.join(__dirname, "data", "links.json");
+
+  app.get("/api/links", (req, res) => {
+    try {
+      if (!fs.existsSync(LINKS_FILE)) {
+        return res.json({ links: [], profile: { name: "Dios Mas Gym", bio: "El Arsenal de Fe", avatar: "" } });
+      }
+      const data = fs.readFileSync(LINKS_FILE, "utf-8");
+      res.json(JSON.parse(data));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load links" });
+    }
+  });
+
+  app.post("/api/links", (req, res) => {
+    try {
+      const data = req.body;
+      fs.writeFileSync(LINKS_FILE, JSON.stringify(data, null, 2));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save links" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
