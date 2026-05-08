@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- PWA_VERSION: 4.0.0 -->
+    <!-- PWA_VERSION: 4.1.0 -->
     <script>
         (function() {
             var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -36,9 +36,11 @@
 </head>
 <body class="flex flex-col">
     <script>
-        // MASTER RESET SCRIPT (v2.0.4)
-        if (window.location.search.includes('reset') || window.location.search.includes('v=4')) {
-            console.log('🧹 Iniciando Limpieza Total de Caché...');
+        // MASTER RESET SCRIPT (v4.1.0)
+        const APP_VERSION = '4.1.0';
+        if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
+            console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
+            localStorage.setItem('app_version', APP_VERSION);
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(registrations) {
                     for(let registration of registrations) { registration.unregister(); }
@@ -49,10 +51,7 @@
                     for (let name of names) caches.delete(name);
                 });
             }
-            // Eliminar parámetros para no entrar en bucle y recargar
-            setTimeout(() => {
-                window.location.href = window.location.pathname + window.location.hash;
-            }, 1000);
+            setTimeout(() => { window.location.reload(true); }, 500);
         }
     </script>
     <div id="root"></div>

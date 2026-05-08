@@ -86,6 +86,9 @@ async function startServer() {
 
   app.get("/api/links", (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       console.log(`Reading links from: ${LINKS_FILE}`);
       if (!fs.existsSync(LINKS_FILE)) {
         console.warn("Links file not found, returning default data.");
