@@ -12,9 +12,10 @@ const VideoSnippetCreator: React.FC = () => {
     
     // Video States
     const [startTime, setStartTime] = useState(0);
-    const [duration, setDuration] = useState(60); // 60 segundos por defecto
+    const [duration, setDuration] = useState(60); 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [recordingProgress, setRecordingProgress] = useState(0);
     const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
     const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null);
     
@@ -79,65 +80,96 @@ const VideoSnippetCreator: React.FC = () => {
     // Canvas Animation logic
     const draw = () => {
         if (!canvasRef.current || !selectedSong) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
-        const w = canvas.width;
-        const h = canvas.height;
+        const w = 1080;
+        const h = 1920;
+        const time = Date.now() / 1000;
+        const zoom = Math.sin(time * 0.3) * 50;
 
-        // Clear
-        ctx.fillStyle = '#05070a';
-        ctx.fillRect(0, 0, w, h);
-
-        // Draw Cover
+        // Background: Desenfoque de la portada
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = selectedSong.cover;
-        
-        // Efecto Ken Burns (zoom suave)
-        const time = Date.now() / 1000;
-        const scale = 1 + Math.sin(time * 0.2) * 0.05;
-        
-        const imgW = w * scale;
-        const imgH = h * scale;
-        const x = (w - imgW) / 2;
-        const y = (h - imgH) / 2;
+        if (!img.complete) {
+            requestRef.current = requestAnimationFrame(draw);
+            return;
+        }
 
-        ctx.globalAlpha = 0.6;
-        ctx.drawImage(img, x, y, imgW, imgH);
+        // 1. Fondo base negro
+        ctx.fillStyle = '#05070a';
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. Imagen de fondo escalada y desenfocada (Simulada con opacidad)
+        ctx.globalAlpha = 0.3;
+        const bgZoom = 1.2 + Math.sin(time * 0.1) * 0.1;
+        ctx.drawImage(img, (w - w*bgZoom)/2, (h - h*bgZoom)/2, w*bgZoom, h*bgZoom);
         ctx.globalAlpha = 1.0;
 
-        // Overlay Gradient
+        // 3. Gradiente de viñeta
         const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, 'rgba(0,0,0,0.2)');
-        grad.addColorStop(0.7, 'rgba(0,0,0,0)');
+        grad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
         grad.addColorStop(1, 'rgba(5,7,10,1)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
 
-        // Text
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 40px Poppins';
+        // 4. Portada con Glow Dinámico
+        ctx.save();
+        ctx.shadowBlur = 100 + Math.sin(time * 3) * 30;
+        ctx.shadowColor = '#c5a059';
+        ctx.beginPath();
+        ctx.roundRect(140, 460, 800, 800, 80);
+        ctx.clip();
+        ctx.drawImage(img, 140 - 50 - zoom, 460 - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+        ctx.restore();
+
+        // 5. Partículas de polvo/oro
+        ctx.fillStyle = 'rgba(197, 160, 89, 0.3)';
+        for(let i=0; i<30; i++) {
+            const px = ((Math.sin(time * 0.2 + i * 1.5) + 1) / 2) * w;
+            const py = ((Math.cos(time * 0.15 + i * 2.1) + 1) / 2) * h;
+            ctx.beginPath();
+            ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 6. Textos Motivacionales
         ctx.textAlign = 'center';
-        ctx.fillText(selectedSong.name.toUpperCase(), w/2, h - 150);
-
+        
+        // Tagline
         ctx.fillStyle = '#c5a059';
-        ctx.font = '900 14px Poppins';
-        ctx.fillText(selectedSong.artist.toUpperCase(), w/2, h - 110);
+        ctx.font = '900 40px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '12px';
+        ctx.fillText('EL ARSENAL DE FE', 540, 1400);
 
-        // Progress Bar
-        if (isPlaying && audioRef.current) {
-            const progress = (audioRef.current.currentTime - startTime) / duration;
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.fillRect(100, h - 70, w - 200, 4);
-            ctx.fillStyle = '#c5a059';
-            ctx.fillRect(100, h - 70, (w - 200) * Math.min(1, Math.max(0, progress)), 4);
-            
-            if (progress >= 1) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-            }
+        // Song Name
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 90px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+        ctx.fillText(selectedSong.name.toUpperCase(), 540, 1530);
+
+        // Artist
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '400 35px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '15px';
+        ctx.fillText(selectedSong.artist.toUpperCase(), 540, 1600);
+
+        // 7. Barra de Progreso Premium
+        const progress = isRecording ? recordingProgress : ((audioRef.current?.currentTime || 0) - startTime) / duration;
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(140, 1720, 800, 12);
+        
+        const progressGrad = ctx.createLinearGradient(140, 0, 940, 0);
+        progressGrad.addColorStop(0, '#c5a059');
+        progressGrad.addColorStop(1, '#ffffff');
+        ctx.fillStyle = progressGrad;
+        ctx.fillRect(140, 1720, 800 * Math.max(0, Math.min(1, progress)), 12);
+
+        if (progress >= 1 && isPlaying && !isRecording) {
+            audioRef.current?.pause();
+            setIsPlaying(false);
         }
 
         requestRef.current = requestAnimationFrame(draw);
@@ -199,17 +231,21 @@ const VideoSnippetCreator: React.FC = () => {
             audioRef.current.currentTime = startTime;
             audioRef.current.play();
             setIsPlaying(true);
-            recorder.start();
+            recorder.start(100); // Grabar en trozos de 100ms para mayor estabilidad
 
-            setTimeout(() => {
-                if (recorder.state === 'recording') {
-                    recorder.stop();
+            const recordingStartTime = Date.now();
+            const interval = setInterval(() => {
+                const elapsed = (Date.now() - recordingStartTime) / 1000;
+                setRecordingProgress(elapsed / duration);
+                if (elapsed >= duration) {
+                    clearInterval(interval);
+                    if (recorder.state === 'recording') recorder.stop();
                     if (audioRef.current) {
                         audioRef.current.pause();
                         setIsPlaying(false);
                     }
                 }
-            }, duration * 1000);
+            }, 100);
         } catch (err) {
             console.error("Error en grabación:", err);
             alert("No se pudo iniciar la exportación. Asegúrate de que el navegador permita capturar audio.");
@@ -231,7 +267,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.3</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.4</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
