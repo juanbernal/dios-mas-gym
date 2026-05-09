@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { generateLyricStyle } from "../../services/geminiService";
 
 const brandingData = {
   none: { name: "", link: "" },
@@ -56,6 +57,7 @@ const LyricStudio: React.FC = () => {
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, hidden
   const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
+  const [isGeneratingStyle, setIsGeneratingStyle] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1077,6 +1079,30 @@ const LyricStudio: React.FC = () => {
     // In a real scenario, we would call Gemini here
   };
 
+  const handleMagicDesign = async () => {
+      setIsGeneratingStyle(true);
+      try {
+          const config = await generateLyricStyle();
+          if (config) {
+              if (config.visualizerStyle) setVisualizerStyle(config.visualizerStyle);
+              if (config.vibe) setVibe(config.vibe);
+              if (config.emojiPack) setEmojiPack(config.emojiPack);
+              if (config.animationStyle) setAnimationStyle(config.animationStyle);
+              if (config.sensitivity !== undefined) setSensitivity(config.sensitivity);
+              if (config.fontSize) setFontSize(config.fontSize);
+              if (config.textColor) setTextColor(config.textColor);
+              if (config.glowToggle !== undefined) setGlowToggle(config.glowToggle);
+              if (config.leakToggle !== undefined) setLeakToggle(config.leakToggle);
+              if (config.vhsMode !== undefined) setVhsMode(config.vhsMode);
+          }
+      } catch (error) {
+          console.error("Failed to generate magic design", error);
+          alert("Hubo un error al generar el diseño con IA.");
+      } finally {
+          setIsGeneratingStyle(false);
+      }
+  };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-[#030305] text-white">
       {/* PREVIEW AREA */}
@@ -1277,7 +1303,20 @@ const LyricStudio: React.FC = () => {
 
         {/* 3. Estética */}
         <div className="mb-10 p-5 bg-white/5 border border-white/5 rounded-2xl">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 block">3. Estética Pro</span>
+            <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Estética Pro</span>
+                <button 
+                    onClick={handleMagicDesign}
+                    disabled={isGeneratingStyle}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] disabled:opacity-50"
+                >
+                    {isGeneratingStyle ? (
+                        <><i className="fas fa-spinner fa-spin"></i> Magia...</>
+                    ) : (
+                        <><i className="fas fa-wand-magic-sparkles"></i> Diseño Mágico IA</>
+                    )}
+                </button>
+            </div>
             
             <div className="mb-6 p-3 bg-black/20 rounded-xl border border-white/5">
                 <label className="text-[9px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>
