@@ -197,8 +197,8 @@ const ProximosLanzamientos: React.FC = () => {
                     <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                 </div>
 
-                {pendingSync.length > 0 && (
-                    <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-pulse">
+                {pendingSync.length > 0 ? (
+                    <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in">
                         <div className="flex items-center gap-6">
                             <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(197,160,89,0.4)]">
                                 <i className="fas fa-magic text-xl"></i>
@@ -216,6 +216,13 @@ const ProximosLanzamientos: React.FC = () => {
                             {isSyncing ? 'Sincronizando...' : 'Sincronizar Todo Ahora'}
                         </button>
                     </div>
+                ) : (
+                    !loadingReleases && (
+                        <div className="mb-12 bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex items-center gap-4">
+                            <i className="fas fa-check-circle text-green-500/50"></i>
+                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Catálogo verificado: Todo está sincronizado con Google Sheets</span>
+                        </div>
+                    )
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
