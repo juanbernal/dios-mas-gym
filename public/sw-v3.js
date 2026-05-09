@@ -1,4 +1,4 @@
-// SW V4 - TOTAL NETWORK FIRST PARA HTML
+// SW V5 - TOTAL NETWORK FIRST PARA HTML Y CACHE REFRESH
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
