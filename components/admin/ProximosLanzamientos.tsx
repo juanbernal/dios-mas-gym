@@ -145,12 +145,13 @@ const ProximosLanzamientos: React.FC = () => {
 
             try {
                 const params = new URLSearchParams();
-                params.append('name', release.name);
-                params.append('releaseDate', release.releaseDate);
-                params.append('coverImageUrl', release.coverImageUrl || '');
-                params.append('preSaveLink', release.preSaveLink || '');
-                params.append('audioUrl', release.audioUrl || '');
-                params.append('Artista', release.Artista);
+                params.append('artista', release.Artista);
+                params.append('titulo', release.name);
+                params.append('fecha', release.releaseDate);
+                params.append('spotify', release.preSaveLink || '');
+                params.append('youtube', release.audioUrl || '');
+                params.append('apple', ''); // Dejamos vacío o llenamos si tenemos info
+                params.append('imagen', release.coverImageUrl || '');
 
                 await fetch(googleScriptUrl, {
                     method: 'POST',
@@ -238,7 +239,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.9</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.0</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
