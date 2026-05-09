@@ -8,7 +8,7 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { artist } = req.query;
+  const { artist, refresh } = req.query;
 
   if (!artist || typeof artist !== 'string') {
     return res.status(400).json({ error: 'Artist parameter is required' });
@@ -24,16 +24,23 @@ export default async function handler(
   }
 
   try {
-    const response = await fetch(csvUrl);
+    // Si hay parámetro refresh, añadimos un timestamp para romper el caché de origen
+    const fetchUrl = refresh ? `${csvUrl}&t=${Date.now()}` : csvUrl;
+    const response = await fetch(fetchUrl);
+    
     if (!response.ok) {
       throw new Error(`Failed to fetch CSV: ${response.statusText}`);
     }
     const csvData = await response.text();
     
     // Set cache headers
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-    res.setHeader('Content-Type', 'text/csv');
+    if (refresh) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+    }
     
+    res.setHeader('Content-Type', 'text/csv');
     return res.status(200).send(csvData);
   } catch (error) {
     console.error(`Error fetching music for ${artist}:`, error);

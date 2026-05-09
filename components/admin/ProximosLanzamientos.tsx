@@ -77,7 +77,8 @@ const ProximosLanzamientos: React.FC = () => {
     const fetchCurrentReleases = async () => {
         setLoadingReleases(true);
         try {
-            const response = await fetch(`${googleScriptUrl}?read=true`);
+            // Añadimos timestamp para evitar caché en la lectura
+            const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
                 
