@@ -91,7 +91,8 @@ const UpcomingReleases: React.FC = () => {
                 // Group catalog items by Artist, Date and COVER to detect Albums/EPs correctly
                 const groupedCatalog: { [key: string]: typeof catalogItems } = {};
                 catalogItems.forEach(item => {
-                    // Usar la portada como clave secundaria para agrupar álbumes de forma más precisa
+                    // Ahora somos más estrictos: Tienen que coincidir Artista + Fecha + Portada
+                    // Esto separa canciones que usan la misma foto pero salieron en días distintos
                     const key = `${item.artist}_${item.date}_${item.cover}`;
                     if (!groupedCatalog[key]) groupedCatalog[key] = [];
                     groupedCatalog[key].push(item);
@@ -202,7 +203,7 @@ const UpcomingReleases: React.FC = () => {
                             <span className="w-12 h-px bg-[#c5a059]"></span>
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">PRÓXIMOS ESTRENOS GLOBALES</span>
                         </div>
-                        <h2 className="font-serif italic text-5xl md:text-7xl text-white">Próxima <span className="text-[#c5a059]">Artillería</span> <span className="text-[10px] font-black tracking-widest text-white/10 ml-4 not-italic">v2.5</span></h2>
+                        <h2 className="font-serif italic text-5xl md:text-7xl text-white">Próxima <span className="text-[#c5a059]">Artillería</span> <span className="text-[10px] font-black tracking-widest text-white/10 ml-4 not-italic">v2.6</span></h2>
                     </div>
                 </div>
 

@@ -179,16 +179,14 @@ const SmartLinkView: React.FC = () => {
                         // Mismo artista e ID diferente
                         if (s.artist.toLowerCase() !== found.artist.toLowerCase() || s.id === found.id) return false;
                         
-                        // Prioridad 1: Si ambos tienen campo 'album', deben coincidir
-                        if (found.album && s.album) {
-                            return found.album.toLowerCase().trim() === s.album.toLowerCase().trim();
+                        // Prioridad 1: Si hay campo 'album' (y no está vacío), debe coincidir exactamente
+                        if (found.album && found.album.trim() !== '') {
+                            return (s.album || '').toLowerCase().trim() === found.album.toLowerCase().trim();
                         }
                         
-                        // Prioridad 2: Si tienen la misma portada (es el mejor indicador de un álbum)
-                        if (found.cover && s.cover === found.cover) return true;
-                        
-                        // Prioridad 3: Misma fecha (fallback)
-                        return s.date === found.date;
+                        // Prioridad 2: Si NO hay campo álbum, tienen que coincidir la PORTADA Y LA FECHA
+                        // Esto evita que si usas la misma foto en fechas distintas se agrupen por error
+                        return (found.cover && s.cover === found.cover) && (s.date === found.date);
                     });
                     setRelatedSongs(related);
                 } else {
@@ -388,7 +386,7 @@ const SmartLinkView: React.FC = () => {
                                 <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                                 <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                             </div>
-                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v2.5</p>
+                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v2.6</p>
                         </div>
                     </div>
                 </div>
@@ -502,7 +500,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v2.5</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v2.6</p>
                     </div>
                 </div>
             </div>
