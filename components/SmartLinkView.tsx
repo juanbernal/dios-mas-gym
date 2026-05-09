@@ -175,26 +175,20 @@ const SmartLinkView: React.FC = () => {
                     document.title = `${found.name} - ${found.artist}`;
                     
                     // Buscar canciones del mismo álbum
-                    const related = fullCatalog.filter(s => {
-                        if (s.artist.toLowerCase() !== found.artist.toLowerCase() || s.id === found.id) return false;
-                        
-                        // 1. Si hay campo 'album', manda sobre todo
-                        if (found.album && found.album.trim() !== '') {
-                            return (s.album || '').toLowerCase().trim() === found.album.toLowerCase().trim();
-                        }
-                        
-                        // 2. Lógica Híbrida: Agrupar por portada
-                        const sameCover = fullCatalog.filter(x => x.artist === found.artist && x.cover === found.cover);
-                        
-                        if (sameCover.length > 15) {
-                            // Si hay demasiadas (más de 15), es probable que la portada sea genérica del artista
-                            // En este caso, obligamos a que coincida la FECHA también
-                            return s.cover === found.cover && s.date === found.date;
-                        }
-                        
-                        // Si son pocas, asumimos que es un álbum/EP legítimo y agrupamos solo por portada (más flexible)
-                        return s.cover === found.cover;
+                    let related = fullCatalog.filter(s => {
+                        // Tiene que ser el mismo artista, distinta canción, y misma FECHA
+                        // Esta es la lógica original que agrupaba bien los LP y Álbumes
+                        return s.artist.toLowerCase() === found.artist.toLowerCase() && 
+                               s.date === found.date && 
+                               s.id !== found.id;
                     });
+                    
+                    // Protección para Juan 614 (si sube más de 15 temas el mismo día que no son un álbum)
+                    // Filtramos adicionalmente por la misma portada si hay muchísimas canciones
+                    if (related.length > 15) {
+                        related = related.filter(s => s.cover === found.cover);
+                    }
+                    
                     setRelatedSongs(related);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
@@ -393,7 +387,7 @@ const SmartLinkView: React.FC = () => {
                                 <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                                 <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                             </div>
-                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v2.8</p>
+                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v2.9</p>
                         </div>
                     </div>
                 </div>
@@ -507,7 +501,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v2.8</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v2.9</p>
                     </div>
                 </div>
             </div>

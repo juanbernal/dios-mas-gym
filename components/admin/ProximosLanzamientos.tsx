@@ -19,6 +19,7 @@ const ProximosLanzamientos: React.FC = () => {
     const [pendingSync, setPendingSync] = useState<ReleaseData[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [forceScan, setForceScan] = useState(false);
+    const [scanLog, setScanLog] = useState<{name: string, artist: string, found: boolean}[]>([]);
     const syncStartedRef = React.useRef(false);
     
     const [formData, setFormData] = useState({
@@ -49,16 +50,24 @@ const ProximosLanzamientos: React.FC = () => {
                 .trim();
 
             const latestCatalog = [...dM.slice(0, 40), ...j6.slice(0, 40)];
-            const missing = latestCatalog.filter(cat => {
+            const logs: typeof scanLog = [];
+            
+            const missing = latestCatalog.filter((cat, idx) => {
                 const normCatName = normalize(cat.name);
                 const normCatArtist = normalize(cat.artist);
                 
-                return !existing.some(ex => {
+                const isFound = existing.some(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
-                    // Coincidencia exacta de nombre y artista para evitar falsos positivos
-                    return normExName === normCatName && (normExArtist === normCatArtist);
+                    // Usar includes es más seguro para artistas (ej: Juan 614 vs Juan614)
+                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
                 });
+                
+                if (idx < 10) {
+                    logs.push({ name: cat.name, artist: cat.artist, found: isFound });
+                }
+                
+                return !isFound;
             }).map(cat => ({
                 Artista: cat.artist,
                 name: cat.name,
@@ -67,6 +76,8 @@ const ProximosLanzamientos: React.FC = () => {
                 audioUrl: cat.url,
                 coverImageUrl: cat.cover
             }));
+
+            setScanLog(logs);
 
             if (missing.length > 0) {
                 setPendingSync(missing);
@@ -227,7 +238,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.8</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.9</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
@@ -242,6 +253,24 @@ const ProximosLanzamientos: React.FC = () => {
                         Rastrear de nuevo
                     </button>
                 </div>
+
+                {scanLog.length > 0 && (
+                    <div className="mb-12 bg-white/5 border border-white/10 p-6 rounded-2xl">
+                        <h4 className="text-[#c5a059] font-bold text-sm mb-4"><i className="fas fa-search mr-2"></i>Resultados del Escáner (Últimos 10 del Catálogo)</h4>
+                        <div className="space-y-2">
+                            {scanLog.map((log, i) => (
+                                <div key={i} className="flex items-center justify-between text-xs p-2 bg-black/20 rounded">
+                                    <span className="text-white/70">{log.name} <span className="text-white/30 text-[10px]">({log.artist})</span></span>
+                                    {log.found ? (
+                                        <span className="text-green-500 font-bold"><i className="fas fa-check mr-1"></i>Ya en Sheet</span>
+                                    ) : (
+                                        <span className="text-red-400 font-bold"><i className="fas fa-times mr-1"></i>Falta en Sheet</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {pendingSync.length > 0 ? (
                     <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in">

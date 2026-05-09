@@ -88,17 +88,11 @@ const UpcomingReleases: React.FC = () => {
                 const fifteenDaysAgo = new Date();
                 fifteenDaysAgo.setDate(now.getDate() - 15);
 
-                // Group catalog items Hibridamente (Portaba vs Fecha)
+                // Group catalog items by Artist and Date to detect Albums/EPs
+                // Lógica original: Todo lo que salga el mismo día del mismo artista se agrupa
                 const groupedCatalog: { [key: string]: typeof catalogItems } = {};
                 catalogItems.forEach(item => {
-                    // Contamos cuántas veces se usa esta portada en el catálogo del artista
-                    const coverCount = catalogItems.filter(x => x.artist === item.artist && x.cover === item.cover).length;
-                    
-                    // Si la portada se usa mucho (más de 15 veces), usamos la fecha como clave extra
-                    // Si se usa poco, agrupamos solo por portada (más flexible para álbumes/EPs)
-                    const key = coverCount > 15 
-                        ? `${item.artist}_${item.date}_${item.cover}` 
-                        : `${item.artist}_${item.cover}`;
+                    const key = `${item.artist}_${item.date}`;
                         
                     if (!groupedCatalog[key]) groupedCatalog[key] = [];
                     groupedCatalog[key].push(item);
@@ -209,7 +203,7 @@ const UpcomingReleases: React.FC = () => {
                             <span className="w-12 h-px bg-[#c5a059]"></span>
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">PRÓXIMOS ESTRENOS GLOBALES</span>
                         </div>
-                        <h2 className="font-serif italic text-5xl md:text-7xl text-white">Próxima <span className="text-[#c5a059]">Artillería</span> <span className="text-[10px] font-black tracking-widest text-white/10 ml-4 not-italic">v2.8</span></h2>
+                        <h2 className="font-serif italic text-5xl md:text-7xl text-white">Próxima <span className="text-[#c5a059]">Artillería</span> <span className="text-[10px] font-black tracking-widest text-white/10 ml-4 not-italic">v2.9</span></h2>
                     </div>
                 </div>
 

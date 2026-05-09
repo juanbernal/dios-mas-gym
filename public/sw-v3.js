@@ -1,4 +1,4 @@
-// SW V8 - SMART SYNC HYBRID v2.8
+// SW V9 - ORIGINAL DATE SYNC v2.9
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
