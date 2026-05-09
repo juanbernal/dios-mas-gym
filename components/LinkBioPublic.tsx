@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { LinkBioData } from '../types';
+import { LinkBioData, MusicItem } from '../types';
+import { fetchMusicCatalog } from '../services/musicService';
 
 const FALLBACK_DATA: LinkBioData = {
     profile: {
@@ -20,6 +21,7 @@ const LinkBioPublic: React.FC = () => {
     const { artist } = useParams<{ artist?: string }>();
     const [data, setData] = useState<LinkBioData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [randomSong, setRandomSong] = useState<MusicItem | null>(null);
 
     useEffect(() => {
         const query = artist ? `?artist=${artist}` : '';
@@ -57,6 +59,15 @@ const LinkBioPublic: React.FC = () => {
                 }
                 setIsLoading(false);
             });
+
+        // Fetch random song from music catalog
+        const actualArtist = artist === 'juan614' ? 'juan614' : 'diosmasgym';
+        fetchMusicCatalog(actualArtist).then(catalog => {
+            if (catalog && catalog.length > 0) {
+                const song = catalog[Math.floor(Math.random() * catalog.length)];
+                setRandomSong(song);
+            }
+        }).catch(err => console.error("Error loading music catalog for bio:", err));
     }, [artist]);
 
     if (!data || !data.profile) return (
@@ -86,6 +97,51 @@ const LinkBioPublic: React.FC = () => {
                 <p className="text-sm text-white/60 mb-10 text-center leading-relaxed max-w-[300px]">
                     {data.profile.bio}
                 </p>
+
+                {/* Music Preview Section */}
+                {randomSong && (
+                    <div className="w-full mb-12 bg-white/5 border border-white/10 p-6 rounded-[2rem] relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                            <i className="fas fa-headphones text-8xl"></i>
+                        </div>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-6 text-center flex items-center justify-center gap-3">
+                            <div className="w-4 h-px bg-[#c5a059]"></div>
+                            Prueba un poco de mi música
+                            <div className="w-4 h-px bg-[#c5a059]"></div>
+                        </h3>
+                        
+                        <div className="flex items-center gap-4 mb-6 relative z-10">
+                            <div className="w-20 h-20 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group-hover:border-[#c5a059]/40 transition-colors">
+                                <img src={randomSong.cover} alt={randomSong.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-white text-base leading-tight mb-1 truncate group-hover:text-[#c5a059] transition-colors">{randomSong.name}</h4>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-white/40 truncate">{randomSong.artist}</p>
+                            </div>
+                        </div>
+
+                        <a 
+                            href={`/#/link/${randomSong.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-4 bg-[#c5a059] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-[0_10px_30px_rgba(197,160,89,0.2)] active:scale-95"
+                        >
+                            <i className="fas fa-play text-xs"></i>
+                            Escuchar Ahora
+                        </a>
+                        
+                        <div className="mt-6 text-center">
+                            <a 
+                                href={artist === 'juan614' ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-[#c5a059] transition-colors border-b border-transparent hover:border-[#c5a059]/50 pb-1"
+                            >
+                                Ver catálogo completo
+                            </a>
+                        </div>
+                    </div>
+                )}
 
                 {/* Links Section */}
                 <div className="w-full space-y-4 mb-16">
