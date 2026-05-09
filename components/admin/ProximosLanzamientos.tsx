@@ -18,6 +18,7 @@ const ProximosLanzamientos: React.FC = () => {
     const [loadingReleases, setLoadingReleases] = useState(true);
     const [pendingSync, setPendingSync] = useState<ReleaseData[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
+    const syncStartedRef = React.useRef(false);
     
     const [formData, setFormData] = useState({
         artista: 'Diosmasgym',
@@ -32,6 +33,8 @@ const ProximosLanzamientos: React.FC = () => {
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     const checkCatalogSync = async (existing: ReleaseData[]) => {
+        if (syncStartedRef.current) return;
+        
         try {
             const [dM, j6] = await Promise.all([
                 fetchMusicCatalog('diosmasgym', true),
@@ -40,11 +43,10 @@ const ProximosLanzamientos: React.FC = () => {
             
             const normalize = (s: string) => s.toLowerCase()
                 .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-                .replace(/[^a-z0-9]+/g, '')    // Quitar todo lo que no sea letra o número
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
-            // Revisamos hasta los últimos 30 lanzamientos
             const latestCatalog = [...dM.slice(0, 30), ...j6.slice(0, 30)];
             const missing = latestCatalog.filter(cat => {
                 const normCatName = normalize(cat.name);
@@ -66,7 +68,7 @@ const ProximosLanzamientos: React.FC = () => {
 
             if (missing.length > 0) {
                 setPendingSync(missing);
-                // INICIAR SINCRONIZACIÓN AUTOMÁTICA
+                syncStartedRef.current = true;
                 handleAutoSync(missing);
             }
         } catch (e) {
@@ -77,7 +79,6 @@ const ProximosLanzamientos: React.FC = () => {
     const fetchCurrentReleases = async () => {
         setLoadingReleases(true);
         try {
-            // Añadimos timestamp para evitar caché en la lectura
             const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
@@ -116,9 +117,14 @@ const ProximosLanzamientos: React.FC = () => {
         if (items.length === 0) return;
 
         setIsSyncing(true);
-        setStatus({ type: 'loading', message: `Sincronización Automática: Procesando ${items.length} temas nuevos...` });
 
-        for (const release of items) {
+        for (let i = 0; i < items.length; i++) {
+            const release = items[i];
+            setStatus({ 
+                type: 'loading', 
+                message: `Auto-Sync [${i+1}/${items.length}]: Sincronizando "${release.name}"...` 
+            });
+
             try {
                 const params = new URLSearchParams();
                 params.append('name', release.name);
@@ -134,7 +140,7 @@ const ProximosLanzamientos: React.FC = () => {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: params.toString()
                 });
-                await new Promise(r => setTimeout(r, 800)); // Delay para evitar bloqueos
+                await new Promise(r => setTimeout(r, 1200)); 
             } catch (e) {
                 console.error("Error syncing item:", e);
             }
@@ -142,27 +148,11 @@ const ProximosLanzamientos: React.FC = () => {
 
         setIsSyncing(false);
         setPendingSync([]);
-        setStatus({ type: 'success', message: '¡Catálogo actualizado automáticamente en Google Sheets!' });
-        // Recargar la lista una vez terminada la sincronización
-        const finalResponse = await fetch(`${googleScriptUrl}?read=true`);
-        if (finalResponse.ok) {
-            const data = await finalResponse.json();
-            const normalized = (data as any[]).map(r => {
-                const findKey = (keys: string[]) => {
-                    const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
-                    return k ? r[k] : '';
-                };
-                return {
-                    Artista: findKey(['artista']),
-                    name: findKey(['name', 'nombre', 'titulo', 'título']),
-                    releaseDate: findKey(['releasedate', 'fecha']),
-                    preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
-                    audioUrl: findKey(['audiourl', 'youtube', 'audio']),
-                    coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
-                } as ReleaseData;
-            });
-            setCurrentReleases(normalized);
-        }
+        setStatus({ type: 'success', message: '¡Catálogo actualizado correctamente en Google Sheets!' });
+        
+        setTimeout(() => {
+            fetchCurrentReleases();
+        }, 2000);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -229,7 +219,7 @@ const ProximosLanzamientos: React.FC = () => {
                 </button>
 
                 <div className="mb-20">
-                    <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.6</span></h1>
+                    <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.7</span></h1>
                     <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                 </div>
 
