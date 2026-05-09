@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchMusicCatalog } from '../services/musicService';
 
 interface ReleaseData {
     Artista: string;
@@ -7,10 +8,12 @@ interface ReleaseData {
     preSaveLink?: string; 
     audioUrl?: string;    
     coverImageUrl?: string; 
+    id?: string;
+    isFromCatalog?: boolean;
 }
 
 const CountdownUnit: React.FC<{ targetDate: string, currentTime: Date }> = ({ targetDate, currentTime }) => {
-    const target = new Date(targetDate + 'T00:00:00');
+    const target = new Date(targetDate.includes('T') ? targetDate : targetDate + 'T00:00:00');
     const diff = target.getTime() - currentTime.getTime();
     
     if (diff <= 0) return (
@@ -48,33 +51,111 @@ const UpcomingReleases: React.FC = () => {
     useEffect(() => {
         const fetchReleases = async () => {
             try {
-                const response = await fetch(`${googleScriptUrl}?read=true`);
-                if (!response.ok) throw new Error('Fetch failed');
-                const data = await response.json();
+                // 1. Fetch Manual Releases (Google Script)
+                const manualResponse = await fetch(`${googleScriptUrl}?read=true`);
+                let manualData: ReleaseData[] = [];
+                if (manualResponse.ok) {
+                    const json = await manualResponse.json();
+                    manualData = (json as any[]).map(r => {
+                        const findKey = (keys: string[]) => {
+                            const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                            return k ? r[k] : undefined;
+                        };
+                        return {
+                            Artista: findKey(['artista', 'artist']),
+                            name: findKey(['name', 'nombre', 'titulo', 'título']),
+                            releaseDate: findKey(['releasedate', 'fecha']),
+                            preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
+                            audioUrl: findKey(['audiourl', 'youtube', 'audio']),
+                            coverImageUrl: findKey(['coverimageurl', 'coverimageur', 'imagen', 'portada']),
+                            isFromCatalog: false
+                        } as ReleaseData;
+                    });
+                }
+
+                // 2. Fetch Catalog Releases (Automated Detection)
+                const [dM, j6] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614')
+                ]);
                 
-                const normalized = (data as any[]).map(r => {
-                    const findKey = (keys: string[]) => {
-                        const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
-                        return k ? r[k] : undefined;
-                    };
-                    return {
-                        Artista: findKey(['artista', 'artist']),
-                        name: findKey(['name', 'nombre', 'titulo', 'título']),
-                        releaseDate: findKey(['releasedate', 'fecha']),
-                        preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
-                        audioUrl: findKey(['audiourl', 'youtube', 'audio']),
-                        coverImageUrl: findKey(['coverimageurl', 'coverimageur', 'imagen', 'portada'])
-                    } as ReleaseData;
-                });
+                const catalogItems = [...dM, ...j6];
                 
+                // Detection logic: 
+                // - Future releases in catalog (if any)
+                // - Recent releases (last 15 days)
+                // - At least the newest 1 for each artist if nothing else found
                 const now = new Date();
-                now.setHours(0, 0, 0, 0);
+                const fifteenDaysAgo = new Date();
+                fifteenDaysAgo.setDate(now.getDate() - 15);
+
+                const catalogReleases: ReleaseData[] = catalogItems
+                    .filter(item => {
+                        const itemDate = new Date(item.date);
+                        return itemDate >= fifteenDaysAgo || itemDate > now;
+                    })
+                    .map(item => ({
+                        Artista: item.artist,
+                        name: item.name,
+                        releaseDate: item.date,
+                        coverImageUrl: item.cover,
+                        preSaveLink: `/#/link/${item.id}`, // Automated Smart Link
+                        audioUrl: item.url,
+                        id: item.id,
+                        isFromCatalog: true
+                    }));
+
+                // Ensure we have at least one from each artist if they aren't already there
+                ['Diosmasgym', 'Juan 614'].forEach(artistName => {
+                    const artistKey = artistName.toLowerCase();
+                    const alreadyPresent = [...manualData, ...catalogReleases].some(r => r.Artista.toLowerCase().includes(artistKey));
+                    
+                    if (!alreadyPresent) {
+                        const latest = catalogItems.find(item => item.artist.toLowerCase().includes(artistKey));
+                        if (latest) {
+                            catalogReleases.push({
+                                Artista: latest.artist,
+                                name: latest.name,
+                                releaseDate: latest.date,
+                                coverImageUrl: latest.cover,
+                                preSaveLink: `/#/link/${latest.id}`,
+                                audioUrl: latest.url,
+                                id: latest.id,
+                                isFromCatalog: true
+                            });
+                        }
+                    }
+                });
+
+                // 3. Merge and Sort
+                const combined = [...manualData, ...catalogReleases];
                 
-                const upcoming = normalized
-                    .filter(r => r.releaseDate && new Date(r.releaseDate + 'T00:00:00') >= now)
-                    .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
-                
-                setReleases(upcoming);
+                // Remove duplicates (by name/artist)
+                const unique = combined.reduce((acc, current) => {
+                    const x = acc.find(item => item.name === current.name && item.Artista === current.Artista);
+                    if (!x) return acc.concat([current]);
+                    else return acc;
+                }, [] as ReleaseData[]);
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const sorted = unique.sort((a, b) => {
+                    const dateA = new Date(a.releaseDate);
+                    const dateB = new Date(b.releaseDate);
+                    
+                    // Future dates first
+                    const isFutureA = dateA >= today;
+                    const isFutureB = dateB >= today;
+                    
+                    if (isFutureA && !isFutureB) return -1;
+                    if (!isFutureA && isFutureB) return 1;
+                    
+                    // Then newest first
+                    return dateB.getTime() - dateA.getTime();
+                });
+
+                setReleases(sorted.slice(0, 4)); // Show top 4
             } catch (error) {
                 console.error("Error fetching upcoming releases:", error);
             } finally {
@@ -156,13 +237,15 @@ const UpcomingReleases: React.FC = () => {
 
                                 <div className="flex flex-wrap justify-center lg:justify-start gap-10">
                                     {release.preSaveLink && (
-                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#1DB954] transition-all transform hover:scale-110">
-                                            <i className="fab fa-spotify text-xl"></i> Pre-Save
+                                        <a href={release.preSaveLink} target={release.preSaveLink.startsWith('http') ? "_blank" : "_self"} rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#c5a059] transition-all transform hover:scale-110">
+                                            <i className={`${release.preSaveLink.includes('spotify') ? 'fab fa-spotify' : 'fas fa-link'} text-xl`}></i> 
+                                            {new Date(release.releaseDate + 'T00:00:00') > currentTime ? 'Pre-Save' : 'Escuchar / Smart Link'}
                                         </a>
                                     )}
                                     {release.audioUrl && (
                                         <a href={release.audioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#ff0000] transition-all transform hover:scale-110">
-                                            <i className="fab fa-youtube text-xl"></i> Reminder
+                                            <i className="fab fa-youtube text-xl"></i> 
+                                            {new Date(release.releaseDate + 'T00:00:00') > currentTime ? 'Reminder' : 'Video'}
                                         </a>
                                     )}
                                 </div>
