@@ -1,0 +1,70 @@
+const parseMusicCSV = (csvText) => {
+  const lines = csvText.split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  let startIndex = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Nombre,Artista')) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  const headerLine = lines[startIndex];
+  const headers = headerLine.split(',').map(h => h.trim().toLowerCase());
+  const music = [];
+
+  for (let i = startIndex + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line === '---') continue;
+
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let char of line) {
+        if (char === '\"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+        } else current += char;
+    }
+    values.push(current.trim());
+
+    if (values.length < 4) continue;
+
+    const entry = {};
+    headers.forEach((header, index) => {
+      let val = (values[index] || '').replace(/^\"|\"$/g, '').trim();
+      if (header === 'nombre') entry.name = val;
+      if (header === 'artista') entry.artist = val;
+      if (header === 'fecha') entry.date = val;
+      if (header === 'url spotify' || header === 'url youtube' || (header === 'url' && !entry.url)) entry.url = val;
+    });
+
+    if (entry.name && entry.url) {
+      let videoId = '';
+      try {
+        if (entry.url.includes('youtube.com') && entry.url.includes('v=')) {
+          videoId = entry.url.split('v=')[1].split('&')[0];
+        } else if (entry.url.includes('youtu.be/')) {
+          videoId = entry.url.split('youtu.be/')[1].split('?')[0];
+        }
+      } catch (e) {}
+      entry.id = videoId;
+      music.push(entry);
+    }
+  }
+  return music.reverse();
+};
+
+async function test() {
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv&t=1';
+  const res = await fetch(url);
+  const text = await res.text();
+  const catalog = parseMusicCSV(text);
+  const latest = catalog.filter(c => c.date && c.date.startsWith('2026-05-08'));
+  for (const c of latest) {
+    console.log(c.name + ' -> https://app.diosmasgym.com/#/link/' + c.id);
+  }
+}
+test();

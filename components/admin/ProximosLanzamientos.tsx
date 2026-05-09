@@ -59,8 +59,22 @@ const ProximosLanzamientos: React.FC = () => {
                 const isFound = existing.some(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
-                    // Usar includes es más seguro para artistas (ej: Juan 614 vs Juan614)
-                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
+                    const isNameMatch = normExName === normCatName;
+                    
+                    // Prevent duplicates if the user grouped them into an Album for this date
+                    const catDateOnly = cat.date.split('T')[0];
+                    let isDateMatch = false;
+                    if (ex.releaseDate) {
+                        let exDate = ex.releaseDate;
+                        if (exDate.includes('/')) {
+                            const [d, m, y] = exDate.split('/');
+                            exDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                        }
+                        isDateMatch = exDate === catDateOnly;
+                    }
+                    
+                    const isArtistMatch = normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist);
+                    return isArtistMatch && (isNameMatch || isDateMatch);
                 });
                 
                 if (idx < 10) {
