@@ -84,26 +84,38 @@ const UpcomingReleases: React.FC = () => {
                 // Detection logic: 
                 // - Future releases in catalog (if any)
                 // - Recent releases (last 15 days)
-                // - At least the newest 1 for each artist if nothing else found
                 const now = new Date();
                 const fifteenDaysAgo = new Date();
                 fifteenDaysAgo.setDate(now.getDate() - 15);
 
-                const catalogReleases: ReleaseData[] = catalogItems
-                    .filter(item => {
-                        const itemDate = new Date(item.date);
+                // Group catalog items by Artist and Date to detect Albums/EPs
+                const groupedCatalog: { [key: string]: typeof catalogItems } = {};
+                catalogItems.forEach(item => {
+                    const key = `${item.artist}_${item.date}`;
+                    if (!groupedCatalog[key]) groupedCatalog[key] = [];
+                    groupedCatalog[key].push(item);
+                });
+
+                const catalogReleases: ReleaseData[] = Object.values(groupedCatalog)
+                    .filter(group => {
+                        const itemDate = new Date(group[0].date);
                         return itemDate >= fifteenDaysAgo || itemDate > now;
                     })
-                    .map(item => ({
-                        Artista: item.artist,
-                        name: item.name,
-                        releaseDate: item.date,
-                        coverImageUrl: item.cover,
-                        preSaveLink: `/#/link/${item.id}`, // Automated Smart Link
-                        audioUrl: item.url,
-                        id: item.id,
-                        isFromCatalog: true
-                    }));
+                    .map(group => {
+                        const isAlbum = group.length > 1 || group[0].type?.toLowerCase().includes('album');
+                        const mainItem = group.find(i => i.type?.toLowerCase().includes('album')) || group[0];
+                        
+                        return {
+                            Artista: mainItem.artist,
+                            name: isAlbum ? `${mainItem.name} (LP / Álbum)` : mainItem.name,
+                            releaseDate: mainItem.date,
+                            coverImageUrl: mainItem.cover,
+                            preSaveLink: `/#/link/${mainItem.id}`,
+                            audioUrl: mainItem.url,
+                            id: mainItem.id,
+                            isFromCatalog: true
+                        };
+                    });
 
                 // Ensure we have at least one from each artist if they aren't already there
                 ['Diosmasgym', 'Juan 614'].forEach(artistName => {

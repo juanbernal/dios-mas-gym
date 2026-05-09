@@ -131,14 +131,21 @@ const SmartLinkView: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [song, setSong] = useState<MusicItem | null>(null);
+    const [relatedSongs, setRelatedSongs] = useState<MusicItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
         const loadSong = async () => {
             try {
+                // Buscamos en ambos catálogos para enlaces normales
+                const [dM, j6] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614')
+                ]);
+                const fullCatalog = [...dM, ...j6];
+
                 if (id === 'custom') {
-                    // Cargar desde parámetros de la URL para enlaces generados manualmente
                     const queryParams = new URLSearchParams(location.search);
                     const title = queryParams.get('title');
                     const artist = queryParams.get('artist');
@@ -158,23 +165,23 @@ const SmartLinkView: React.FC = () => {
                         setSong(manualSong);
                         document.title = `${manualSong.name} - ${manualSong.artist}`;
                         setLoading(false);
-                        return; // Termina aquí
+                        return;
                     }
                 }
 
-                // Buscamos en ambos catálogos para enlaces normales
-                const [dM, j6] = await Promise.all([
-                    fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614')
-                ]);
-                const fullCatalog = [...dM, ...j6];
                 const found = fullCatalog.find(s => s.id === id || (s.url && s.url.includes(id || '')));
                 if (found) {
                     setSong(found);
-                    // Actualizar Meta Tags dinámicamente
                     document.title = `${found.name} - ${found.artist}`;
+                    
+                    // Buscar canciones del mismo álbum (mismo artista y misma fecha)
+                    const related = fullCatalog.filter(s => 
+                        s.artist.toLowerCase() === found.artist.toLowerCase() && 
+                        s.date === found.date && 
+                        s.id !== found.id
+                    );
+                    setRelatedSongs(related);
                 } else {
-                    // Si no se encuentra, mostrar error en lugar de redirigir
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
             } catch (err: any) {
@@ -338,6 +345,30 @@ const SmartLinkView: React.FC = () => {
                                     <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
                                 </div>
                             </div>
+
+                            {relatedSongs.length > 0 && (
+                                <div className="mt-10 border-t border-white/5 pt-8">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-3">
+                                        <i className="fas fa-list-ul"></i>
+                                        Lista de Canciones / Tracks
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {relatedSongs.map((track, i) => (
+                                            <a 
+                                                key={i} 
+                                                href={`/#/link/${track.id}`}
+                                                className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-[10px] font-mono text-white/20">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                    <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{track.name}</span>
+                                                </div>
+                                                <i className="fas fa-chevron-right text-[10px] text-white/20 group-hover:text-[#c5a059] transition-colors"></i>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-8 text-center w-full border-t border-white/10 pt-8 relative z-20">
@@ -428,6 +459,30 @@ const SmartLinkView: React.FC = () => {
                                 <PlatformButton light={false} platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
                             </div>
                         </div>
+
+                        {relatedSongs.length > 0 && (
+                            <div className="mt-10 border-t border-[#8B5A2B]/20 pt-8">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-6 flex items-center gap-3">
+                                    <i className="fas fa-compact-disc"></i>
+                                    Contenido del Álbum
+                                </h3>
+                                <div className="space-y-2">
+                                    {relatedSongs.map((track, i) => (
+                                        <a 
+                                            key={i} 
+                                            href={`/#/link/${track.id}`}
+                                            className="flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[10px] font-mono text-[#c89d53]/30">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                <span className="text-xs font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
+                                            </div>
+                                            <i className="fas fa-play text-[8px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-8 text-center w-full border-t border-[#8B5A2B]/20 pt-8 relative z-20">
