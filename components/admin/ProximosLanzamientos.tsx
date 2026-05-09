@@ -44,7 +44,8 @@ const ProximosLanzamientos: React.FC = () => {
                 .replace(/[^a-z0-9]+/g, '')    // Quitar todo lo que no sea letra o número
                 .trim();
 
-            const latestCatalog = [...dM.slice(0, 15), ...j6.slice(0, 15)];
+            // Revisamos hasta los últimos 30 lanzamientos
+            const latestCatalog = [...dM.slice(0, 30), ...j6.slice(0, 30)];
             const missing = latestCatalog.filter(cat => {
                 const normCatName = normalize(cat.name);
                 const normCatArtist = normalize(cat.artist);
@@ -52,7 +53,6 @@ const ProximosLanzamientos: React.FC = () => {
                 return !existing.some(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
-                    // Comparación flexible: nombre exacto o que contenga el nombre
                     return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
                 });
             }).map(cat => ({
@@ -64,7 +64,11 @@ const ProximosLanzamientos: React.FC = () => {
                 coverImageUrl: cat.cover
             }));
 
-            setPendingSync(missing);
+            if (missing.length > 0) {
+                setPendingSync(missing);
+                // INICIAR SINCRONIZACIÓN AUTOMÁTICA
+                handleAutoSync(missing);
+            }
         } catch (e) {
             console.error("Error checking catalog sync:", e);
         }
@@ -77,7 +81,6 @@ const ProximosLanzamientos: React.FC = () => {
             if (response.ok) {
                 const data = await response.json();
                 
-                // Normalización robusta
                 const normalized = (data as any[]).map(r => {
                     const findKey = (keys: string[]) => {
                         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
@@ -107,11 +110,14 @@ const ProximosLanzamientos: React.FC = () => {
         fetchCurrentReleases();
     }, []);
 
-    const handleAutoSync = async () => {
-        setIsSyncing(true);
-        setStatus({ type: 'loading', message: `Sincronizando ${pendingSync.length} lanzamientos...` });
+    const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
+        const items = itemsToSync || pendingSync;
+        if (items.length === 0) return;
 
-        for (const release of pendingSync) {
+        setIsSyncing(true);
+        setStatus({ type: 'loading', message: `Sincronización Automática: Procesando ${items.length} temas nuevos...` });
+
+        for (const release of items) {
             try {
                 const params = new URLSearchParams();
                 params.append('name', release.name);
@@ -127,8 +133,7 @@ const ProximosLanzamientos: React.FC = () => {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: params.toString()
                 });
-                // Small delay to prevent rate limiting
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 800)); // Delay para evitar bloqueos
             } catch (e) {
                 console.error("Error syncing item:", e);
             }
@@ -136,8 +141,27 @@ const ProximosLanzamientos: React.FC = () => {
 
         setIsSyncing(false);
         setPendingSync([]);
-        setStatus({ type: 'success', message: '¡Catálogo sincronizado con éxito!' });
-        fetchCurrentReleases();
+        setStatus({ type: 'success', message: '¡Catálogo actualizado automáticamente en Google Sheets!' });
+        // Recargar la lista una vez terminada la sincronización
+        const finalResponse = await fetch(`${googleScriptUrl}?read=true`);
+        if (finalResponse.ok) {
+            const data = await finalResponse.json();
+            const normalized = (data as any[]).map(r => {
+                const findKey = (keys: string[]) => {
+                    const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                    return k ? r[k] : '';
+                };
+                return {
+                    Artista: findKey(['artista']),
+                    name: findKey(['name', 'nombre', 'titulo', 'título']),
+                    releaseDate: findKey(['releasedate', 'fecha']),
+                    preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
+                    audioUrl: findKey(['audiourl', 'youtube', 'audio']),
+                    coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
+                } as ReleaseData;
+            });
+            setCurrentReleases(normalized);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
