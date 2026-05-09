@@ -49,24 +49,8 @@ const UpcomingReleases: React.FC = () => {
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     useEffect(() => {
-        const fetchReleases = async () => {
+        const loadReleases = async () => {
             try {
-                // 1. Fetch Manual Releases (Google Script)
-                const manualResponse = await fetch(`${googleScriptUrl}?read=true`);
-                let manualData: ReleaseData[] = [];
-                if (manualResponse.ok) {
-                    const json = await manualResponse.json();
-                    manualData = (json as any[]).map(r => {
-                        const findKey = (keys: string[]) => {
-                            const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
-                            return k ? r[k] : undefined;
-                        };
-                        return {
-                            Artista: findKey(['artista', 'artist']),
-                            name: findKey(['name', 'nombre', 'titulo', 'título']),
-                            releaseDate: findKey(['releasedate', 'fecha']),
-                            preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
-                            audioUrl: findKey(['audiourl', 'youtube', 'audio']),
                 // Fetch del catálogo principal
                 const [dM, j6] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
@@ -77,7 +61,6 @@ const UpcomingReleases: React.FC = () => {
 
                 // Fetch de la hoja de Próximos Lanzamientos
                 try {
-                    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
                     const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
                     if (response.ok) {
                         const data = await response.json();
@@ -151,10 +134,10 @@ const UpcomingReleases: React.FC = () => {
                 // Ensure we have at least one from each artist if they aren't already there
                 ['Diosmasgym', 'Juan 614'].forEach(artistName => {
                     const artistKey = artistName.toLowerCase();
-                    const alreadyPresent = [...manualData, ...catalogReleases].some(r => r.Artista.toLowerCase().includes(artistKey));
+                    const alreadyPresent = catalogReleases.some(r => r.Artista.toLowerCase().includes(artistKey));
                     
                     if (!alreadyPresent) {
-                        const latest = catalogItems.find(item => item.artist.toLowerCase().includes(artistKey));
+                        const latest = combinedCatalog.find(item => item.artist.toLowerCase().includes(artistKey));
                         if (latest) {
                             catalogReleases.push({
                                 Artista: latest.artist,
@@ -170,11 +153,8 @@ const UpcomingReleases: React.FC = () => {
                     }
                 });
 
-                // 3. Merge and Sort
-                const combined = [...manualData, ...catalogReleases];
-                
                 // Remove duplicates (by name/artist)
-                const unique = combined.reduce((acc, current) => {
+                const unique = catalogReleases.reduce((acc, current) => {
                     const x = acc.find(item => item.name === current.name && item.Artista === current.Artista);
                     if (!x) return acc.concat([current]);
                     else return acc;
@@ -206,7 +186,7 @@ const UpcomingReleases: React.FC = () => {
             }
         };
 
-        fetchReleases();
+        loadReleases();
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
