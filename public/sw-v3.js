@@ -1,4 +1,4 @@
-// SW V7 - FINAL SYNC FIX v2.7
+// SW V8 - SMART SYNC HYBRID v2.8
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 

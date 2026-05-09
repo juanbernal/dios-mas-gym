@@ -18,6 +18,7 @@ const ProximosLanzamientos: React.FC = () => {
     const [loadingReleases, setLoadingReleases] = useState(true);
     const [pendingSync, setPendingSync] = useState<ReleaseData[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [forceScan, setForceScan] = useState(false);
     const syncStartedRef = React.useRef(false);
     
     const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ const ProximosLanzamientos: React.FC = () => {
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     const checkCatalogSync = async (existing: ReleaseData[]) => {
-        if (syncStartedRef.current) return;
+        if (syncStartedRef.current && !forceScan) return;
         
         try {
             const [dM, j6] = await Promise.all([
@@ -47,7 +48,7 @@ const ProximosLanzamientos: React.FC = () => {
                 .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
-            const latestCatalog = [...dM.slice(0, 30), ...j6.slice(0, 30)];
+            const latestCatalog = [...dM.slice(0, 40), ...j6.slice(0, 40)];
             const missing = latestCatalog.filter(cat => {
                 const normCatName = normalize(cat.name);
                 const normCatArtist = normalize(cat.artist);
@@ -55,7 +56,8 @@ const ProximosLanzamientos: React.FC = () => {
                 return !existing.some(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
-                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
+                    // Coincidencia exacta de nombre y artista para evitar falsos positivos
+                    return normExName === normCatName && (normExArtist === normCatArtist);
                 });
             }).map(cat => ({
                 Artista: cat.artist,
@@ -68,9 +70,14 @@ const ProximosLanzamientos: React.FC = () => {
 
             if (missing.length > 0) {
                 setPendingSync(missing);
-                syncStartedRef.current = true;
-                handleAutoSync(missing);
+                if (!isSyncing && !syncStartedRef.current) {
+                    syncStartedRef.current = true;
+                    handleAutoSync(missing);
+                }
+            } else if (forceScan) {
+                setStatus({ type: 'success', message: 'El catálogo ya está 100% sincronizado.' });
             }
+            setForceScan(false);
         } catch (e) {
             console.error("Error checking catalog sync:", e);
         }
@@ -218,9 +225,22 @@ const ProximosLanzamientos: React.FC = () => {
                     Volver al Panel
                 </button>
 
-                <div className="mb-20">
-                    <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.7</span></h1>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
+                <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v2.8</span></h1>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            setForceScan(true);
+                            fetchCurrentReleases();
+                        }}
+                        disabled={loadingReleases || isSyncing}
+                        className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30"
+                    >
+                        <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i>
+                        Rastrear de nuevo
+                    </button>
                 </div>
 
                 {pendingSync.length > 0 ? (
