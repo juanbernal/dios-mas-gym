@@ -298,7 +298,7 @@ const App: React.FC = () => {
 
   const isSmartLinkRoute = location.pathname.startsWith('/link/');
   const isToolRoute = location.pathname.startsWith('/admin');
-  const isBioRoute = location.pathname === '/bio';
+  const isBioRoute = location.pathname.startsWith('/bio');
   const hideGlobalUI = isSmartLinkRoute || isToolRoute || isBioRoute;
 
   if (showSplash && !isBioRoute && !isSmartLinkRoute) {
@@ -415,6 +415,7 @@ const App: React.FC = () => {
           <Route path="/admin/links" element={<AdminAuthWrapper><LinkBioAdmin/></AdminAuthWrapper>} />
           <Route path="/admin/video-snippet" element={<AdminAuthWrapper><VideoSnippetCreator/></AdminAuthWrapper>} />
           <Route path="/bio" element={<LinkBioPublic />} />
+          <Route path="/bio/:artist" element={<LinkBioPublic />} />
         </Routes>
       </main>
       {!hideGlobalUI && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}

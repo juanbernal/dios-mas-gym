@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { LinkBioData } from '../types';
 
 const FALLBACK_DATA: LinkBioData = {
@@ -16,11 +17,13 @@ const FALLBACK_DATA: LinkBioData = {
 };
 
 const LinkBioPublic: React.FC = () => {
+    const { artist } = useParams<{ artist?: string }>();
     const [data, setData] = useState<LinkBioData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/links')
+        const query = artist ? `?artist=${artist}` : '';
+        fetch(`/api/links${query}`)
             .then(res => {
                 if (!res.ok) throw new Error("API failed");
                 return res.json();
@@ -31,16 +34,30 @@ const LinkBioPublic: React.FC = () => {
                     setData(json);
                 } else {
                     console.warn("API returned empty data, using fallback.");
-                    setData(FALLBACK_DATA);
+                    if (artist === 'juan614') {
+                        setData({
+                            profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.jpg" },
+                            links: []
+                        });
+                    } else {
+                        setData(FALLBACK_DATA);
+                    }
                 }
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Error loading bio links, using fallback:", err);
-                setData(FALLBACK_DATA);
+                if (artist === 'juan614') {
+                    setData({
+                        profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.jpg" },
+                        links: []
+                    });
+                } else {
+                    setData(FALLBACK_DATA);
+                }
                 setIsLoading(false);
             });
-    }, []);
+    }, [artist]);
 
     if (!data || !data.profile) return (
         <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-8 text-center font-['Poppins']">
@@ -48,7 +65,7 @@ const LinkBioPublic: React.FC = () => {
                 <i className="fas fa-spinner fa-spin text-[#c5a059] text-4xl mb-4"></i>
                 <h1 className="text-xl font-bold mb-2">Cargando Bio...</h1>
                 <p className="text-white/40 text-sm">Si esto tarda mucho, refresca la página.</p>
-                <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.5 PRODUCTION FALLBACK</div>
+                <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.6 PRODUCTION FALLBACK</div>
             </div>
         </div>
     );
@@ -106,7 +123,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    Dios Mas Gym Records v1.5
+                    {artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'} Records v1.6
                 </div>
             </div>
         </div>

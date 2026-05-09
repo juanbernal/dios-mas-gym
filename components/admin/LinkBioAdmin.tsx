@@ -4,6 +4,7 @@ import { SocialLink, LinkBioData } from '../../types';
 
 const LinkBioAdmin: React.FC = () => {
     const navigate = useNavigate();
+    const [selectedArtist, setSelectedArtist] = useState<'diosmasgym' | 'juan614'>('diosmasgym');
     const [data, setData] = useState<LinkBioData>({
         profile: {
             name: "Dios Mas Gym",
@@ -22,23 +23,24 @@ const LinkBioAdmin: React.FC = () => {
     };
 
     useEffect(() => {
-        fetch('/api/links')
+        setIsLoading(true);
+        fetch(`/api/links?artist=${selectedArtist}`)
             .then(res => res.json())
             .then(json => {
                 console.log("Links API response:", json);
-                if (json.links) setData(json);
+                if (json.profile && json.links) setData(json);
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Error loading links:", err);
                 setIsLoading(false);
             });
-    }, []);
+    }, [selectedArtist]);
 
     const saveData = async () => {
         setIsSaving(true);
         try {
-            const res = await fetch('/api/links', {
+            const res = await fetch(`/api/links?artist=${selectedArtist}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -100,6 +102,20 @@ const LinkBioAdmin: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-4">
                     <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Link <span className="text-[#c5a059]">Bio</span> <span className="text-white/20 ml-2">v1.6</span></h1>
+                    <div className="flex bg-black/50 p-1 rounded-lg border border-white/10 ml-4">
+                        <button 
+                            onClick={() => setSelectedArtist('diosmasgym')}
+                            className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${selectedArtist === 'diosmasgym' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            Dios Mas Gym
+                        </button>
+                        <button 
+                            onClick={() => setSelectedArtist('juan614')}
+                            className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${selectedArtist === 'juan614' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            Juan 614
+                        </button>
+                    </div>
                 </div>
                 <button 
                     onClick={saveData}
@@ -288,14 +304,14 @@ const LinkBioAdmin: React.FC = () => {
                                 </div>
 
                                 <div className="mt-12 mb-4">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/10 italic">Dios Mas Gym Records</p>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/10 italic">{selectedArtist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'} Records v1.6</p>
                                 </div>
                             </div>
                         </div>
                         
                         <div className="mt-8 flex justify-center">
                             <button 
-                                onClick={() => window.open('/#/bio', '_blank')}
+                                onClick={() => window.open(selectedArtist === 'juan614' ? '/#/bio/juan614' : '/#/bio', '_blank')}
                                 className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#c5a059] hover:text-white transition-all bg-white/5 px-6 py-3 rounded-xl border border-white/10"
                             >
                                 <i className="fas fa-external-link-alt"></i>

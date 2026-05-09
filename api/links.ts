@@ -6,18 +6,26 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  const LINKS_FILE = path.join(process.cwd(), 'data', 'links.json');
+  const artist = req.query.artist as string;
+  const fileName = artist === 'juan614' ? 'links_juan614.json' : 'links.json';
+  const LINKS_FILE = path.join(process.cwd(), 'data', fileName);
 
   if (req.method === 'GET') {
     try {
       if (!fs.existsSync(LINKS_FILE)) {
+        const defaultProfile = artist === 'juan614' ? {
+          name: "Juan 614",
+          bio: "Corridos, banda sinaloense y calle con propósito",
+          avatar: "/logo-juan614-v2.jpg"
+        } : { 
+          name: "Dios Mas Gym", 
+          bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
+          avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" 
+        };
+
         return res.json({ 
           links: [], 
-          profile: { 
-            name: "Dios Mas Gym", 
-            bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
-            avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" 
-          } 
+          profile: defaultProfile 
         });
       }
       const data = fs.readFileSync(LINKS_FILE, 'utf-8');
