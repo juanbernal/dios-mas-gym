@@ -105,7 +105,7 @@ const MetadataTagger: React.FC = () => {
                 }
 
                 writer.addTag();
-                finalBuffer = writer.arrayBuffer;
+                finalBuffer = (writer as any).arrayBuffer;
             }
 
             // Generar descarga

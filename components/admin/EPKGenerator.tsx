@@ -58,7 +58,7 @@ const EPKGenerator: React.FC = () => {
                     
                     // Si no tiene 3, rellenar
                     while (top3.length < 3) {
-                        top3.push({ title: 'Próximo Lanzamiento', streams: '---' });
+                        top3.push({ title: 'Próximo Lanzamiento', streams: '---', cover: undefined });
                     }
                     
                     setSongs(top3);
