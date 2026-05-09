@@ -66,6 +66,8 @@ const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
             
             <a 
               href={`/#/link/${item.id}`} 
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-4 py-2 rounded-full border border-white/10 text-white/50 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-white hover:text-black transition-all"
             >
               <i className="fas fa-link text-[10px]"></i>

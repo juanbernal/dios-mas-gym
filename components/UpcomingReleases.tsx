@@ -237,7 +237,7 @@ const UpcomingReleases: React.FC = () => {
 
                                 <div className="flex flex-wrap justify-center lg:justify-start gap-10">
                                     {release.preSaveLink && (
-                                        <a href={release.preSaveLink} target={release.preSaveLink.startsWith('http') ? "_blank" : "_self"} rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#c5a059] transition-all transform hover:scale-110">
+                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#c5a059] transition-all transform hover:scale-110">
                                             <i className={`${release.preSaveLink.includes('spotify') ? 'fab fa-spotify' : 'fas fa-link'} text-xl`}></i> 
                                             {new Date(release.releaseDate + 'T00:00:00') > currentTime ? 'Pre-Save' : 'Escuchar / Smart Link'}
                                         </a>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchMusicCatalog } from '../../services/musicService';
 
 interface ReleaseData {
     Artista: string;
@@ -15,6 +16,8 @@ const ProximosLanzamientos: React.FC = () => {
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ type: 'idle' });
     const [currentReleases, setCurrentReleases] = useState<ReleaseData[]>([]);
     const [loadingReleases, setLoadingReleases] = useState(true);
+    const [pendingSync, setPendingSync] = useState<ReleaseData[]>([]);
+    const [isSyncing, setIsSyncing] = useState(false);
     
     const [formData, setFormData] = useState({
         artista: 'Diosmasgym',
@@ -27,6 +30,34 @@ const ProximosLanzamientos: React.FC = () => {
     });
 
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+
+    const checkCatalogSync = async (existing: ReleaseData[]) => {
+        try {
+            const [dM, j6] = await Promise.all([
+                fetchMusicCatalog('diosmasgym', true),
+                fetchMusicCatalog('juan614', true)
+            ]);
+            
+            const latestCatalog = [...dM.slice(0, 5), ...j6.slice(0, 5)];
+            const missing = latestCatalog.filter(cat => {
+                return !existing.some(ex => 
+                    ex.name.toLowerCase().trim() === cat.name.toLowerCase().trim() && 
+                    ex.Artista.toLowerCase().includes(cat.artist.toLowerCase())
+                );
+            }).map(cat => ({
+                Artista: cat.artist,
+                name: cat.name,
+                releaseDate: cat.date.split('T')[0],
+                preSaveLink: `https://musica.diosmasgym.com/#/link/${cat.id}`,
+                audioUrl: cat.url,
+                coverImageUrl: cat.cover
+            }));
+
+            setPendingSync(missing);
+        } catch (e) {
+            console.error("Error checking catalog sync:", e);
+        }
+    };
 
     const fetchCurrentReleases = async () => {
         setLoadingReleases(true);
@@ -52,6 +83,7 @@ const ProximosLanzamientos: React.FC = () => {
                 });
                 
                 setCurrentReleases(normalized);
+                checkCatalogSync(normalized);
             }
         } catch (error) {
             console.error("Error fetching admin releases:", error);
@@ -63,6 +95,39 @@ const ProximosLanzamientos: React.FC = () => {
     useEffect(() => {
         fetchCurrentReleases();
     }, []);
+
+    const handleAutoSync = async () => {
+        setIsSyncing(true);
+        setStatus({ type: 'loading', message: `Sincronizando ${pendingSync.length} lanzamientos...` });
+
+        for (const release of pendingSync) {
+            try {
+                const params = new URLSearchParams();
+                params.append('name', release.name);
+                params.append('releaseDate', release.releaseDate);
+                params.append('coverImageUrl', release.coverImageUrl || '');
+                params.append('preSaveLink', release.preSaveLink || '');
+                params.append('audioUrl', release.audioUrl || '');
+                params.append('Artista', release.Artista);
+
+                await fetch(googleScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                });
+                // Small delay to prevent rate limiting
+                await new Promise(r => setTimeout(r, 500));
+            } catch (e) {
+                console.error("Error syncing item:", e);
+            }
+        }
+
+        setIsSyncing(false);
+        setPendingSync([]);
+        setStatus({ type: 'success', message: '¡Catálogo sincronizado con éxito!' });
+        fetchCurrentReleases();
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -131,6 +196,27 @@ const ProximosLanzamientos: React.FC = () => {
                     <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span></h1>
                     <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                 </div>
+
+                {pendingSync.length > 0 && (
+                    <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-pulse">
+                        <div className="flex items-center gap-6">
+                            <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(197,160,89,0.4)]">
+                                <i className="fas fa-magic text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-lg">Se detectó nueva música en el catálogo</h4>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Hay {pendingSync.length} canciones nuevas listas para sincronizar con la base de datos externa.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={handleAutoSync} 
+                            disabled={isSyncing}
+                            className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full shadow-2xl disabled:opacity-50"
+                        >
+                            {isSyncing ? 'Sincronizando...' : 'Sincronizar Todo Ahora'}
+                        </button>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     <div className="lg:col-span-2">
