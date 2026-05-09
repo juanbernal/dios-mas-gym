@@ -55,23 +55,21 @@ const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
             {item.artist}
           </p>
           
-          <div className="flex gap-4 mt-5">
+          <div className="flex items-center gap-4 mt-5">
             <button 
               onClick={onPlay}
               className="px-4 py-2 rounded-full bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-white transition-colors"
             >
               <i className="fas fa-play text-[10px]"></i>
-              Play
+              Reproducir
             </button>
             
             <a 
-              href={artistUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-white/20 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 hover:text-[#c5a059] transition-colors ml-auto"
+              href={`/#/link/${item.id}`} 
+              className="px-4 py-2 rounded-full border border-white/10 text-white/50 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-white hover:text-black transition-all"
             >
-              Ver más
-              <i className="fas fa-external-link-alt text-[8px]"></i>
+              <i className="fas fa-link text-[10px]"></i>
+              Smart Link
             </a>
           </div>
         </div>
