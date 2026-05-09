@@ -67,31 +67,60 @@ const UpcomingReleases: React.FC = () => {
                             releaseDate: findKey(['releasedate', 'fecha']),
                             preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
                             audioUrl: findKey(['audiourl', 'youtube', 'audio']),
-                            coverImageUrl: findKey(['coverimageurl', 'coverimageur', 'imagen', 'portada']),
-                            isFromCatalog: false
-                        } as ReleaseData;
-                    });
-                }
-
-                // 2. Fetch Catalog Releases (Automated Detection)
+                // Fetch del catálogo principal
                 const [dM, j6] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
                 ]);
                 
-                const catalogItems = [...dM, ...j6];
-                
-                // Detection logic: 
-                // - Future releases in catalog (if any)
-                // - Recent releases (last 15 days)
+                let combinedCatalog = [...dM, ...j6];
+
+                // Fetch de la hoja de Próximos Lanzamientos
+                try {
+                    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+                    const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const extraReleases = (data as any[]).map(r => {
+                            const findKey = (keys: string[]) => {
+                                const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                                return k ? r[k] : '';
+                            };
+                            return {
+                                id: `prx-${r.rowId || Math.random().toString(36).substr(2, 9)}`,
+                                artist: findKey(['artista']) || 'Desconocido',
+                                name: findKey(['name', 'nombre', 'titulo', 'título']),
+                                date: findKey(['releasedate', 'fecha']),
+                                url: findKey(['audiourl', 'youtube', 'audio']),
+                                cover: findKey(['coverimageurl', 'imagen', 'portada']),
+                                type: 'Próximo Lanzamiento'
+                            };
+                        }).filter(r => r.name && r.date); // Solo los que tengan nombre y fecha válidos
+                        
+                        // Añadimos a la lista si no existen ya en el catálogo principal (por nombre y artista)
+                        extraReleases.forEach(extra => {
+                            const exists = combinedCatalog.some(c => 
+                                c.name.toLowerCase() === extra.name.toLowerCase() && 
+                                c.artist.toLowerCase() === extra.artist.toLowerCase()
+                            );
+                            if (!exists) {
+                                combinedCatalog.push(extra);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error fetching future releases from sheet:", e);
+                }
+
+                // Filter for upcoming releases (date >= today OR up to 15 days ago for recent releases)
                 const now = new Date();
                 const fifteenDaysAgo = new Date();
                 fifteenDaysAgo.setDate(now.getDate() - 15);
 
                 // Group catalog items by Artist and Date to detect Albums/EPs
                 // Lógica original: Todo lo que salga el mismo día del mismo artista se agrupa
-                const groupedCatalog: { [key: string]: typeof catalogItems } = {};
-                catalogItems.forEach(item => {
+                const groupedCatalog: { [key: string]: typeof combinedCatalog } = {};
+                combinedCatalog.forEach(item => {
                     const key = `${item.artist}_${item.date}`;
                         
                     if (!groupedCatalog[key]) groupedCatalog[key] = [];
