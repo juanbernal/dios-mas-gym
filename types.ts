@@ -31,6 +31,7 @@ export interface MusicItem {
   cover: string;
   type: string;
   date: string;
+  album?: string;
 }
 
 export interface AppState {

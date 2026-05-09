@@ -174,12 +174,22 @@ const SmartLinkView: React.FC = () => {
                     setSong(found);
                     document.title = `${found.name} - ${found.artist}`;
                     
-                    // Buscar canciones del mismo álbum (mismo artista y misma fecha)
-                    const related = fullCatalog.filter(s => 
-                        s.artist.toLowerCase() === found.artist.toLowerCase() && 
-                        s.date === found.date && 
-                        s.id !== found.id
-                    );
+                    // Buscar canciones del mismo álbum
+                    const related = fullCatalog.filter(s => {
+                        // Mismo artista e ID diferente
+                        if (s.artist.toLowerCase() !== found.artist.toLowerCase() || s.id === found.id) return false;
+                        
+                        // Prioridad 1: Si ambos tienen campo 'album', deben coincidir
+                        if (found.album && s.album) {
+                            return found.album.toLowerCase().trim() === s.album.toLowerCase().trim();
+                        }
+                        
+                        // Prioridad 2: Si tienen la misma portada (es el mejor indicador de un álbum)
+                        if (found.cover && s.cover === found.cover) return true;
+                        
+                        // Prioridad 3: Misma fecha (fallback)
+                        return s.date === found.date;
+                    });
                     setRelatedSongs(related);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);

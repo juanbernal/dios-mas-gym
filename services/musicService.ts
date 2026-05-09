@@ -80,6 +80,7 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
       if (header.includes('portada')) entry.cover = val;
       if (header === 'tipo') entry.type = val;
       if (header === 'fecha') entry.date = val;
+      if (header.includes('album')) entry.album = val;
     });
 
     if (entry.name && entry.url) {

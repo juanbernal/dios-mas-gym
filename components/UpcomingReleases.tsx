@@ -88,10 +88,11 @@ const UpcomingReleases: React.FC = () => {
                 const fifteenDaysAgo = new Date();
                 fifteenDaysAgo.setDate(now.getDate() - 15);
 
-                // Group catalog items by Artist and Date to detect Albums/EPs
+                // Group catalog items by Artist, Date and COVER to detect Albums/EPs correctly
                 const groupedCatalog: { [key: string]: typeof catalogItems } = {};
                 catalogItems.forEach(item => {
-                    const key = `${item.artist}_${item.date}`;
+                    // Usar la portada como clave secundaria para agrupar álbumes de forma más precisa
+                    const key = `${item.artist}_${item.date}_${item.cover}`;
                     if (!groupedCatalog[key]) groupedCatalog[key] = [];
                     groupedCatalog[key].push(item);
                 });
