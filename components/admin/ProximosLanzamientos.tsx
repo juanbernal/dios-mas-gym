@@ -38,12 +38,23 @@ const ProximosLanzamientos: React.FC = () => {
                 fetchMusicCatalog('juan614', true)
             ]);
             
-            const latestCatalog = [...dM.slice(0, 5), ...j6.slice(0, 5)];
+            const normalize = (s: string) => s.toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+                .replace(/[^a-z0-9]+/g, '')    // Quitar todo lo que no sea letra o número
+                .trim();
+
+            const latestCatalog = [...dM.slice(0, 15), ...j6.slice(0, 15)];
             const missing = latestCatalog.filter(cat => {
-                return !existing.some(ex => 
-                    ex.name.toLowerCase().trim() === cat.name.toLowerCase().trim() && 
-                    ex.Artista.toLowerCase().includes(cat.artist.toLowerCase())
-                );
+                const normCatName = normalize(cat.name);
+                const normCatArtist = normalize(cat.artist);
+                
+                return !existing.some(ex => {
+                    const normExName = normalize(ex.name || '');
+                    const normExArtist = normalize(ex.Artista || '');
+                    // Comparación flexible: nombre exacto o que contenga el nombre
+                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
+                });
             }).map(cat => ({
                 Artista: cat.artist,
                 name: cat.name,
@@ -218,9 +229,17 @@ const ProximosLanzamientos: React.FC = () => {
                     </div>
                 ) : (
                     !loadingReleases && (
-                        <div className="mb-12 bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex items-center gap-4">
-                            <i className="fas fa-check-circle text-green-500/50"></i>
-                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Catálogo verificado: Todo está sincronizado con Google Sheets</span>
+                        <div className="mb-12 bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <i className="fas fa-check-circle text-green-500/50"></i>
+                                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Catálogo verificado: Todo está sincronizado con Google Sheets</span>
+                            </div>
+                            <button 
+                                onClick={fetchCurrentReleases}
+                                className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] hover:text-white transition-colors"
+                            >
+                                <i className="fas fa-sync-alt mr-2"></i> Rastrear de nuevo
+                            </button>
                         </div>
                     )
                 )}
