@@ -1,0 +1,49 @@
+{
+  "profile": {
+    "name": "Juan 614",
+    "bio": "Corridos, banda sinaloense y calle con propósito",
+    "avatar": "/logo-juan614-v2.jpg"
+  },
+  "links": [
+    {
+      "id": "1",
+      "title": "Escucha en Spotify",
+      "url": "https://open.spotify.com/intl-es/artist/0vEKa5AOcBkQVXNfGb2FNh",
+      "icon": "fab fa-spotify",
+      "enabled": true,
+      "type": "special"
+    },
+    {
+      "id": "2",
+      "title": "Suscríbete en YouTube",
+      "url": "https://www.youtube.com/@Juan614oficial",
+      "icon": "fab fa-youtube",
+      "enabled": true,
+      "type": "primary"
+    },
+    {
+      "id": "3",
+      "title": "Sígueme en TikTok",
+      "url": "https://www.tiktok.com/@juan614oficial",
+      "icon": "fab fa-tiktok",
+      "enabled": true,
+      "type": "primary"
+    },
+    {
+      "id": "4",
+      "title": "Apple Music",
+      "url": "https://music.apple.com/us/artist/juan-614/1870721488",
+      "icon": "fab fa-apple",
+      "enabled": true,
+      "type": "secondary"
+    },
+    {
+      "id": "5",
+      "title": "Catálogo de Música",
+      "url": "https://juan614.diosmasgym.com",
+      "icon": "fas fa-globe",
+      "enabled": true,
+      "type": "secondary"
+    }
+  ]
+}
