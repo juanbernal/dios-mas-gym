@@ -3,6 +3,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+    const { lyrics } = req.body || {};
+
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
@@ -11,7 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const modelName = "gemini-2.0-flash-exp"; // Usamos el modelo que sabemos que le funciona a tu API key
     
     const promptText = `Actúa como un Director de Arte experto en edición de video musical para TikTok y YouTube.
-    Tu objetivo es generar una configuración visual única, creativa y espectacular para un "Lyric Video" (Video de Letras).
+    Se te proporcionará la letra de una canción. Tu objetivo es analizar la vibra, el sentimiento y el ritmo de esa letra, y generar una configuración visual única, creativa y espectacular que encaje perfectamente con ese tema.
+    
+    Letra de la canción:
+    """
+    ${lyrics ? lyrics : 'Letra no proporcionada. Usa tu creatividad libremente.'}
+    """
+    
     Debes devolver UNICAMENTE un objeto JSON válido con las siguientes claves y valores posibles:
     
     - "visualizerStyle": elige uno de ['bars', 'wave', 'pulse', 'dots', 'circular', 'hidden']

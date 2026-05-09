@@ -22,11 +22,12 @@ export const generateSocialPost = async (content: string) => {
     }
 };
 
-export const generateLyricStyle = async () => {
+export const generateLyricStyle = async (lyrics: string) => {
     try {
         const response = await fetch('/api/generate-lyric-style', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lyrics })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Error generando estilo');

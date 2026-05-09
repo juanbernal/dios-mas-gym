@@ -1080,9 +1080,14 @@ const LyricStudio: React.FC = () => {
   };
 
   const handleMagicDesign = async () => {
+      const lyricsToSend = rawLyrics.trim() || lyricsInput.trim();
+      if (!lyricsToSend) {
+          alert("Por favor pega o escribe la letra primero para que la IA se base en ella.");
+          return;
+      }
       setIsGeneratingStyle(true);
       try {
-          const config = await generateLyricStyle();
+          const config = await generateLyricStyle(lyricsToSend);
           if (config) {
               if (config.visualizerStyle) setVisualizerStyle(config.visualizerStyle);
               if (config.vibe) setVibe(config.vibe);
