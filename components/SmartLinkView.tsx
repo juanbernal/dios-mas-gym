@@ -143,7 +143,43 @@ const SmartLinkView: React.FC = () => {
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
                 ]);
-                const fullCatalog = [...dM, ...j6];
+                let fullCatalog = [...dM, ...j6];
+
+                // Fetch de la hoja de Próximos Lanzamientos
+                try {
+                    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+                    const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const extraReleases = (data as any[]).map(r => {
+                            const findKey = (keys: string[]) => {
+                                const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                                return k ? r[k] : '';
+                            };
+                            return {
+                                id: `prx-${r.rowId || Math.random().toString(36).substr(2, 9)}`,
+                                artist: findKey(['artista']) || 'Desconocido',
+                                name: findKey(['name', 'nombre', 'titulo', 'título']),
+                                date: findKey(['releasedate', 'fecha']),
+                                url: findKey(['audiourl', 'youtube', 'audio']),
+                                cover: findKey(['coverimageurl', 'imagen', 'portada']),
+                                type: 'Próximo Lanzamiento'
+                            };
+                        }).filter(r => r.name && r.date);
+                        
+                        extraReleases.forEach(extra => {
+                            const exists = fullCatalog.some(c => 
+                                c.name.toLowerCase() === extra.name.toLowerCase() && 
+                                c.artist.toLowerCase() === extra.artist.toLowerCase()
+                            );
+                            if (!exists) {
+                                fullCatalog.push(extra as any);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error fetching future releases from sheet:", e);
+                }
 
                 if (id === 'custom') {
                     const queryParams = new URLSearchParams(location.search);
