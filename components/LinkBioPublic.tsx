@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LinkBioData, MusicItem } from '../types';
 import { fetchMusicCatalog } from '../services/musicService';
+import InlineAudioPlayer from './InlineAudioPlayer';
 
 const FALLBACK_DATA: LinkBioData = {
     profile: {
@@ -120,15 +121,9 @@ const LinkBioPublic: React.FC = () => {
                             </div>
                         </div>
 
-                        <a 
-                            href={`/#/link/${randomSong.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full py-4 bg-[#c5a059] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-[0_10px_30px_rgba(197,160,89,0.2)] active:scale-95"
-                        >
-                            <i className="fas fa-play text-xs"></i>
-                            Escuchar Ahora
-                        </a>
+                        <div className="mb-4">
+                            <InlineAudioPlayer url={randomSong.url} isJuan={artist === 'juan614'} />
+                        </div>
                         
                         <div className="mt-6 text-center">
                             <a 
