@@ -1189,7 +1189,7 @@ const LyricStudio: React.FC = () => {
 
         <div className="flex items-center gap-3 mb-10">
             <div className="w-2.5 h-2.5 rounded-full bg-[#00ffcc] shadow-[0_0_15px_#00ffcc]"></div>
-            <h1 className="text-xl font-black italic tracking-tighter uppercase">Lyric Studio <span className="text-[9px] not-italic text-zinc-600 font-bold ml-1">Modern FX / V2.1</span></h1>
+            <h1 className="text-xl font-black italic tracking-tighter uppercase">Lyric Studio <span className="text-[9px] not-italic text-zinc-600 font-bold ml-1">Modern FX / V2.2</span></h1>
         </div>
 
         {/* 1. Media */}
@@ -1327,7 +1327,7 @@ const LyricStudio: React.FC = () => {
                     {isGeneratingStyle ? (
                         <><i className="fas fa-spinner fa-spin"></i> Magia...</>
                     ) : (
-                        <><i className="fas fa-wand-magic-sparkles"></i> Diseño Mágico IA v2.1</>
+                        <><i className="fas fa-wand-magic-sparkles"></i> Diseño Mágico IA v2.2</>
                     )}
                 </button>
             </div>
