@@ -58,6 +58,7 @@ const LyricStudio: React.FC = () => {
   const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, hidden
   const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false);
+  const [imagePromptStatus, setImagePromptStatus] = useState<string>("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1099,12 +1100,20 @@ const LyricStudio: React.FC = () => {
               if (config.glowToggle !== undefined) setGlowToggle(config.glowToggle);
               if (config.leakToggle !== undefined) setLeakToggle(config.leakToggle);
               if (config.vhsMode !== undefined) setVhsMode(config.vhsMode);
+
+              if (config.imagePrompt) {
+                  setImagePromptStatus("Pintando fondo con IA...");
+                  const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(config.imagePrompt)}?width=720&height=1280&nologo=true`;
+                  imgRef.current.crossOrigin = "anonymous";
+                  imgRef.current.src = imgUrl;
+              }
           }
       } catch (error) {
           console.error("Failed to generate magic design", error);
           alert("Hubo un error al generar el diseño con IA.");
       } finally {
           setIsGeneratingStyle(false);
+          setTimeout(() => setImagePromptStatus(""), 3000);
       }
   };
 
@@ -1322,6 +1331,12 @@ const LyricStudio: React.FC = () => {
                     )}
                 </button>
             </div>
+            
+            {imagePromptStatus && (
+                <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-center gap-3 animate-pulse text-[9px] font-black uppercase tracking-widest text-purple-400">
+                    <i className="fas fa-palette"></i> {imagePromptStatus}
+                </div>
+            )}
             
             <div className="mb-6 p-3 bg-black/20 rounded-xl border border-white/5">
                 <label className="text-[9px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>

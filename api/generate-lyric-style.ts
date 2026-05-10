@@ -32,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     - "glowToggle": true o false
     - "leakToggle": true o false
     - "vhsMode": true o false (úsalo rara vez, solo si pega con retro/glitch)
+    - "imagePrompt": Un prompt muy descriptivo y detallado EN INGLÉS para un generador de imágenes de IA. Este prompt debe describir una escena visual épica, cinemática y de alta calidad que sirva como fondo perfecto para la canción. Por ejemplo: "A cinematic neon cyberpunk city at night with glowing rain, hyperrealistic, 8k, moody atmosphere".
 
     La combinación debe tener sentido estético. Por ejemplo, si es "retro", un texto amarillo o naranja con "vhsMode" en true. Si es "party", usa colores vibrantes de neón y sensibilidad de bajo alta.
     Asegúrate de que la salida sea estrictamente JSON y nada más. No incluyas backticks de markdown.`;
