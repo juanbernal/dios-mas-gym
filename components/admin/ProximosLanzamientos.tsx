@@ -52,8 +52,8 @@ const ProximosLanzamientos: React.FC = () => {
                 .trim();
 
             const latestCatalog = [
-                ...dM.slice(0, 150), 
-                ...j6.slice(0, 150)
+                ...dM.slice(0, 20), 
+                ...j6.slice(0, 20)
             ].sort((a, b) => {
                 const d1 = a.date || '';
                 const d2 = b.date || '';
@@ -255,7 +255,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.5</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.6</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
