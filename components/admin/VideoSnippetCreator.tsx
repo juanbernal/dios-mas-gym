@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 
+const noise = (x: number, y: number) => {
+    return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
+};
+const smoothNoise = (t: number) => {
+    const t0 = Math.floor(t);
+    const t1 = t0 + 1;
+    const f = t - t0;
+    const u = f * f * (3.0 - 2.0 * f);
+    return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
+};
+
 const VideoSnippetCreator: React.FC = () => {
     const navigate = useNavigate();
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -86,7 +97,11 @@ const VideoSnippetCreator: React.FC = () => {
         const w = 1080;
         const h = 1920;
         const time = Date.now() / 1000;
-        const zoom = Math.sin(time * 0.3) * 50;
+        
+        // Organic Camera Drift (Anti-AI)
+        const nX = smoothNoise(time * 0.3) - 0.5;
+        const nY = smoothNoise(time * 0.4 + 100) - 0.5;
+        const zoom = 50 + (smoothNoise(time * 0.2) * 20);
 
         // Background: Desenfoque de la portada
         const img = new Image();
@@ -101,42 +116,69 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = '#05070a';
         ctx.fillRect(0, 0, w, h);
 
-        // 2. Imagen de fondo escalada y desenfocada (Simulada con opacidad)
-        ctx.globalAlpha = 0.3;
-        const bgZoom = 1.2 + Math.sin(time * 0.1) * 0.1;
-        ctx.drawImage(img, (w - w*bgZoom)/2, (h - h*bgZoom)/2, w*bgZoom, h*bgZoom);
+        // 2. Imagen de fondo escalada y desenfocada (Orgánica)
+        ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
+        const bgZoom = 1.2 + smoothNoise(time * 0.1) * 0.15;
+        ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
         ctx.globalAlpha = 1.0;
 
-        // 3. Gradiente de viñeta
+        // 3. Gradiente de viñeta (con ligero parpadeo orgánico)
         const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        grad.addColorStop(0, `rgba(0,0,0,${0.3 + smoothNoise(time) * 0.1})`);
         grad.addColorStop(0.5, 'rgba(0,0,0,0)');
         grad.addColorStop(1, 'rgba(5,7,10,1)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
-
-        // 4. Portada con Glow Dinámico
+        
+        // Film Grain Sutil
         ctx.save();
-        ctx.shadowBlur = 100 + Math.sin(time * 3) * 30;
-        ctx.shadowColor = '#c5a059';
-        ctx.beginPath();
-        ctx.roundRect(140, 460, 800, 800, 80);
-        ctx.clip();
-        ctx.drawImage(img, 140 - 50 - zoom, 460 - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+        ctx.globalAlpha = 0.03;
+        for (let i = 0; i < 2000; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+            ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        }
         ctx.restore();
 
-        // 5. Partículas de polvo/oro
-        ctx.fillStyle = 'rgba(197, 160, 89, 0.3)';
+        // 4. Portada con Glow Dinámico Orgánico
+        ctx.save();
+        ctx.shadowBlur = 80 + smoothNoise(time * 2) * 50;
+        ctx.shadowColor = '#c5a059';
+        ctx.beginPath();
+        // Handheld jitter for the cover container
+        const coverX = 140 + nX * 15;
+        const coverY = 460 + nY * 15;
+        ctx.roundRect(coverX, coverY, 800, 800, 80);
+        ctx.clip();
+        ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+        ctx.restore();
+
+        // 5. Partículas de polvo/oro (Physics-based)
+        ctx.fillStyle = 'rgba(197, 160, 89, 0.4)';
         for(let i=0; i<30; i++) {
-            const px = ((Math.sin(time * 0.2 + i * 1.5) + 1) / 2) * w;
-            const py = ((Math.cos(time * 0.15 + i * 2.1) + 1) / 2) * h;
+            const seedX = smoothNoise(time * 0.1 + i * 5);
+            const seedY = smoothNoise(time * 0.15 + i * 10);
+            
+            // Non-linear floating
+            const px = (seedX * 1.5) * w;
+            const py = ((seedY * 1.2) % 1) * h;
+            
+            ctx.save();
+            ctx.globalAlpha = 0.2 + smoothNoise(time * 2 + i) * 0.4;
             ctx.beginPath();
-            ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+            ctx.ellipse(px, py, 2 + seedX * 2, 1.5 + seedY * 2, seedX * Math.PI, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
         }
 
-        // 6. Textos Motivacionales
+        // 6. Textos Motivacionales (Kinetic Drift)
         ctx.textAlign = 'center';
+        
+        // Jitter general para todos los textos
+        const textDriftX = nX * 10;
+        const textDriftY = nY * 10;
+        
+        ctx.save();
+        ctx.translate(textDriftX, textDriftY);
         
         // Tagline
         ctx.fillStyle = '#c5a059';
@@ -155,6 +197,8 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.font = '400 35px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '15px';
         ctx.fillText((selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1600);
+        
+        ctx.restore();
 
         // 7. Barra de Progreso Premium
         const progress = isRecording ? recordingProgress : ((audioRef.current?.currentTime || 0) - startTime) / duration;
@@ -189,49 +233,85 @@ const VideoSnippetCreator: React.FC = () => {
             setIsRecording(true);
             const canvas = canvasRef.current;
             
-            // Forzar carga de imagen antes de empezar para evitar parpadeos
+            // Pre-load cover image
             const img = new Image();
             img.crossOrigin = "anonymous";
             img.src = selectedSong!.cover;
-            await new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve;
-            });
+            await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
-            const stream = canvas.captureStream(60); // 60 FPS para máxima fluidez
+            const stream = canvas.captureStream(30);
             
-            // Audio Capture con AudioContext para mayor compatibilidad
+            // Audio capture
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
             const source = audioCtx.createMediaElementSource(audioRef.current);
             const destination = audioCtx.createMediaStreamDestination();
             source.connect(destination);
-            source.connect(audioCtx.destination); // Para que el usuario también escuche
-            
+            source.connect(audioCtx.destination);
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
+            // Best quality WebM the browser can produce
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+                ? 'video/webm;codecs=vp9,opus'
+                : 'video/webm';
+
             const recorder = new MediaRecorder(stream, { 
-                mimeType: 'video/webm;codecs=vp9,opus',
-                videoBitsPerSecond: 5000000 // 5Mbps para alta calidad
+                mimeType,
+                videoBitsPerSecond: 12000000 // 12Mbps
             });
             
             const chunks: Blob[] = [];
-            recorder.ondataavailable = (e) => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Snippet_${selectedSong?.name.replace(/\s/g, '_')}_HQ.webm`;
-                a.click();
-                setIsRecording(false);
-                // Limpiar
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+            
+            recorder.onstop = async () => {
+                const webmBlob = new Blob(chunks, { type: mimeType });
+                const songName = selectedSong?.name.replace(/\s/g, '_') || 'snippet';
+                
+                try {
+                    // Convert WebM → MP4 using FFmpeg.wasm
+                    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+                    const { fetchFile, toBlobURL } = await import('@ffmpeg/util');
+                    
+                    const ffmpeg = new FFmpeg();
+                    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+                    await ffmpeg.load({
+                        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                    });
+                    
+                    await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
+                    await ffmpeg.exec([
+                        '-i', 'input.webm',
+                        '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
+                        '-c:a', 'aac', '-b:a', '192k',
+                        '-movflags', '+faststart',
+                        'output.mp4'
+                    ]);
+                    
+                    const data = await ffmpeg.readFile('output.mp4');
+                    const mp4Blob = new Blob([(data as Uint8Array).buffer], { type: 'video/mp4' });
+                    const url = URL.createObjectURL(mp4Blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Snippet_${songName}_HQ.mp4`;
+                    a.click();
+                } catch (ffErr) {
+                    console.warn("FFmpeg MP4 conversion failed, fallback to WebM:", ffErr);
+                    const url = URL.createObjectURL(webmBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Snippet_${songName}_HQ.webm`;
+                    a.click();
+                    alert("El video se guardó como .webm.\nPara convertirlo a MP4: ábrelo con VLC → Medio → Convertir.");
+                }
+                
                 audioCtx.close();
+                setIsRecording(false);
             };
 
             audioRef.current.currentTime = startTime;
             audioRef.current.play();
             setIsPlaying(true);
-            recorder.start(100); // Grabar en trozos de 100ms para mayor estabilidad
+            recorder.start(100);
 
             const recordingStartTime = Date.now();
             const interval = setInterval(() => {
@@ -267,7 +347,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.5</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.6</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -440,13 +520,26 @@ const VideoSnippetCreator: React.FC = () => {
                     <div className="w-32 h-32 relative mb-8">
                         <div className="absolute inset-0 border-4 border-[#c5a059]/20 rounded-full"></div>
                         <div className="absolute inset-0 border-4 border-t-[#c5a059] rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center text-[#c5a059] font-black text-xl">REC</div>
+                        <div className="absolute inset-0 flex items-center justify-center text-[#c5a059] font-black text-xl">
+                            {recordingProgress >= 1 ? 'MP4' : 'REC'}
+                        </div>
                     </div>
-                    <h2 className="text-2xl font-black uppercase tracking-[0.5em] mb-4">Grabando Snippet</h2>
-                    <p className="text-white/40 text-xs uppercase tracking-widest mb-8">No cierres esta pestaña hasta que la descarga comience.</p>
+                    <h2 className="text-2xl font-black uppercase tracking-[0.5em] mb-4">
+                        {recordingProgress >= 1 ? 'Convirtiendo a MP4...' : 'Grabando Snippet'}
+                    </h2>
+                    <p className="text-white/40 text-xs uppercase tracking-widest mb-8">
+                        {recordingProgress >= 1 
+                            ? 'FFmpeg está procesando el video. No cierres esta pestaña.'
+                            : 'No cierres esta pestaña hasta que la descarga comience.'}
+                    </p>
                     <div className="w-64 bg-white/10 h-1 rounded-full overflow-hidden">
-                        <div className="bg-[#c5a059] h-full transition-all duration-100" style={{ width: `${((audioRef.current?.currentTime || 0) - startTime) / duration * 100}%` }}></div>
+                        <div className="bg-[#c5a059] h-full transition-all duration-100" style={{ width: `${recordingProgress * 100}%` }}></div>
                     </div>
+                    {recordingProgress < 1 && (
+                        <p className="text-white/20 text-[10px] uppercase tracking-widest mt-4">
+                            {Math.round(recordingProgress * duration)}s / {duration}s
+                        </p>
+                    )}
                 </div>
             )}
         </div>
