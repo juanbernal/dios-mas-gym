@@ -111,7 +111,7 @@ const ProximosLanzamientos: React.FC = () => {
                 Artista: cat.artist,
                 name: cat.name,
                 releaseDate: cat.date ? cat.date.split('T')[0] : new Date().toISOString().split('T')[0],
-                preSaveLink: `https://musica.diosmasgym.com/#/link/${cat.id}`,
+                preSaveLink: `https://app.diosmasgym.com/#/link/${cat.id}`,
                 audioUrl: cat.url,
                 coverImageUrl: cat.cover
             }));
