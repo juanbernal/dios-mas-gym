@@ -59,6 +59,18 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 }
             });
         }
+
+        return () => {
+            // Destroy the player when the component unmounts or videoId changes
+            if (playerRef.current && playerRef.current.destroy) {
+                try {
+                    playerRef.current.destroy();
+                } catch (e) {
+                    // ignore
+                }
+                playerRef.current = null;
+            }
+        };
     }, [videoId]);
 
     useEffect(() => {
@@ -346,7 +358,7 @@ const SmartLinkView: React.FC = () => {
                         <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                         {embedData?.type === 'youtube' && (
-                            <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
+                            <YouTubeAudioPlayer key={embedData.id} videoId={embedData.id!} isJuan={false} />
                         )}
                         
                         {embedData?.type === 'spotify' && (
@@ -399,17 +411,17 @@ const SmartLinkView: React.FC = () => {
                                     </h3>
                                     <div className="space-y-2">
                                         {relatedSongs.map((track, i) => (
-                                            <a 
+                                            <button 
                                                 key={i} 
-                                                href={`/#/link/${track.id}`}
-                                                className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
+                                                onClick={() => navigate(`/link/${track.id}`)}
+                                                className="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <span className="text-[10px] font-mono text-white/20">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
                                                     <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{track.name}</span>
                                                 </div>
                                                 <i className="fas fa-chevron-right text-[10px] text-white/20 group-hover:text-[#c5a059] transition-colors"></i>
-                                            </a>
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
@@ -460,7 +472,7 @@ const SmartLinkView: React.FC = () => {
                     <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                     {embedData?.type === 'youtube' && (
-                        <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
+                        <YouTubeAudioPlayer key={embedData.id} videoId={embedData.id!} isJuan={true} />
                     )}
                     
                     {embedData?.type === 'spotify' && (
@@ -513,17 +525,17 @@ const SmartLinkView: React.FC = () => {
                                 </h3>
                                 <div className="space-y-2">
                                     {relatedSongs.map((track, i) => (
-                                        <a 
+                                        <button 
                                             key={i} 
-                                            href={`/#/link/${track.id}`}
-                                            className="flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
+                                            onClick={() => navigate(`/link/${track.id}`)}
+                                            className="w-full flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
                                         >
                                             <div className="flex items-center gap-4">
                                                 <span className="text-[10px] font-mono text-[#c89d53]/30">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
                                                 <span className="text-xs font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
                                             </div>
                                             <i className="fas fa-play text-[8px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
-                                        </a>
+                                        </button>
                                     ))}
                                 </div>
                             </div>

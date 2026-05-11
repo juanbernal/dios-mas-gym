@@ -26,6 +26,18 @@ const OUTRO_DURATION = 7;
 const MAX_VIDEO_DURATION = 90; // Límite estricto para TikTok (1:30 minutos)
 const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
 
+// --- ANTI-AI ORGANIC NOISE ENGINE ---
+const noise = (x: number, y: number) => {
+    return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
+};
+const smoothNoise = (t: number) => {
+    const t0 = Math.floor(t);
+    const t1 = t0 + 1;
+    const f = t - t0;
+    const u = f * f * (3.0 - 2.0 * f);
+    return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
+};
+
 const LyricStudio: React.FC = () => {
   const navigate = useNavigate();
   const [apiKey, setApiKey] = useState("");
@@ -77,13 +89,18 @@ const LyricStudio: React.FC = () => {
 
   useEffect(() => {
     // Initial Particles
-    particlesRef.current = Array.from({length: 25}, () => ({
+    particlesRef.current = Array.from({length: 35}, () => ({
       x: Math.random() * 720,
       y: Math.random() * 1280 + 1280,
-      size: 20 + Math.random() * 30,
-      speedY: -0.5 - Math.random() * 1.5,
-      opacity: 0.1 + Math.random() * 0.3,
-      char: ""
+      size: 10 + Math.random() * 40,
+      speedY: -0.2 - Math.random() * 2.5,
+      speedX: (Math.random() - 0.5) * 1.5,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.02 + Math.random() * 0.05,
+      opacity: 0.05 + Math.random() * 0.4,
+      char: "",
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 2
     }));
 
     logoStudioRef.current.src = "/logo_diosmasgym.png";
@@ -235,11 +252,12 @@ const LyricStudio: React.FC = () => {
     const barW = cw / barsCount;
 
     if (visualizerStyle === 'bars') {
-        // URBAN GOLD BARS
+        // URBAN GOLD BARS (Organic/Anti-AI)
         ctx.save();
         for (let i = 0; i < barsCount; i++) {
             const val = dataArrayRef.current[i % dataArrayRef.current.length];
-            const h = (val / 255) * 120 * sensitivity;
+            const noiseFactor = smoothNoise(i * 0.1 + (time || 0) * 2) * 15;
+            const h = Math.max(0, (val / 255) * 120 * sensitivity + noiseFactor);
             const grad = ctx.createLinearGradient(0, ch - h - 40, 0, ch - 40);
             grad.addColorStop(0, '#c5a059'); // Gold
             grad.addColorStop(1, 'rgba(197, 160, 89, 0.1)');
@@ -250,7 +268,7 @@ const LyricStudio: React.FC = () => {
         }
         ctx.restore();
     } else if (visualizerStyle === 'wave') {
-        // DIGITAL CYAN WAVE
+        // DIGITAL CYAN WAVE (Jagged/Organic)
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(0, ch - 150);
@@ -261,7 +279,8 @@ const LyricStudio: React.FC = () => {
         for (let i = 0; i < cw; i += 5) {
             const idx = Math.floor((i / cw) * dataArrayRef.current.length);
             const val = dataArrayRef.current[idx];
-            const y = ch - 150 - (val / 255) * 100 * sensitivity;
+            const noiseJitter = smoothNoise(i * 0.05 + (time || 0) * 3) * 10;
+            const y = ch - 150 - (val / 255) * 100 * sensitivity + noiseJitter;
             ctx.lineTo(i, y);
         }
         ctx.stroke();
@@ -346,8 +365,8 @@ const LyricStudio: React.FC = () => {
       ctx.fillRect(0, 0, cw, ch);
     }
 
-    // 3. Golden particle rain
-    const seed = Math.floor(time * 30);
+    // 3. Golden particle rain (Anti-AI randomized)
+    const seed = Math.floor(time * 30 + smoothNoise(time) * 100);
     for (let i = 0; i < 60; i++) {
       const px = ((i * 137 + seed * 31) % cw);
       const py = ((i * 97  + seed * 17) % ch);
@@ -701,13 +720,18 @@ const LyricStudio: React.FC = () => {
     ctx.save();
     const sourceImg = imgRef.current;
     let scale = Math.max(cw / (sourceImg.width || cw), ch / (sourceImg.height || ch));
-    let panX = Math.sin(time * 0.1) * 30;
-    let panY = Math.cos(time * 0.08) * 15;
-    let shake = (lowEnd > 0.7) ? (Math.random()-0.5) * 6 * lowEnd : 0;
-    let zoom = 1.05 + (lowEnd * 0.04) + Math.sin(time * 0.12) * 0.03;
+    
+    // Organic Handheld Camera (Anti-AI)
+    const nX = smoothNoise(time * 0.8) - 0.5;
+    const nY = smoothNoise(time * 0.7 + 100) - 0.5;
+    
+    let panX = nX * 40 + Math.sin(time * 0.1) * 15;
+    let panY = nY * 30 + Math.cos(time * 0.08) * 10;
+    let shake = (lowEnd > 0.7) ? (Math.random()-0.5) * 12 * lowEnd : 0;
+    let zoom = 1.05 + (lowEnd * 0.06) + smoothNoise(time * 0.2) * 0.05;
 
     // Breath effect
-    const breath = 1 + Math.sin(time * 0.5) * 0.02;
+    const breath = 1 + smoothNoise(time * 0.4) * 0.03;
     
     ctx.translate(cw/2 + panX + shake, ch/2 + panY + shake);
     ctx.scale(scale * zoom * breath, scale * zoom * breath);
@@ -741,14 +765,25 @@ const LyricStudio: React.FC = () => {
 
     if (vhsMode) {
       ctx.save();
-      ctx.globalAlpha = 0.15;
-      ctx.globalCompositeOperation = 'difference';
+      
+      // Sporadic Tracking Errors (Anti-AI)
+      if (lowEnd > 0.85 || Math.random() > 0.97) {
+        const tearY = Math.random() * ch;
+        const tearH = Math.random() * 20 + 5;
+        ctx.globalAlpha = 0.5;
+        ctx.globalCompositeOperation = 'color-dodge';
+        ctx.fillStyle = Math.random() > 0.5 ? '#ff0055' : '#00ffcc';
+        ctx.fillRect(0, tearY, cw, tearH);
+        ctx.translate((Math.random()-0.5)*10, 0);
+      }
+
+      ctx.globalAlpha = 0.1 + smoothNoise(time * 5) * 0.05;
       ctx.fillStyle = '#fff';
-      if (Math.random() > 0.9) ctx.fillRect(0, Math.random() * ch, cw, 2);
+      if (Math.random() > 0.8) ctx.fillRect(0, Math.random() * ch, cw, Math.random() * 4);
       ctx.restore();
       
       // Chromatic Aberration Jitter
-      if (Math.random() > 0.95) ctx.translate((Math.random()-0.5)*4, 0);
+      if (lowEnd > 0.8) ctx.translate((Math.random()-0.5)*6, (Math.random()-0.5)*6);
     }
 
     // Title Card Overlay (First 5 seconds of lyrics)
@@ -776,24 +811,45 @@ const LyricStudio: React.FC = () => {
       ctx.restore();
     }
 
-    // Particles
+    // Particles (Organic Physics-based)
     const pack = emojiMap[emojiPack];
     particlesRef.current.forEach((p, idx) => {
-      p.y += p.speedY * (1 + lowEnd);
-      if (p.y < -50) { 
+      // Wind and drag
+      p.wobble += p.wobbleSpeed;
+      const windX = Math.sin(p.wobble) * 0.5 + smoothNoise(time * 0.5 + idx) * 2;
+      
+      p.y += (p.speedY - lowEnd * 2);
+      p.x += p.speedX + windX;
+      p.rotation += p.rotationSpeed;
+
+      if (p.y < -100 || p.x < -100 || p.x > cw + 100) { 
         p.y = ch + 50; 
         p.x = Math.random() * cw; 
         p.char = pack[Math.floor(Math.random()*pack.length)] || ""; 
+        p.speedY = -0.2 - Math.random() * 2.5;
+        p.speedX = (Math.random() - 0.5) * 1.5;
       }
       
       ctx.save();
-      ctx.globalAlpha = p.opacity;
+      // Flicker opacity slightly
+      ctx.globalAlpha = p.opacity * (0.8 + 0.2 * Math.sin(time * 5 + idx));
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      
       if (p.char) {
         ctx.font = `${p.size}px serif`;
-        ctx.fillText(p.char, p.x, p.y);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.char, 0, 0);
       } else {
-        ctx.fillStyle = vibe === 'party' ? `hsl(${time*100 + idx*10}, 70%, 70%)` : '#fff';
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size/10, 0, Math.PI*2); ctx.fill();
+        // Abstract dust instead of perfect circles
+        ctx.fillStyle = vibe === 'party' ? `hsl(${time*100 + idx*10}, 70%, 70%)` : 'rgba(255,255,255,0.8)';
+        ctx.shadowColor = vibe === 'party' ? `hsl(${time*100 + idx*10}, 70%, 70%)` : 'rgba(255,255,255,0.8)';
+        ctx.shadowBlur = 10;
+        
+        ctx.beginPath(); 
+        ctx.ellipse(0, 0, p.size/8, p.size/12, 0, 0, Math.PI*2); 
+        ctx.fill();
       }
       ctx.restore();
     });
@@ -816,12 +872,14 @@ const LyricStudio: React.FC = () => {
       ctx.restore();
     }
 
-    // Lyrics
-    const active = lyrics.filter(l => time >= l.time).pop();
+    // Lyrics (Kinetic Typography Anti-AI)
+    const activeIdx = lyrics.findIndex(l => time >= l.time && time < (lyrics[lyrics.indexOf(l) + 1]?.time || 999));
+    const active = lyrics[activeIdx];
+    
     if (active && active.text.trim() !== "" && active.text !== "[SILENCIO]") {
       const elapsed = time - active.time;
       let alpha = Math.min(elapsed / 0.45, 1);
-      const next = lyrics[lyrics.indexOf(active) + 1];
+      const next = lyrics[activeIdx + 1];
       if (next && (next.time - time) < 0.3) alpha = Math.max((next.time - time) / 0.3, 0);
 
       ctx.save();
@@ -838,17 +896,23 @@ const LyricStudio: React.FC = () => {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.globalAlpha = alpha;
 
-      // ANIMATION STYLES
+      // Organic Motion Blur & Non-Linear easing
+      const easing = 1 - Math.pow(1 - alpha, 3); // Cubic out
+      
       if (animationStyle === 'slide') {
-          ctx.translate(0, (1 - alpha) * 50);
+          ctx.translate(0, (1 - easing) * 60);
+          if (alpha < 1) ctx.filter = `blur(${(1 - alpha) * 10}px)`;
       } else if (animationStyle === 'zoom') {
-          const s = 0.8 + (alpha * 0.2);
+          const s = 0.7 + (easing * 0.3);
           ctx.scale(s, s);
+          if (alpha < 1) ctx.filter = `blur(${(1 - alpha) * 15}px)`;
       } else {
-        // Default fade/blur
-        const blur = Math.max(0, (1 - alpha) * 15);
-        if (blur > 0) ctx.filter = `blur(${blur}px)`;
-        ctx.translate(0, (1-alpha) * 20);
+          // Fade + Organic Drift
+          const driftX = smoothNoise(active.time) * 20 * (1 - easing);
+          const driftY = smoothNoise(active.time + 10) * 20 * (1 - easing);
+          ctx.translate(driftX, driftY);
+          const blur = Math.max(0, (1 - easing) * 15);
+          if (blur > 0) ctx.filter = `blur(${blur}px)`;
       }
 
       const words = active.text.toUpperCase().split(' ');
@@ -862,10 +926,20 @@ const LyricStudio: React.FC = () => {
 
       linesArr.forEach((l, i) => {
         const ly = (i - (linesArr.length-1)/2) * (fontSize * 1.35);
-        ctx.font = `900 ${fontSize + (lowEnd * 4)}px Montserrat`;
+        const lineTrimmed = l.trim();
+        
+        ctx.save();
+        ctx.translate(0, ly);
+        
+        // Jitter text slightly based on audio intensity
+        const jitterX = (lowEnd > 0.8) ? (Math.random() - 0.5) * 4 : 0;
+        const jitterY = (lowEnd > 0.8) ? (Math.random() - 0.5) * 4 : 0;
+        ctx.translate(jitterX, jitterY);
+
+        ctx.font = `900 ${fontSize + (lowEnd * 3)}px Montserrat`;
         ctx.shadowColor = '#000'; ctx.shadowBlur = 30;
         ctx.strokeStyle = '#000'; ctx.lineWidth = 12;
-        ctx.strokeText(l.trim(), 0, ly);
+        ctx.strokeText(lineTrimmed, 0, 0);
         
         if (glowToggle) {
           ctx.shadowColor = textColor;
@@ -873,7 +947,8 @@ const LyricStudio: React.FC = () => {
         }
 
         ctx.fillStyle = textColor;
-        ctx.fillText(l.trim(), 0, ly);
+        ctx.fillText(lineTrimmed, 0, 0);
+        ctx.restore();
       });
       ctx.restore();
     }
