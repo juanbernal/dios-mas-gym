@@ -31,6 +31,7 @@ export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceR
 /**
  * Parses a CSV string into an array of MusicItem objects.
  * Handles variations in headers and potential empty lines.
+ * Supports both Diosmasgym (named headers) and Juan614 (positional fallback) CSV formats.
  */
 const parseMusicCSV = (csvText: string): MusicItem[] => {
   const lines = csvText.split(/\r?\n/);
@@ -39,7 +40,7 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
   // Data starts after the "---" if present, or from the headers
   let startIndex = 0;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('Nombre,Artista')) {
+    if (lines[i].includes('Nombre') && lines[i].includes('Artista')) {
       startIndex = i;
       break;
     }
@@ -58,7 +59,7 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     const values: string[] = [];
     let current = '';
     let inQuotes = false;
-    for (let char of line) {
+    for (const char of line) {
         if (char === '"') inQuotes = !inQuotes;
         else if (char === ',' && !inQuotes) {
             values.push(current.trim());
@@ -67,13 +68,15 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     }
     values.push(current.trim());
 
-    if (values.length < 4) continue;
+    if (values.length < 3) continue;
+
+    const clean = (v: string) => (v || '').replace(/^"|"$/g, '').trim();
 
     const entry: any = {};
+
+    // --- Named header mapping ---
     headers.forEach((header, index) => {
-      let val = (values[index] || '').replace(/^"|"$/g, '').trim();
-      
-      // Map common header variations specifically
+      const val = clean(values[index]);
       if (header === 'nombre') entry.name = val;
       if (header === 'artista') entry.artist = val;
       if (header === 'url spotify' || header === 'url youtube' || (header === 'url' && !entry.url)) entry.url = val;
@@ -83,8 +86,21 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
       if (header.includes('album')) entry.album = val;
     });
 
-    if (entry.name && entry.url) {
-      // Extraer el ID de YouTube de forma segura o usar un slug determinista
+    // --- Positional fallbacks (for CSVs with empty header columns, e.g. Juan 614) ---
+    // Expected order: 0=Nombre, 1=Artista, 2=URL, 3=Portada, 4=Tipo, 5=Fecha
+    if (!entry.name)   entry.name   = clean(values[0]);
+    if (!entry.artist) entry.artist = clean(values[1]);
+    if (!entry.url)    entry.url    = clean(values[2]);
+    if (!entry.cover)  entry.cover  = clean(values[3]);
+    if (!entry.type)   entry.type   = clean(values[4]);
+    if (!entry.date)   entry.date   = clean(values[5]);
+
+    // Skip metadata rows (Spotify artist info, empty lines, etc.)
+    if (!entry.url) continue;
+    if (entry.url.includes('spotify.com/intl') || entry.url.includes('spotify.com/artist')) continue;
+    if (!entry.name) continue;
+
+    if (entry.url) {
       let videoId = '';
       try {
         if (entry.url.includes('youtube.com') && entry.url.includes('v=')) {
@@ -94,7 +110,6 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
         }
       } catch (e) {}
 
-      // Si no hay videoId de YouTube, crear un slug determinista con el artista y nombre
       entry.id = videoId || generateSlug(`${entry.artist}-${entry.name}`);
       music.push(entry as MusicItem);
     }
