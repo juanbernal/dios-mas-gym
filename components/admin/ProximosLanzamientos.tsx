@@ -51,17 +51,43 @@ const ProximosLanzamientos: React.FC = () => {
                 .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
+
+            // Extract YouTube video ID from cover URL to detect albums
+            const getCoverId = (cover: string): string => {
+                if (!cover) return '';
+                const match = cover.match(/\/vi\/([^/]+)\//);
+                return match ? match[1] : '';
+            };
+
+            // Group songs by cover: same thumbnail = same album → one entry
+            const groupIntoAlbums = (songs: typeof dM): typeof dM => {
+                const coverMap = new Map<string, typeof dM>();
+                songs.forEach(song => {
+                    const key = getCoverId(song.cover) || `single-${song.id}`;
+                    if (!coverMap.has(key)) coverMap.set(key, []);
+                    coverMap.get(key)!.push(song);
+                });
+                const result: typeof dM = [];
+                coverMap.forEach((group) => {
+                    if (group.length === 1) {
+                        result.push(group[0]);
+                    } else {
+                        const sorted = [...group].sort((a, b) => a.name.length - b.name.length);
+                        const rep = { ...sorted[0] };
+                        rep.name = rep.name.replace(/\s*\(feat\..*?\)/gi, '').trim();
+                        result.push(rep);
+                    }
+                });
+                return result;
+            };
+
             const latestCatalog = [
-                ...dM.slice(0, 20), 
-                ...j6.slice(0, 20)
-            ].sort((a, b) => {
-                const d1 = a.date || '';
-                const d2 = b.date || '';
-                return d2.localeCompare(d1);
-            });
+                ...groupIntoAlbums(dM.slice(0, 20)),
+                ...groupIntoAlbums(j6.slice(0, 20))
+            ];
             const logs: typeof scanLog = [];
             
-            const missing = latestCatalog.filter((cat, idx) => {
+            const missing = latestCatalog.filter((cat) => {
                 const normCatName = normalize(cat.name);
                 const normCatArtist = normalize(cat.artist);
                 
@@ -255,7 +281,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.6</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.7</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
