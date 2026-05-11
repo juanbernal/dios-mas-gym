@@ -46,14 +46,19 @@ const ProximosLanzamientos: React.FC = () => {
             const normalize = (s: string) => s.toLowerCase()
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\(feat\..*?\)/g, '')
+                .replace(/\(ft\..*?\)/g, '')
                 .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
-            const latestCatalog = [...dM, ...j6].sort((a, b) => {
+            const latestCatalog = [
+                ...dM.slice(0, 150), 
+                ...j6.slice(0, 150)
+            ].sort((a, b) => {
                 const d1 = a.date || '';
                 const d2 = b.date || '';
                 return d2.localeCompare(d1);
-            }).slice(0, 150);
+            });
             const logs: typeof scanLog = [];
             
             const missing = latestCatalog.filter((cat, idx) => {
@@ -69,7 +74,13 @@ const ProximosLanzamientos: React.FC = () => {
                     return isArtistMatch && isNameMatch;
                 });
                 
-                if (idx < 10) {
+                const isDM = cat.artist.toLowerCase().includes('diosmasgym');
+                const isJ6 = cat.artist.toLowerCase().includes('juan');
+                
+                const dMLogsCount = logs.filter(l => l.artist.toLowerCase().includes('diosmasgym')).length;
+                const j6LogsCount = logs.filter(l => l.artist.toLowerCase().includes('juan')).length;
+
+                if ((isDM && dMLogsCount < 10) || (isJ6 && j6LogsCount < 10)) {
                     logs.push({ name: cat.name, artist: cat.artist, found: isFound });
                 }
                 
@@ -244,7 +255,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.4</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.5</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
