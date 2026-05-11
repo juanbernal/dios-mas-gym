@@ -61,20 +61,8 @@ const ProximosLanzamientos: React.FC = () => {
                     const normExArtist = normalize(ex.Artista || '');
                     const isNameMatch = normExName === normCatName;
                     
-                    // Prevent duplicates if the user grouped them into an Album for this date
-                    const catDateOnly = cat.date ? cat.date.split('T')[0] : '';
-                    let isDateMatch = false;
-                    if (ex.releaseDate && catDateOnly) {
-                        let exDate = ex.releaseDate;
-                        if (exDate.includes('/')) {
-                            const [d, m, y] = exDate.split('/');
-                            exDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                        }
-                        isDateMatch = exDate === catDateOnly;
-                    }
-                    
                     const isArtistMatch = normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist);
-                    return isArtistMatch && (isNameMatch || isDateMatch);
+                    return isArtistMatch && isNameMatch;
                 });
                 
                 if (idx < 10) {
@@ -252,7 +240,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.2</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v3.3</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
@@ -298,11 +286,11 @@ const ProximosLanzamientos: React.FC = () => {
                             </div>
                         </div>
                         <button 
-                            onClick={handleAutoSync} 
+                            onClick={() => handleAutoSync()} 
                             disabled={isSyncing}
-                            className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full shadow-2xl disabled:opacity-50"
+                            className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full shadow-2xl disabled:opacity-50 min-w-[300px]"
                         >
-                            {isSyncing ? 'Sincronizando...' : 'Sincronizar Todo Ahora'}
+                            {isSyncing ? (status.message || 'Sincronizando...') : 'Sincronizar Todo Ahora'}
                         </button>
                     </div>
                 ) : (
