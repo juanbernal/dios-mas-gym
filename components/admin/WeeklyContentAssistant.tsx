@@ -56,9 +56,8 @@ const getWeekNumber = (date: Date) => {
     return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 };
 
-const WeeklyContentAssistant: React.FC = () => {
+const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog }) => {
     const navigate = useNavigate();
-    const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [releases, setReleases] = useState<ReleaseData[]>([]);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState<'ig' | 'tt' | null>(null);
@@ -81,22 +80,17 @@ const WeeklyContentAssistant: React.FC = () => {
     };
 
     useEffect(() => {
-        const loadData = async () => {
+        const loadReleases = async () => {
             try {
-                const [dM, j6, res] = await Promise.all([
-                    fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614'),
-                    fetch(GOOGLE_SHEET_URL).then(r => r.json())
-                ]);
-                setCatalog([...dM, ...j6]);
+                const res = await fetch(GOOGLE_SHEET_URL).then(r => r.json());
                 setReleases(res || []);
             } catch (err) {
-                console.error("Error loading assistant data:", err);
+                console.error("Error loading releases:", err);
             } finally {
                 setLoading(false);
             }
         };
-        loadData();
+        loadReleases();
     }, []);
 
     const suggestion = useMemo<Suggestion | null>(() => {
@@ -185,6 +179,17 @@ const WeeklyContentAssistant: React.FC = () => {
             caption: caps.ig,
             tiktokCaption: caps.tt,
             hashtags: HASHTAG_SETS.old_gem,
+        };
+        // FINAL FALLBACK: Si nada de lo anterior funcionó (raro), devolvemos la primera del pool
+        const fallback = pool[0];
+        const fCaps = CAPTIONS_BY_TYPE.rotation(fallback.name, fallback.artist);
+        return {
+            song: fallback,
+            reason: `Promoción del día: "${fallback.name}". Mantén tu catálogo en movimiento.`,
+            type: 'rotation',
+            caption: fCaps.ig,
+            tiktokCaption: fCaps.tt,
+            hashtags: HASHTAG_SETS.rotation,
         };
     }, [catalog, releases, dayOfYear, promotedIds]);
 
