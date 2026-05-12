@@ -15,7 +15,7 @@ const SocialPostGenerator: React.FC = () => {
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [selectedSongId, setSelectedSongId] = useState('');
 
-    const VERSION = "v1.3.6 Future-Flash";
+    const VERSION = "v1.3.7 Future-Flash";
 
     const [formData, setFormData] = useState({
         input: '',

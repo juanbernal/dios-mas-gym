@@ -295,7 +295,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         </div>
 
                         <div className="flex flex-col gap-3 lg:w-56 shrink-0">
-                            <button onClick={() => handleAction('/admin/promo-generator')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                            <button onClick={() => handleAction('/admin/promo-image')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-left">Imagen Promo</span>
                                 <i className="fas fa-image text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
@@ -303,9 +303,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 <span className="text-[10px] font-black uppercase tracking-widest text-left">Video Snippet</span>
                                 <i className="fas fa-video text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
-                            <button onClick={() => handleAction('/admin/social-generator')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                            <button onClick={() => handleAction('/admin/social-post')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-left">Viral Post</span>
                                 <i className="fas fa-share-nodes text-xs group-hover:scale-110 transition-transform"></i>
+                            </button>
+                            <button onClick={() => handleAction('/admin/smart-links')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-left">Smart Link</span>
+                                <i className="fas fa-link text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
                         </div>
                     </div>

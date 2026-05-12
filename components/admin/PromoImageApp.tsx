@@ -483,7 +483,7 @@ const PromoImageApp: React.FC = () => {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.3.0</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.3.1</h1>
         </div>
         <div className="w-20"></div> {/* Spacer */}
       </div>

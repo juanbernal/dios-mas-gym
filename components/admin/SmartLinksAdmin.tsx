@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 
 const SmartLinksAdmin: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(() => {
+        const incoming = location.state?.song as any;
+        return incoming?.name || "";
+    });
     const [toast, setToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
 
     const showToast = useCallback((msg: string) => {
@@ -104,7 +108,7 @@ const SmartLinksAdmin: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Smart <span className="text-[#c5a059]">Links</span> <span className="text-white/20 ml-2">v1.2</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Smart <span className="text-[#c5a059]">Links</span> <span className="text-white/20 ml-2">v1.3</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
