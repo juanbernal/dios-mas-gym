@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../services/musicService';
 import { MusicItem } from '../types';
+import { useOneSignal } from '../services/useOneSignal';
 
 declare global {
   interface Window {
@@ -146,22 +147,7 @@ const SmartLinkView: React.FC = () => {
     const [relatedSongs, setRelatedSongs] = useState<MusicItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [isSubscribed, setIsSubscribed] = useState(false);
-
-    useEffect(() => {
-        const checkSub = async () => {
-            if ((window as any).OneSignal) {
-                try {
-                    const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                    // En OneSignal v16, usamos optedIn para saber si el usuario está suscrito al servicio
-                    setIsSubscribed(optedIn === true);
-                } catch (e) { /* ignore */ }
-            }
-        };
-        checkSub();
-        const interval = setInterval(checkSub, 5000);
-        return () => clearInterval(interval);
-    }, []);
+    const { isSubscribed, subscribe, unsubscribe } = useOneSignal();
 
     useEffect(() => {
         const loadSong = async () => {
@@ -445,13 +431,7 @@ const SmartLinkView: React.FC = () => {
 
                             <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
                                 <button 
-                                    onClick={async () => {
-                                        if ((window as any).OneSignal) {
-                                            await (window as any).OneSignal.Notifications.requestPermission();
-                                            const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                                            setIsSubscribed(optedIn === true);
-                                        }
-                                    }}
+                                    onClick={subscribe}
                                     className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10'}`}
                                 >
                                     <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
@@ -462,12 +442,7 @@ const SmartLinkView: React.FC = () => {
                                 <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
                                 {isSubscribed && (
                                     <button 
-                                        onClick={async () => {
-                                            if ((window as any).OneSignal) {
-                                                await (window as any).OneSignal.User?.PushSubscription?.optOut();
-                                                setIsSubscribed(false);
-                                            }
-                                        }}
+                                        onClick={unsubscribe}
                                         className="mt-4 text-[7px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
                                     >
                                         Darse de baja
@@ -593,13 +568,7 @@ const SmartLinkView: React.FC = () => {
                         {/* Public Notification Subscription (Juan Style) */}
                         <div className="mt-8 pt-8 border-t border-[#8B5A2B]/20 flex flex-col items-center">
                             <button 
-                                onClick={async () => {
-                                    if ((window as any).OneSignal) {
-                                        await (window as any).OneSignal.Notifications.requestPermission();
-                                        const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                                        setIsSubscribed(optedIn === true);
-                                    }
-                                }}
+                                onClick={subscribe}
                                 className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1a1412] border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10'}`}
                             >
                                 <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c89d53] group-hover:animate-bounce'}`}></i>
@@ -609,12 +578,7 @@ const SmartLinkView: React.FC = () => {
                             </button>
                             {isSubscribed && (
                                 <button 
-                                    onClick={async () => {
-                                        if ((window as any).OneSignal) {
-                                            await (window as any).OneSignal.User?.PushSubscription?.optOut();
-                                            setIsSubscribed(false);
-                                        }
-                                    }}
+                                    onClick={unsubscribe}
                                     className="mt-4 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20 hover:text-red-500 transition-all underline underline-offset-4"
                                 >
                                     ¿Ya no quieres recibir avisos? Haz clic aquí para darte de baja
