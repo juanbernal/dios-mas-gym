@@ -80,16 +80,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Security: only allow cron or admin panel calls
+    // Security: only allow cron (GET) or admin panel calls (POST)
     const authHeader = req.headers.authorization;
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        // Vercel cron sends x-vercel-signature — also allow that
-        const vercelSig = req.headers['x-vercel-signature'];
-        if (!vercelSig) {
-            return res.status(401).json({ error: 'Unauthorized' });
+
+    // We only enforce strict security on GET requests (automated cron)
+    if (req.method === 'GET' && cronSecret) {
+        if (authHeader !== `Bearer ${cronSecret}`) {
+            const vercelSig = req.headers['x-vercel-signature'];
+            if (!vercelSig) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
         }
     }
+
 
     try {
         // Fetch releases from Google Sheet
