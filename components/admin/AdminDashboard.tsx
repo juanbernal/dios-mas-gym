@@ -245,7 +245,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center gap-6 md:gap-12 border-l border-white/5 pl-6 md:pl-12 h-fit mb-2 md:mb-4">
                         <div className="text-left">
                             <p className="text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 md:mb-2">Build</p>
-                            <p className="text-[10px] md:text-xs font-mono text-white/60">v4.6.0 Premium</p>
+                            <p className="text-[10px] md:text-xs font-mono text-white/60">v4.7.0 Premium</p>
                         </div>
                         <div className="text-left">
                             <p className="text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 md:mb-2">Estado</p>
