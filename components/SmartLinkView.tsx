@@ -444,16 +444,37 @@ const SmartLinkView: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Public Notification Subscription */}
                             <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
                                 <button 
-                                    onClick={() => (window as any).OneSignal?.User?.PushSubscription?.optIn()}
-                                    className="flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10 transition-all group"
+                                    onClick={async () => {
+                                        if ((window as any).OneSignal) {
+                                            await (window as any).OneSignal.Notifications.requestPermission();
+                                            const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                                            const permission = (window as any).OneSignal.Notifications?.permission;
+                                            setIsSubscribed(optedIn || permission === true);
+                                        }
+                                    }}
+                                    className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10'}`}
                                 >
-                                    <i className="fas fa-bell text-[#c5a059] group-hover:animate-bounce"></i>
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/70 group-hover:text-white">Avísame de nuevos estrenos</span>
+                                    <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
+                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-white/70 group-hover:text-white'}`}>
+                                        {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
+                                    </span>
                                 </button>
                                 <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
+                                {isSubscribed && (
+                                    <button 
+                                        onClick={async () => {
+                                            if ((window as any).OneSignal) {
+                                                await (window as any).OneSignal.User?.PushSubscription?.optOut();
+                                                setIsSubscribed(false);
+                                            }
+                                        }}
+                                        className="mt-4 text-[7px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
+                                    >
+                                        Darse de baja
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -465,7 +486,7 @@ const SmartLinkView: React.FC = () => {
                                 <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                                 <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                             </div>
-                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v3.0</p>
+                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v4.3.0</p>
                         </div>
                     </div>
                 </div>
@@ -612,7 +633,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v4.2.0</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v4.3.0</p>
                     </div>
                 </div>
             </div>
