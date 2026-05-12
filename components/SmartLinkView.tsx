@@ -557,7 +557,13 @@ const SmartLinkView: React.FC = () => {
                         {/* Public Notification Subscription (Juan Style) */}
                         <div className="mt-8 pt-8 border-t border-[#8B5A2B]/20 flex flex-col items-center">
                             <button 
-                                onClick={() => (window as any).OneSignal?.User?.PushSubscription?.optIn()}
+                                onClick={async () => {
+                                    if ((window as any).OneSignal) {
+                                        await (window as any).OneSignal.Notifications.requestPermission();
+                                    } else {
+                                        console.warn("OneSignal not loaded yet");
+                                    }
+                                }}
                                 className="flex items-center gap-3 px-6 py-3 rounded-full bg-[#1a1412] border border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10 transition-all group"
                             >
                                 <i className="fas fa-bell text-[#c89d53] group-hover:animate-bounce"></i>

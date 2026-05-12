@@ -168,7 +168,11 @@ const LinkBioPublic: React.FC = () => {
                 {/* Notifications Button */}
                 <div className="w-full mb-16 flex flex-col items-center">
                     <button 
-                        onClick={() => (window as any).OneSignal?.User?.PushSubscription?.optIn()}
+                        onClick={async () => {
+                            if ((window as any).OneSignal) {
+                                await (window as any).OneSignal.Notifications.requestPermission();
+                            }
+                        }}
                         className="w-full py-6 px-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#c5a059]/50 transition-all flex items-center justify-center gap-4 group"
                     >
                         <i className="fas fa-bell text-[#c5a059] group-hover:animate-bounce"></i>
