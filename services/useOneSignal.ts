@@ -30,6 +30,15 @@ export function useOneSignal(): OneSignalState {
 
     const refreshState = useCallback(async () => {
         const OS = getOS();
+        
+        // Hard override local
+        const localOptOut = localStorage.getItem('onesignal_user_optout') === 'true';
+        if (localOptOut) {
+            setIsSubscribed(false);
+            setIsPushEnabled(false);
+            return;
+        }
+
         if (!OS) return;
         try {
             const subscribed = await OS.User?.PushSubscription?.optedIn ?? false;
@@ -57,6 +66,7 @@ export function useOneSignal(): OneSignalState {
 
     const subscribe = useCallback(async () => {
         const OS = getOS();
+        localStorage.removeItem('onesignal_user_optout');
         if (typeof window !== 'undefined' && window.OneSignalDeferred) {
             window.OneSignalDeferred.push(async (OneSignal: any) => {
                 try {
@@ -78,8 +88,11 @@ export function useOneSignal(): OneSignalState {
 
     const unsubscribe = useCallback(async () => {
         const OS = getOS();
+        // Hard override local
+        localStorage.setItem('onesignal_user_optout', 'true');
         // Feedback inmediato
         setIsSubscribed(false);
+        setIsPushEnabled(false);
         
         if (typeof window !== 'undefined' && window.OneSignalDeferred) {
             window.OneSignalDeferred.push(async (OneSignal: any) => {
