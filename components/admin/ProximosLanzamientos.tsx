@@ -103,7 +103,6 @@ const ProximosLanzamientos: React.FC = () => {
             const groupIntoAlbums = (songs: typeof dM): typeof dM => {
                 const coverMap = new Map<string, typeof dM>();
                 songs.forEach(song => {
-                    // Use the full cover URL as key; fallback to unique song id
                     const key = song.cover && song.cover.trim() ? song.cover.trim() : `single-${song.id}`;
                     if (!coverMap.has(key)) coverMap.set(key, []);
                     coverMap.get(key)!.push(song);
@@ -113,7 +112,6 @@ const ProximosLanzamientos: React.FC = () => {
                     if (group.length === 1) {
                         result.push(group[0]);
                     } else {
-                        // Multiple songs same cover = album; pick shortest clean name
                         const sorted = [...group].sort((a, b) => a.name.length - b.name.length);
                         const rep = { ...sorted[0] };
                         rep.name = rep.name.replace(/\s*\(feat\..*?\)/gi, '').trim();
@@ -123,7 +121,6 @@ const ProximosLanzamientos: React.FC = () => {
                 return result;
             };
 
-            // Combine both artists, group albums, sort by date desc (ISO string sort works)
             const latestCatalog = [
                 ...groupIntoAlbums(dM.slice(0, 5)),
                 ...groupIntoAlbums(j6.slice(0, 5))
@@ -137,22 +134,17 @@ const ProximosLanzamientos: React.FC = () => {
                 const isFound = existing.some(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
-                    const isNameMatch = normExName === normCatName;
-                    
-                    const isArtistMatch = normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist);
-                    return isArtistMatch && isNameMatch;
+                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
                 });
                 
                 const isDM = cat.artist.toLowerCase().includes('diosmasgym');
                 const isJ6 = cat.artist.toLowerCase().includes('juan');
-                
                 const dMLogsCount = logs.filter(l => l.artist.toLowerCase().includes('diosmasgym')).length;
                 const j6LogsCount = logs.filter(l => l.artist.toLowerCase().includes('juan')).length;
 
                 if ((isDM && dMLogsCount < 10) || (isJ6 && j6LogsCount < 10)) {
                     logs.push({ name: cat.name, artist: cat.artist, found: isFound });
                 }
-                
                 return !isFound;
             }).map(cat => ({
                 Artista: cat.artist,
@@ -164,7 +156,6 @@ const ProximosLanzamientos: React.FC = () => {
             }));
 
             setScanLog(logs);
-
             if (missing.length > 0) {
                 setPendingSync(missing);
                 if (!isSyncing && !syncStartedRef.current) {
@@ -186,7 +177,6 @@ const ProximosLanzamientos: React.FC = () => {
             const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
-                
                 const normalized = (data as any[]).map(r => {
                     const findKey = (keys: string[]) => {
                         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
@@ -201,7 +191,6 @@ const ProximosLanzamientos: React.FC = () => {
                         coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
                     } as ReleaseData;
                 });
-                
                 setCurrentReleases(normalized);
                 checkCatalogSync(normalized);
             }
@@ -216,17 +205,12 @@ const ProximosLanzamientos: React.FC = () => {
         fetchCurrentReleases();
     }, []);
 
-    // ─── Hourly Release Date Checker ─────────────────────────────────────────
     const checkTodaysReleases = useCallback((releases: ReleaseData[]) => {
         const todayStr = new Date().toISOString().split('T')[0];
         releases.forEach(r => {
             const key = `${r.name}-${r.releaseDate}`;
             const prefs = getNotifPrefs();
-            if (
-                r.releaseDate === todayStr &&
-                prefs[r.name] !== false && // only if not explicitly disabled
-                !wasFired(key)
-            ) {
+            if (r.releaseDate === todayStr && prefs[r.name] !== false && !wasFired(key)) {
                 markFired(key);
                 sendReleaseNotif(r);
             }
@@ -237,7 +221,7 @@ const ProximosLanzamientos: React.FC = () => {
         if (currentReleases.length > 0) checkTodaysReleases(currentReleases);
         const interval = setInterval(() => {
             fetchCurrentReleases().then(() => checkTodaysReleases(currentReleases));
-        }, 60 * 60 * 1000); // every hour
+        }, 60 * 60 * 1000);
         return () => clearInterval(interval);
     }, [currentReleases, checkTodaysReleases]);
 
@@ -260,16 +244,10 @@ const ProximosLanzamientos: React.FC = () => {
     const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
         const items = itemsToSync || pendingSync;
         if (items.length === 0) return;
-
         setIsSyncing(true);
-
         for (let i = 0; i < items.length; i++) {
             const release = items[i];
-            setStatus({ 
-                type: 'loading', 
-                message: `Auto-Sync [${i+1}/${items.length}]: Sincronizando "${release.name}"...` 
-            });
-
+            setStatus({ type: 'loading', message: `Auto-Sync [${i+1}/${items.length}]: Sincronizando "${release.name}"...` });
             try {
                 const params = new URLSearchParams();
                 params.append('Artista', release.Artista);
@@ -278,7 +256,6 @@ const ProximosLanzamientos: React.FC = () => {
                 params.append('preSaveLink', release.preSaveLink || '');
                 params.append('audioUrl', release.audioUrl || '');
                 params.append('coverImageUrl', release.coverImageUrl || '');
-
                 await fetch(googleScriptUrl, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -286,27 +263,17 @@ const ProximosLanzamientos: React.FC = () => {
                     body: params.toString()
                 });
                 await new Promise(r => setTimeout(r, 1200)); 
-            } catch (e) {
-                console.error("Error syncing item:", e);
-            }
+            } catch (e) { console.error("Error syncing item:", e); }
         }
-
         setIsSyncing(false);
         setPendingSync([]);
-        setStatus({ type: 'success', message: '¡Catálogo actualizado correctamente en Google Sheets!' });
-        
-        setTimeout(() => {
-            fetchCurrentReleases();
-        }, 2000);
+        setStatus({ type: 'success', message: '¡Catálogo actualizado correctamente!' });
+        setTimeout(fetchCurrentReleases, 2000);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus({ type: 'loading' });
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
         try {
             const params = new URLSearchParams();
             params.append('Artista', formData.artista);
@@ -315,36 +282,17 @@ const ProximosLanzamientos: React.FC = () => {
             params.append('preSaveLink', formData.spotify);
             params.append('audioUrl', formData.youtube);
             params.append('coverImageUrl', formData.imagen);
-
             await fetch(googleScriptUrl, {
                 method: 'POST',
-                mode: 'no-cors', 
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString(),
-                signal: controller.signal
+                body: params.toString()
             });
-
-            clearTimeout(timeoutId);
             setStatus({ type: 'success', message: '¡Lanzamiento sincronizado con éxito!' });
-            setFormData({
-                artista: 'Diosmasgym',
-                titulo: '',
-                fecha: '',
-                spotify: '',
-                youtube: '',
-                apple: '',
-                imagen: ''
-            });
-            
-            setTimeout(() => {
-                setStatus({ type: 'idle' });
-                fetchCurrentReleases();
-            }, 3000);
-
+            setFormData({ artista: 'Diosmasgym', titulo: '', fecha: '', spotify: '', youtube: '', apple: '', imagen: '' });
+            setTimeout(() => { setStatus({ type: 'idle' }); fetchCurrentReleases(); }, 3000);
         } catch (error) {
-            console.error('Error al enviar:', error);
-            setStatus({ type: 'error', message: 'La sincronización se envió, pero el servidor tarda en responder. Verifica la lista en unos segundos.' });
-            setTimeout(fetchCurrentReleases, 4000);
+            setStatus({ type: 'error', message: 'Error en la sincronización.' });
         }
     };
 
@@ -355,12 +303,8 @@ const ProximosLanzamientos: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8 font-['Poppins']">
             <div className="max-w-6xl mx-auto">
-                <button 
-                    onClick={() => navigate('/admin')}
-                    className="mb-12 text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:text-white transition-all flex items-center gap-4 group"
-                >
-                    <i className="fas fa-arrow-left group-hover:-translate-x-2 transition-all"></i>
-                    Volver al Panel
+                <button onClick={() => navigate('/admin')} className="mb-12 text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:text-white transition-all flex items-center gap-4 group">
+                    <i className="fas fa-arrow-left group-hover:-translate-x-2 transition-all"></i> Volver al Panel
                 </button>
 
                 {notifPermission === 'default' && (
@@ -368,15 +312,12 @@ const ProximosLanzamientos: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <i className="fas fa-bell text-[#c5a059] text-xl"></i>
                             <div>
-                                <p className="text-white font-bold text-sm">Activar Notificaciones de Lanzamientos</p>
-                                <p className="text-white/40 text-[10px] uppercase tracking-widest">Recibe una alerta automática el día que salga cada estreno.</p>
+                                <p className="text-white font-bold text-sm">Activar Notificaciones</p>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest">Recibe una alerta el día de cada estreno.</p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleRequestPermission}
-                            className="px-6 py-3 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-full hover:bg-white transition-all shrink-0"
-                        >
-                            <i className="fas fa-bell mr-2"></i> Activar
+                        <button onClick={handleRequestPermission} className="px-6 py-3 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-full hover:bg-white transition-all shrink-0">
+                            Activar
                         </button>
                     </div>
                 )}
@@ -384,127 +325,62 @@ const ProximosLanzamientos: React.FC = () => {
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
                         <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.2</span></h1>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
-                    <button 
-                        onClick={() => {
-                            setForceScan(true);
-                            fetchCurrentReleases();
-                        }}
-                        disabled={loadingReleases || isSyncing}
-                        className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30"
-                    >
-                        <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i>
-                        Rastrear de nuevo
+                    <button onClick={() => { setForceScan(true); fetchCurrentReleases(); }} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
+                        <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i> Rastrear de nuevo
                     </button>
                 </div>
 
-                {scanLog.length > 0 && (
-                    <div className="mb-12 bg-white/5 border border-white/10 p-6 rounded-2xl">
-                        <h4 className="text-[#c5a059] font-bold text-sm mb-4"><i className="fas fa-search mr-2"></i>Resultados del Escáner (Últimos 10 del Catálogo)</h4>
-                        <div className="space-y-2">
-                            {scanLog.map((log, i) => (
-                                <div key={i} className="flex items-center justify-between text-xs p-2 bg-black/20 rounded">
-                                    <span className="text-white/70">{log.name} <span className="text-white/30 text-[10px]">({log.artist})</span></span>
-                                    {log.found ? (
-                                        <span className="text-green-500 font-bold"><i className="fas fa-check mr-1"></i>Ya en Sheet</span>
-                                    ) : (
-                                        <span className="text-red-400 font-bold"><i className="fas fa-times mr-1"></i>Falta en Sheet</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {pendingSync.length > 0 ? (
+                {pendingSync.length > 0 && (
                     <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in">
                         <div className="flex items-center gap-6">
-                            <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(197,160,89,0.4)]">
+                            <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black">
                                 <i className="fas fa-magic text-xl"></i>
                             </div>
                             <div>
-                                <h4 className="text-white font-bold text-lg">Se detectó nueva música en el catálogo</h4>
-                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Hay {pendingSync.length} canciones nuevas listas para sincronizar con la base de datos externa.</p>
+                                <h4 className="text-white font-bold text-lg">Nueva música detectada</h4>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">{pendingSync.length} canciones listas para sincronizar.</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => handleAutoSync()} 
-                            disabled={isSyncing}
-                            className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full shadow-2xl disabled:opacity-50 min-w-[300px]"
-                        >
-                            {isSyncing ? (status.message || 'Sincronizando...') : 'Sincronizar Todo Ahora'}
+                        <button onClick={() => handleAutoSync()} disabled={isSyncing} className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full min-w-[300px]">
+                            Sincronizar Todo Ahora
                         </button>
                     </div>
-                ) : (
-                    !loadingReleases && (
-                        <div className="mb-12 bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <i className="fas fa-check-circle text-green-500/50"></i>
-                                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Catálogo verificado: Todo está sincronizado con Google Sheets</span>
-                            </div>
-                            <button 
-                                onClick={fetchCurrentReleases}
-                                className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] hover:text-white transition-colors"
-                            >
-                                <i className="fas fa-sync-alt mr-2"></i> Rastrear de nuevo
-                            </button>
-                        </div>
-                    )
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     <div className="lg:col-span-2">
-                        <div className="bg-[#0f111a] border border-white/5 p-8 md:p-16 rounded-3xl shadow-2xl relative overflow-hidden">
-                            <form onSubmit={handleSubmit} className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="bg-[#0f111a] border border-white/5 p-8 md:p-16 rounded-3xl shadow-2xl">
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="col-span-1 md:col-span-2">
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Artista Principal</label>
-                                    <select name="artista" value={formData.artista} onChange={handleChange} className="w-full bg-black/40 border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none appearance-none cursor-pointer">
+                                    <select name="artista" value={formData.artista} onChange={handleChange} className="w-full bg-black/40 border-b border-white/10 py-4 text-xl text-white outline-none appearance-none cursor-pointer">
                                         <option value="Diosmasgym">Diosmasgym</option>
                                         <option value="Juan 614">Juan 614</option>
                                         <option value="Otro / Colaboración">Otro / Colaboración</option>
                                     </select>
                                 </div>
-
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Título del Lanzamiento</label>
-                                    <input required type="text" name="titulo" value={formData.titulo} onChange={handleChange} placeholder="Nombre del single..." className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none placeholder:text-white/5" />
+                                    <input required type="text" name="titulo" value={formData.titulo} onChange={handleChange} placeholder="Nombre..." className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white outline-none" />
                                 </div>
-
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Fecha de Estreno</label>
-                                    <input required type="date" name="fecha" value={formData.fecha} onChange={handleChange} className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white focus:border-[#c5a059] outline-none [color-scheme:dark]" />
+                                    <input required type="date" name="fecha" value={formData.fecha} onChange={handleChange} className="w-full bg-transparent border-b border-white/10 py-4 text-xl text-white outline-none [color-scheme:dark]" />
                                 </div>
-
-                                <div className="col-span-1 md:col-span-2">
-                                    <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mt-10 mb-8 border-b border-white/5 pb-4">Recursos Multimedia</h3>
-                                </div>
-
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Spotify URL</label>
-                                    <input type="url" name="spotify" value={formData.spotify} onChange={handleChange} placeholder="https://distrokid.com/..." className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none" />
+                                    <input type="url" name="spotify" value={formData.spotify} onChange={handleChange} className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white outline-none" />
                                 </div>
-
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">YouTube URL</label>
-                                    <input type="url" name="youtube" value={formData.youtube} onChange={handleChange} placeholder="https://youtube.com/..." className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none" />
+                                    <input type="url" name="youtube" value={formData.youtube} onChange={handleChange} className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white outline-none" />
                                 </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Apple Music URL</label>
-                                    <input type="url" name="apple" value={formData.apple} onChange={handleChange} placeholder="https://music.apple.com/..." className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none" />
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-4">Portada Cover URL (Direct Link)</label>
-                                    <input type="url" name="imagen" value={formData.imagen} onChange={handleChange} placeholder="https://i.ibb.co/..." className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white focus:border-[#c5a059] outline-none" />
-                                </div>
-
                                 <div className="col-span-1 md:col-span-2 mt-12">
-                                    <button disabled={status.type === 'loading'} type="submit" className={`w-full py-8 text-[11px] font-black uppercase tracking-[0.5em] transition-all relative overflow-hidden group ${status.type === 'loading' ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-[#c5a059] text-black hover:bg-white hover:scale-[1.01]'}`}>
+                                    <button disabled={status.type === 'loading'} type="submit" className="w-full py-8 text-[11px] font-black uppercase tracking-[0.5em] bg-[#c5a059] text-black hover:bg-white transition-all rounded-full">
                                         {status.type === 'loading' ? 'Sincronizando...' : 'Programar Lanzamiento'}
                                     </button>
-                                    {status.message && <div className={`mt-8 p-6 text-[10px] font-bold uppercase tracking-widest text-center ${status.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{status.message}</div>}
                                 </div>
                             </form>
                         </div>
@@ -512,7 +388,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                     <div className="lg:col-span-1">
                         <div className="bg-[#0f111a] border border-white/5 p-8 rounded-3xl h-full flex flex-col">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8 flex items-center gap-4"><i className="fas fa-database"></i> Base de Datos</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8"><i className="fas fa-database mr-2"></i> Base de Datos</h3>
                             {loadingReleases ? (
                                 <div className="py-20 text-center animate-pulse"><i className="fas fa-circle-notch animate-spin text-white/20 text-3xl"></i></div>
                             ) : (
@@ -522,50 +398,28 @@ const ProximosLanzamientos: React.FC = () => {
                                     ) : (
                                         currentReleases.map((rev, idx) => {
                                             const isToday = rev.releaseDate === new Date().toISOString().split('T')[0];
-                                            const notifOn = notifPrefs[rev.name] !== false; // default ON
+                                            const notifOn = notifPrefs[rev.name] !== false;
                                             return (
-                                            <div key={idx} className={`bg-black/40 border p-6 rounded-2xl transition-all group ${isToday ? 'border-[#c5a059]/40 shadow-[0_0_20px_rgba(197,160,89,0.1)]' : 'border-white/5 hover:border-[#c5a059]/20'}`}>
-                                                {isToday && (
-                                                    <div className="flex items-center gap-2 text-[#c5a059] text-[9px] font-black uppercase tracking-widest mb-3 animate-pulse">
-                                                        <span className="w-2 h-2 rounded-full bg-[#c5a059] inline-block"></span>
-                                                        ¡Estreno HOY!
+                                                <div key={idx} className={`bg-black/40 border p-6 rounded-2xl transition-all ${isToday ? 'border-[#c5a059]/40 shadow-[0_0_20px_rgba(197,160,89,0.1)]' : 'border-white/5'}`}>
+                                                    {isToday && <div className="text-[#c5a059] text-[9px] font-black uppercase mb-3 animate-pulse">¡Estreno HOY!</div>}
+                                                    <div className="flex items-start gap-4 mb-4">
+                                                        {rev.coverImageUrl && <img src={rev.coverImageUrl} className="w-12 h-12 rounded object-cover" />}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-[8px] font-black uppercase text-[#c5a059]">{rev.Artista}</div>
+                                                            <div className="text-sm font-bold text-white truncate">{rev.name}</div>
+                                                        </div>
                                                     </div>
-                                                )}
-                                                <div className="flex items-start gap-4 mb-4">
-                                                    {rev.coverImageUrl && (
-                                                        <img src={rev.coverImageUrl} alt="" className="w-12 h-12 rounded object-cover border border-white/10" />
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-1">{rev.Artista}</div>
-                                                        <div className="text-sm font-bold text-white line-clamp-1">{rev.name}</div>
+                                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                                        <div className="flex gap-4">
+                                                            {rev.preSaveLink && <a href={rev.preSaveLink} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#1DB954]"><i className="fab fa-spotify"></i></a>}
+                                                        </div>
+                                                        <button onClick={() => toggleNotif(rev.name, notifOn)} className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border ${notifOn ? 'border-[#c5a059] text-[#c5a059]' : 'border-white/10 text-white/30'}`}>
+                                                            {notifOn ? 'Notif. ON' : 'Notif. OFF'}
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-4 text-[9px] text-white/40 uppercase font-bold tracking-widest mb-4">
-                                                    <div className="flex items-center gap-2"><i className="far fa-calendar text-[#c5a059]"></i> {rev.releaseDate}</div>
-                                                </div>
-                                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                                    <div className="flex gap-4">
-                                                        {rev.preSaveLink && <a href={rev.preSaveLink} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#1DB954] transition-colors"><i className="fab fa-spotify text-base"></i></a>}
-                                                        {rev.audioUrl && <a href={rev.audioUrl} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#ff0000] transition-colors"><i className="fab fa-youtube text-base"></i></a>}
-                                                    </div>
-                                                    <button
-                                                        onClick={() => toggleNotif(rev.name, notifOn)}
-                                                        title={notifOn ? 'Notificación activa — clic para desactivar' : 'Activar notificación para este estreno'}
-                                                        className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all ${
-                                                            notifPermission === 'denied'
-                                                                ? 'border-white/5 text-white/20 cursor-not-allowed'
-                                                                : notifOn
-                                                                ? 'border-[#c5a059]/40 text-[#c5a059] bg-[#c5a059]/10 hover:bg-[#c5a059]/20'
-                                                                : 'border-white/10 text-white/30 hover:border-white/20'
-                                                        }`}
-                                                        disabled={notifPermission === 'denied'}
-                                                    >
-                                                        <i className={`fas ${notifOn ? 'fa-bell' : 'fa-bell-slash'} text-xs`}></i>
-                                                        {notifPermission === 'denied' ? 'Bloqueado' : notifOn ? 'Notif. ON' : 'Notif. OFF'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )})}
+                                            );
+                                        })
                                     )}
                                 </div>
                             )}
@@ -575,9 +429,7 @@ const ProximosLanzamientos: React.FC = () => {
             </div>
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(197, 160, 89, 0.2); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(197, 160, 89, 0.4); }
             `}</style>
         </div>
     );
