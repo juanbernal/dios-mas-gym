@@ -426,7 +426,20 @@ const SmartLinkView: React.FC = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Public Notification Subscription */}
+                            <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
+                                <button 
+                                    onClick={() => (window as any).OneSignal?.User?.PushSubscription?.optIn()}
+                                    className="flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10 transition-all group"
+                                >
+                                    <i className="fas fa-bell text-[#c5a059] group-hover:animate-bounce"></i>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/70 group-hover:text-white">Avísame de nuevos estrenos</span>
+                                </button>
+                                <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
+                            </div>
                         </div>
+
 
                         <div className="mt-8 text-center w-full border-t border-white/10 pt-8 relative z-20">
                             <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/50 mb-6">Únete a la Comunidad</h3>

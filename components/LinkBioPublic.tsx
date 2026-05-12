@@ -139,7 +139,7 @@ const LinkBioPublic: React.FC = () => {
                 )}
 
                 {/* Links Section */}
-                <div className="w-full space-y-4 mb-16">
+                <div className="w-full space-y-4 mb-10">
                     {data.links.filter(l => l.enabled).map(link => (
                         <a 
                             key={link.id}
@@ -164,6 +164,19 @@ const LinkBioPublic: React.FC = () => {
                         </a>
                     ))}
                 </div>
+
+                {/* Notifications Button */}
+                <div className="w-full mb-16 flex flex-col items-center">
+                    <button 
+                        onClick={() => (window as any).OneSignal?.User?.PushSubscription?.optIn()}
+                        className="w-full py-6 px-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#c5a059]/50 transition-all flex items-center justify-center gap-4 group"
+                    >
+                        <i className="fas fa-bell text-[#c5a059] group-hover:animate-bounce"></i>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 group-hover:text-white">Avísame de nuevos estrenos</span>
+                    </button>
+                    <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando haya música nueva</p>
+                </div>
+
 
                 {/* Social Footer */}
                 <div className="mt-auto flex gap-8 text-white/30 text-2xl mb-8">
