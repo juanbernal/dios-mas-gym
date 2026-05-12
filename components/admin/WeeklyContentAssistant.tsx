@@ -112,20 +112,20 @@ const WeeklyContentAssistant: React.FC = () => {
         const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
         const pool = freshCatalog.length > 0 ? freshCatalog : catalog; // Fallback if all promoted
 
-        // Split by artist for alternation
+        const isDiosmasgymDay = dayOfYear % 2 === 0;
+        const dailyArtistName = isDiosmasgymDay ? 'Diosmasgym' : 'Juan 614';
         const dMSongs = pool.filter(s => s.artist.toLowerCase().includes('dios'));
         const j6Songs = pool.filter(s => s.artist.toLowerCase().includes('juan'));
-        
-        // Alternamos artista por DÍA ahora
-        const isDiosmasgymDay = dayOfYear % 2 === 0;
-        const dailyPool = isDiosmasgymDay ? dMSongs : j6Songs;
-        const dailyArtistName = isDiosmasgymDay ? 'Diosmasgym' : 'Juan 614';
+        const dailyPool = isDiosmasgymDay ? (dMSongs.length > 0 ? dMSongs : pool) : (j6Songs.length > 0 ? j6Songs : pool);
 
         // 1️⃣ New release THIS WEEK from sheet (any artist)
-        const releaseThisWeek = releases.find(r => {
-            const d = new Date(r.releaseDate);
-            return d >= startOfWeek && d <= now;
-        });
+        let releaseThisWeek = null;
+        try {
+            releaseThisWeek = (releases || []).find(r => {
+                const d = new Date(r.releaseDate);
+                return d >= startOfWeek && d <= now;
+            });
+        } catch(e) {}
         if (releaseThisWeek && !promotedIds.includes(releaseThisWeek.name)) {
             const matchedSong = catalog.find(s =>
                 s.name.toLowerCase().includes(releaseThisWeek.name.toLowerCase().slice(0, 6)) ||
@@ -211,7 +211,14 @@ const WeeklyContentAssistant: React.FC = () => {
         old_gem: { label: '💎 Joya del Archivo', color: '#a855f7', icon: 'fa-gem' },
     };
 
-    if (loading || !suggestion) return null;
+    if (loading) return (
+        <div className="mb-16 bg-[#0f111a] border border-white/5 rounded-[2rem] p-8 flex items-center justify-center gap-4">
+            <div className="w-5 h-5 border-2 border-[#c5a059] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Sincronizando Asistente Inteligente...</p>
+        </div>
+    );
+
+    if (!suggestion) return null;
 
     const typeInfo = TYPE_LABELS[suggestion.type];
 

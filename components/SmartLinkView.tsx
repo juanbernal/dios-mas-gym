@@ -158,8 +158,8 @@ const SmartLinkView: React.FC = () => {
             }
         };
         checkSub();
-        const timer = setTimeout(checkSub, 3000);
-        return () => clearTimeout(timer);
+        const interval = setInterval(checkSub, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
