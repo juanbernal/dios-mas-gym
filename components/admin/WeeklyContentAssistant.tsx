@@ -266,38 +266,37 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                 style={{ borderColor: `${typeInfo.color}30` }}>
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-8 py-6 border-b"
+                <div className="px-8 py-8 border-b"
                     style={{ borderColor: `${typeInfo.color}15`, background: `linear-gradient(135deg, ${typeInfo.color}08, transparent)` }}>
-                    <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0"
-                            style={{ backgroundColor: `${typeInfo.color}15`, color: typeInfo.color, border: `1px solid ${typeInfo.color}30` }}>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                            <i className={`fas ${typeInfo.icon}`} style={{ color: typeInfo.color }}></i>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
-                                {typeInfo.label}
-                            </span>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                                <i className={`fas ${typeInfo.icon}`} style={{ color: typeInfo.color }}></i>
+                                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
+                                    {typeInfo.label}
+                                </span>
+                            </div>
+                            <h3 className="text-2xl md:text-3xl font-serif italic text-white leading-tight">
+                                {suggestion.song?.name || 'Inspiración Diaria'}
+                            </h3>
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-serif italic text-white leading-tight">
-                            {suggestion.song?.name || 'Inspiración Diaria'}
-                        </h3>
-                    </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <button
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="flex-1 md:flex-none text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-3 rounded-2xl border border-white/10 hover:border-white/20 flex items-center justify-center gap-2"
-                        >
-                            <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                            <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
-                        </button>
-                        <button
-                            onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
-                        >
-                            <span className="text-[9px] font-black uppercase tracking-widest">Siguiente</span>
-                            <i className="fas fa-arrow-right text-[10px]"></i>
-                        </button>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <button
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="flex-1 md:flex-none text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-3 rounded-2xl border border-white/10 hover:border-white/20 flex items-center justify-center gap-2"
+                            >
+                                <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
+                            </button>
+                            <button
+                                onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
+                                className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
+                            >
+                                <span className="text-[9px] font-black uppercase tracking-widest">Siguiente</span>
+                                <i className="fas fa-arrow-right text-[10px]"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
