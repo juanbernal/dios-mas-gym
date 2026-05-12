@@ -153,7 +153,9 @@ const SmartLinkView: React.FC = () => {
             if ((window as any).OneSignal) {
                 try {
                     const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                    setIsSubscribed(optedIn || false);
+                    const permission = (window as any).OneSignal.Notifications?.permission;
+                    // En OneSignal v16, permission es un booleano (true si está permitido)
+                    setIsSubscribed(optedIn || permission === true);
                 } catch (e) { /* ignore */ }
             }
         };
@@ -610,7 +612,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v3.0</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v4.2.0</p>
                     </div>
                 </div>
             </div>
