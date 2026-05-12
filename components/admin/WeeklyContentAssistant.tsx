@@ -286,18 +286,22 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                             </h3>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-2 rounded-full border border-white/10 hover:border-white/20"
+                            className="flex-1 md:flex-none text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-3 md:py-2 rounded-full border border-white/10 hover:border-white/20"
                         >
-                            {isExpanded ? 'Ocultar textos' : 'Ver textos'}
+                            {isExpanded ? (
+                                <><i className="fas fa-eye-slash mr-2"></i> Ocultar</>
+                            ) : (
+                                <><i className="fas fa-eye mr-2"></i> Textos</>
+                            )}
                         </button>
                         <button
                             onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
-                            className="flex items-center gap-3 px-5 py-2 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:py-2 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
                         >
-                            <span className="text-[9px] font-black uppercase tracking-widest">Siguiente Sugerencia</span>
+                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Siguiente</span>
                             <i className="fas fa-arrow-right text-[10px]"></i>
                         </button>
                     </div>
