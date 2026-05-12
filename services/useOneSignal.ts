@@ -67,6 +67,11 @@ export function useOneSignal(): OneSignalState {
     const subscribe = useCallback(async () => {
         const OS = getOS();
         localStorage.removeItem('onesignal_user_optout');
+        
+        // Feedback inmediato
+        setIsSubscribed(true);
+        setIsPushEnabled(true);
+
         if (typeof window !== 'undefined' && window.OneSignalDeferred) {
             window.OneSignalDeferred.push(async (OneSignal: any) => {
                 try {
