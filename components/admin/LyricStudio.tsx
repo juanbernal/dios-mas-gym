@@ -245,7 +245,7 @@ const LyricStudio: React.FC = () => {
     ctx.fillStyle = vGrad; ctx.fillRect(0,0,cw,ch);
   };
 
-  const renderAudioSpectrum = (ctx: CanvasRenderingContext2D, cw: number, ch: number, lowEnd: number) => {
+  const renderAudioSpectrum = (ctx: CanvasRenderingContext2D, cw: number, ch: number, lowEnd: number, time: number) => {
     if (!dataArrayRef.current) return;
     
     const barsCount = 100;
@@ -761,7 +761,7 @@ const LyricStudio: React.FC = () => {
 
     drawLightLeaks(ctx, cw, ch, time);
     drawProgressBar(ctx, cw, ch, (time / (duration || 1)) * 100);
-    renderAudioSpectrum(ctx, cw, ch, lowEnd * sensitivity);
+    renderAudioSpectrum(ctx, cw, ch, lowEnd * sensitivity, time);
 
     if (vhsMode) {
       ctx.save();

@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean }) => {
+const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean, key?: any }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const playerRef = React.useRef<any>(null);
@@ -358,7 +358,7 @@ const SmartLinkView: React.FC = () => {
                         <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                         {embedData?.type === 'youtube' && (
-                            <YouTubeAudioPlayer key={embedData.id} videoId={embedData.id!} isJuan={false} />
+                            <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
                         )}
                         
                         {embedData?.type === 'spotify' && (
@@ -485,7 +485,7 @@ const SmartLinkView: React.FC = () => {
                     <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                     {embedData?.type === 'youtube' && (
-                        <YouTubeAudioPlayer key={embedData.id} videoId={embedData.id!} isJuan={true} />
+                        <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
                     )}
                     
                     {embedData?.type === 'spotify' && (
