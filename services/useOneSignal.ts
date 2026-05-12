@@ -57,23 +57,46 @@ export function useOneSignal(): OneSignalState {
 
     const subscribe = useCallback(async () => {
         const OS = getOS();
-        if (!OS) return;
-        try {
-            await OS.User?.PushSubscription?.optIn();
-            await refreshState();
-        } catch (e) {
-            console.error('[useOneSignal] Subscribe error:', e);
+        if (typeof window !== 'undefined' && window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(async (OneSignal: any) => {
+                try {
+                    await OneSignal.User?.PushSubscription?.optIn();
+                    setTimeout(refreshState, 1000);
+                } catch (e) {
+                    console.error('[useOneSignal] Subscribe error:', e);
+                }
+            });
+        } else if (OS) {
+            try {
+                await OS.User?.PushSubscription?.optIn();
+                setTimeout(refreshState, 1000);
+            } catch (e) {
+                console.error('[useOneSignal] Subscribe error:', e);
+            }
         }
     }, [getOS, refreshState]);
 
     const unsubscribe = useCallback(async () => {
         const OS = getOS();
-        if (!OS) return;
-        try {
-            await OS.User?.PushSubscription?.optOut();
-            await refreshState();
-        } catch (e) {
-            console.error('[useOneSignal] Unsubscribe error:', e);
+        // Feedback inmediato
+        setIsSubscribed(false);
+        
+        if (typeof window !== 'undefined' && window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(async (OneSignal: any) => {
+                try {
+                    await OneSignal.User?.PushSubscription?.optOut();
+                    setTimeout(refreshState, 1500);
+                } catch (e) {
+                    console.error('[useOneSignal] Unsubscribe error:', e);
+                }
+            });
+        } else if (OS) {
+            try {
+                await OS.User?.PushSubscription?.optOut();
+                setTimeout(refreshState, 1500);
+            } catch (e) {
+                console.error('[useOneSignal] Unsubscribe error:', e);
+            }
         }
     }, [getOS, refreshState]);
 
