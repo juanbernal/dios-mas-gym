@@ -258,6 +258,11 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Módulo Central: Asistente Inteligente (Protagonista) */}
+                <div className="mb-16">
+                    <WeeklyContentAssistant />
+                </div>
+
                 {/* Grid Superior: Instalación + Stats Rápidos */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
                     {/* Tarjeta de Instalación (si no está instalada) */}
@@ -299,11 +304,6 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Módulo Central: Asistente Inteligente (Protagonista) */}
-                <div className="mb-24">
-                    <WeeklyContentAssistant />
                 </div>
 
                 {/* Sección de Herramientas Premium (Bento Grid) */}
