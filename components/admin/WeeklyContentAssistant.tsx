@@ -62,6 +62,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState<'ig' | 'tt' | null>(null);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
 
     const today = new Date();
     const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
@@ -193,6 +195,34 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
         };
     }, [catalog, releases, dayOfYear, promotedIds]);
 
+
+    const handleAiGenerate = async () => {
+        if (!suggestion?.song) return;
+        setAiLoading(true);
+        try {
+            const prompt = {
+                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}. Incluye una versión para Instagram y otra para TikTok. Mantén un tono épico, de fe y disciplina.`,
+                platform: 'Instagram/TikTok',
+                goal: 'Inspirar y Viralizar',
+                tone: 'Épico y Motivador'
+            };
+
+            const response = await fetch('/api/generate-post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: JSON.stringify(prompt) })
+            });
+            const data = await response.json();
+            if (data.text) {
+                // Dividimos el texto en IG y TT (simple split por keywords o solo mostramos el resultado)
+                setAiCaptions({ ig: data.text, tt: data.text });
+            }
+        } catch (e) {
+            console.error("AI Generation failed", e);
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     const copyText = (text: string, type: 'ig' | 'tt') => {
         navigator.clipboard.writeText(text);
@@ -346,14 +376,14 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                     {isExpanded && (
                         <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
                             {/* Instagram */}
-                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5">
+                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5 flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <i className="fab fa-instagram text-lg" style={{ color: '#E1306C' }}></i>
                                         <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Caption Instagram</span>
                                     </div>
                                     <button
-                                        onClick={() => copyText(`${suggestion.caption}\n\n${suggestion.hashtags}`, 'ig')}
+                                        onClick={() => copyText(`${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`, 'ig')}
                                         className="text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full transition-all"
                                         style={{
                                             backgroundColor: copied === 'ig' ? '#10b981' : 'rgba(255,255,255,0.05)',
@@ -364,10 +394,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                                         {copied === 'ig' ? '✓ Copiado' : 'Copiar'}
                                     </button>
                                 </div>
-                                <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans">
-                                    {suggestion.caption}
-                                </pre>
-                                <div className="mt-4 pt-4 border-t border-white/5">
+                                <div className="flex-1 overflow-auto max-h-48 mb-4">
+                                    <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans">
+                                        {aiCaptions?.ig || suggestion.caption}
+                                    </pre>
+                                </div>
+                                <div className="pt-4 border-t border-white/5">
                                     <p className="text-[#c5a059] text-[10px] leading-relaxed font-medium break-words">
                                         {suggestion.hashtags}
                                     </p>
@@ -375,14 +407,14 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                             </div>
 
                             {/* TikTok */}
-                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5">
+                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5 flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <i className="fab fa-tiktok text-lg text-white"></i>
                                         <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Caption TikTok</span>
                                     </div>
                                     <button
-                                        onClick={() => copyText(`${suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`, 'tt')}
+                                        onClick={() => copyText(`${aiCaptions?.tt || suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`, 'tt')}
                                         className="text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full transition-all"
                                         style={{
                                             backgroundColor: copied === 'tt' ? '#10b981' : 'rgba(255,255,255,0.05)',
@@ -393,15 +425,40 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                                         {copied === 'tt' ? '✓ Copiado' : 'Copiar'}
                                     </button>
                                 </div>
-                                <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans">
-                                    {suggestion.tiktokCaption}
-                                </pre>
-                                <div className="mt-4 pt-4 border-t border-white/5">
+                                <div className="flex-1 overflow-auto max-h-48 mb-4">
+                                    <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans">
+                                        {aiCaptions?.tt || suggestion.tiktokCaption}
+                                    </pre>
+                                </div>
+                                <div className="pt-4 border-t border-white/5">
                                     <p className="text-[#c5a059] text-[10px] leading-relaxed font-medium break-words">
                                         {suggestion.hashtags} #fyp #parati
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* AI Button */}
+                    {isExpanded && (
+                        <div className="mt-6 flex justify-center pb-8 px-8">
+                            <button
+                                onClick={handleAiGenerate}
+                                disabled={aiLoading}
+                                className={`flex items-center gap-4 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-xl ${aiLoading ? 'bg-white/10 text-white/30' : 'bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-105 active:scale-95'}`}
+                            >
+                                {aiLoading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                                        <span>Generando Magia...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-wand-magic-sparkles"></i>
+                                        <span>Mejorar textos con IA</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
                 </div>
