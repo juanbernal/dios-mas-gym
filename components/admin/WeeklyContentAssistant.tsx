@@ -80,6 +80,25 @@ const WeeklyContentAssistant: React.FC = () => {
         localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
     };
 
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [dM, j6, res] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614'),
+                    fetch(GOOGLE_SHEET_URL).then(r => r.json())
+                ]);
+                setCatalog([...dM, ...j6]);
+                setReleases(res || []);
+            } catch (err) {
+                console.error("Error loading assistant data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
+
     const suggestion = useMemo<Suggestion | null>(() => {
         if (catalog.length === 0) return null;
 

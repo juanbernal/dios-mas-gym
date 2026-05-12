@@ -198,6 +198,19 @@ const LinkBioPublic: React.FC = () => {
                         </span>
                     </button>
                     <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando haya música nueva</p>
+                    {isSubscribed && (
+                        <button 
+                            onClick={async () => {
+                                if ((window as any).OneSignal) {
+                                    await (window as any).OneSignal.User?.PushSubscription?.optOut();
+                                    setIsSubscribed(false);
+                                }
+                            }}
+                            className="mt-4 text-[7px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
+                        >
+                            Dejar de recibir avisos
+                        </button>
+                    )}
                 </div>
 
 

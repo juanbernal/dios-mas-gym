@@ -586,7 +586,19 @@ const SmartLinkView: React.FC = () => {
                                     {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
                                 </span>
                             </button>
-                            <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
+                            {isSubscribed && (
+                                <button 
+                                    onClick={async () => {
+                                        if ((window as any).OneSignal) {
+                                            await (window as any).OneSignal.User?.PushSubscription?.optOut();
+                                            setIsSubscribed(false);
+                                        }
+                                    }}
+                                    className="mt-4 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20 hover:text-red-500 transition-all underline underline-offset-4"
+                                >
+                                    ¿Ya no quieres recibir avisos? Haz clic aquí para darte de baja
+                                </button>
+                            )}
                         </div>
                     </div>
 
