@@ -23,6 +23,21 @@ const LinkBioPublic: React.FC = () => {
     const [data, setData] = useState<LinkBioData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [randomSong, setRandomSong] = useState<MusicItem | null>(null);
+    const [isSubscribed, setIsSubscribed] = useState(false);
+
+    useEffect(() => {
+        const checkSub = async () => {
+            if ((window as any).OneSignal) {
+                try {
+                    const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                    setIsSubscribed(optedIn || false);
+                } catch (e) { /* ignore */ }
+            }
+        };
+        checkSub();
+        const timer = setTimeout(checkSub, 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const query = artist ? `?artist=${artist}` : '';
@@ -171,12 +186,16 @@ const LinkBioPublic: React.FC = () => {
                         onClick={async () => {
                             if ((window as any).OneSignal) {
                                 await (window as any).OneSignal.Notifications.requestPermission();
+                                const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                                setIsSubscribed(optedIn || false);
                             }
                         }}
-                        className="w-full py-6 px-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#c5a059]/50 transition-all flex items-center justify-center gap-4 group"
+                        className={`w-full py-6 px-6 rounded-2xl border transition-all flex items-center justify-center gap-4 group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/[0.03] border-white/10 hover:border-[#c5a059]/50'}`}
                     >
-                        <i className="fas fa-bell text-[#c5a059] group-hover:animate-bounce"></i>
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 group-hover:text-white">Avísame de nuevos estrenos</span>
+                        <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${isSubscribed ? 'text-green-500' : 'text-white/60 group-hover:text-white'}`}>
+                            {isSubscribed ? '¡Suscrito! Pronto música nueva' : 'Avísame de nuevos estrenos'}
+                        </span>
                     </button>
                     <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando haya música nueva</p>
                 </div>

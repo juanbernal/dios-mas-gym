@@ -146,6 +146,21 @@ const SmartLinkView: React.FC = () => {
     const [relatedSongs, setRelatedSongs] = useState<MusicItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isSubscribed, setIsSubscribed] = useState(false);
+
+    useEffect(() => {
+        const checkSub = async () => {
+            if ((window as any).OneSignal) {
+                try {
+                    const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                    setIsSubscribed(optedIn || false);
+                } catch (e) { /* ignore */ }
+            }
+        };
+        checkSub();
+        const timer = setTimeout(checkSub, 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const loadSong = async () => {
@@ -560,14 +575,16 @@ const SmartLinkView: React.FC = () => {
                                 onClick={async () => {
                                     if ((window as any).OneSignal) {
                                         await (window as any).OneSignal.Notifications.requestPermission();
-                                    } else {
-                                        console.warn("OneSignal not loaded yet");
+                                        const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                                        setIsSubscribed(optedIn || false);
                                     }
                                 }}
-                                className="flex items-center gap-3 px-6 py-3 rounded-full bg-[#1a1412] border border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10 transition-all group"
+                                className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1a1412] border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10'}`}
                             >
-                                <i className="fas fa-bell text-[#c89d53] group-hover:animate-bounce"></i>
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[#e8dcc5]/70 group-hover:text-[#e8dcc5]">Avísame de nuevos estrenos</span>
+                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c89d53] group-hover:animate-bounce'}`}></i>
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-[#e8dcc5]/70 group-hover:text-[#e8dcc5]'}`}>
+                                    {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
+                                </span>
                             </button>
                             <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
                         </div>
