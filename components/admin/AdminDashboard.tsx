@@ -231,26 +231,27 @@ const AdminDashboard: React.FC = () => {
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 md:px-8 font-['Poppins']">
             <div className="max-w-7xl mx-auto">
                 {/* Header / Saludo Premium */}
-                <div className="mb-20 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-                    <div className="relative">
-                        <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#c5a059]/10 rounded-full blur-[80px] pointer-events-none"></div>
-                        <h1 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-4 flex items-center gap-4">
-                            <span className="w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
+                <div className="mb-12 md:mb-20 flex flex-col lg:flex-row lg:items-end justify-between gap-8 md:gap-10">
+                    <div className="text-left">
+                        <h1 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-[#c5a059] mb-3 md:mb-4 flex items-center gap-3 md:gap-4">
+                            <span className="w-8 md:w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
                         </h1>
-                        <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-tight">
+                        <h2 className="font-serif italic text-4xl md:text-7xl text-white leading-tight">
                             Hola, <span className="text-[#c5a059] drop-shadow-[0_0_30px_rgba(197,160,89,0.2)]">Juan</span>
                         </h2>
                     </div>
-                    <div className="flex items-center gap-12 border-l border-white/5 pl-12 h-fit mb-4">
+
+                    {/* Stats Compactos (Quick Look) */}
+                    <div className="flex items-center gap-6 md:gap-12 border-l border-white/5 pl-6 md:pl-12 h-fit mb-2 md:mb-4">
                         <div className="text-left">
-                            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-2">Build</p>
-                            <p className="text-xs font-mono text-white/60">v4.2.0 Premium</p>
+                            <p className="text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 md:mb-2">Build</p>
+                            <p className="text-[10px] md:text-xs font-mono text-white/60">v4.4.0 Premium</p>
                         </div>
                         <div className="text-left">
-                            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-2">Estado</p>
+                            <p className="text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 md:mb-2">Estado</p>
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full animate-pulse ${isInstalled ? 'bg-green-500' : 'bg-[#c5a059]'}`}></div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-white/80">
+                                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full animate-pulse ${isInstalled ? 'bg-green-500' : 'bg-[#c5a059]'}`}></div>
+                                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/80">
                                     {isInstalled ? 'Instalado' : 'Navegador'}
                                 </p>
                             </div>
