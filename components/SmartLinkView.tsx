@@ -152,10 +152,9 @@ const SmartLinkView: React.FC = () => {
         const checkSub = async () => {
             if ((window as any).OneSignal) {
                 try {
-                    const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                    const permission = (window as any).OneSignal.Notifications?.permission;
-                    // En OneSignal v16, permission es un booleano (true si está permitido)
-                    setIsSubscribed(optedIn || permission === true);
+                    const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                    // En OneSignal v16, usamos optedIn para saber si el usuario está suscrito al servicio
+                    setIsSubscribed(optedIn === true);
                 } catch (e) { /* ignore */ }
             }
         };
@@ -449,9 +448,8 @@ const SmartLinkView: React.FC = () => {
                                     onClick={async () => {
                                         if ((window as any).OneSignal) {
                                             await (window as any).OneSignal.Notifications.requestPermission();
-                                            const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                                            const permission = (window as any).OneSignal.Notifications?.permission;
-                                            setIsSubscribed(optedIn || permission === true);
+                                            const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                                            setIsSubscribed(optedIn === true);
                                         }
                                     }}
                                     className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10'}`}
@@ -598,8 +596,8 @@ const SmartLinkView: React.FC = () => {
                                 onClick={async () => {
                                     if ((window as any).OneSignal) {
                                         await (window as any).OneSignal.Notifications.requestPermission();
-                                        const optedIn = await (window as any).OneSignal.User?.PushSubscription?.optedIn;
-                                        setIsSubscribed(optedIn || false);
+                                        const optedIn = (window as any).OneSignal.User?.PushSubscription?.optedIn;
+                                        setIsSubscribed(optedIn === true);
                                     }
                                 }}
                                 className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1a1412] border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10'}`}
