@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 
@@ -16,6 +16,7 @@ const smoothNoise = (t: number) => {
 
 const VideoSnippetCreator: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -38,8 +39,15 @@ const VideoSnippetCreator: React.FC = () => {
         fetchMusicCatalog('diosmasgym').then(data => {
             setCatalog(data);
             setIsLoading(false);
+
+            // Auto-carga desde el Asistente
+            const incomingSong = location.state?.song as MusicItem;
+            if (incomingSong) {
+                setSelectedSong(incomingSong);
+                setStartTime(0);
+            }
         });
-    }, []);
+    }, [location.state]);
 
     useEffect(() => {
         if ((selectedSong || localFileUrl) && audioRef.current) {

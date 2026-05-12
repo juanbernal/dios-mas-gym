@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
@@ -60,6 +60,7 @@ const getHighResUrl = (url: string | null): string | null => {
 
 const PromoImageApp: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [title, setTitle] = useState("CARGANDO CANCIÓN...");
   const [artist, setArtist] = useState("Diosmasgym");
   const [bg, setBg] = useState<string | null>(null);
@@ -114,16 +115,17 @@ const PromoImageApp: React.FC = () => {
         const fullCatalog = [...dM, ...j6];
         setCatalog(fullCatalog);
 
-        // AUTO-ALEATORIO AL INICIAR PARA EVITAR "DUDAS QUÉ ES AMOR"
+        // 1. Prioridad: Canción pasada desde el Asistente
+        const incomingSong = location.state?.song as MusicItem;
+        if (incomingSong) {
+          handleSelectSong(incomingSong);
+          return;
+        }
+
+        // 2. Fallback: Aleatorio si no viene nada
         if (fullCatalog.length > 0) {
           const song = fullCatalog[Math.floor(Math.random() * fullCatalog.length)];
-          let normalizedArtist = song.artist;
-          if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
-          if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
-
-          setTitle(song.name.toUpperCase());
-          setArtist(normalizedArtist);
-          setBg(song.cover);
+          handleSelectSong(song);
         }
       } catch (err) {
         console.error("Error loading catalog:", err);
@@ -132,7 +134,7 @@ const PromoImageApp: React.FC = () => {
       }
     };
     loadCatalog();
-  }, []);
+  }, [location.state]);
 
   const handleSelectSong = (song: MusicItem) => {
     let normalizedArtist = song.artist;

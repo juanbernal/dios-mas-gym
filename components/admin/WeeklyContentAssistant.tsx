@@ -65,47 +65,20 @@ const WeeklyContentAssistant: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const today = new Date();
-    const isMonday = today.getDay() === 1;
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
     const weekNum = getWeekNumber(today);
-    const STORAGE_KEY = `dg_assistant_dismissed_w${weekNum}`;
-    const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
+    
+    // Almacenamos canciones promocionadas para no repetirlas
+    const PROMOTED_KEY = 'dg_assistant_promoted_ids';
+    const [promotedIds, setPromotedIds] = useState<string[]>(() => {
+        try { return JSON.parse(localStorage.getItem(PROMOTED_KEY) || '[]'); } catch { return []; }
+    });
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const [dM, j6] = await Promise.all([
-                    fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614'),
-                ]);
-                setCatalog([...dM, ...j6]);
-
-                const res = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
-                if (res.ok) {
-                    const data = await res.json() as any[];
-                    const normalized: ReleaseData[] = data.map(r => {
-                        const find = (keys: string[]) => {
-                            const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
-                            return k ? r[k] : '';
-                        };
-                        return {
-                            Artista: find(['artista']),
-                            name: find(['name', 'nombre', 'titulo', 'título']),
-                            releaseDate: find(['releasedate', 'fecha']),
-                            preSaveLink: find(['presavelink', 'spotify']),
-                            audioUrl: find(['audiourl', 'youtube']),
-                            coverImageUrl: find(['coverimageurl', 'imagen', 'portada']),
-                        };
-                    });
-                    setReleases(normalized);
-                }
-            } catch (e) {
-                console.error('WeeklyAssistant load error:', e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, []);
+    const markAsPromoted = (id: string) => {
+        const next = [...promotedIds, id];
+        setPromotedIds(next);
+        localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
+    };
 
     const suggestion = useMemo<Suggestion | null>(() => {
         if (catalog.length === 0) return null;
@@ -116,19 +89,25 @@ const WeeklyContentAssistant: React.FC = () => {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-        // Split catalog by artist for alternation
-        const dMSongs = catalog.filter(s => s.artist.toLowerCase().includes('dios'));
-        const j6Songs = catalog.filter(s => s.artist.toLowerCase().includes('juan'));
-        // Even week = Diosmasgym, Odd week = Juan 614
-        const thisWeekPool = weekNum % 2 === 0 ? dMSongs : j6Songs;
-        const thisWeekName = weekNum % 2 === 0 ? 'Diosmasgym' : 'Juan 614';
+        // Filter out promoted songs
+        const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
+        const pool = freshCatalog.length > 0 ? freshCatalog : catalog; // Fallback if all promoted
+
+        // Split by artist for alternation
+        const dMSongs = pool.filter(s => s.artist.toLowerCase().includes('dios'));
+        const j6Songs = pool.filter(s => s.artist.toLowerCase().includes('juan'));
+        
+        // Alternamos artista por DÍA ahora
+        const isDiosmasgymDay = dayOfYear % 2 === 0;
+        const dailyPool = isDiosmasgymDay ? dMSongs : j6Songs;
+        const dailyArtistName = isDiosmasgymDay ? 'Diosmasgym' : 'Juan 614';
 
         // 1️⃣ New release THIS WEEK from sheet (any artist)
         const releaseThisWeek = releases.find(r => {
             const d = new Date(r.releaseDate);
             return d >= startOfWeek && d <= now;
         });
-        if (releaseThisWeek) {
+        if (releaseThisWeek && !promotedIds.includes(releaseThisWeek.name)) {
             const matchedSong = catalog.find(s =>
                 s.name.toLowerCase().includes(releaseThisWeek.name.toLowerCase().slice(0, 6)) ||
                 releaseThisWeek.name.toLowerCase().includes(s.name.toLowerCase().slice(0, 6))
@@ -136,7 +115,7 @@ const WeeklyContentAssistant: React.FC = () => {
             const caps = CAPTIONS_BY_TYPE.new_release(releaseThisWeek.name, releaseThisWeek.Artista);
             return {
                 song: matchedSong || null,
-                reason: `¡Estreno esta semana! "${releaseThisWeek.name}" acaba de salir — es el momento ideal para hacer ruido en redes.`,
+                reason: `¡Estreno reciente! "${releaseThisWeek.name}" acaba de salir — es el momento ideal para darle fuego.`,
                 type: 'new_release',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -144,19 +123,16 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 2️⃣ Recent song (<7 days) — prefer this week's artist
-        const recentFromPool = thisWeekPool
+        // 2️⃣ Recent song (<7 days)
+        const recentSong = pool
             .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-        const recentAny = catalog
-            .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-        const recentSong = recentFromPool || recentAny;
+        
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
             return {
                 song: recentSong,
-                reason: `"${recentSong.name}" salió hace menos de 7 días. Aprovecha el impulso inicial para maximizar el alcance.`,
+                reason: `"${recentSong.name}" es tendencia. Aprovecha el impulso de esta semana para maximizar el alcance.`,
                 type: 'recent',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -164,16 +140,14 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 3️⃣ Rotation: strictly from THIS WEEK's artist (alternates every week)
-        const rotPool = thisWeekPool.filter(s => s.date && new Date(s.date) >= thirtyDaysAgo);
-        const rotationPool = rotPool.length > 0 ? rotPool : thisWeekPool;
-        if (rotationPool.length > 0) {
-            const idx = weekNum % rotationPool.length;
-            const picked = rotationPool[idx] || rotationPool[0];
+        // 3️⃣ Rotation: daily artist alternation
+        if (dailyPool.length > 0) {
+            const idx = dayOfYear % dailyPool.length;
+            const picked = dailyPool[idx] || dailyPool[0];
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
             return {
                 song: picked,
-                reason: `Esta semana le toca a ${thisWeekName} (semana ${weekNum}). Promociona "${picked.name}" para mantener el algoritmo activo.`,
+                reason: `Hoy el algoritmo favorece a ${dailyArtistName}. Promociona "${picked.name}" para mantener tu perfil activo.`,
                 type: 'rotation',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -181,20 +155,19 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 4️⃣ Old gem from this week's artist
-        const gemPool = thisWeekPool.length > 0 ? thisWeekPool : catalog;
-        const gemIdx = weekNum % gemPool.length;
-        const gem = gemPool[gemIdx] || gemPool[0];
+        // 4️⃣ Old gem
+        const gemIdx = (dayOfYear + 10) % pool.length;
+        const gem = pool[gemIdx] || pool[0];
         const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
         return {
             song: gem,
-            reason: `Turno de ${thisWeekName} esta semana. Reactiva "${gem.name}" — una joya que merece volver a circular.`,
+            reason: `Recomendación diaria: Reactiva "${gem.name}". Una joya del catálogo que merece volver a ser escuchada.`,
             type: 'old_gem',
             caption: caps.ig,
             tiktokCaption: caps.tt,
             hashtags: HASHTAG_SETS.old_gem,
         };
-    }, [catalog, releases, weekNum]);
+    }, [catalog, releases, dayOfYear, promotedIds]);
 
 
     const copyText = (text: string, type: 'ig' | 'tt') => {
@@ -203,14 +176,23 @@ const WeeklyContentAssistant: React.FC = () => {
         setTimeout(() => setCopied(null), 2000);
     };
 
+    const handleAction = (route: string) => {
+        if (suggestion?.song) {
+            markAsPromoted(suggestion.song.id);
+            navigate(route, { state: { song: suggestion.song } });
+        } else {
+            navigate(route);
+        }
+    };
+
     const TYPE_LABELS: Record<Suggestion['type'], { label: string; color: string; icon: string }> = {
         new_release: { label: '🚀 Lanzamiento', color: '#ff4b2b', icon: 'fa-rocket' },
         recent: { label: '🔥 Reciente', color: '#c5a059', icon: 'fa-fire' },
-        rotation: { label: '🔄 Rotación', color: '#3b82f6', icon: 'fa-rotate' },
+        rotation: { label: '🔄 Rotación Diaria', color: '#3b82f6', icon: 'fa-rotate' },
         old_gem: { label: '💎 Joya del Archivo', color: '#a855f7', icon: 'fa-gem' },
     };
 
-    if (dismissed || loading || !suggestion) return null;
+    if (loading || !suggestion) return null;
 
     const typeInfo = TYPE_LABELS[suggestion.type];
 
@@ -235,14 +217,12 @@ const WeeklyContentAssistant: React.FC = () => {
                             <div className="flex items-center gap-3 mb-1">
                                 <span className="text-[9px] font-black uppercase tracking-[0.4em]"
                                     style={{ color: typeInfo.color }}>{typeInfo.label}</span>
-                                {isMonday && (
-                                    <span className="text-[8px] font-black uppercase tracking-widest bg-[#c5a059]/10 text-[#c5a059] px-3 py-1 rounded-full border border-[#c5a059]/20">
-                                        📅 Recomendación del Lunes
-                                    </span>
-                                )}
+                                <span className="text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/40 px-3 py-1 rounded-full border border-white/10">
+                                    ✨ Hoy para ti
+                                </span>
                             </div>
                             <h3 className="text-white font-bold text-lg leading-tight">
-                                Asistente de Contenido Semanal
+                                Asistente de Contenido Inteligente
                             </h3>
                         </div>
                     </div>
@@ -251,13 +231,14 @@ const WeeklyContentAssistant: React.FC = () => {
                             onClick={() => setIsExpanded(!isExpanded)}
                             className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-2 rounded-full border border-white/10 hover:border-white/20"
                         >
-                            {isExpanded ? 'Colapsar' : 'Ver textos'}
+                            {isExpanded ? 'Ocultar textos' : 'Ver textos'}
                         </button>
                         <button
-                            onClick={() => { setDismissed(true); localStorage.setItem(STORAGE_KEY, 'true'); }}
-                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/10 transition-all"
+                            onClick={() => { if(suggestion.song) markAsPromoted(suggestion.song.id); }}
+                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-[#ff4b2b] hover:bg-[#ff4b2b]/10 transition-all"
+                            title="Descartar esta recomendación"
                         >
-                            <i className="fas fa-times text-xs"></i>
+                            <i className="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
                 </div>
@@ -268,11 +249,11 @@ const WeeklyContentAssistant: React.FC = () => {
                         {/* Left: Song info + reason */}
                         <div className="flex-1 flex items-start gap-6">
                             {suggestion.song?.cover && (
-                                <div className="relative shrink-0">
+                                <div className="relative shrink-0 group">
                                     <img
                                         src={suggestion.song.cover}
                                         alt={suggestion.song.name}
-                                        className="w-24 h-24 rounded-2xl object-cover border border-white/10 shadow-xl"
+                                        className="w-24 h-24 rounded-2xl object-cover border border-white/10 shadow-xl group-hover:scale-105 transition-transform"
                                     />
                                     <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-lg"
                                         style={{ backgroundColor: typeInfo.color, color: '#000' }}>
@@ -282,7 +263,7 @@ const WeeklyContentAssistant: React.FC = () => {
                             )}
                             <div className="min-w-0">
                                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mb-2">
-                                    Esta semana promociona
+                                    Te sugerimos promocionar
                                 </p>
                                 <h4 className="text-white text-2xl font-bold truncate mb-1">
                                     {suggestion.song?.name || 'Sin canción'}
@@ -290,45 +271,46 @@ const WeeklyContentAssistant: React.FC = () => {
                                 <p className="text-white/40 text-xs uppercase tracking-widest font-bold mb-4">
                                     {suggestion.song?.artist}
                                 </p>
-                                <p className="text-white/60 text-sm leading-relaxed max-w-md">
-                                    {suggestion.reason}
+                                <p className="text-white/60 text-sm leading-relaxed max-w-md italic">
+                                    "{suggestion.reason}"
                                 </p>
                             </div>
                         </div>
 
                         {/* Right: Quick actions */}
                         <div className="flex flex-col gap-3 lg:w-56 shrink-0">
-                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 mb-1">Acciones Rápidas</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 mb-1">Cargar en herramienta</p>
                             <button
-                                onClick={() => navigate('/admin/video-snippet')}
-                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059]/10 hover:border-[#c5a059]/30 transition-all"
+                                onClick={() => handleAction('/admin/video-snippet')}
+                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059] hover:text-black transition-all group"
                             >
-                                <i className="fas fa-film text-[#c5a059] w-4"></i>
+                                <i className="fas fa-film text-[#c5a059] group-hover:text-black w-4"></i>
                                 Video Snippet
                             </button>
                             <button
-                                onClick={() => navigate('/admin/promo-image')}
-                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059]/10 hover:border-[#c5a059]/30 transition-all"
+                                onClick={() => handleAction('/admin/promo-image')}
+                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059] hover:text-black transition-all group"
                             >
-                                <i className="fas fa-image text-[#c5a059] w-4"></i>
+                                <i className="fas fa-image text-[#c5a059] group-hover:text-black w-4"></i>
                                 Imagen Promo
                             </button>
                             <button
-                                onClick={() => navigate('/admin/social-post')}
-                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059]/10 hover:border-[#c5a059]/30 transition-all"
+                                onClick={() => handleAction('/admin/social-post')}
+                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059] hover:text-black transition-all group"
                             >
-                                <i className="fas fa-bullhorn text-[#c5a059] w-4"></i>
+                                <i className="fas fa-bullhorn text-[#c5a059] group-hover:text-black w-4"></i>
                                 Post Viral
                             </button>
                             <button
-                                onClick={() => navigate('/admin/lyric-studio')}
-                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059]/10 hover:border-[#c5a059]/30 transition-all"
+                                onClick={() => handleAction('/admin/lyric-studio')}
+                                className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-[#c5a059] hover:text-black transition-all group"
                             >
-                                <i className="fas fa-clapperboard text-[#c5a059] w-4"></i>
+                                <i className="fas fa-clapperboard text-[#c5a059] group-hover:text-black w-4"></i>
                                 Lyric Studio
                             </button>
                         </div>
                     </div>
+
 
                     {/* Expandable: Caption texts */}
                     {isExpanded && (

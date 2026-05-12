@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 
 const SocialPostGenerator: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState('');
@@ -31,7 +32,17 @@ const SocialPostGenerator: React.FC = () => {
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
                 ]);
-                setCatalog([...diosmasgym, ...juan614]);
+                const fullCatalog = [...diosmasgym, ...juan614];
+                setCatalog(fullCatalog);
+
+                // Auto-selección desde el Asistente
+                const incomingSong = location.state?.song as MusicItem;
+                if (incomingSong) {
+                    // Esperamos un pequeño delay para asegurar que el catálogo esté listo para handleSongSelect
+                    setTimeout(() => {
+                        handleSongSelect(incomingSong.id, fullCatalog);
+                    }, 100);
+                }
             } catch (err) {
                 console.error('Error loading music catalog:', err);
             } finally {
@@ -39,11 +50,12 @@ const SocialPostGenerator: React.FC = () => {
             }
         };
         loadCatalog();
-    }, []);
+    }, [location.state]);
 
-    const handleSongSelect = (songId: string) => {
+    const handleSongSelect = (songId: string, customCatalog?: MusicItem[]) => {
         setSelectedSongId(songId);
-        const song = catalog.find(item => item.id === songId);
+        const pool = customCatalog || catalog;
+        const song = pool.find(item => item.id === songId);
         if (!song) return;
 
         setFormData({
