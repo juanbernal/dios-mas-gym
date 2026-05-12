@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 
@@ -11,6 +11,49 @@ interface ReleaseData {
     coverImageUrl?: string;
 }
 
+// ─── Push Notification Helpers ────────────────────────────────────────────────
+const NOTIF_PREFS_KEY = 'dg_release_notif_prefs'; // { [releaseName]: boolean }
+
+const getNotifPrefs = (): Record<string, boolean> => {
+    try { return JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) || '{}'); } catch { return {}; }
+};
+const setNotifPref = (name: string, enabled: boolean) => {
+    const prefs = getNotifPrefs();
+    prefs[name] = enabled;
+    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
+};
+const FIRED_KEY = 'dg_release_notif_fired'; // { [releaseName-date]: true }
+const wasFired = (key: string) => localStorage.getItem(`${FIRED_KEY}_${key}`) === 'true';
+const markFired = (key: string) => localStorage.setItem(`${FIRED_KEY}_${key}`, 'true');
+
+async function requestNotifPermission(): Promise<boolean> {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
+    const result = await Notification.requestPermission();
+    return result === 'granted';
+}
+
+async function sendReleaseNotif(release: ReleaseData) {
+    const granted = await requestNotifPermission();
+    if (!granted) return;
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg) {
+        reg.active?.postMessage({
+            type: 'SHOW_RELEASE_NOTIFICATION',
+            title: `🎵 ¡Hoy sale! ${release.name}`,
+            body: `${release.Artista} acaba de lanzar su nueva canción. ¡Es el momento de hacer ruido!`,
+            cover: release.coverImageUrl || '',
+            url: release.preSaveLink || '/admin/proximos-lanzamientos',
+        });
+    } else {
+        // Fallback: direct Notification API
+        new Notification(`🎵 ¡Hoy sale! ${release.name}`, {
+            body: `${release.Artista} — ¡Es el momento de hacer ruido!`,
+            icon: '/icon-192.png',
+        });
+    }
+}
+
 const ProximosLanzamientos: React.FC = () => {
     const navigate = useNavigate();
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ type: 'idle' });
@@ -21,6 +64,10 @@ const ProximosLanzamientos: React.FC = () => {
     const [forceScan, setForceScan] = useState(false);
     const [scanLog, setScanLog] = useState<{name: string, artist: string, found: boolean}[]>([]);
     const syncStartedRef = React.useRef(false);
+    const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(getNotifPrefs);
+    const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+        'Notification' in window ? Notification.permission : 'denied'
+    );
     
     const [formData, setFormData] = useState({
         artista: 'Diosmasgym',
@@ -169,6 +216,47 @@ const ProximosLanzamientos: React.FC = () => {
         fetchCurrentReleases();
     }, []);
 
+    // ─── Hourly Release Date Checker ─────────────────────────────────────────
+    const checkTodaysReleases = useCallback((releases: ReleaseData[]) => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        releases.forEach(r => {
+            const key = `${r.name}-${r.releaseDate}`;
+            const prefs = getNotifPrefs();
+            if (
+                r.releaseDate === todayStr &&
+                prefs[r.name] !== false && // only if not explicitly disabled
+                !wasFired(key)
+            ) {
+                markFired(key);
+                sendReleaseNotif(r);
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        if (currentReleases.length > 0) checkTodaysReleases(currentReleases);
+        const interval = setInterval(() => {
+            fetchCurrentReleases().then(() => checkTodaysReleases(currentReleases));
+        }, 60 * 60 * 1000); // every hour
+        return () => clearInterval(interval);
+    }, [currentReleases, checkTodaysReleases]);
+
+    const toggleNotif = async (releaseName: string, current: boolean) => {
+        if (!current && notifPermission !== 'granted') {
+            const granted = await requestNotifPermission();
+            setNotifPermission(granted ? 'granted' : 'denied');
+            if (!granted) return;
+        }
+        const next = !current;
+        setNotifPref(releaseName, next);
+        setNotifPrefs(prev => ({ ...prev, [releaseName]: next }));
+    };
+
+    const handleRequestPermission = async () => {
+        const granted = await requestNotifPermission();
+        setNotifPermission(granted ? 'granted' : 'denied');
+    };
+
     const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
         const items = itemsToSync || pendingSync;
         if (items.length === 0) return;
@@ -275,9 +363,27 @@ const ProximosLanzamientos: React.FC = () => {
                     Volver al Panel
                 </button>
 
+                {notifPermission === 'default' && (
+                    <div className="mb-8 bg-[#c5a059]/10 border border-[#c5a059]/20 rounded-2xl p-5 flex items-center justify-between gap-4 animate-fade-in">
+                        <div className="flex items-center gap-4">
+                            <i className="fas fa-bell text-[#c5a059] text-xl"></i>
+                            <div>
+                                <p className="text-white font-bold text-sm">Activar Notificaciones de Lanzamientos</p>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest">Recibe una alerta automática el día que salga cada estreno.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleRequestPermission}
+                            className="px-6 py-3 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-full hover:bg-white transition-all shrink-0"
+                        >
+                            <i className="fas fa-bell mr-2"></i> Activar
+                        </button>
+                    </div>
+                )}
+
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.1</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.2</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica con Google Sheets</p>
                     </div>
                     <button 
@@ -414,13 +520,22 @@ const ProximosLanzamientos: React.FC = () => {
                                     {currentReleases.length === 0 ? (
                                         <p className="text-[10px] text-white/20 uppercase text-center py-10">Sin lanzamientos activos</p>
                                     ) : (
-                                        currentReleases.map((rev, idx) => (
-                                            <div key={idx} className="bg-black/40 border border-white/5 p-6 rounded-2xl hover:border-[#c5a059]/20 transition-all group">
+                                        currentReleases.map((rev, idx) => {
+                                            const isToday = rev.releaseDate === new Date().toISOString().split('T')[0];
+                                            const notifOn = notifPrefs[rev.name] !== false; // default ON
+                                            return (
+                                            <div key={idx} className={`bg-black/40 border p-6 rounded-2xl transition-all group ${isToday ? 'border-[#c5a059]/40 shadow-[0_0_20px_rgba(197,160,89,0.1)]' : 'border-white/5 hover:border-[#c5a059]/20'}`}>
+                                                {isToday && (
+                                                    <div className="flex items-center gap-2 text-[#c5a059] text-[9px] font-black uppercase tracking-widest mb-3 animate-pulse">
+                                                        <span className="w-2 h-2 rounded-full bg-[#c5a059] inline-block"></span>
+                                                        ¡Estreno HOY!
+                                                    </div>
+                                                )}
                                                 <div className="flex items-start gap-4 mb-4">
                                                     {rev.coverImageUrl && (
                                                         <img src={rev.coverImageUrl} alt="" className="w-12 h-12 rounded object-cover border border-white/10" />
                                                     )}
-                                                    <div>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-1">{rev.Artista}</div>
                                                         <div className="text-sm font-bold text-white line-clamp-1">{rev.name}</div>
                                                     </div>
@@ -428,12 +543,29 @@ const ProximosLanzamientos: React.FC = () => {
                                                 <div className="grid grid-cols-2 gap-4 text-[9px] text-white/40 uppercase font-bold tracking-widest mb-4">
                                                     <div className="flex items-center gap-2"><i className="far fa-calendar text-[#c5a059]"></i> {rev.releaseDate}</div>
                                                 </div>
-                                                <div className="flex gap-4 pt-4 border-t border-white/5">
-                                                    {rev.preSaveLink && <a href={rev.preSaveLink} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#1DB954] transition-colors"><i className="fab fa-spotify text-base"></i></a>}
-                                                    {rev.audioUrl && <a href={rev.audioUrl} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#ff0000] transition-colors"><i className="fab fa-youtube text-base"></i></a>}
+                                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                                    <div className="flex gap-4">
+                                                        {rev.preSaveLink && <a href={rev.preSaveLink} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#1DB954] transition-colors"><i className="fab fa-spotify text-base"></i></a>}
+                                                        {rev.audioUrl && <a href={rev.audioUrl} target="_blank" rel="noreferrer" className="text-white/20 hover:text-[#ff0000] transition-colors"><i className="fab fa-youtube text-base"></i></a>}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => toggleNotif(rev.name, notifOn)}
+                                                        title={notifOn ? 'Notificación activa — clic para desactivar' : 'Activar notificación para este estreno'}
+                                                        className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all ${
+                                                            notifPermission === 'denied'
+                                                                ? 'border-white/5 text-white/20 cursor-not-allowed'
+                                                                : notifOn
+                                                                ? 'border-[#c5a059]/40 text-[#c5a059] bg-[#c5a059]/10 hover:bg-[#c5a059]/20'
+                                                                : 'border-white/10 text-white/30 hover:border-white/20'
+                                                        }`}
+                                                        disabled={notifPermission === 'denied'}
+                                                    >
+                                                        <i className={`fas ${notifOn ? 'fa-bell' : 'fa-bell-slash'} text-xs`}></i>
+                                                        {notifPermission === 'denied' ? 'Bloqueado' : notifOn ? 'Notif. ON' : 'Notif. OFF'}
+                                                    </button>
                                                 </div>
                                             </div>
-                                        ))
+                                        )})}
                                     )}
                                 </div>
                             )}

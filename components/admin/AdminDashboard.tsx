@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import WeeklyContentAssistant from './WeeklyContentAssistant';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -236,7 +237,7 @@ const AdminDashboard: React.FC = () => {
                         </h1>
                         <h2 className="font-serif italic text-6xl md:text-8xl text-white">
                             Hola, <span className="text-[#c5a059]">Juan</span>
-                            <span className="text-[8px] opacity-20 ml-4 font-sans not-italic tracking-widest">BUILD 3.5.2</span>
+                            <span className="text-[8px] opacity-20 ml-4 font-sans not-italic tracking-widest">BUILD 3.6.0</span>
                         </h2>
                     </div>
                     <div className="flex gap-10">
@@ -293,6 +294,9 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Asistente de Contenido Semanal */}
+                <WeeklyContentAssistant />
 
                 <div className="mb-20 bg-[#0f111a] border border-[#c5a059]/20 rounded-[2rem] p-8 md:p-10 shadow-2xl overflow-hidden relative font-['Poppins']">
                     <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#c5a059]/10 rounded-full blur-[100px]"></div>
