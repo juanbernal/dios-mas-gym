@@ -202,7 +202,6 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
 
     const handleAction = (route: string) => {
         if (suggestion?.song) {
-            markAsPromoted(suggestion.song.id);
             navigate(route, { state: { song: suggestion.song } });
         } else {
             navigate(route);
@@ -265,11 +264,11 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog })
                             {isExpanded ? 'Ocultar textos' : 'Ver textos'}
                         </button>
                         <button
-                            onClick={() => { if(suggestion.song) markAsPromoted(suggestion.song.id); }}
-                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-[#ff4b2b] hover:bg-[#ff4b2b]/10 transition-all"
-                            title="Descartar esta recomendación"
+                            onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
+                            className="flex items-center gap-3 px-5 py-2 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all group"
                         >
-                            <i className="fas fa-trash-alt text-xs"></i>
+                            <span className="text-[9px] font-black uppercase tracking-widest">Siguiente Sugerencia</span>
+                            <i className="fas fa-arrow-right text-[10px]"></i>
                         </button>
                     </div>
                 </div>
