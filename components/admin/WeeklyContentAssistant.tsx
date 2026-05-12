@@ -116,7 +116,14 @@ const WeeklyContentAssistant: React.FC = () => {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-        // 1️⃣ New release THIS WEEK from sheet
+        // Split catalog by artist for alternation
+        const dMSongs = catalog.filter(s => s.artist.toLowerCase().includes('dios'));
+        const j6Songs = catalog.filter(s => s.artist.toLowerCase().includes('juan'));
+        // Even week = Diosmasgym, Odd week = Juan 614
+        const thisWeekPool = weekNum % 2 === 0 ? dMSongs : j6Songs;
+        const thisWeekName = weekNum % 2 === 0 ? 'Diosmasgym' : 'Juan 614';
+
+        // 1️⃣ New release THIS WEEK from sheet (any artist)
         const releaseThisWeek = releases.find(r => {
             const d = new Date(r.releaseDate);
             return d >= startOfWeek && d <= now;
@@ -137,10 +144,14 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 2️⃣ Song released in last 7 days from catalog
-        const recentSong = catalog
+        // 2️⃣ Recent song (<7 days) — prefer this week's artist
+        const recentFromPool = thisWeekPool
             .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        const recentAny = catalog
+            .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        const recentSong = recentFromPool || recentAny;
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
             return {
@@ -153,15 +164,16 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 3️⃣ Rotation: pick based on week number to alternate artists
-        const songsWithDate = catalog.filter(s => s.date && new Date(s.date) >= thirtyDaysAgo);
-        if (songsWithDate.length > 0) {
-            const idx = weekNum % songsWithDate.length;
-            const picked = songsWithDate[idx] || songsWithDate[0];
+        // 3️⃣ Rotation: strictly from THIS WEEK's artist (alternates every week)
+        const rotPool = thisWeekPool.filter(s => s.date && new Date(s.date) >= thirtyDaysAgo);
+        const rotationPool = rotPool.length > 0 ? rotPool : thisWeekPool;
+        if (rotationPool.length > 0) {
+            const idx = weekNum % rotationPool.length;
+            const picked = rotationPool[idx] || rotationPool[0];
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
             return {
                 song: picked,
-                reason: `Rotación estratégica: promociona "${picked.name}" esta semana para mantener el algoritmo activo.`,
+                reason: `Esta semana le toca a ${thisWeekName} (semana ${weekNum}). Promociona "${picked.name}" para mantener el algoritmo activo.`,
                 type: 'rotation',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -169,19 +181,21 @@ const WeeklyContentAssistant: React.FC = () => {
             };
         }
 
-        // 4️⃣ Old gem
-        const idx = weekNum % catalog.length;
-        const gem = catalog[idx] || catalog[0];
+        // 4️⃣ Old gem from this week's artist
+        const gemPool = thisWeekPool.length > 0 ? thisWeekPool : catalog;
+        const gemIdx = weekNum % gemPool.length;
+        const gem = gemPool[gemIdx] || gemPool[0];
         const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
         return {
             song: gem,
-            reason: `Reactiva una joya del catálogo. "${gem.name}" merece volver a circular esta semana.`,
+            reason: `Turno de ${thisWeekName} esta semana. Reactiva "${gem.name}" — una joya que merece volver a circular.`,
             type: 'old_gem',
             caption: caps.ig,
             tiktokCaption: caps.tt,
             hashtags: HASHTAG_SETS.old_gem,
         };
     }, [catalog, releases, weekNum]);
+
 
     const copyText = (text: string, type: 'ig' | 'tt') => {
         navigator.clipboard.writeText(text);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import WeeklyContentAssistant from './WeeklyContentAssistant';
+import { useOneSignal } from '../../services/useOneSignal';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const AdminDashboard: React.FC = () => {
     const [musicCatalog, setMusicCatalog] = useState<MusicItem[]>([]);
     const [isSyncingMusic, setIsSyncingMusic] = useState(false);
     const [lastMusicSync, setLastMusicSync] = useState<string>('Pendiente');
+    const push = useOneSignal();
 
     const loadMusicCatalog = async (forceRefresh = false) => {
         setIsSyncingMusic(true);
@@ -297,6 +299,52 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Asistente de Contenido Semanal */}
                 <WeeklyContentAssistant />
+
+                {/* Push Notification Manager */}
+                {push.isSupported && (
+                    <div className="mb-12 bg-[#0f111a] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 font-['Poppins'] relative overflow-hidden">
+                        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#c5a059]/5 rounded-full blur-[60px] pointer-events-none"></div>
+                        <div className="flex items-center gap-5 relative z-10">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
+                                push.isSubscribed
+                                    ? 'bg-[#c5a059]/15 border border-[#c5a059]/30'
+                                    : 'bg-white/5 border border-white/10'
+                            }`}>
+                                <i className={`fas ${push.isSubscribed ? 'fa-bell text-[#c5a059]' : 'fa-bell-slash text-white/30'} text-lg`}></i>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-base mb-1">
+                                    Notificaciones de Lanzamientos
+                                </h4>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest">
+                                    {push.isSubscribed
+                                        ? '✅ Activas — recibirás una alerta el día de cada estreno'
+                                        : 'Recibe un aviso automático el día que salga cada nueva canción'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 relative z-10">
+                            {push.isSubscribed && (
+                                <button
+                                    onClick={push.testNotification}
+                                    className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2 rounded-full transition-all"
+                                >
+                                    <i className="fas fa-paper-plane mr-2"></i>Probar
+                                </button>
+                            )}
+                            <button
+                                onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
+                                className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.3em] transition-all ${
+                                    push.isSubscribed
+                                        ? 'bg-white/5 border border-white/10 text-white/60 hover:border-red-500/30 hover:text-red-400'
+                                        : 'bg-[#c5a059] text-black hover:bg-white shadow-lg'
+                                }`}
+                            >
+                                {push.isSubscribed ? 'Desactivar' : 'Activar Notificaciones'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mb-20 bg-[#0f111a] border border-[#c5a059]/20 rounded-[2rem] p-8 md:p-10 shadow-2xl overflow-hidden relative font-['Poppins']">
                     <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#c5a059]/10 rounded-full blur-[100px]"></div>
