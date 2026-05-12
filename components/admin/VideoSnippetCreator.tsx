@@ -249,60 +249,34 @@ const VideoSnippetCreator: React.FC = () => {
             source.connect(audioCtx.destination);
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-            // Best quality WebM the browser can produce
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-                ? 'video/webm;codecs=vp9,opus'
-                : 'video/webm';
+            // Priority: true MP4/H264 (Safari) → VP8 WebM (widely editable) → VP9 WebM → generic
+            const formatCandidates: { mimeType: string; ext: string }[] = [
+                { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
+                { mimeType: 'video/mp4',                               ext: 'mp4' },
+                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
+                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
+                { mimeType: 'video/webm',                              ext: 'webm' },
+            ];
+            const chosen = formatCandidates.find(f => MediaRecorder.isTypeSupported(f.mimeType))
+                        ?? { mimeType: 'video/webm', ext: 'webm' };
 
             const recorder = new MediaRecorder(stream, { 
-                mimeType,
-                videoBitsPerSecond: 12000000 // 12Mbps
+                mimeType: chosen.mimeType,
+                videoBitsPerSecond: 12_000_000 // 12 Mbps
             });
             
             const chunks: Blob[] = [];
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
             
-            recorder.onstop = async () => {
-                const webmBlob = new Blob(chunks, { type: mimeType });
-                const songName = selectedSong?.name.replace(/\s/g, '_') || 'snippet';
-                
-                try {
-                    // Convert WebM → MP4 using FFmpeg.wasm
-                    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-                    const { fetchFile, toBlobURL } = await import('@ffmpeg/util');
-                    
-                    const ffmpeg = new FFmpeg();
-                    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-                    await ffmpeg.load({
-                        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-                        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-                    });
-                    
-                    await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
-                    await ffmpeg.exec([
-                        '-i', 'input.webm',
-                        '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
-                        '-c:a', 'aac', '-b:a', '192k',
-                        '-movflags', '+faststart',
-                        'output.mp4'
-                    ]);
-                    
-                    const data = await ffmpeg.readFile('output.mp4');
-                    const mp4Blob = new Blob([(data as Uint8Array).buffer], { type: 'video/mp4' });
-                    const url = URL.createObjectURL(mp4Blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Snippet_${songName}_HQ.mp4`;
-                    a.click();
-                } catch (ffErr) {
-                    console.warn("FFmpeg MP4 conversion failed, fallback to WebM:", ffErr);
-                    const url = URL.createObjectURL(webmBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Snippet_${songName}_HQ.webm`;
-                    a.click();
-                    alert("El video se guardó como .webm.\nPara convertirlo a MP4: ábrelo con VLC → Medio → Convertir.");
-                }
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: chosen.mimeType });
+                const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Snippet_${songName}.${chosen.ext}`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 10_000);
                 
                 audioCtx.close();
                 setIsRecording(false);
@@ -347,7 +321,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.6</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.7</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -521,16 +495,14 @@ const VideoSnippetCreator: React.FC = () => {
                         <div className="absolute inset-0 border-4 border-[#c5a059]/20 rounded-full"></div>
                         <div className="absolute inset-0 border-4 border-t-[#c5a059] rounded-full animate-spin"></div>
                         <div className="absolute inset-0 flex items-center justify-center text-[#c5a059] font-black text-xl">
-                            {recordingProgress >= 1 ? 'MP4' : 'REC'}
+                            {recordingProgress >= 1 ? '✓' : 'REC'}
                         </div>
                     </div>
                     <h2 className="text-2xl font-black uppercase tracking-[0.5em] mb-4">
-                        {recordingProgress >= 1 ? 'Convirtiendo a MP4...' : 'Grabando Snippet'}
+                        {recordingProgress >= 1 ? 'Finalizando descarga...' : 'Grabando Snippet'}
                     </h2>
                     <p className="text-white/40 text-xs uppercase tracking-widest mb-8">
-                        {recordingProgress >= 1 
-                            ? 'FFmpeg está procesando el video. No cierres esta pestaña.'
-                            : 'No cierres esta pestaña hasta que la descarga comience.'}
+                        No cierres esta pestaña hasta que la descarga comience.
                     </p>
                     <div className="w-64 bg-white/10 h-1 rounded-full overflow-hidden">
                         <div className="bg-[#c5a059] h-full transition-all duration-100" style={{ width: `${recordingProgress * 100}%` }}></div>
