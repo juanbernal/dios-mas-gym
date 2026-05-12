@@ -50,7 +50,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const navigate = useNavigate();
     const [releases, setReleases] = useState<ReleaseData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [copied, setCopied] = useState<'ig' | 'tt' | null>(null);
+    const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
     const [isExpanded, setIsExpanded] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
@@ -198,7 +198,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
     };
 
-    const copyText = (text: string, type: 'ig' | 'tt') => {
+    const copyText = (text: string, type: 'ig' | 'tt' | 'sl') => {
         navigator.clipboard.writeText(text);
         setCopied(type);
         setTimeout(() => setCopied(null), 2000);
@@ -307,10 +307,15 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 <span className="text-[10px] font-black uppercase tracking-widest text-left">Viral Post</span>
                                 <i className="fas fa-share-nodes text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
-                            <button onClick={() => handleAction('/admin/smart-links')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-left">Smart Link</span>
-                                <i className="fas fa-link text-xs group-hover:scale-110 transition-transform"></i>
-                            </button>
+                            <div className="flex gap-2">
+                                <button onClick={() => window.open(`/#/link/${suggestion.song?.id}`, '_blank')} className="flex-1 flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-left">Smart Link</span>
+                                    <i className="fas fa-eye text-xs group-hover:scale-110 transition-transform"></i>
+                                </button>
+                                <button onClick={() => { if(suggestion.song) copyText(`${window.location.origin}/#/link/${suggestion.song.id}`, 'sl'); }} className={`px-5 py-4 rounded-2xl border transition-all flex items-center justify-center ${copied === 'sl' ? 'bg-green-500/20 border-green-500/40 text-green-500' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-[#c5a059]'}`}>
+                                    <i className={`fas ${copied === 'sl' ? 'fa-check' : 'fa-copy'} text-xs`}></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
