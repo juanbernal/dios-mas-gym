@@ -68,7 +68,7 @@ const VideoSnippetCreator: React.FC = () => {
                 setSelectedSong(matched);
                 setCustomTitle(matched.name);
                 setCustomArtist(matched.artist || "Dios Mas Gym");
-                setPromoImageUrl(matched.cover); // RESTORED AUTO-LOAD
+                // Auto-load removed per user request
             }
         }
     }, [location.state, catalog]);
@@ -399,7 +399,6 @@ const VideoSnippetCreator: React.FC = () => {
                                         setSelectedSong(song);
                                         setCustomTitle(song.name);
                                         setCustomArtist(song.artist || "Dios Mas Gym");
-                                        setPromoImageUrl(song.cover); // RESTORED AUTO-LOAD
                                         setStartTime(0);
                                     }}
                                     className={`w-full p-3 rounded-xl flex items-center gap-4 transition-all ${selectedSong?.id === song.id ? 'bg-[#c5a059] text-black' : 'bg-white/5 hover:bg-white/10'}`}
