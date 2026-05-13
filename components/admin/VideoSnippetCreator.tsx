@@ -68,7 +68,7 @@ const VideoSnippetCreator: React.FC = () => {
                 setSelectedSong(matched);
                 setCustomTitle(matched.name);
                 setCustomArtist(matched.artist || "Dios Mas Gym");
-                // Ya no cargamos el promoImage ni el cover automáticamente si el usuario lo quiere manual
+                setPromoImageUrl(matched.cover); // RESTORED AUTO-LOAD
             }
         }
     }, [location.state, catalog]);
@@ -80,13 +80,15 @@ const VideoSnippetCreator: React.FC = () => {
             setLocalFileUrl(url);
             setSelectedSong({
                 id: 'local',
-                name: selectedSong?.id === 'local' ? selectedSong.name : file.name.split('.')[0],
-                artist: selectedSong?.id === 'local' ? selectedSong.artist : 'Archivo Local',
-                cover: localCoverUrl || selectedSong?.cover || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
+                name: customTitle || file.name.split('.')[0],
+                artist: customArtist || 'Dios Mas Gym',
+                cover: promoImageUrl || localCoverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
                 url: url,
                 type: 'Local',
                 date: new Date().toISOString()
             });
+            if (!customTitle) setCustomTitle(file.name.split('.')[0]);
+            if (!customArtist) setCustomArtist('Dios Mas Gym');
             setStartTime(0);
         }
     };
@@ -397,6 +399,7 @@ const VideoSnippetCreator: React.FC = () => {
                                         setSelectedSong(song);
                                         setCustomTitle(song.name);
                                         setCustomArtist(song.artist || "Dios Mas Gym");
+                                        setPromoImageUrl(song.cover); // RESTORED AUTO-LOAD
                                         setStartTime(0);
                                     }}
                                     className={`w-full p-3 rounded-xl flex items-center gap-4 transition-all ${selectedSong?.id === song.id ? 'bg-[#c5a059] text-black' : 'bg-white/5 hover:bg-white/10'}`}
