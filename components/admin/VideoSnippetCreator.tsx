@@ -456,22 +456,11 @@ const VideoSnippetCreator: React.FC = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir Portada (Opcional)</h3>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir Imagen (Portada/Fondo)</h3>
                                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localCoverUrl ? "Portada Cargada" : "Seleccionar Imagen"}</p>
-                                    </div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
-                                </label>
-                            </div>
-
-                            <div>
-                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 3: Usar Imagen Promo (Fondo Video)</h3>
-                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#c5a059]/20 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-[#c5a059]/5 transition-all">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <i className="fas fa-magic text-xl text-[#c5a059] mb-2"></i>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{promoImageUrl ? "Imagen Promo Cargada" : "Seleccionar Imagen Promo"}</p>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{promoImageUrl ? "Imagen Cargada" : "Seleccionar Imagen"}</p>
                                     </div>
                                     <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                         const file = e.target.files?.[0];
@@ -483,7 +472,7 @@ const VideoSnippetCreator: React.FC = () => {
                                         onClick={() => setPromoImageUrl(null)}
                                         className="w-full mt-2 text-[8px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all"
                                     >
-                                        Quitar Imagen Promo
+                                        Quitar Imagen
                                     </button>
                                 )}
                             </div>
