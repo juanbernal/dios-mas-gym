@@ -32,7 +32,7 @@ const VideoSnippetCreator: React.FC = () => {
     const [recordingProgress, setRecordingProgress] = useState(0);
     const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
     const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null);
-    const [promoImageUrl, setPromoImageUrl] = useState<string | null>(location.state?.promoImage || localStorage.getItem('last_generated_promo') || null);
+    const [promoImageUrl, setPromoImageUrl] = useState<string | null>(location.state?.promoImage || null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -225,16 +225,16 @@ const VideoSnippetCreator: React.FC = () => {
 
         // Song Name
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 110px Poppins'; // Un poco más grande
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = 'black';
+        ctx.font = 'bold 110px Poppins, Arial, sans-serif'; 
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
         ctx.fillText((customTitle || selectedSong.name || "").toUpperCase(), 540, 1530);
 
         // Artist
-        ctx.fillStyle = '#c5a059'; // Cambiado a color oro para mejor contraste
-        ctx.font = '900 45px Poppins';
-        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#c5a059'; 
+        ctx.font = '900 45px Poppins, Arial, sans-serif';
+        ctx.shadowBlur = 15;
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '10px';
         ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
         ctx.shadowBlur = 0;
@@ -262,10 +262,11 @@ const VideoSnippetCreator: React.FC = () => {
 
     useEffect(() => {
         if (selectedSong) {
+            cancelAnimationFrame(requestRef.current);
             requestRef.current = requestAnimationFrame(draw);
         }
         return () => cancelAnimationFrame(requestRef.current);
-    }, [selectedSong, isPlaying]);
+    }, [selectedSong, isPlaying, customTitle, customArtist, promoImageUrl, localCoverUrl]);
 
     const startRecording = async () => {
         if (!canvasRef.current || !audioRef.current) return;
@@ -468,7 +469,10 @@ const VideoSnippetCreator: React.FC = () => {
                                 </label>
                                 {promoImageUrl && (
                                     <button 
-                                        onClick={() => setPromoImageUrl(null)}
+                                        onClick={() => {
+                                            setPromoImageUrl(null);
+                                            setLocalCoverUrl(null);
+                                        }}
                                         className="w-full mt-2 text-[8px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all"
                                     >
                                         Quitar Imagen
