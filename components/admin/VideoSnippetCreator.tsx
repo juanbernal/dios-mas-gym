@@ -43,11 +43,31 @@ const VideoSnippetCreator: React.FC = () => {
     const artistRef = useRef("");
     const promoImgRef = useRef<string | null>(null);
     const localCoverRef = useRef<string | null>(null);
+    const bgImageRef = useRef<HTMLImageElement | null>(null);
 
-    useEffect(() => { titleRef.current = customTitle; }, [customTitle]);
-    useEffect(() => { artistRef.current = customArtist; }, [customArtist]);
-    useEffect(() => { promoImgRef.current = promoImageUrl; }, [promoImageUrl]);
-    useEffect(() => { localCoverRef.current = localCoverUrl; }, [localCoverUrl]);
+    useEffect(() => {
+        if (!bgImageRef.current) {
+            bgImageRef.current = new Image();
+            bgImageRef.current.crossOrigin = "anonymous";
+        }
+    }, []);
+
+    useEffect(() => { 
+        titleRef.current = customTitle; 
+    }, [customTitle]);
+    
+    useEffect(() => { 
+        artistRef.current = customArtist; 
+    }, [customArtist]);
+
+    useEffect(() => { 
+        const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
+        if (bgImageRef.current && bgImageRef.current.src !== url) {
+            bgImageRef.current.src = url;
+        }
+        promoImgRef.current = promoImageUrl; 
+        localCoverRef.current = localCoverUrl;
+    }, [promoImageUrl, localCoverUrl, selectedSong]);
 
     useEffect(() => {
         fetchMusicCatalog('diosmasgym').then(data => {
@@ -148,11 +168,8 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
 
         // Background: Promo image or Cover
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = promoImgRef.current || localCoverRef.current || (selectedSong?.cover ?? "");
-        
-        const isImgReady = img.complete && img.naturalWidth !== 0;
+        const img = bgImageRef.current;
+        const isImgReady = img && img.complete && img.naturalWidth !== 0;
 
         if (isImgReady) {
             // 2. Imagen de fondo escalada y desenfocada (Orgánica)
@@ -237,18 +254,17 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillText('EL ARSENAL DE FE', 540, 1400);
 
         // Song Name
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 110px Poppins, Arial, sans-serif'; 
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText((titleRef.current || selectedSong.name || "").toUpperCase(), 540, 1530);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 110px Arial, sans-serif'; 
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = 'black';
+        ctx.textAlign = 'center';
+        ctx.fillText((titleRef.current || selectedSong.name || "S/N").toUpperCase(), 540, 1530);
 
         // Artist
         ctx.fillStyle = '#c5a059'; 
-        ctx.font = '900 45px Poppins, Arial, sans-serif';
+        ctx.font = '900 45px Arial, sans-serif';
         ctx.shadowBlur = 15;
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '10px';
         ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
         ctx.shadowBlur = 0;
         
