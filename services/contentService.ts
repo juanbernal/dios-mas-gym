@@ -27,6 +27,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
       url.searchParams.append('maxResults', limit.toString());
       if (token) url.searchParams.append('pageToken', token);
       if (q) url.searchParams.append('q', q);
+      if ((window as any).BLOGGER_STATUS) url.searchParams.append('status', (window as any).BLOGGER_STATUS);
 
       try {
         const response = await fetch(url.toString());

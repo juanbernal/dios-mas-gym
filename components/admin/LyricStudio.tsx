@@ -73,6 +73,9 @@ const LyricStudio: React.FC = () => {
   const [imagePromptStatus, setImagePromptStatus] = useState<string>("");
   const [savedDrafts, setSavedDrafts] = useState<{name: string, content: string, sync: string, date: string}[]>([]);
   const [draftName, setDraftName] = useState("");
+  const [bloggerDrafts, setBloggerDrafts] = useState<any[]>([]);
+  const [isFetchingBlogger, setIsFetchingBlogger] = useState(false);
+  const [showBloggerModal, setShowBloggerModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -223,6 +226,31 @@ const LyricStudio: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (ev) => setRawLyrics(ev.target?.result as string);
     reader.readAsText(file);
+  };
+
+  const fetchBloggerDrafts = async () => {
+    setIsFetchingBlogger(true);
+    try {
+      const { fetchArsenalData } = await import('../../services/contentService');
+      (window as any).BLOGGER_STATUS = 'DRAFT';
+      const result = await fetchArsenalData(50);
+      setBloggerDrafts(result.posts || []);
+      (window as any).BLOGGER_STATUS = undefined;
+      if (result.posts.length === 0) alert("No se encontraron borradores públicos en Blogger. Asegúrate de tener borradores creados.");
+    } catch (e) {
+      console.error("Blogger error", e);
+      alert("Error al conectar con Blogger API. Verifica tu API Key.");
+    } finally {
+      setIsFetchingBlogger(false);
+    }
+  };
+
+  const importFromBlogger = (post: any) => {
+    // Clean HTML content to plain text
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = post.content;
+    setRawLyrics(tempDiv.innerText || tempDiv.textContent || "");
+    setShowBloggerModal(false);
   };
 
   const drawFilmGrain = (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
@@ -1454,6 +1482,13 @@ const LyricStudio: React.FC = () => {
                     <i className="fas fa-download"></i>
                     Descargar
                 </button>
+                <button 
+                    onClick={() => { setShowBloggerModal(true); fetchBloggerDrafts(); }}
+                    className="flex-1 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center gap-3"
+                >
+                    <i className="fab fa-blogger-b"></i>
+                    Borradores
+                </button>
             </div>
 
             {/* DRAFTS SECTION */}
@@ -1656,8 +1691,59 @@ const LyricStudio: React.FC = () => {
                 </div>
             ) }
         </div>
-      </aside>
-      
+        </aside>
+        
+        {/* BLOGGER MODAL */}
+        {showBloggerModal && (
+            <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
+                <div className="bg-[#0a0a0f] border border-white/10 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <i className="fab fa-blogger-b text-blue-400 text-xl"></i>
+                            <h2 className="text-sm font-black uppercase tracking-widest">Borradores de Blogger</h2>
+                        </div>
+                        <button onClick={() => setShowBloggerModal(false)} className="text-white/20 hover:text-white">
+                            <i className="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        {isFetchingBlogger ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-white/20">Conectando con Blogger...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {bloggerDrafts.length > 0 ? (
+                                    bloggerDrafts.map((post, i) => (
+                                        <div 
+                                            key={i} 
+                                            onClick={() => importFromBlogger(post)}
+                                            className="p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-blue-400/50 hover:bg-blue-400/5 transition-all cursor-pointer group"
+                                        >
+                                            <h3 className="text-xs font-bold mb-1 group-hover:text-blue-400 transition-colors">{post.title}</h3>
+                                            <p className="text-[8px] text-white/20 uppercase tracking-widest">{new Date(post.published).toLocaleDateString()}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <p className="text-[10px] uppercase font-black tracking-widest text-white/20">No se encontraron borradores</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="p-6 bg-white/5 border-t border-white/5">
+                        <p className="text-[9px] text-white/40 leading-relaxed text-center italic">
+                            Los borradores deben tener el estado "DRAFT" en tu panel de Blogger.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
