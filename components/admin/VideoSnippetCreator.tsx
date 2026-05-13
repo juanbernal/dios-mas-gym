@@ -388,6 +388,12 @@ const VideoSnippetCreator: React.FC = () => {
                             </div>
 
                             <div>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir Portada (Opcional)</h3>
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localCoverUrl ? "Portada Cargada" : "Seleccionar Imagen"}</p>
+                                    </div>
                                     <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
                                 </label>
                             </div>
