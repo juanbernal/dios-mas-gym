@@ -21,6 +21,8 @@ const VideoSnippetCreator: React.FC = () => {
     const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [customTitle, setCustomTitle] = useState("");
+    const [customArtist, setCustomArtist] = useState("");
     
     // Video States
     const [startTime, setStartTime] = useState(0);
@@ -45,6 +47,8 @@ const VideoSnippetCreator: React.FC = () => {
             const incomingSong = location.state?.song as MusicItem;
             if (incomingSong) {
                 setSelectedSong(incomingSong);
+                setCustomTitle(incomingSong.name);
+                setCustomArtist(incomingSong.artist || "Dios Mas Gym");
                 setStartTime(0);
             }
         });
@@ -62,6 +66,8 @@ const VideoSnippetCreator: React.FC = () => {
             const matched = catalog.find(s => s.id === location.state.song.id);
             if (matched) {
                 setSelectedSong(matched);
+                setCustomTitle(matched.name);
+                setCustomArtist(matched.artist || "Dios Mas Gym");
             }
         }
     }, [location.state, catalog]);
@@ -207,14 +213,17 @@ const VideoSnippetCreator: React.FC = () => {
         // Song Name
         ctx.fillStyle = 'white';
         ctx.font = 'bold 90px Poppins';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'black';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText(selectedSong.name.toUpperCase(), 540, 1530);
+        ctx.fillText((customTitle || selectedSong.name).toUpperCase(), 540, 1530);
 
         // Artist
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
         ctx.font = '400 35px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '15px';
-        ctx.fillText((selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1600);
+        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1600);
+        ctx.shadowBlur = 0;
         
         ctx.restore();
 
@@ -374,6 +383,8 @@ const VideoSnippetCreator: React.FC = () => {
                                     key={song.id}
                                     onClick={() => {
                                         setSelectedSong(song);
+                                        setCustomTitle(song.name);
+                                        setCustomArtist(song.artist || "Dios Mas Gym");
                                         setStartTime(0);
                                     }}
                                     className={`w-full p-3 rounded-xl flex items-center gap-4 transition-all ${selectedSong?.id === song.id ? 'bg-[#c5a059] text-black' : 'bg-white/5 hover:bg-white/10'}`}
@@ -391,6 +402,31 @@ const VideoSnippetCreator: React.FC = () => {
                                 </div>
                             )}
                         </div>
+
+                        {selectedSong && (
+                            <div className="mt-6 pt-6 border-t border-white/5 space-y-4 animate-fade-in">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] uppercase font-black tracking-widest text-white/30">Título en Video</label>
+                                    <input 
+                                        type="text" 
+                                        value={customTitle} 
+                                        onChange={e => setCustomTitle(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all font-bold"
+                                        placeholder="Ej: TITULO DE CANCIÓN"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] uppercase font-black tracking-widest text-white/30">Artista en Video</label>
+                                    <input 
+                                        type="text" 
+                                        value={customArtist} 
+                                        onChange={e => setCustomArtist(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all"
+                                        placeholder="Ej: DIOS MAS GYM"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mt-8 pt-8 border-t border-white/5 space-y-6">
                             <div>
