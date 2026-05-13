@@ -114,16 +114,35 @@ const LyricsManager: React.FC = () => {
         let currentToken = googleToken;
 
         if (!currentToken) {
-            const input = prompt("Pega tu Google Access Token para guardar en Blogger (OAuth2):\n(Debe ser una cadena larga de letras y números, NO una URL)");
+            const input = prompt("Pega tu Google Access Token (o el bloque de JSON que te dio Google):\n(Debe empezar por ya29...)");
             if (!input) return;
             
-            // Basic validation: User might paste the URL or the code by mistake
-            if (input.includes('http') || input.includes('code=')) {
+            let extractedToken = input.trim();
+
+            // Smart Extraction: If user pastes the whole JSON block
+            if (input.includes('"access_token"')) {
+                try {
+                    const match = input.match(/"access_token":\s*"([^"]+)"/);
+                    if (match && match[1]) {
+                        extractedToken = match[1];
+                        // Also try to grab refresh token for future use
+                        const refreshMatch = input.match(/"refresh_token":\s*"([^"]+)"/);
+                        if (refreshMatch && refreshMatch[1]) {
+                            localStorage.setItem('blogger_refresh_token', refreshMatch[1]);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse JSON token", e);
+                }
+            }
+
+            // Basic validation
+            if (extractedToken.includes('http') || extractedToken.includes('code=')) {
                 alert("❌ Parece que has pegado una URL o un código de autorización. Necesitas el 'Access Token' (una cadena larga que empieza por ya29...). Mira la ayuda (?)");
                 return;
             }
 
-            currentToken = input.trim();
+            currentToken = extractedToken;
             setGoogleToken(currentToken);
             localStorage.setItem('blogger_google_token', currentToken);
         }
