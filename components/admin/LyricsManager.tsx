@@ -20,6 +20,7 @@ const LyricsManager: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [googleToken, setGoogleToken] = useState(localStorage.getItem('blogger_google_token') || "");
+    const [showTokenHelp, setShowTokenHelp] = useState(false);
 
     useEffect(() => {
         const loadAllLyrics = async () => {
@@ -239,21 +240,42 @@ const LyricsManager: React.FC = () => {
                                         className="bg-transparent text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 w-full mb-1"
                                         placeholder="Título de la Canción"
                                     />
-                                    <input 
-                                        type="text"
-                                        value={selectedLyric.artist}
-                                        onChange={e => setSelectedLyric({...selectedLyric, artist: e.target.value})}
-                                        className="bg-transparent text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffcc] outline-none"
-                                        placeholder="Nombre del Artista"
-                                    />
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <button 
+                                            onClick={() => setSelectedLyric({...selectedLyric, artist: 'Dios Mas Gym'})}
+                                            className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Dios Mas Gym' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
+                                        >
+                                            Dios Mas Gym
+                                        </button>
+                                        <button 
+                                            onClick={() => setSelectedLyric({...selectedLyric, artist: 'Juan 614'})}
+                                            className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Juan 614' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
+                                        >
+                                            Juan 614
+                                        </button>
+                                        <input 
+                                            type="text"
+                                            value={selectedLyric.artist}
+                                            onChange={e => setSelectedLyric({...selectedLyric, artist: e.target.value})}
+                                            className="bg-transparent text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffcc] outline-none ml-2 border-b border-white/10 focus:border-[#00ffcc]/40"
+                                            placeholder="Otro Artista..."
+                                        />
+                                    </div>
                                 </div>
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={handleSaveToBlogger}
                                         disabled={isExporting}
-                                        className="px-6 py-2 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black uppercase rounded-full hover:bg-blue-500/30 transition-all"
+                                        className="px-6 py-2 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black uppercase rounded-full hover:bg-blue-500/30 transition-all flex items-center gap-2"
                                     >
-                                        <i className={`fab fa-blogger-b mr-2 ${isExporting ? 'fa-spin' : ''}`}></i> {isExporting ? 'Subiendo...' : 'Blogger (Draft)'}
+                                        <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> {isExporting ? 'Subiendo...' : 'Blogger (Draft)'}
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowTokenHelp(true)}
+                                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white transition-all"
+                                        title="Ayuda con el Token"
+                                    >
+                                        <i className="fas fa-question text-[10px]"></i>
                                     </button>
                                     <button 
                                         onClick={handleSaveLocal}
@@ -296,7 +318,40 @@ const LyricsManager: React.FC = () => {
                 </div>
             </div>
 
-            <style>{`
+        {/* TOKEN HELP MODAL */}
+        {showTokenHelp && (
+            <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+                <div className="bg-[#0f111a] border border-white/10 rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl relative">
+                    <button onClick={() => setShowTokenHelp(false)} className="absolute top-6 right-6 text-white/20 hover:text-white">
+                        <i className="fas fa-times text-xl"></i>
+                    </button>
+                    
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-400 shadow-lg">
+                            <i className="fas fa-key text-2xl"></i>
+                        </div>
+                        <h2 className="text-xl font-black uppercase tracking-tighter italic mb-2">Google Access Token</h2>
+                        <p className="text-[10px] uppercase font-black tracking-widest text-white/20">¿Cómo obtenerlo?</p>
+                    </div>
+
+                    <div className="space-y-6 text-xs leading-relaxed text-white/60">
+                        <p>Para que la App pueda guardar borradores en tu cuenta de Blogger, necesitas un token temporal de Google:</p>
+                        <ol className="list-decimal list-inside space-y-4 font-light">
+                            <li>Ve al <a href="https://developers.google.com/oauthplayground/" target="_blank" className="text-blue-400 underline">Google OAuth Playground</a>.</li>
+                            <li>En el buscador de la izquierda, busca: <code className="bg-black/40 px-2 py-1 rounded text-blue-300">https://www.googleapis.com/auth/blogger</code></li>
+                            <li>Pulsa <b>Authorize APIs</b> e inicia sesión con tu cuenta de Blogger.</li>
+                            <li>Pulsa <b>Exchange authorization code for tokens</b>.</li>
+                            <li>Copia el <b className="text-white">Access Token</b> que aparece y pégalo en esta App cuando te lo pida.</li>
+                        </ol>
+                        <p className="pt-4 text-[9px] text-white/20 italic border-t border-white/5">
+                            Nota: Este token es temporal y caduca en 1 hora por seguridad. No lo compartas con nadie.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
+
+      <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.1); border-radius: 10px; }

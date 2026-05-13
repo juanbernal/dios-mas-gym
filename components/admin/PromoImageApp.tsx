@@ -429,11 +429,9 @@ const PromoImageApp: React.FC = () => {
       const canvas = await prepareCanvas(2);
       const dataUrl = canvas.toDataURL('image/png');
       localStorage.setItem('last_generated_promo', dataUrl);
-      const song = catalog.find(s => s.name.toUpperCase() === title) || null;
       navigate('/admin/video-snippet', { 
         state: { 
-          promoImage: dataUrl,
-          song: song
+          promoImage: dataUrl
         } 
       });
     } catch (e) {
