@@ -238,7 +238,7 @@ const PromoImageApp: React.FC = () => {
     console.log("[MASTER] STARTING GHOST-MASTER NATIVE 4K PREPARATION...");
     
     // Target the hidden high-res master container
-    // We look for the main template container within our ghost master ref
+    const masterWidth = 2160; // Base width for 4K Master rendering
     const captureEl = masterRef.current?.querySelector('.promo-master-target') as HTMLElement;
     if (!captureEl) throw new Error("Ghost Master element not found. Please wait a moment and try again.");
 

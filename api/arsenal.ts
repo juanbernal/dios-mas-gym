@@ -21,7 +21,7 @@ export default async function handler(
         return res.status(401).json({ error: 'Authentication required for POST' });
       }
 
-      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`;
+      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/?isDraft=${isDraft ? 'true' : 'false'}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -33,8 +33,7 @@ export default async function handler(
           blog: { id: blogId },
           title,
           content,
-          labels,
-          status: isDraft ? 'DRAFT' : 'LIVE'
+          labels
         })
       });
 
