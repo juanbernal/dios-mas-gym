@@ -30,7 +30,8 @@ export default async function handler(
     }
 
     let endpoint = q ? 'posts/search' : 'posts';
-    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/${endpoint}?key=${apiKey}&maxResults=${limit}&fetchImages=true`;
+    const status = req.query.status || 'LIVE';
+    let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/${endpoint}?key=${apiKey}&maxResults=${limit}&fetchImages=true&status=${status}`;
     
     if (q) {
       url += `&q=${encodeURIComponent(q as string)}`;

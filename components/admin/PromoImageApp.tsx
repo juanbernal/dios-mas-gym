@@ -423,6 +423,26 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  const handleGoToSnippet = async () => {
+    setIsGenerating(true);
+    try {
+      const canvas = await prepareCanvas(2);
+      const dataUrl = canvas.toDataURL('image/png');
+      const song = catalog.find(s => s.name.toUpperCase() === title) || null;
+      navigate('/admin/video-snippet', { 
+        state: { 
+          promoImage: dataUrl,
+          song: song
+        } 
+      });
+    } catch (e) {
+      console.error("Error going to snippet:", e);
+      alert("Error al preparar la imagen para el Snippet.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleBg = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -739,6 +759,13 @@ const PromoImageApp: React.FC = () => {
                   className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
                   <i className="fas fa-eye"></i> Descargar 1:1 (Calidad de Vista)
+                </button>
+
+                <button 
+                  onClick={handleGoToSnippet}
+                  className="w-full py-5 bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#c5a059]/20"
+                >
+                  <i className="fas fa-video"></i> Crear Video Snippet
                 </button>
                 
                 <div className="space-y-4">

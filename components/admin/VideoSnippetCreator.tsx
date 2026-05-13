@@ -30,6 +30,7 @@ const VideoSnippetCreator: React.FC = () => {
     const [recordingProgress, setRecordingProgress] = useState(0);
     const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
     const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null);
+    const [promoImageUrl, setPromoImageUrl] = useState<string | null>(location.state?.promoImage || null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -111,10 +112,10 @@ const VideoSnippetCreator: React.FC = () => {
         const nY = smoothNoise(time * 0.4 + 100) - 0.5;
         const zoom = 50 + (smoothNoise(time * 0.2) * 20);
 
-        // Background: Desenfoque de la portada
+        // Background: Promo image or Cover
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.src = selectedSong.cover;
+        img.src = promoImageUrl || selectedSong.cover;
         if (!img.complete) {
             requestRef.current = requestAnimationFrame(draw);
             return;
@@ -241,13 +242,16 @@ const VideoSnippetCreator: React.FC = () => {
             setIsRecording(true);
             const canvas = canvasRef.current;
             
-            // Pre-load cover image
             const img = new Image();
             img.crossOrigin = "anonymous";
-            img.src = selectedSong!.cover;
+            img.src = promoImageUrl || selectedSong!.cover;
             await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
+            // Stream with explicit video and audio separation
             const stream = canvas.captureStream(30);
+            
+            // Wait for canvas to be ready
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Audio capture
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -259,30 +263,31 @@ const VideoSnippetCreator: React.FC = () => {
 
             // Priority: true MP4/H264 (Safari) → VP8 WebM (widely editable) → VP9 WebM → generic
             const formatCandidates: { mimeType: string; ext: string }[] = [
+                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
+                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
                 { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
                 { mimeType: 'video/mp4',                               ext: 'mp4' },
-                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
-                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
                 { mimeType: 'video/webm',                              ext: 'webm' },
             ];
             const chosen = formatCandidates.find(f => MediaRecorder.isTypeSupported(f.mimeType))
-                        ?? { mimeType: 'video/webm', ext: 'webm' };
+                        ?? { mimeType: '', ext: 'webm' }; // Fallback to browser default
 
             const recorder = new MediaRecorder(stream, { 
-                mimeType: chosen.mimeType,
-                videoBitsPerSecond: 12_000_000 // 12 Mbps
+                mimeType: chosen.mimeType || undefined,
+                videoBitsPerSecond: 8_000_000 // 8 Mbps (more stable)
             });
             
             const chunks: Blob[] = [];
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
             
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: chosen.mimeType });
+                const blob = new Blob(chunks, { type: chosen.mimeType || 'video/webm' });
                 const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
+                const extension = chosen.ext || 'webm';
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Snippet_${songName}.${chosen.ext}`;
+                a.download = `Snippet_${songName}.${extension}`;
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 10_000);
                 
@@ -329,7 +334,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.7</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.8</span></h1>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -383,14 +388,30 @@ const VideoSnippetCreator: React.FC = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir Portada (Opcional)</h3>
-                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localCoverUrl ? "Portada Cargada" : "Seleccionar Imagen"}</p>
-                                    </div>
                                     <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
                                 </label>
+                            </div>
+
+                            <div>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 3: Usar Imagen Promo (Fondo Video)</h3>
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#c5a059]/20 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-[#c5a059]/5 transition-all">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i className="fas fa-magic text-xl text-[#c5a059] mb-2"></i>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{promoImageUrl ? "Imagen Promo Cargada" : "Seleccionar Imagen Promo"}</p>
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) setPromoImageUrl(URL.createObjectURL(file));
+                                    }} />
+                                </label>
+                                {promoImageUrl && (
+                                    <button 
+                                        onClick={() => setPromoImageUrl(null)}
+                                        className="w-full mt-2 text-[8px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all"
+                                    >
+                                        Quitar Imagen Promo
+                                    </button>
+                                )}
                             </div>
 
                             {selectedSong?.id === 'local' && (

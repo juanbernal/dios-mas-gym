@@ -161,6 +161,19 @@ const LyricStudio: React.FC = () => {
     }
   }, []);
 
+  const handleBackupLyrics = () => {
+    if (!lyricsInput && !rawLyrics) return;
+    const content = lyricsInput || rawLyrics;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `Respaldo_Letras_${date}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const parseLyrics = (input: string): LyricLine[] => {
     return input.split('\n').map(line => {
       const parts = line.split('|');
@@ -1388,6 +1401,17 @@ const LyricStudio: React.FC = () => {
                 className="w-full bg-black/20 border border-white/5 p-3 text-[10px] font-mono rounded-xl h-32 outline-none" 
                 placeholder="0.0 | Letra de ejemplo..."
             />
+            
+            <div className="mt-4">
+                <button 
+                    onClick={handleBackupLyrics}
+                    disabled={!lyricsInput && !rawLyrics}
+                    className="w-full py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-30"
+                >
+                    <i className="fas fa-save"></i>
+                    Respaldo de Letras (.txt)
+                </button>
+            </div>
         </div>
 
         {/* 3. Estética */}
