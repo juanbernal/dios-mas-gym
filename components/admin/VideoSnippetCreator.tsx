@@ -283,7 +283,8 @@ const VideoSnippetCreator: React.FC = () => {
 
             const recorder = new MediaRecorder(stream, { 
                 mimeType: chosen.mimeType || undefined,
-                videoBitsPerSecond: 8_000_000 // 8 Mbps (more stable)
+                videoBitsPerSecond: 25_000_000, // 25 Mbps for 4K-like fidelity
+                audioBitsPerSecond: 192_000    // High fidelity audio
             });
             
             const chunks: Blob[] = [];
