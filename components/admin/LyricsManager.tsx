@@ -182,6 +182,47 @@ const LyricsManager: React.FC = () => {
         }
     };
 
+    const handleSyncAllLocales = async () => {
+        const localDrafts = lyrics.filter(l => l.status === 'LOCAL');
+        if (localDrafts.length === 0) {
+            alert("No hay borradores locales para sincronizar.");
+            return;
+        }
+
+        if (!googleToken) {
+            alert("Necesitas configurar tu Google Token primero. Intenta guardar uno individualmente o mira la ayuda (?)");
+            setShowTokenHelp(true);
+            return;
+        }
+
+        if (!confirm(`¿Quieres subir ${localDrafts.length} borradores locales a Blogger como borradores?`)) return;
+
+        setIsExporting(true);
+        let successCount = 0;
+        for (const lyric of localDrafts) {
+            try {
+                const res = await fetch('/api/arsenal', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${googleToken}`
+                    },
+                    body: JSON.stringify({
+                        title: lyric.title,
+                        content: lyric.content,
+                        labels: [lyric.artist, 'Lyrics'],
+                        isDraft: true
+                    })
+                });
+                if (res.ok) successCount++;
+            } catch (e) {
+                console.error(`Error syncing ${lyric.title}`, e);
+            }
+        }
+        setIsExporting(false);
+        alert(`✅ Sincronización completada: ${successCount} de ${localDrafts.length} letras subidas a Blogger.`);
+    };
+
     const stripHtml = (html: string) => {
         const tmp = document.createElement("DIV");
         tmp.innerHTML = html;
@@ -219,7 +260,21 @@ const LyricsManager: React.FC = () => {
                         />
                     </div>
                     <button 
-                        onClick={() => setSelectedLyric({ id: 'new', title: 'Nueva Canción', artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() })}
+                        onClick={handleSyncAllLocales}
+                        disabled={isExporting}
+                        className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase rounded-full hover:bg-blue-500/20 transition-all flex items-center gap-2"
+                        title="Subir todos los locales a Blogger"
+                    >
+                        <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`}></i>
+                        Sync Locales
+                    </button>
+                    <button 
+                        onClick={() => {
+                            const title = prompt("Título de la nueva canción:");
+                            if (title) {
+                                setSelectedLyric({ id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() });
+                            }
+                        }}
                         className="px-6 py-2 bg-[#00ffcc] text-black text-[10px] font-black uppercase rounded-full hover:bg-white transition-all"
                     >
                         <i className="fas fa-plus mr-2"></i> Nueva Letra

@@ -426,18 +426,19 @@ const PromoImageApp: React.FC = () => {
   const handleGoToSnippet = async () => {
     setIsGenerating(true);
     try {
-      let dataUrl = "";
-      try {
-        // Try high-res first
-        const canvas = await prepareCanvas(2);
-        dataUrl = canvas.toDataURL('image/png');
-      } catch (e) {
-        console.warn("High-res capture failed, falling back to 1x", e);
-        // Fallback to lower res if high-res fails (memory issues)
-        const canvas = await prepareCanvas(1);
-        dataUrl = canvas.toDataURL('image/png');
-      }
+      // Capture the visible preview instead of the ghost 4K master
+      // This is much lighter and prevents memory issues
+      const previewEl = document.querySelector('.promo-container-wrapper') as HTMLElement;
+      if (!previewEl) throw new Error("Preview element not found");
+
+      const canvas = await html2canvas(previewEl, {
+        scale: 1.5, // Enough for a snippet, light enough for memory
+        useCORS: true,
+        backgroundColor: '#000',
+        logging: false
+      });
       
+      const dataUrl = canvas.toDataURL('image/png');
       localStorage.setItem('last_generated_promo', dataUrl);
       navigate('/admin/video-snippet', { 
         state: { 
@@ -446,7 +447,7 @@ const PromoImageApp: React.FC = () => {
       });
     } catch (e: any) {
       console.error("Error going to snippet:", e);
-      alert("⚠️ No se pudo preparar la imagen automáticamente (posible falta de memoria). Navegando al Snippet Creator... podrás subir la imagen manualmente allí.");
+      alert("⚠️ No se pudo preparar la imagen automáticamente (CORS o Memoria). Navegando al Snippet Creator...");
       navigate('/admin/video-snippet');
     } finally {
       setIsGenerating(false);
