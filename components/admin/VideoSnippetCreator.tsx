@@ -68,6 +68,7 @@ const VideoSnippetCreator: React.FC = () => {
                 setSelectedSong(matched);
                 setCustomTitle(matched.name);
                 setCustomArtist(matched.artist || "Dios Mas Gym");
+                // Ya no cargamos el promoImage ni el cover automáticamente si el usuario lo quiere manual
             }
         }
     }, [location.state, catalog]);
@@ -127,24 +128,24 @@ const VideoSnippetCreator: React.FC = () => {
         const nY = smoothNoise(time * 0.4 + 100) - 0.5;
         const zoom = 50 + (smoothNoise(time * 0.2) * 20);
 
-        // Background: Promo image or Cover
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = promoImageUrl || selectedSong.cover;
-        if (!img.complete) {
-            requestRef.current = requestAnimationFrame(draw);
-            return;
-        }
-
         // 1. Fondo base negro
         ctx.fillStyle = '#05070a';
         ctx.fillRect(0, 0, w, h);
 
-        // 2. Imagen de fondo escalada y desenfocada (Orgánica)
-        ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
-        const bgZoom = 1.2 + smoothNoise(time * 0.1) * 0.15;
-        ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
-        ctx.globalAlpha = 1.0;
+        // Background: Promo image or Cover
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = promoImageUrl || localCoverUrl || selectedSong.cover;
+        
+        const isImgReady = img.complete && img.naturalWidth !== 0;
+
+        if (isImgReady) {
+            // 2. Imagen de fondo escalada y desenfocada (Orgánica)
+            ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
+            const bgZoom = 1.2 + smoothNoise(time * 0.1) * 0.15;
+            ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
+            ctx.globalAlpha = 1.0;
+        }
 
         // 3. Gradiente de viñeta (con ligero parpadeo orgánico)
         const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -164,17 +165,27 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.restore();
 
         // 4. Portada con Glow Dinámico Orgánico
-        ctx.save();
-        ctx.shadowBlur = 80 + smoothNoise(time * 2) * 50;
-        ctx.shadowColor = '#c5a059';
-        ctx.beginPath();
-        // Handheld jitter for the cover container
-        const coverX = 140 + nX * 15;
-        const coverY = 460 + nY * 15;
-        ctx.roundRect(coverX, coverY, 800, 800, 80);
-        ctx.clip();
-        ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
-        ctx.restore();
+        if (isImgReady) {
+            ctx.save();
+            ctx.shadowBlur = 80 + smoothNoise(time * 2) * 50;
+            ctx.shadowColor = '#c5a059';
+            ctx.beginPath();
+            // Handheld jitter for the cover container
+            const coverX = 140 + nX * 15;
+            const coverY = 460 + nY * 15;
+            ctx.roundRect(coverX, coverY, 800, 800, 80);
+            ctx.clip();
+            ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+            ctx.restore();
+        } else {
+            // Placeholder si no hay imagen
+            ctx.save();
+            ctx.strokeStyle = 'rgba(197, 160, 89, 0.2)';
+            ctx.setLineDash([20, 20]);
+            ctx.lineWidth = 4;
+            ctx.strokeRect(140, 460, 800, 800);
+            ctx.restore();
+        }
 
         // 5. Partículas de polvo/oro (Physics-based)
         ctx.fillStyle = 'rgba(197, 160, 89, 0.4)';
@@ -212,17 +223,18 @@ const VideoSnippetCreator: React.FC = () => {
 
         // Song Name
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 90px Poppins';
-        ctx.shadowBlur = 10;
+        ctx.font = 'bold 110px Poppins'; // Un poco más grande
+        ctx.shadowBlur = 20;
         ctx.shadowColor = 'black';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText((customTitle || selectedSong.name).toUpperCase(), 540, 1530);
+        ctx.fillText((customTitle || selectedSong.name || "").toUpperCase(), 540, 1530);
 
         // Artist
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.font = '400 35px Poppins';
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '15px';
-        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1600);
+        ctx.fillStyle = '#c5a059'; // Cambiado a color oro para mejor contraste
+        ctx.font = '900 45px Poppins';
+        ctx.shadowBlur = 10;
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '10px';
+        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
         ctx.shadowBlur = 0;
         
         ctx.restore();
