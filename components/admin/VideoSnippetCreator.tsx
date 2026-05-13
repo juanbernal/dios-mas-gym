@@ -57,6 +57,15 @@ const VideoSnippetCreator: React.FC = () => {
         }
     }, [startTime, selectedSong, localFileUrl]);
 
+    useEffect(() => {
+        if (location.state?.song && catalog.length > 0) {
+            const matched = catalog.find(s => s.id === location.state.song.id);
+            if (matched) {
+                setSelectedSong(matched);
+            }
+        }
+    }, [location.state, catalog]);
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -343,7 +352,14 @@ const VideoSnippetCreator: React.FC = () => {
                 {/* Selector Section */}
                 <div className="lg:col-span-4 space-y-6">
                     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-2xl">
-                        <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-6">1. Seleccionar Canción</h3>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest">1. Seleccionar Canción</h3>
+                            {location.state?.song && (
+                                <span className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] bg-[#c5a059]/10 px-2 py-0.5 rounded border border-[#c5a059]/20 animate-pulse">
+                                    AUTO-SINC
+                                </span>
+                            )}
+                        </div>
                         <input 
                             type="text" 
                             placeholder="Buscar en catálogo..."

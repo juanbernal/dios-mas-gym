@@ -5,6 +5,7 @@ import { fetchArsenalData } from '../../services/contentService';
 interface LyricItem {
     id: string;
     title: string;
+    artist: string;
     content: string;
     status: 'LIVE' | 'DRAFT' | 'LOCAL';
     date: string;
@@ -17,6 +18,8 @@ const LyricsManager: React.FC = () => {
     const [selectedLyric, setSelectedLyric] = useState<LyricItem | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [googleToken, setGoogleToken] = useState(localStorage.getItem('blogger_google_token') || "");
 
     useEffect(() => {
         const loadAllLyrics = async () => {
@@ -27,6 +30,7 @@ const LyricsManager: React.FC = () => {
                 const publishedItems: LyricItem[] = (published.posts || []).map(p => ({
                     id: p.id,
                     title: p.title,
+                    artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
                     content: p.content,
                     status: 'LIVE',
                     date: p.published
@@ -39,6 +43,7 @@ const LyricsManager: React.FC = () => {
                 const draftItems: LyricItem[] = (drafts.posts || []).map(p => ({
                     id: p.id,
                     title: p.title,
+                    artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
                     content: p.content,
                     status: 'DRAFT',
                     date: p.published
@@ -50,6 +55,7 @@ const LyricsManager: React.FC = () => {
                 const localItems: LyricItem[] = local.map((l: any, i: number) => ({
                     id: `local-${i}`,
                     title: l.name,
+                    artist: l.artist || 'Desconocido',
                     content: l.content,
                     status: 'LOCAL',
                     date: l.date
@@ -79,6 +85,7 @@ const LyricsManager: React.FC = () => {
         
         const draftData = {
             name: selectedLyric.title,
+            artist: selectedLyric.artist,
             content: selectedLyric.content,
             sync: "", // sync data placeholder
             date: new Date().toISOString()
@@ -99,6 +106,44 @@ const LyricsManager: React.FC = () => {
             setIsSaving(false);
             alert("✅ Guardado en Borradores Locales");
         }, 500);
+    };
+
+    const handleSaveToBlogger = async () => {
+        if (!selectedLyric) return;
+        if (!googleToken) {
+            const token = prompt("Pega tu Google Access Token para guardar en Blogger (OAuth2):");
+            if (!token) return;
+            setGoogleToken(token);
+            localStorage.setItem('blogger_google_token', token);
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await fetch('/api/arsenal', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${googleToken}`
+                },
+                body: JSON.stringify({
+                    title: selectedLyric.title,
+                    content: selectedLyric.content,
+                    labels: [selectedLyric.artist, 'Lyrics'],
+                    isDraft: true
+                })
+            });
+            const data = await res.json();
+            if (data.id) {
+                alert("✅ Borrador creado en Blogger con éxito!");
+            } else {
+                throw new Error(data.error || "Error desconocido");
+            }
+        } catch (e: any) {
+            alert("❌ Error al guardar en Blogger: " + e.message);
+            setGoogleToken(""); // Reset token on error
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const stripHtml = (html: string) => {
@@ -138,7 +183,7 @@ const LyricsManager: React.FC = () => {
                         />
                     </div>
                     <button 
-                        onClick={() => setSelectedLyric({ id: 'new', title: 'Nueva Canción', content: '', status: 'LOCAL', date: new Date().toISOString() })}
+                        onClick={() => setSelectedLyric({ id: 'new', title: 'Nueva Canción', artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() })}
                         className="px-6 py-2 bg-[#00ffcc] text-black text-[10px] font-black uppercase rounded-full hover:bg-white transition-all"
                     >
                         <i className="fas fa-plus mr-2"></i> Nueva Letra
@@ -186,13 +231,30 @@ const LyricsManager: React.FC = () => {
                     {selectedLyric ? (
                         <>
                             <div className="p-8 border-b border-white/5 flex items-center justify-between bg-black/20">
-                                <input 
-                                    type="text"
-                                    value={selectedLyric.title}
-                                    onChange={e => setSelectedLyric({...selectedLyric, title: e.target.value})}
-                                    className="bg-transparent text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 flex-1 mr-8"
-                                />
+                                <div className="flex flex-col flex-1 mr-8">
+                                    <input 
+                                        type="text"
+                                        value={selectedLyric.title}
+                                        onChange={e => setSelectedLyric({...selectedLyric, title: e.target.value})}
+                                        className="bg-transparent text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 w-full mb-1"
+                                        placeholder="Título de la Canción"
+                                    />
+                                    <input 
+                                        type="text"
+                                        value={selectedLyric.artist}
+                                        onChange={e => setSelectedLyric({...selectedLyric, artist: e.target.value})}
+                                        className="bg-transparent text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffcc] outline-none"
+                                        placeholder="Nombre del Artista"
+                                    />
+                                </div>
                                 <div className="flex gap-3">
+                                    <button 
+                                        onClick={handleSaveToBlogger}
+                                        disabled={isExporting}
+                                        className="px-6 py-2 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black uppercase rounded-full hover:bg-blue-500/30 transition-all"
+                                    >
+                                        <i className={`fab fa-blogger-b mr-2 ${isExporting ? 'fa-spin' : ''}`}></i> {isExporting ? 'Subiendo...' : 'Blogger (Draft)'}
+                                    </button>
                                     <button 
                                         onClick={handleSaveLocal}
                                         disabled={isSaving}

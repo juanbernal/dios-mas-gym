@@ -4,9 +4,45 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // 1. Security check: Only allow GET requests
-  if (req.method !== 'GET') {
+  // 1. Security check: Allow GET and POST
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  const blogId = process.env.BLOG_ID || "5031959192789589903";
+  const apiKey = process.env.BLOGGER_API_KEY;
+
+  if (req.method === 'POST') {
+    try {
+      const { title, content, labels, isDraft } = req.body;
+      const auth = req.headers.authorization;
+
+      if (!auth) {
+        return res.status(401).json({ error: 'Authentication required for POST' });
+      }
+
+      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          kind: 'blogger#post',
+          blog: { id: blogId },
+          title,
+          content,
+          labels,
+          status: isDraft ? 'DRAFT' : 'LIVE'
+        })
+      });
+
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   // 2. Security: Input Validation
