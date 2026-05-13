@@ -30,7 +30,7 @@ const VideoSnippetCreator: React.FC = () => {
     const [recordingProgress, setRecordingProgress] = useState(0);
     const [localFileUrl, setLocalFileUrl] = useState<string | null>(null);
     const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null);
-    const [promoImageUrl, setPromoImageUrl] = useState<string | null>(location.state?.promoImage || null);
+    const [promoImageUrl, setPromoImageUrl] = useState<string | null>(location.state?.promoImage || localStorage.getItem('last_generated_promo') || null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);

@@ -71,6 +71,8 @@ const LyricStudio: React.FC = () => {
   const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false);
   const [imagePromptStatus, setImagePromptStatus] = useState<string>("");
+  const [savedDrafts, setSavedDrafts] = useState<{name: string, content: string, sync: string, date: string}[]>([]);
+  const [draftName, setDraftName] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,11 @@ const LyricStudio: React.FC = () => {
 
     updateScale();
     window.addEventListener('resize', updateScale);
+
+    // Load saved drafts
+    const saved = localStorage.getItem('lyric_studio_drafts');
+    if (saved) setSavedDrafts(JSON.parse(saved));
+
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
@@ -187,6 +194,36 @@ const LyricStudio: React.FC = () => {
       setIncludeOutro(true);
     }
   }, [branding]);
+
+  const saveDraft = () => {
+    if (!rawLyrics && !lyricsInput) return;
+    const name = draftName || `Borrador ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+    const newDraft = { name, content: rawLyrics, sync: lyricsInput, date: new Date().toISOString() };
+    const updated = [newDraft, ...savedDrafts].slice(0, 10); // Keep last 10
+    setSavedDrafts(updated);
+    localStorage.setItem('lyric_studio_drafts', JSON.stringify(updated));
+    setDraftName("");
+    alert("✅ Borrador guardado localmente.");
+  };
+
+  const loadDraft = (draft: any) => {
+    setRawLyrics(draft.content);
+    setLyricsInput(draft.sync);
+  };
+
+  const deleteDraft = (index: number) => {
+    const updated = savedDrafts.filter((_, i) => i !== index);
+    setSavedDrafts(updated);
+    localStorage.setItem('lyric_studio_drafts', JSON.stringify(updated));
+  };
+
+  const handleLyricsFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setRawLyrics(ev.target?.result as string);
+    reader.readAsText(file);
+  };
 
   const drawFilmGrain = (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
     ctx.save();
@@ -1352,7 +1389,13 @@ const LyricStudio: React.FC = () => {
 
         {/* 2. Sincronización */}
         <div className="mb-6 p-5 bg-white/5 border border-white/5 rounded-2xl">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 block">2. Sincronización</span>
+            <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Sincronización</span>
+                <label className="cursor-pointer text-[9px] font-black uppercase tracking-widest text-[#00ffcc] hover:underline">
+                    <i className="fas fa-file-import mr-2"></i> Subir Letra (.txt)
+                    <input type="file" accept=".txt" className="hidden" onChange={handleLyricsFileUpload} />
+                </label>
+            </div>
             <textarea 
                 value={rawLyrics}
                 onChange={(e) => setRawLyrics(e.target.value)}
@@ -1406,11 +1449,46 @@ const LyricStudio: React.FC = () => {
                 <button 
                     onClick={handleBackupLyrics}
                     disabled={!lyricsInput && !rawLyrics}
-                    className="w-full py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-30"
+                    className="flex-1 py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-30"
                 >
-                    <i className="fas fa-save"></i>
-                    Respaldo de Letras (.txt)
+                    <i className="fas fa-download"></i>
+                    Descargar
                 </button>
+            </div>
+
+            {/* DRAFTS SECTION */}
+            <div className="mt-6 pt-6 border-t border-white/5">
+                <div className="flex gap-2 mb-4">
+                    <input 
+                        type="text" 
+                        value={draftName}
+                        onChange={e => setDraftName(e.target.value)}
+                        placeholder="Nombre del borrador..."
+                        className="flex-1 bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none"
+                    />
+                    <button 
+                        onClick={saveDraft}
+                        className="px-4 py-2 bg-[#00ffcc] text-black text-[9px] font-black uppercase rounded-lg hover:bg-white transition-all"
+                    >
+                        Guardar
+                    </button>
+                </div>
+
+                {savedDrafts.length > 0 && (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                        {savedDrafts.map((draft, i) => (
+                            <div key={i} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/5 group">
+                                <div className="flex-1 cursor-pointer" onClick={() => loadDraft(draft)}>
+                                    <div className="text-[10px] font-bold text-white/80 group-hover:text-[#00ffcc] transition-all">{draft.name}</div>
+                                    <div className="text-[8px] text-white/20 uppercase tracking-widest">{new Date(draft.date).toLocaleDateString()}</div>
+                                </div>
+                                <button onClick={() => deleteDraft(i)} className="text-white/20 hover:text-red-500 px-2 transition-all">
+                                    <i className="fas fa-trash-can text-[10px]"></i>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
 
