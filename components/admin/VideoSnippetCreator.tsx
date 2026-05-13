@@ -38,6 +38,17 @@ const VideoSnippetCreator: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const requestRef = useRef<number>(0);
 
+    // Animation Refs for state-consistency in requestAnimationFrame
+    const titleRef = useRef("");
+    const artistRef = useRef("");
+    const promoImgRef = useRef<string | null>(null);
+    const localCoverRef = useRef<string | null>(null);
+
+    useEffect(() => { titleRef.current = customTitle; }, [customTitle]);
+    useEffect(() => { artistRef.current = customArtist; }, [customArtist]);
+    useEffect(() => { promoImgRef.current = promoImageUrl; }, [promoImageUrl]);
+    useEffect(() => { localCoverRef.current = localCoverUrl; }, [localCoverUrl]);
+
     useEffect(() => {
         fetchMusicCatalog('diosmasgym').then(data => {
             setCatalog(data);
@@ -137,7 +148,7 @@ const VideoSnippetCreator: React.FC = () => {
         // Background: Promo image or Cover
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.src = promoImageUrl || localCoverUrl || selectedSong.cover;
+        img.src = promoImgRef.current || localCoverRef.current || (selectedSong?.cover ?? "");
         
         const isImgReady = img.complete && img.naturalWidth !== 0;
 
@@ -229,14 +240,14 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.shadowBlur = 25;
         ctx.shadowColor = 'rgba(0,0,0,0.8)';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText((customTitle || selectedSong.name || "").toUpperCase(), 540, 1530);
+        ctx.fillText((titleRef.current || selectedSong.name || "").toUpperCase(), 540, 1530);
 
         // Artist
         ctx.fillStyle = '#c5a059'; 
         ctx.font = '900 45px Poppins, Arial, sans-serif';
         ctx.shadowBlur = 15;
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '10px';
-        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
+        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
         ctx.shadowBlur = 0;
         
         ctx.restore();
