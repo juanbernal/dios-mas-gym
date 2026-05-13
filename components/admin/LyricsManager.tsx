@@ -111,11 +111,21 @@ const LyricsManager: React.FC = () => {
 
     const handleSaveToBlogger = async () => {
         if (!selectedLyric) return;
-        if (!googleToken) {
-            const token = prompt("Pega tu Google Access Token para guardar en Blogger (OAuth2):");
-            if (!token) return;
-            setGoogleToken(token);
-            localStorage.setItem('blogger_google_token', token);
+        let currentToken = googleToken;
+
+        if (!currentToken) {
+            const input = prompt("Pega tu Google Access Token para guardar en Blogger (OAuth2):\n(Debe ser una cadena larga de letras y números, NO una URL)");
+            if (!input) return;
+            
+            // Basic validation: User might paste the URL or the code by mistake
+            if (input.includes('http') || input.includes('code=')) {
+                alert("❌ Parece que has pegado una URL o un código de autorización. Necesitas el 'Access Token' (una cadena larga que empieza por ya29...). Mira la ayuda (?)");
+                return;
+            }
+
+            currentToken = input.trim();
+            setGoogleToken(currentToken);
+            localStorage.setItem('blogger_google_token', currentToken);
         }
 
         setIsExporting(true);
@@ -124,7 +134,7 @@ const LyricsManager: React.FC = () => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${googleToken}`
+                    'Authorization': `Bearer ${currentToken}`
                 },
                 body: JSON.stringify({
                     title: selectedLyric.title,
@@ -134,14 +144,20 @@ const LyricsManager: React.FC = () => {
                 })
             });
             const data = await res.json();
+            
+            if (res.status === 401) {
+                throw new Error("El Token ha caducado o es inválido. Por favor, obtén uno nuevo.");
+            }
+
             if (data.id) {
                 alert("✅ Borrador creado en Blogger con éxito!");
             } else {
-                throw new Error(data.error || "Error desconocido");
+                throw new Error(data.error || "Error desconocido al subir a Blogger");
             }
         } catch (e: any) {
-            alert("❌ Error al guardar en Blogger: " + e.message);
-            setGoogleToken(""); // Reset token on error
+            alert("❌ Error: " + e.message);
+            setGoogleToken(""); 
+            localStorage.removeItem('blogger_google_token');
         } finally {
             setIsExporting(false);
         }

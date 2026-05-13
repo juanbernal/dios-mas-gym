@@ -426,17 +426,28 @@ const PromoImageApp: React.FC = () => {
   const handleGoToSnippet = async () => {
     setIsGenerating(true);
     try {
-      const canvas = await prepareCanvas(2);
-      const dataUrl = canvas.toDataURL('image/png');
+      let dataUrl = "";
+      try {
+        // Try high-res first
+        const canvas = await prepareCanvas(2);
+        dataUrl = canvas.toDataURL('image/png');
+      } catch (e) {
+        console.warn("High-res capture failed, falling back to 1x", e);
+        // Fallback to lower res if high-res fails (memory issues)
+        const canvas = await prepareCanvas(1);
+        dataUrl = canvas.toDataURL('image/png');
+      }
+      
       localStorage.setItem('last_generated_promo', dataUrl);
       navigate('/admin/video-snippet', { 
         state: { 
           promoImage: dataUrl
         } 
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error going to snippet:", e);
-      alert("Error al preparar la imagen para el Snippet.");
+      alert("⚠️ No se pudo preparar la imagen automáticamente (posible falta de memoria). Navegando al Snippet Creator... podrás subir la imagen manualmente allí.");
+      navigate('/admin/video-snippet');
     } finally {
       setIsGenerating(false);
     }
