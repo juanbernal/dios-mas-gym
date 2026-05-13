@@ -126,10 +126,12 @@ const VideoSnippetCreator: React.FC = () => {
         setIsPlaying(!isPlaying);
     };
 
-    // Canvas Animation logic
+    // Stable Draw Loop
+    const drawRef = useRef<() => void>(() => {});
+
     const draw = () => {
         if (!canvasRef.current || !selectedSong) return;
-        const ctx = canvasRef.current.getContext('2d');
+        const ctx = canvasRef.current.getContext('2d', { alpha: false }); // Optimization
         if (!ctx) return;
 
         const w = 1080;
@@ -267,17 +269,23 @@ const VideoSnippetCreator: React.FC = () => {
             audioRef.current?.pause();
             setIsPlaying(false);
         }
-
-        requestRef.current = requestAnimationFrame(draw);
     };
 
     useEffect(() => {
-        if (selectedSong) {
-            cancelAnimationFrame(requestRef.current);
-            requestRef.current = requestAnimationFrame(draw);
-        }
-        return () => cancelAnimationFrame(requestRef.current);
-    }, [selectedSong, isPlaying, customTitle, customArtist, promoImageUrl, localCoverUrl]);
+        drawRef.current = draw;
+    });
+
+    useEffect(() => {
+        let frameId: number;
+        const loop = () => {
+            if (selectedSong) {
+                drawRef.current();
+            }
+            frameId = requestAnimationFrame(loop);
+        };
+        frameId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(frameId);
+    }, [selectedSong]);
 
     const startRecording = async () => {
         if (!canvasRef.current || !audioRef.current) return;
