@@ -61,13 +61,13 @@ const VideoSnippetCreator: React.FC = () => {
     }, [customArtist]);
 
     useEffect(() => { 
-        const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
+        const url = promoImageUrl || localCoverUrl || "";
         if (bgImageRef.current && bgImageRef.current.src !== url) {
             bgImageRef.current.src = url;
         }
         promoImgRef.current = promoImageUrl; 
         localCoverRef.current = localCoverUrl;
-    }, [promoImageUrl, localCoverUrl, selectedSong]);
+    }, [promoImageUrl, localCoverUrl]);
 
     useEffect(() => {
         fetchMusicCatalog('diosmasgym').then(data => {
@@ -167,9 +167,9 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = '#05070a';
         ctx.fillRect(0, 0, w, h);
 
-        // Background: Promo image or Cover
+        // Background: Promo image or Cover (ONLY MANUAL)
         const img = bgImageRef.current;
-        const isImgReady = img && img.complete && img.naturalWidth !== 0;
+        const isImgReady = img && img.complete && img.naturalWidth !== 0 && img.src !== "";
 
         if (isImgReady) {
             // 2. Imagen de fondo escalada y desenfocada (Orgánica)
@@ -196,7 +196,7 @@ const VideoSnippetCreator: React.FC = () => {
         }
         ctx.restore();
 
-        // 4. Portada con Glow Dinámico Orgánico
+        // 4. Portada con Glow Dinámico Orgánico (ONLY MANUAL)
         if (isImgReady) {
             ctx.save();
             ctx.shadowBlur = 80 + smoothNoise(time * 2) * 50;
@@ -329,12 +329,12 @@ const VideoSnippetCreator: React.FC = () => {
             source.connect(audioCtx.destination);
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-            // Priority: true MP4/H264 (Safari) → VP8 WebM (widely editable) → VP9 WebM → generic
+            // Priority: MP4 (H264) for Windows → WebM
             const formatCandidates: { mimeType: string; ext: string }[] = [
-                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
-                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
                 { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
                 { mimeType: 'video/mp4',                               ext: 'mp4' },
+                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
+                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
                 { mimeType: 'video/webm',                              ext: 'webm' },
             ];
             const chosen = formatCandidates.find(f => MediaRecorder.isTypeSupported(f.mimeType))
