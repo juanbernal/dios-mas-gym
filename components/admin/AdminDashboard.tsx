@@ -206,6 +206,15 @@ const AdminDashboard: React.FC = () => {
             color: '#c5a059',
             route: '/admin/video-snippet',
             category: 'Contenido Audiovisual'
+        },
+        {
+            id: 'lyrics-manager',
+            title: 'Gestor de Letras',
+            description: 'Centraliza todas tus letras de Blogger (Publicadas y Borradores) en un solo gestor inteligente.',
+            icon: 'fa-file-lines',
+            color: '#00ffcc',
+            route: '/admin/lyrics-manager',
+            category: 'Gestión y Utilidades'
         }
     ];
 
