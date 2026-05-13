@@ -567,7 +567,17 @@ const VideoSnippetCreator: React.FC = () => {
                             
                             <audio 
                                 ref={audioRef} 
-                                src={selectedSong.url} 
+                                src={localFileUrl || ""} 
+                                onTimeUpdate={(e) => {
+                                    if (!isRecording) {
+                                        const curr = e.currentTarget.currentTime;
+                                        if (curr > startTime + 60) {
+                                            e.currentTarget.pause();
+                                            e.currentTarget.currentTime = startTime;
+                                            setIsPlaying(false);
+                                        }
+                                    }
+                                }}
                                 onEnded={() => setIsPlaying(false)}
                                 onError={() => alert("Error al cargar el audio. Verifica el formato o la conexión.")}
                                 crossOrigin="anonymous"
