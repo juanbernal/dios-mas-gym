@@ -22,6 +22,13 @@ const LyricsManager: React.FC = () => {
     const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec");
     const [showTokenHelp, setShowTokenHelp] = useState(false);
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
+    const [viewMode, setViewMode] = useState<'list' | 'editor'>('list'); // Mobile view toggle
+
+    useEffect(() => {
+        if (selectedLyric && window.innerWidth < 1024) {
+            setViewMode('editor');
+        }
+    }, [selectedLyric]);
 
     useEffect(() => {
         const loadAllLyrics = async () => {
@@ -247,59 +254,74 @@ const LyricsManager: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#05070a] text-white font-['Poppins']">
+        <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] flex flex-col">
             {/* Header */}
-            <div className="p-8 border-b border-white/5 bg-[#0a0c14] flex items-center justify-between sticky top-0 z-50">
-                <div className="flex items-center gap-6">
-                    <button onClick={() => navigate('/admin')} className="text-white/20 hover:text-white transition-all">
-                        <i className="fas fa-arrow-left"></i>
-                    </button>
-                    <h1 className="text-xl font-black uppercase tracking-tighter italic">Gestor de <span className="text-[#00ffcc]">Letras</span> <span className="text-[10px] not-italic text-white/20 ml-2">Blogger Sync v1.0</span></h1>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
-                        <input 
-                            type="text" 
-                            placeholder="Buscar letra..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="bg-black/40 border border-white/10 rounded-full pl-10 pr-6 py-2 text-xs outline-none focus:border-[#00ffcc]/30 w-64"
-                        />
+            <div className="p-4 md:p-8 border-b border-white/5 bg-[#0a0c14] sticky top-0 z-50">
+                <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center justify-between md:justify-start gap-4 md:gap-6">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => navigate('/admin')} className="text-white/20 hover:text-white transition-all p-2">
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                            <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic">
+                                Gestor de <span className="text-[#00ffcc]">Letras</span>
+                                <span className="hidden md:inline text-[10px] not-italic text-white/20 ml-2">Blogger Sync v2.0</span>
+                            </h1>
+                        </div>
+                        
+                        {/* Mobile View Toggle */}
+                        {selectedLyric && (
+                            <button 
+                                onClick={() => setViewMode(viewMode === 'list' ? 'editor' : 'list')}
+                                className="lg:hidden px-4 py-2 bg-white/5 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10"
+                            >
+                                <i className={`fas ${viewMode === 'list' ? 'fa-pen-to-square' : 'fa-list-ul'} mr-2`}></i>
+                                {viewMode === 'list' ? 'Editor' : 'Lista'}
+                            </button>
+                        )}
                     </div>
-                    <button 
-                        onClick={() => setShowSheetsConfig(true)}
-                        className={`px-4 py-2 border text-[9px] font-black uppercase rounded-full transition-all flex items-center gap-2 ${sheetsSyncUrl ? 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059]' : 'bg-white/5 border-white/10 text-white/40'}`}
-                    >
-                        <i className="fas fa-cloud"></i>
-                        {sheetsSyncUrl ? 'Cloud Sync On' : 'Setup Cloud'}
-                    </button>
-                    <button 
-                        onClick={handleSyncAllLocales}
-                        disabled={isExporting}
-                        className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase rounded-full hover:bg-blue-500/20 transition-all flex items-center gap-2"
-                        title="Subir todos los locales a Blogger"
-                    >
-                        <i className={`fas ${isExporting ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`}></i>
-                        Sync Locales
-                    </button>
-                    <button 
-                        onClick={() => {
-                            const title = prompt("Título de la nueva canción:");
-                            if (title) {
-                                setSelectedLyric({ id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() });
-                            }
-                        }}
-                        className="px-6 py-2 bg-[#00ffcc] text-black text-[10px] font-black uppercase rounded-full hover:bg-white transition-all"
-                    >
-                        <i className="fas fa-plus mr-2"></i> Nueva Letra
-                    </button>
+
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                        <div className="relative flex-1 min-w-[200px] md:flex-none">
+                            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+                            <input 
+                                type="text" 
+                                placeholder="Buscar letra..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="bg-black/40 border border-white/10 rounded-full pl-10 pr-6 py-2 text-xs outline-none focus:border-[#00ffcc]/30 w-full md:w-64"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowSheetsConfig(true)}
+                                className={`p-2.5 md:px-4 md:py-2 border rounded-full transition-all flex items-center gap-2 ${sheetsSyncUrl ? 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                                title="Configurar Cloud Sync"
+                            >
+                                <i className="fas fa-cloud"></i>
+                                <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">{sheetsSyncUrl ? 'Cloud On' : 'Setup Cloud'}</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    const title = prompt("Título de la nueva canción:");
+                                    if (title) {
+                                        setSelectedLyric({ id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() });
+                                        setViewMode('editor');
+                                    }
+                                }}
+                                className="p-2.5 md:px-6 md:py-2 bg-[#00ffcc] text-black rounded-full hover:bg-white transition-all shadow-lg shadow-[#00ffcc]/10"
+                            >
+                                <i className="fas fa-plus md:mr-2"></i>
+                                <span className="hidden md:inline text-[10px] font-black uppercase">Nueva</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-12 h-[calc(100vh-100px)]">
+            <div className="flex-1 grid grid-cols-12 overflow-hidden h-[calc(100vh-140px)] md:h-[calc(100vh-100px)]">
                 {/* List Sidebar */}
-                <div className="col-span-12 lg:col-span-4 border-r border-white/5 overflow-y-auto custom-scrollbar bg-black/20">
+                <div className={`${viewMode === 'list' ? 'col-span-12' : 'hidden'} lg:flex lg:col-span-4 border-r border-white/5 overflow-y-auto custom-scrollbar bg-black/20 flex-col`}>
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full gap-4">
                             <div className="w-8 h-8 border-2 border-[#00ffcc] border-t-transparent rounded-full animate-spin"></div>
@@ -334,28 +356,36 @@ const LyricsManager: React.FC = () => {
                 </div>
 
                 {/* Editor Section */}
-                <div className="col-span-12 lg:col-span-8 bg-[#05070a] flex flex-col">
+                <div className={`${viewMode === 'editor' ? 'col-span-12' : 'hidden'} lg:flex lg:col-span-8 bg-[#05070a] flex flex-col overflow-hidden`}>
                     {selectedLyric ? (
                         <>
-                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-black/20">
-                                <div className="flex flex-col flex-1 mr-8">
-                                    <input 
-                                        type="text"
-                                        value={selectedLyric.title}
-                                        onChange={e => setSelectedLyric({...selectedLyric, title: e.target.value})}
-                                        className="bg-transparent text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 w-full mb-1"
-                                        placeholder="Título de la Canción"
-                                    />
-                                    <div className="flex items-center gap-3 mt-1">
+                            <div className="p-4 md:p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-black/20">
+                                <div className="flex flex-col flex-1">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <button 
+                                            onClick={() => setViewMode('list')}
+                                            className="lg:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/40"
+                                        >
+                                            <i className="fas fa-arrow-left text-xs"></i>
+                                        </button>
+                                        <input 
+                                            type="text"
+                                            value={selectedLyric.title}
+                                            onChange={e => setSelectedLyric({...selectedLyric, title: e.target.value})}
+                                            className="bg-transparent text-xl md:text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 w-full"
+                                            placeholder="Título de la Canción"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <button 
                                             onClick={() => setSelectedLyric({...selectedLyric, artist: 'Dios Mas Gym'})}
-                                            className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Dios Mas Gym' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
+                                            className={`text-[7px] md:text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Dios Mas Gym' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
                                         >
                                             Dios Mas Gym
                                         </button>
                                         <button 
                                             onClick={() => setSelectedLyric({...selectedLyric, artist: 'Juan 614'})}
-                                            className={`text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Juan 614' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
+                                            className={`text-[7px] md:text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Juan 614' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
                                         >
                                             Juan 614
                                         </button>
@@ -363,72 +393,68 @@ const LyricsManager: React.FC = () => {
                                             type="text"
                                             value={selectedLyric.artist}
                                             onChange={e => setSelectedLyric({...selectedLyric, artist: e.target.value})}
-                                            className="bg-transparent text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffcc] outline-none ml-2 border-b border-white/10 focus:border-[#00ffcc]/40"
+                                            className="bg-transparent text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#00ffcc] outline-none border-b border-white/10 focus:border-[#00ffcc]/40 min-w-[100px]"
                                             placeholder="Otro Artista..."
                                         />
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
-                                    <div className="flex gap-2">
+                                
+                                <div className="flex flex-wrap gap-2 md:gap-3">
+                                    <div className="flex gap-2 w-full md:w-auto">
                                         {sheetsSyncUrl && (
                                             <button 
                                                 onClick={handleSaveToSheets}
                                                 disabled={isSaving}
-                                                className="px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[9px] font-black uppercase rounded-full hover:bg-[#c5a059]/20 transition-all flex items-center gap-2"
+                                                className="flex-1 md:flex-none px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[9px] font-black uppercase rounded-xl hover:bg-[#c5a059]/20 transition-all flex items-center justify-center gap-2"
                                             >
-                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> Sheets Sync
+                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> Sheets
                                             </button>
                                         )}
                                         <button 
                                             onClick={handleSaveToBlogger}
                                             disabled={isExporting}
-                                            className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase rounded-full hover:bg-blue-500/20 transition-all flex items-center gap-2"
+                                            className="flex-1 md:flex-none px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase rounded-xl hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2"
                                         >
                                             <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> Blogger
                                         </button>
                                     </div>
-                                    <button 
-                                        onClick={() => setShowTokenHelp(true)}
-                                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white transition-all"
-                                        title="Ayuda con el Token"
-                                    >
-                                        <i className="fas fa-question text-[10px]"></i>
-                                    </button>
-                                    <button 
-                                        onClick={handleSaveLocal}
-                                        disabled={isSaving}
-                                        className="px-6 py-2 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase rounded-full hover:bg-white/10 transition-all"
-                                    >
-                                        <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-save'} mr-2`}></i> {isSaving ? 'Guardando...' : 'Guardar Local'}
-                                    </button>
-                                    <button 
-                                        onClick={goToStudio}
-                                        className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] font-black uppercase rounded-full hover:scale-105 transition-all shadow-lg shadow-purple-500/20"
-                                    >
-                                        <i className="fas fa-wand-magic-sparkles mr-2"></i> Crear Video
-                                    </button>
+                                    <div className="flex gap-2 w-full md:w-auto">
+                                        <button 
+                                            onClick={handleSaveLocal}
+                                            disabled={isSaving}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> Local
+                                        </button>
+                                        <button 
+                                            onClick={goToStudio}
+                                            className="flex-1 md:flex-none px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[9px] font-black uppercase rounded-xl hover:scale-105 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fas fa-wand-magic-sparkles"></i> Studio
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <textarea 
                                 value={selectedLyric.content}
                                 onChange={e => setSelectedLyric({...selectedLyric, content: e.target.value})}
-                                className="flex-1 bg-transparent p-12 text-lg leading-relaxed outline-none resize-none custom-scrollbar font-serif italic text-white/80"
+                                className="flex-1 bg-transparent p-6 md:p-12 text-base md:text-lg leading-relaxed outline-none resize-none custom-scrollbar font-serif italic text-white/80"
                                 placeholder="Escribe tu letra aquí..."
                             ></textarea>
-                            <div className="p-4 bg-black/40 border-t border-white/5 text-center">
-                                <p className="text-[9px] uppercase font-black tracking-widest text-white/20">
-                                    Sugerencia: Guarda como borrador local antes de enviar al Studio para no perder cambios.
+                            <div className="p-3 bg-black/40 border-t border-white/5 text-center">
+                                <p className="text-[8px] md:text-[9px] uppercase font-black tracking-widest text-white/20">
+                                    Autoguardado disponible en Cloud y Local
                                 </p>
                             </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center p-12">
-                            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-8">
-                                <i className="fas fa-file-lines text-4xl text-white/10"></i>
+                        <div className="flex flex-col items-center justify-center h-full text-center p-8 md:p-12">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 md:mb-8">
+                                <i className="fas fa-file-lines text-3xl md:text-4xl text-white/10"></i>
                             </div>
-                            <h2 className="text-xl font-bold mb-4 italic">Selecciona una letra del archivo</h2>
-                            <p className="text-xs text-white/40 max-w-sm leading-relaxed font-light">
-                                Aquí puedes gestionar todas tus composiciones de Blogger (Publicadas y Borradores) y tus creaciones locales en un solo lugar.
+                            <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 italic">Selecciona una letra</h2>
+                            <p className="text-[10px] md:text-xs text-white/40 max-w-sm leading-relaxed font-light">
+                                Gestiona todas tus composiciones de Blogger y Google Sheets en un solo lugar optimizado.
                             </p>
                         </div>
                     )}
