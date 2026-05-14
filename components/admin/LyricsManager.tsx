@@ -247,38 +247,37 @@ const LyricsManager: React.FC = () => {
             return;
         }
 
-        if (!googleToken) {
-            alert("Necesitas configurar tu Google Token primero. Intenta guardar uno individualmente o mira la ayuda (?)");
-            setShowTokenHelp(true);
+        if (!sheetsSyncUrl) {
+            alert("Necesitas configurar tu Cloud Sync (Sheets) primero.");
+            setShowSheetsConfig(true);
             return;
         }
 
-        if (!confirm(`¿Quieres subir ${localDrafts.length} borradores locales a Blogger como borradores?`)) return;
+        if (!confirm(`¿Quieres subir ${localDrafts.length} borradores locales a la nube (Blogger Cloud)?`)) return;
 
         setIsExporting(true);
         let successCount = 0;
         for (const lyric of localDrafts) {
             try {
-                const res = await fetch('/api/arsenal', {
+                const res = await fetch(sheetsSyncUrl, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${googleToken}`
-                    },
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
+                        action: 'blogger',
                         title: lyric.title,
+                        artist: lyric.artist,
                         content: lyric.content,
-                        labels: [lyric.artist, 'Lyrics'],
-                        isDraft: true
+                        date: lyric.date || new Date().toISOString()
                     })
                 });
-                if (res.ok) successCount++;
+                successCount++;
             } catch (e) {
                 console.error(`Error syncing ${lyric.title}`, e);
             }
         }
         setIsExporting(false);
-        alert(`✅ Sincronización completada: ${successCount} de ${localDrafts.length} letras subidas a Blogger.`);
+        alert(`✅ Sincronización Cloud completada: ${successCount} de ${localDrafts.length} letras subidas.`);
     };
 
     const stripHtml = (html: string) => {
