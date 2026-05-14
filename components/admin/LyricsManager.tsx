@@ -19,7 +19,7 @@ const LyricsManager: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [googleToken, setGoogleToken] = useState(localStorage.getItem('blogger_google_token') || "");
-    const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "");
+    const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec");
     const [showTokenHelp, setShowTokenHelp] = useState(false);
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
 
@@ -123,9 +123,9 @@ const LyricsManager: React.FC = () => {
         if (!selectedLyric || !sheetsSyncUrl) return;
         setIsSaving(true);
         try {
-            const res = await fetch(sheetsSyncUrl, {
+            await fetch(sheetsSyncUrl, {
                 method: 'POST',
-                mode: 'no-cors', // Apps Script requires no-cors or specialized handling for simple POST
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: selectedLyric.title,
@@ -134,19 +134,59 @@ const LyricsManager: React.FC = () => {
                     date: new Date().toISOString()
                 })
             });
-            
-            // Note: no-cors will always return an opaque response with status 0, 
-            // but the data will be sent to the script.
-            alert("✅ Enviado a Google Sheets Cloud");
-            
+            alert("✅ Sincronizado con Google Sheets");
             if (selectedLyric.status !== 'CLOUD') {
                 const newItem: LyricItem = { ...selectedLyric, id: `sheet-${Date.now()}`, status: 'CLOUD' };
                 setLyrics([newItem, ...lyrics]);
             }
         } catch (e: any) {
-            alert("❌ Error al sincronizar con Sheets: " + e.message);
+            alert("❌ Error Sheets: " + e.message);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSaveToBlogger = async () => {
+        if (!selectedLyric) return;
+        let currentToken = googleToken;
+
+        if (!currentToken) {
+            const input = prompt("Pega tu Google Access Token (ya29...):");
+            if (!input) return;
+            let extractedToken = input.trim();
+            if (input.includes('"access_token"')) {
+                const match = input.match(/"access_token":\s*"([^"]+)"/);
+                if (match && match[1]) extractedToken = match[1];
+            }
+            currentToken = extractedToken;
+            setGoogleToken(currentToken);
+            localStorage.setItem('blogger_google_token', currentToken);
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await fetch('/api/arsenal', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({
+                    title: selectedLyric.title,
+                    content: selectedLyric.content,
+                    labels: [selectedLyric.artist, 'Lyrics'],
+                    isDraft: true
+                })
+            });
+            const data = await res.json();
+            if (data.id) alert("✅ Borrador creado en Blogger");
+            else throw new Error(data.error || "Error en Blogger");
+        } catch (e: any) {
+            alert("❌ Error: " + e.message);
+            setGoogleToken(""); 
+            localStorage.removeItem('blogger_google_token');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -329,15 +369,24 @@ const LyricsManager: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
-                                    {sheetsSyncUrl && (
+                                    <div className="flex gap-2">
+                                        {sheetsSyncUrl && (
+                                            <button 
+                                                onClick={handleSaveToSheets}
+                                                disabled={isSaving}
+                                                className="px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[9px] font-black uppercase rounded-full hover:bg-[#c5a059]/20 transition-all flex items-center gap-2"
+                                            >
+                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> Sheets Sync
+                                            </button>
+                                        )}
                                         <button 
-                                            onClick={handleSaveToSheets}
-                                            disabled={isSaving}
-                                            className="px-6 py-2 bg-[#c5a059]/20 border border-[#c5a059]/40 text-[#c5a059] text-[10px] font-black uppercase rounded-full hover:bg-[#c5a059]/30 transition-all flex items-center gap-2"
+                                            onClick={handleSaveToBlogger}
+                                            disabled={isExporting}
+                                            className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase rounded-full hover:bg-blue-500/20 transition-all flex items-center gap-2"
                                         >
-                                            <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> {isSaving ? 'Guardando...' : 'Sync to Sheets'}
+                                            <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> Blogger
                                         </button>
-                                    )}
+                                    </div>
                                     <button 
                                         onClick={() => setShowTokenHelp(true)}
                                         className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white transition-all"
