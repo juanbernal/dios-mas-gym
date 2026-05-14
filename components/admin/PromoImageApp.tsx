@@ -11,6 +11,11 @@ const sizes = {
 };
 
 const PROMO_MASTER_WIDTH = 3840;
+const PROMO_EXPORT_WIDTHS = {
+  share: 1440,
+  social: 2160,
+  master: PROMO_MASTER_WIDTH,
+};
 
 const countryOptions = [
   { name: 'GLOBAL (TODAS)', flag: '🌎', iso: 'un' },
@@ -333,11 +338,14 @@ const PromoImageApp: React.FC = () => {
     });
   };
 
+  const prepareCanvasForWidth = async (targetWidth: number) => {
+    return prepareCanvas(targetWidth / PROMO_MASTER_WIDTH);
+  };
+
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
     setIsGenerating(true);
     try {
-      // Use standard scale (2x) for sharing to ensure compatibility
-      const canvas = await prepareCanvas(2);
+      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share);
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
       if (!blob) throw new Error("Blob failed");
 
@@ -374,7 +382,7 @@ const PromoImageApp: React.FC = () => {
     setIsGenerating(true);
     setIsSendingToMake(true);
     try {
-      const canvas = await prepareCanvas(2);
+      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share);
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
       if (!blob) throw new Error("Blob failed");
 
@@ -400,16 +408,7 @@ const PromoImageApp: React.FC = () => {
     setIsGenerating(true);
     console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT...`);
     try {
-      const canvas = isUltra
-        ? await prepareCanvas(1)
-        : await html2canvas(document.querySelector('.promo-container-wrapper') as HTMLElement, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#000',
-            logging: false,
-            imageTimeout: 15000,
-          });
+      const canvas = await prepareCanvasForWidth(isUltra ? PROMO_EXPORT_WIDTHS.master : PROMO_EXPORT_WIDTHS.social);
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
       if (!blob) throw new Error("Blob generation failed");
@@ -417,7 +416,7 @@ const PromoImageApp: React.FC = () => {
       console.log("[DOWNLOAD] BLOB READY, TRIGGERING DOWNLOAD...");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `PROMO-${title.replace(/\s+/g, '-')}-${isUltra ? '4K' : '1to1'}.png`;
+      link.download = `PROMO-${title.replace(/\s+/g, '-')}-${isUltra ? '4K' : 'SocialHD'}.png`;
       link.href = url;
       document.body.appendChild(link);
       link.click();
@@ -780,7 +779,7 @@ const PromoImageApp: React.FC = () => {
                   disabled={isGenerating}
                   className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
-                  <i className="fas fa-eye"></i> Descargar 1:1 (Calidad de Vista)
+                  <i className="fas fa-eye"></i> Descargar Social HD (Vista Pro)
                 </button>
 
                 <button 
