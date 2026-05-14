@@ -136,6 +136,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'content-calendar',
+            title: 'Calendario de Contenido',
+            description: 'Planifica posts, reels, historias, campañas y lanzamientos en una vista mensual ejecutiva.',
+            icon: 'fa-calendar-days',
+            color: '#38bdf8',
+            route: '/admin/content-calendar',
+            category: 'Marketing & Social'
+        },
+        {
             id: 'social-post',
             title: 'Viral Post Generator',
             description: 'Convierte letras y títulos en publicaciones de alto impacto para redes sociales con IA estratégica.',
