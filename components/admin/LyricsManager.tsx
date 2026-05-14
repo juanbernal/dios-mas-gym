@@ -143,10 +143,14 @@ const LyricsManager: React.FC = () => {
         if (!selectedLyric || !sheetsSyncUrl) return;
         setIsSaving(true);
         try {
+            // Usamos text/plain para evitar problemas de CORS preflight con Apps Script
+            // El script recibirá el JSON string en e.postData.contents
             await fetch(sheetsSyncUrl, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
                 body: JSON.stringify({
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
@@ -154,10 +158,14 @@ const LyricsManager: React.FC = () => {
                     date: new Date().toISOString()
                 })
             });
-            alert("✅ Sincronizado con Google Sheets");
+            
+            alert("✅ Sincronizado con Google Sheets\n(Recuerda que con no-cors no podemos confirmar si se guardó, verifica tu hoja)");
+            
+            // Actualizar estado local para reflejar que ahora es 'CLOUD'
             if (selectedLyric.status !== 'CLOUD') {
                 const newItem: LyricItem = { ...selectedLyric, id: `sheet-${Date.now()}`, status: 'CLOUD' };
-                setLyrics([newItem, ...lyrics]);
+                setLyrics(prev => [newItem, ...prev.filter(l => l.id !== selectedLyric.id)]);
+                setSelectedLyric(newItem);
             }
         } catch (e: any) {
             alert("❌ Error Sheets: " + e.message);
