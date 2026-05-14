@@ -141,6 +141,9 @@ const LyricsManager: React.FC = () => {
         }, 500);
     };
 
+    const handleSaveToSheets = async () => {
+        if (!selectedLyric || !sheetsSyncUrl) return;
+        setIsSaving(true);
         try {
             // Usamos text/plain para evitar problemas de CORS preflight con Apps Script
             // El script recibirá el JSON string en e.postData.contents
