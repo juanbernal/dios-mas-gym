@@ -397,7 +397,7 @@ const VideoSnippetCreator: React.FC = () => {
                 <div className="w-20"></div>
             </div>
 
-            <div className="p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="p-4 md:p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
                 {/* Selector Section */}
                 <div className="lg:col-span-4 space-y-6">
                     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-2xl">
@@ -590,7 +590,7 @@ const VideoSnippetCreator: React.FC = () => {
                                 ref={canvasRef}
                                 width={1080}
                                 height={1920}
-                                className="w-[300px] h-[533px] bg-black rounded-[2rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] border border-white/10"
+                                className="w-[260px] h-[462px] md:w-[300px] md:h-[533px] bg-black rounded-[2rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] border border-white/10"
                             />
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-[2rem] pointer-events-none">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Vista Previa Vertical (9:16)</span>
