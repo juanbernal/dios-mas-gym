@@ -336,6 +336,14 @@ const LyricsManager: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             <button 
+                                onClick={handleSyncAllLocales}
+                                className="p-2.5 md:px-4 md:py-2 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded-full transition-all flex items-center gap-2"
+                                title="Sincronizar todo a Blogger Cloud"
+                            >
+                                <i className="fas fa-cloud-arrow-up"></i>
+                                <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">Sincronizar Todo</span>
+                            </button>
+                            <button 
                                 onClick={() => setShowSheetsConfig(true)}
                                 className={`p-2.5 md:px-4 md:py-2 border rounded-full transition-all flex items-center gap-2 ${sheetsSyncUrl ? 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059]' : 'bg-white/5 border-white/10 text-white/40'}`}
                                 title="Configurar Cloud Sync"
