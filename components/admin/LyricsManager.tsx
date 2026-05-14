@@ -11,6 +11,8 @@ interface LyricItem {
     date: string;
 }
 
+const SYNC_SECRET = "DMG_SYNC_2026"; // Simple security handshake
+
 const LyricsManager: React.FC = () => {
     const navigate = useNavigate();
     const [lyrics, setLyrics] = useState<LyricItem[]>([]);
@@ -150,6 +152,7 @@ const LyricsManager: React.FC = () => {
                 },
                 body: JSON.stringify({
                     action: 'save',
+                    secret: SYNC_SECRET,
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
@@ -182,6 +185,7 @@ const LyricsManager: React.FC = () => {
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
                     action: 'blogger',
+                    secret: SYNC_SECRET,
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
@@ -265,6 +269,7 @@ const LyricsManager: React.FC = () => {
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'blogger',
+                        secret: SYNC_SECRET,
                         title: lyric.title,
                         artist: lyric.artist,
                         content: lyric.content,
@@ -307,7 +312,7 @@ const LyricsManager: React.FC = () => {
                             </button>
                             <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic">
                                 Gestor de <span className="text-[#00ffcc]">Letras</span>
-                                <span className="hidden md:inline text-[10px] not-italic text-white/20 ml-2">Blogger Sync v2.0</span>
+                                <span className="hidden md:inline text-[8px] not-italic text-[#00ffcc]/60 bg-[#00ffcc]/10 px-2 py-0.5 rounded-full ml-3 border border-[#00ffcc]/20">v3.2 - Ultra Cloud</span>
                             </h1>
                         </div>
                         
@@ -465,20 +470,12 @@ const LyricsManager: React.FC = () => {
                                             <button 
                                                 onClick={handleSaveToBloggerCloud}
                                                 disabled={isSaving}
-                                                className="flex-1 md:flex-none px-4 py-2 bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[9px] font-black uppercase rounded-xl hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2"
+                                                className="flex-1 md:flex-none px-6 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase rounded-xl hover:bg-purple-500/30 transition-all shadow-lg shadow-purple-500/10 flex items-center justify-center gap-3"
                                                 title="Publicar en Blogger sin Token"
                                             >
                                                 <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i> Blogger Cloud
                                             </button>
                                         )}
-                                        <button 
-                                            onClick={handleSaveToBlogger}
-                                            disabled={isExporting}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-blue-500/5 border border-blue-500/20 text-blue-400/40 text-[9px] font-black uppercase rounded-xl hover:bg-blue-500/10 transition-all flex items-center justify-center gap-2"
-                                            title="Publicar con Token manual"
-                                        >
-                                            <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> Token
-                                        </button>
                                     </div>
                                     <div className="flex gap-2 w-full md:w-auto">
                                         <button 
