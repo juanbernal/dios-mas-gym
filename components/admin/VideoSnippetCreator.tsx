@@ -329,38 +329,23 @@ const VideoSnippetCreator: React.FC = () => {
             source.connect(audioCtx.destination);
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-            // Priority: MP4 (H264) for Windows/Safari → WebM (Standard)
-            const formatCandidates: { mimeType: string; ext: string }[] = [
-                { mimeType: 'video/mp4;codecs=h264,aac',               ext: 'mp4' },
-                { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
-                { mimeType: 'video/mp4',                               ext: 'mp4' },
-                { mimeType: 'video/webm;codecs=h264',                  ext: 'mp4' }, // Some browsers support H264 in WebM container
-                { mimeType: 'video/webm;codecs=vp9,opus',              ext: 'webm' },
-                { mimeType: 'video/webm;codecs=vp8,opus',              ext: 'webm' },
-                { mimeType: 'video/webm',                              ext: 'webm' },
-            ];
-            const chosen = formatCandidates.find(f => MediaRecorder.isTypeSupported(f.mimeType))
-                        ?? { mimeType: 'video/webm', ext: 'webm' }; 
-
-            console.log("Recording with format:", chosen.mimeType);
-
+            // Match LyricStudio v2.2 configuration (Confirmed working)
+            const mimeType = 'video/webm;codecs=vp9,opus';
             const recorder = new MediaRecorder(stream, { 
-                mimeType: chosen.mimeType,
-                videoBitsPerSecond: 12_000_000, // Reduced slightly for better compatibility
-                audioBitsPerSecond: 128_000
+                mimeType: mimeType,
+                videoBitsPerSecond: 20000000 
             });
             
             const chunks: Blob[] = [];
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
             
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: chosen.mimeType || 'video/webm' });
+                const blob = new Blob(chunks, { type: 'video/webm' });
                 const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
-                const extension = chosen.ext || 'webm';
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Snippet_${songName}.${extension}`;
+                a.download = `Snippet_${songName}.webm`;
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 10_000);
                 
