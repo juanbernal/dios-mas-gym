@@ -245,6 +245,7 @@ const LyricsManager: React.FC = () => {
     };
 
     const stripHtml = (html: string) => {
+        if (typeof document === 'undefined') return html.replace(/<[^>]*>?/gm, '');
         const tmp = document.createElement("DIV");
         tmp.innerHTML = html;
         return tmp.textContent || tmp.innerText || "";
