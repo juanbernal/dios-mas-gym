@@ -17,10 +17,11 @@ const LyricsManager: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedLyric, setSelectedLyric] = useState<LyricItem | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [googleToken, setGoogleToken] = useState(localStorage.getItem('blogger_google_token') || "");
+    const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "");
     const [showTokenHelp, setShowTokenHelp] = useState(false);
+    const [showSheetsConfig, setShowSheetsConfig] = useState(false);
 
     useEffect(() => {
         const loadAllLyrics = async () => {
@@ -50,19 +51,28 @@ const LyricsManager: React.FC = () => {
                     date: p.published
                 }));
 
-                // 3. Load Local Drafts
-                const localRaw = localStorage.getItem('lyric_studio_drafts');
-                const local = localRaw ? JSON.parse(localRaw) : [];
-                const localItems: LyricItem[] = local.map((l: any, i: number) => ({
-                    id: `local-${i}`,
-                    title: l.name,
-                    artist: l.artist || 'Desconocido',
-                    content: l.content,
-                    status: 'LOCAL',
-                    date: l.date
-                }));
+                // 4. Fetch from Google Sheets
+                let sheetItems: LyricItem[] = [];
+                if (sheetsSyncUrl) {
+                    try {
+                        const res = await fetch(sheetsSyncUrl);
+                        if (res.ok) {
+                            const data = await res.json();
+                            sheetItems = (data || []).map((l: any, i: number) => ({
+                                id: `sheet-${i}`,
+                                title: l.title,
+                                artist: l.artist,
+                                content: l.content,
+                                status: 'CLOUD',
+                                date: l.date
+                            }));
+                        }
+                    } catch (e) {
+                        console.error("Sheets sync error", e);
+                    }
+                }
 
-                setLyrics([...localItems, ...draftItems, ...publishedItems]);
+                setLyrics([...localItems, ...sheetItems, ...draftItems, ...publishedItems]);
             } catch (e) {
                 console.error("Error loading lyrics", e);
             } finally {
@@ -109,76 +119,34 @@ const LyricsManager: React.FC = () => {
         }, 500);
     };
 
-    const handleSaveToBlogger = async () => {
-        if (!selectedLyric) return;
-        let currentToken = googleToken;
-
-        if (!currentToken) {
-            const input = prompt("Pega tu Google Access Token (o el bloque de JSON que te dio Google):\n(Debe empezar por ya29...)");
-            if (!input) return;
-            
-            let extractedToken = input.trim();
-
-            // Smart Extraction: If user pastes the whole JSON block
-            if (input.includes('"access_token"')) {
-                try {
-                    const match = input.match(/"access_token":\s*"([^"]+)"/);
-                    if (match && match[1]) {
-                        extractedToken = match[1];
-                        // Also try to grab refresh token for future use
-                        const refreshMatch = input.match(/"refresh_token":\s*"([^"]+)"/);
-                        if (refreshMatch && refreshMatch[1]) {
-                            localStorage.setItem('blogger_refresh_token', refreshMatch[1]);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Failed to parse JSON token", e);
-                }
-            }
-
-            // Basic validation
-            if (extractedToken.includes('http') || extractedToken.includes('code=')) {
-                alert("❌ Parece que has pegado una URL o un código de autorización. Necesitas el 'Access Token' (una cadena larga que empieza por ya29...). Mira la ayuda (?)");
-                return;
-            }
-
-            currentToken = extractedToken;
-            setGoogleToken(currentToken);
-            localStorage.setItem('blogger_google_token', currentToken);
-        }
-
-        setIsExporting(true);
+    const handleSaveToSheets = async () => {
+        if (!selectedLyric || !sheetsSyncUrl) return;
+        setIsSaving(true);
         try {
-            const res = await fetch('/api/arsenal', {
+            const res = await fetch(sheetsSyncUrl, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentToken}`
-                },
+                mode: 'no-cors', // Apps Script requires no-cors or specialized handling for simple POST
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: selectedLyric.title,
+                    artist: selectedLyric.artist,
                     content: selectedLyric.content,
-                    labels: [selectedLyric.artist, 'Lyrics'],
-                    isDraft: true
+                    date: new Date().toISOString()
                 })
             });
-            const data = await res.json();
             
-            if (res.status === 401) {
-                throw new Error("El Token ha caducado o es inválido. Por favor, obtén uno nuevo.");
-            }
-
-            if (data.id) {
-                alert("✅ Borrador creado en Blogger con éxito!");
-            } else {
-                throw new Error(data.error || "Error desconocido al subir a Blogger");
+            // Note: no-cors will always return an opaque response with status 0, 
+            // but the data will be sent to the script.
+            alert("✅ Enviado a Google Sheets Cloud");
+            
+            if (selectedLyric.status !== 'CLOUD') {
+                const newItem: LyricItem = { ...selectedLyric, id: `sheet-${Date.now()}`, status: 'CLOUD' };
+                setLyrics([newItem, ...lyrics]);
             }
         } catch (e: any) {
-            alert("❌ Error: " + e.message);
-            setGoogleToken(""); 
-            localStorage.removeItem('blogger_google_token');
+            alert("❌ Error al sincronizar con Sheets: " + e.message);
         } finally {
-            setIsExporting(false);
+            setIsSaving(false);
         }
     };
 
@@ -260,6 +228,13 @@ const LyricsManager: React.FC = () => {
                         />
                     </div>
                     <button 
+                        onClick={() => setShowSheetsConfig(true)}
+                        className={`px-4 py-2 border text-[9px] font-black uppercase rounded-full transition-all flex items-center gap-2 ${sheetsSyncUrl ? 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                    >
+                        <i className="fas fa-cloud"></i>
+                        {sheetsSyncUrl ? 'Cloud Sync On' : 'Setup Cloud'}
+                    </button>
+                    <button 
                         onClick={handleSyncAllLocales}
                         disabled={isExporting}
                         className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase rounded-full hover:bg-blue-500/20 transition-all flex items-center gap-2"
@@ -301,7 +276,8 @@ const LyricsManager: React.FC = () => {
                                     <div className="flex items-center justify-between mb-2">
                                         <span className={`text-[8px] font-black uppercase px-2 py-1 rounded ${
                                             lyric.status === 'LIVE' ? 'bg-green-500/20 text-green-500' : 
-                                            lyric.status === 'DRAFT' ? 'bg-blue-500/20 text-blue-500' : 'bg-zinc-500/20 text-zinc-500'
+                                            lyric.status === 'DRAFT' ? 'bg-blue-500/20 text-blue-500' : 
+                                            lyric.status === 'CLOUD' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-zinc-500/20 text-zinc-500'
                                         }`}>
                                             {lyric.status}
                                         </span>
@@ -353,13 +329,15 @@ const LyricsManager: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button 
-                                        onClick={handleSaveToBlogger}
-                                        disabled={isExporting}
-                                        className="px-6 py-2 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-[10px] font-black uppercase rounded-full hover:bg-blue-500/30 transition-all flex items-center gap-2"
-                                    >
-                                        <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> {isExporting ? 'Subiendo...' : 'Blogger (Draft)'}
-                                    </button>
+                                    {sheetsSyncUrl && (
+                                        <button 
+                                            onClick={handleSaveToSheets}
+                                            disabled={isSaving}
+                                            className="px-6 py-2 bg-[#c5a059]/20 border border-[#c5a059]/40 text-[#c5a059] text-[10px] font-black uppercase rounded-full hover:bg-[#c5a059]/30 transition-all flex items-center gap-2"
+                                        >
+                                            <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> {isSaving ? 'Guardando...' : 'Sync to Sheets'}
+                                        </button>
+                                    )}
                                     <button 
                                         onClick={() => setShowTokenHelp(true)}
                                         className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20 hover:text-white transition-all"
@@ -407,6 +385,68 @@ const LyricsManager: React.FC = () => {
                     )}
                 </div>
             </div>
+
+        {/* SHEETS CONFIG MODAL */}
+        {showSheetsConfig && (
+            <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+                <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative">
+                    <button onClick={() => setShowSheetsConfig(false)} className="absolute top-8 right-8 text-white/20 hover:text-white transition-all">
+                        <i className="fas fa-times text-xl"></i>
+                    </button>
+                    
+                    <div className="text-center mb-10">
+                        <div className="w-20 h-20 bg-[#c5a059]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-[#c5a059] shadow-[0_0_30px_rgba(197,160,89,0.1)]">
+                            <i className="fas fa-cloud-arrow-up text-3xl"></i>
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-2">Sincronización Cloud</h2>
+                        <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Google Sheets Sync v1.0</p>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">Google Apps Script URL</label>
+                            <div className="relative">
+                                <input 
+                                    type="text"
+                                    value={sheetsSyncUrl}
+                                    onChange={(e) => {
+                                        const url = e.target.value.trim();
+                                        setSheetsSyncUrl(url);
+                                        localStorage.setItem('lyrics_sheets_sync_url', url);
+                                    }}
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-xs outline-none focus:border-[#c5a059]/40 transition-all font-mono"
+                                    placeholder="https://script.google.com/macros/s/.../exec"
+                                />
+                                <i className="fas fa-link absolute right-6 top-1/2 -translate-y-1/2 text-white/10"></i>
+                            </div>
+                            <p className="text-[9px] text-white/30 italic">
+                                Pega aquí la URL de implementación de tu Google Apps Script para sincronizar entre dispositivos.
+                            </p>
+                        </div>
+
+                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-white/60 flex items-center gap-3">
+                                <i className="fas fa-info-circle text-[#c5a059]"></i> ¿Cómo funciona?
+                            </h4>
+                            <ul className="text-[10px] text-white/40 space-y-2 leading-relaxed">
+                                <li>1. Crea una hoja de Google Sheets.</li>
+                                <li>2. Ve a <span className="text-white/60">Extensiones &gt; Apps Script</span>.</li>
+                                <li>3. Pega el código proporcionado por Antigravity.</li>
+                                <li>4. Pulsa <span className="text-white/60">Implementar &gt; Nueva Implementación</span>.</li>
+                                <li>5. Selecciona "Aplicación Web" y en "Quién puede acceder" pon <span className="text-white/60">Cualquier persona</span>.</li>
+                            </ul>
+                        </div>
+
+                        <button 
+                            onClick={() => setShowSheetsConfig(false)}
+                            className="w-full py-5 bg-[#c5a059] text-black text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white transition-all shadow-xl shadow-[#c5a059]/10"
+                        >
+                            Confirmar Configuración
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* TOKEN HELP MODAL */}
         {showTokenHelp && (
