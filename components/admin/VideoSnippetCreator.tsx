@@ -39,6 +39,8 @@ const VideoSnippetCreator: React.FC = () => {
     const requestRef = useRef<number>(0);
     const audioCtxRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+    const isRecordingRef = useRef(false);
+    const exportFrameRef = useRef<number>(0);
 
     // Animation Refs for state-consistency in requestAnimationFrame
     const titleRef = useRef("");
@@ -69,13 +71,13 @@ const VideoSnippetCreator: React.FC = () => {
     }, [customArtist]);
 
     useEffect(() => { 
-        const url = promoImageUrl || localCoverUrl || "";
+        const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
         if (bgImageRef.current && bgImageRef.current.src !== url) {
             bgImageRef.current.src = url;
         }
         promoImgRef.current = promoImageUrl; 
         localCoverRef.current = localCoverUrl;
-    }, [promoImageUrl, localCoverUrl]);
+    }, [promoImageUrl, localCoverUrl, selectedSong?.cover]);
 
     useEffect(() => {
         fetchMusicCatalog('diosmasgym').then(data => {
@@ -161,14 +163,14 @@ const VideoSnippetCreator: React.FC = () => {
     // Stable Draw Loop
     const drawRef = useRef<() => void>(() => {});
 
-    const draw = () => {
+    const renderCanvas = (progressOverride?: number, timeOverride?: number) => {
         if (!canvasRef.current || !selectedSong) return;
         const ctx = canvasRef.current.getContext('2d', { alpha: false }); // Optimization
         if (!ctx) return;
 
         const w = 1080;
         const h = 1920;
-        const time = Date.now() / 1000;
+        const time = timeOverride ?? Date.now() / 1000;
         
         // Organic Camera Drift (Anti-AI)
         const nX = smoothNoise(time * 0.3) - 0.5;
@@ -187,7 +189,11 @@ const VideoSnippetCreator: React.FC = () => {
             // 2. Imagen de fondo escalada y desenfocada (Orgánica)
             ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
             const bgZoom = 1.2 + smoothNoise(time * 0.1) * 0.15;
-            ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
+            try {
+                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
+            } catch (e) {
+                console.warn("No se pudo dibujar el fondo del snippet.", e);
+            }
             ctx.globalAlpha = 1.0;
         }
 
@@ -219,7 +225,11 @@ const VideoSnippetCreator: React.FC = () => {
             const coverY = 460 + nY * 15;
             ctx.roundRect(coverX, coverY, 800, 800, 80);
             ctx.clip();
-            ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+            try {
+                ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
+            } catch (e) {
+                console.warn("No se pudo dibujar la portada del snippet.", e);
+            }
             ctx.restore();
         } else {
             // Placeholder si no hay imagen
@@ -283,7 +293,7 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.restore();
 
         // 7. Barra de Progreso Premium
-        const progress = isRecording ? recordingProgress : ((audioRef.current?.currentTime || 0) - startTime) / duration;
+        const progress = progressOverride ?? (isRecordingRef.current ? recordingProgress : ((audioRef.current?.currentTime || 0) - startTime) / duration);
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         ctx.fillRect(140, 1720, 800, 12);
         
@@ -299,6 +309,8 @@ const VideoSnippetCreator: React.FC = () => {
         }
     };
 
+    const draw = () => renderCanvas();
+
     useEffect(() => {
         drawRef.current = draw;
     });
@@ -306,7 +318,7 @@ const VideoSnippetCreator: React.FC = () => {
     useEffect(() => {
         let frameId: number;
         const loop = () => {
-            if (selectedSong) {
+            if (selectedSong && !isRecordingRef.current) {
                 drawRef.current();
             }
             frameId = requestAnimationFrame(loop);
@@ -350,6 +362,48 @@ const VideoSnippetCreator: React.FC = () => {
         return destination;
     };
 
+    const waitForAudioReady = async () => {
+        const audio = audioRef.current;
+        if (!audio) throw new Error("Audio element not ready");
+        if (Number.isFinite(audio.duration) && audio.duration > 0) return;
+
+        await new Promise<void>((resolve, reject) => {
+            const timeout = window.setTimeout(() => reject(new Error("No se pudo leer la duracion del MP3.")), 8000);
+            const cleanup = () => {
+                window.clearTimeout(timeout);
+                audio.removeEventListener('loadedmetadata', onLoaded);
+                audio.removeEventListener('error', onError);
+            };
+            const onLoaded = () => { cleanup(); resolve(); };
+            const onError = () => { cleanup(); reject(new Error("No se pudo cargar el MP3.")); };
+            audio.addEventListener('loadedmetadata', onLoaded, { once: true });
+            audio.addEventListener('error', onError, { once: true });
+            audio.load();
+        });
+    };
+
+    const waitForImageReady = async () => {
+        const img = bgImageRef.current;
+        if (!img || !img.src) return;
+        if (img.complete && img.naturalWidth > 0) {
+            if ('decode' in img) await img.decode().catch(() => {});
+            return;
+        }
+
+        await new Promise<void>((resolve) => {
+            const timeout = window.setTimeout(() => resolve(), 5000);
+            const cleanup = () => {
+                window.clearTimeout(timeout);
+                img.removeEventListener('load', onLoad);
+                img.removeEventListener('error', onError);
+            };
+            const onLoad = () => { cleanup(); resolve(); };
+            const onError = () => { cleanup(); resolve(); };
+            img.addEventListener('load', onLoad, { once: true });
+            img.addEventListener('error', onError, { once: true });
+        });
+    };
+
     const startRecording = async () => {
         if (!canvasRef.current || !audioRef.current) return;
         if (!selectedSong) return;
@@ -358,18 +412,48 @@ const VideoSnippetCreator: React.FC = () => {
             return;
         }
         
+        let stream: MediaStream | null = null;
+        let recorder: MediaRecorder | null = null;
+        let stopTimeout = 0;
+
+        const cleanupRecording = () => {
+            isRecordingRef.current = false;
+            if (exportFrameRef.current) cancelAnimationFrame(exportFrameRef.current);
+            if (stopTimeout) window.clearTimeout(stopTimeout);
+            stream?.getTracks().forEach(track => track.stop());
+            sourceRef.current?.disconnect();
+            if (audioCtxRef.current && sourceRef.current) {
+                sourceRef.current.connect(audioCtxRef.current.destination);
+            }
+            if (audioRef.current) audioRef.current.pause();
+            setIsPlaying(false);
+            setIsRecording(false);
+        };
+
         try {
+            await waitForAudioReady();
+            const audioDuration = audioRef.current.duration;
+            if (!Number.isFinite(audioDuration) || audioDuration <= 0) {
+                throw new Error("El MP3 no tiene duracion valida.");
+            }
+            if (startTime >= audioDuration) {
+                throw new Error("El punto de inicio esta fuera de la duracion del MP3.");
+            }
+
+            const exportDuration = Math.max(1, Math.min(duration, audioDuration - startTime));
+            if (exportDuration < 2) {
+                throw new Error("El fragmento es demasiado corto. Ajusta el punto de inicio.");
+            }
+
             setIsRecording(true);
+            isRecordingRef.current = true;
             setRecordingProgress(0);
             const canvas = canvasRef.current;
-            
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.src = promoImageUrl || selectedSong!.cover;
-            await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+            await waitForImageReady();
+            renderCanvas(0, 0);
 
             // Stream with explicit video and audio separation
-            const stream = canvas.captureStream(30);
+            stream = canvas.captureStream(30);
             
             // Wait for canvas to be ready
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -378,16 +462,27 @@ const VideoSnippetCreator: React.FC = () => {
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
             const mimeType = getSupportedMimeType();
-            const recorder = new MediaRecorder(stream, {
+            recorder = new MediaRecorder(stream, {
                 ...(mimeType ? { mimeType } : {}),
                 videoBitsPerSecond: 12000000
             });
             
             const chunks: Blob[] = [];
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+            recorder.onerror = (event) => {
+                console.error("MediaRecorder error:", event);
+                cleanupRecording();
+                alert("Error durante la grabacion del snippet. Intenta con otra imagen o MP3 local.");
+            };
             
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/webm' });
+                if (chunks.length === 0) {
+                    cleanupRecording();
+                    alert("La grabacion termino sin datos. Intenta de nuevo con un MP3 local y una imagen local.");
+                    return;
+                }
+
+                const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
                 const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -395,35 +490,40 @@ const VideoSnippetCreator: React.FC = () => {
                 a.download = `Snippet_${songName}.webm`;
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 10_000);
-                stream.getTracks().forEach(track => track.stop());
-                sourceRef.current?.disconnect();
-                sourceRef.current?.connect(audioCtxRef.current!.destination);
+                cleanupRecording();
                 setRecordingProgress(0);
-                setIsRecording(false);
             };
 
             audioRef.current.currentTime = startTime;
+            recorder.start(100);
             await audioRef.current.play();
             setIsPlaying(true);
-            recorder.start(100);
 
-            const recordingStartTime = Date.now();
-            const interval = setInterval(() => {
-                const elapsed = (Date.now() - recordingStartTime) / 1000;
-                setRecordingProgress(elapsed / duration);
-                if (elapsed >= duration) {
-                    clearInterval(interval);
-                    if (recorder.state === 'recording') recorder.stop();
-                    if (audioRef.current) {
-                        audioRef.current.pause();
-                        setIsPlaying(false);
-                    }
+            const recordingStartTime = performance.now();
+            const renderExportFrame = (now: number) => {
+                if (!recorder || recorder.state !== 'recording') return;
+                const elapsed = Math.min((now - recordingStartTime) / 1000, exportDuration);
+                const progress = Math.min(elapsed / exportDuration, 1);
+                renderCanvas(progress, elapsed);
+                setRecordingProgress(progress);
+
+                if (progress >= 1) {
+                    audioRef.current?.pause();
+                    recorder.stop();
+                    return;
                 }
-            }, 100);
+
+                exportFrameRef.current = requestAnimationFrame(renderExportFrame);
+            };
+
+            exportFrameRef.current = requestAnimationFrame(renderExportFrame);
+            stopTimeout = window.setTimeout(() => {
+                if (recorder?.state === 'recording') recorder.stop();
+            }, (exportDuration + 1) * 1000);
         } catch (err) {
             console.error("Error en grabación:", err);
-            alert("No se pudo iniciar la exportación. Asegúrate de que el navegador permita capturar audio.");
-            setIsRecording(false);
+            alert(err instanceof Error ? err.message : "No se pudo iniciar la exportación. Asegúrate de usar MP3 e imagen locales.");
+            cleanupRecording();
         }
     };
 
