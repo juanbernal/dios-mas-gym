@@ -139,9 +139,6 @@ const LyricsManager: React.FC = () => {
         }, 500);
     };
 
-    const handleSaveToSheets = async () => {
-        if (!selectedLyric || !sheetsSyncUrl) return;
-        setIsSaving(true);
         try {
             // Usamos text/plain para evitar problemas de CORS preflight con Apps Script
             // El script recibirá el JSON string en e.postData.contents
@@ -152,6 +149,7 @@ const LyricsManager: React.FC = () => {
                     'Content-Type': 'text/plain'
                 },
                 body: JSON.stringify({
+                    action: 'save',
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
@@ -159,7 +157,7 @@ const LyricsManager: React.FC = () => {
                 })
             });
             
-            alert("✅ Sincronizado con Google Sheets\n(Recuerda que con no-cors no podemos confirmar si se guardó, verifica tu hoja)");
+            alert("✅ Sincronizado con Google Sheets");
             
             // Actualizar estado local para reflejar que ahora es 'CLOUD'
             if (selectedLyric.status !== 'CLOUD') {
@@ -169,6 +167,30 @@ const LyricsManager: React.FC = () => {
             }
         } catch (e: any) {
             alert("❌ Error Sheets: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveToBloggerCloud = async () => {
+        if (!selectedLyric || !sheetsSyncUrl) return;
+        setIsSaving(true);
+        try {
+            await fetch(sheetsSyncUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'blogger',
+                    title: selectedLyric.title,
+                    artist: selectedLyric.artist,
+                    content: selectedLyric.content,
+                    date: new Date().toISOString()
+                })
+            });
+            alert("🚀 Enviado a Blogger vía Cloud!\nVerifica tu panel de Blogger (Borradores)");
+        } catch (e: any) {
+            alert("❌ Error Blogger Cloud: " + e.message);
         } finally {
             setIsSaving(false);
         }
@@ -427,16 +449,28 @@ const LyricsManager: React.FC = () => {
                                                 onClick={handleSaveToSheets}
                                                 disabled={isSaving}
                                                 className="flex-1 md:flex-none px-4 py-2 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[9px] font-black uppercase rounded-xl hover:bg-[#c5a059]/20 transition-all flex items-center justify-center gap-2"
+                                                title="Sincronizar en Google Sheet"
                                             >
                                                 <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> Sheets
+                                            </button>
+                                        )}
+                                        {sheetsSyncUrl && (
+                                            <button 
+                                                onClick={handleSaveToBloggerCloud}
+                                                disabled={isSaving}
+                                                className="flex-1 md:flex-none px-4 py-2 bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[9px] font-black uppercase rounded-xl hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2"
+                                                title="Publicar en Blogger sin Token"
+                                            >
+                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i> Blogger Cloud
                                             </button>
                                         )}
                                         <button 
                                             onClick={handleSaveToBlogger}
                                             disabled={isExporting}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase rounded-xl hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                            className="flex-1 md:flex-none px-4 py-2 bg-blue-500/5 border border-blue-500/20 text-blue-400/40 text-[9px] font-black uppercase rounded-xl hover:bg-blue-500/10 transition-all flex items-center justify-center gap-2"
+                                            title="Publicar con Token manual"
                                         >
-                                            <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> Blogger
+                                            <i className={`fab fa-blogger-b ${isExporting ? 'fa-spin' : ''}`}></i> Token
                                         </button>
                                     </div>
                                     <div className="flex gap-2 w-full md:w-auto">
