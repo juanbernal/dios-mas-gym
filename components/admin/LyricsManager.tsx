@@ -193,7 +193,7 @@ const LyricsManager: React.FC = () => {
                     date: new Date().toISOString()
                 })
             });
-            alert("🚀 Enviado a Blogger vía Cloud!\nVerifica tu panel de Blogger (Borradores)");
+            alert("🚀 [V3.5] ¡CONECTADO A LA NUBE!\nVerifica tu panel de Blogger (Borradores)");
         } catch (e: any) {
             alert("❌ Error Blogger Cloud: " + e.message);
         } finally {
