@@ -10,6 +10,8 @@ const sizes = {
   post: { w: 900, h: 600, title: 36 },
 };
 
+const PROMO_MASTER_WIDTH = 3840;
+
 const countryOptions = [
   { name: 'GLOBAL (TODAS)', flag: '🌎', iso: 'un' },
   { name: 'México', flag: '🇲🇽', iso: 'mx' },
@@ -238,7 +240,6 @@ const PromoImageApp: React.FC = () => {
     console.log("[MASTER] STARTING GHOST-MASTER NATIVE 4K PREPARATION...");
     
     // Target the hidden high-res master container
-    const masterWidth = 2160; // Base width for 4K Master rendering
     const captureEl = masterRef.current?.querySelector('.promo-master-target') as HTMLElement;
     if (!captureEl) throw new Error("Ghost Master element not found. Please wait a moment and try again.");
 
@@ -299,8 +300,8 @@ const PromoImageApp: React.FC = () => {
           // FORCE EXACT PIXEL DIMENSIONS TO PREVENT 0x0 PATTERN ERRORS
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.boxShadow = 'none';
-          clonedWrapper.style.width = `${masterWidth}px`; // Use masterWidth instead of preview config
-          clonedWrapper.style.height = `${masterWidth * (sizes[size].h / sizes[size].w)}px`;
+          clonedWrapper.style.width = `${PROMO_MASTER_WIDTH}px`;
+          clonedWrapper.style.height = `${PROMO_MASTER_WIDTH * (sizes[size].h / sizes[size].w)}px`;
           clonedWrapper.style.display = 'block';
         }
 
@@ -399,8 +400,16 @@ const PromoImageApp: React.FC = () => {
     setIsGenerating(true);
     console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT...`);
     try {
-      // Use scale 1 for 1:1 parity if requested, otherwise 4 for 4K
-      const canvas = await prepareCanvas(isUltra ? 4 : 1);
+      const canvas = isUltra
+        ? await prepareCanvas(1)
+        : await html2canvas(document.querySelector('.promo-container-wrapper') as HTMLElement, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: '#000',
+            logging: false,
+            imageTimeout: 15000,
+          });
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
       if (!blob) throw new Error("Blob generation failed");
@@ -489,7 +498,7 @@ const PromoImageApp: React.FC = () => {
   };
 
   // 4K MASTER PROPS: Scaled configuration for high-res render
-  const masterWidth = 3840;
+  const masterWidth = PROMO_MASTER_WIDTH;
   const masterMultiplier = masterWidth / sizes[size].w;
   const masterCommonProps = {
     ...commonProps,
@@ -760,6 +769,7 @@ const PromoImageApp: React.FC = () => {
              <div className="flex flex-col gap-6">
                 <button 
                   onClick={() => handleDownload(true)}
+                  disabled={isGenerating}
                   className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
                 >
                   <i className="fas fa-crown group-hover:scale-110 transition-transform"></i> Descargar Master 4K Ultra
@@ -767,6 +777,7 @@ const PromoImageApp: React.FC = () => {
 
                 <button 
                   onClick={() => handleDownload(false)}
+                  disabled={isGenerating}
                   className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
                   <i className="fas fa-eye"></i> Descargar 1:1 (Calidad de Vista)
@@ -774,6 +785,7 @@ const PromoImageApp: React.FC = () => {
 
                 <button 
                   onClick={handleGoToSnippet}
+                  disabled={isGenerating}
                   className="w-full py-5 bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#c5a059]/20"
                 >
                   <i className="fas fa-video"></i> Crear Video Snippet
@@ -784,6 +796,7 @@ const PromoImageApp: React.FC = () => {
                   <div className="grid grid-cols-4 gap-3">
                     <button 
                       onClick={() => handleShare('whatsapp')}
+                      disabled={isGenerating}
                       className="py-4 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] rounded-xl hover:bg-[#25D366] hover:text-white transition-all flex items-center justify-center text-lg"
                       title="WhatsApp"
                     >
@@ -791,6 +804,7 @@ const PromoImageApp: React.FC = () => {
                     </button>
                     <button 
                       onClick={() => handleShare('facebook')}
+                      disabled={isGenerating}
                       className="py-4 bg-[#1877F2]/10 border border-[#1877F2]/20 text-[#1877F2] rounded-xl hover:bg-[#1877F2] hover:text-white transition-all flex items-center justify-center text-lg"
                       title="Facebook"
                     >
@@ -798,6 +812,7 @@ const PromoImageApp: React.FC = () => {
                     </button>
                     <button 
                       onClick={() => handleShare('twitter')}
+                      disabled={isGenerating}
                       className="py-4 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center justify-center text-lg"
                       title="Twitter/X"
                     >
@@ -805,6 +820,7 @@ const PromoImageApp: React.FC = () => {
                     </button>
                     <button 
                       onClick={() => handleShare('generic')}
+                      disabled={isGenerating}
                       className="py-4 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] rounded-xl hover:bg-[#c5a059] hover:text-white transition-all flex items-center justify-center text-lg"
                       title="Compartir"
                     >
@@ -816,7 +832,7 @@ const PromoImageApp: React.FC = () => {
                 <div className="pt-6 border-t border-white/5">
                   <button 
                     onClick={() => handleSendToMake()}
-                    disabled={isSendingToMake}
+                    disabled={isSendingToMake || isGenerating}
                     className="w-full py-3 bg-black/40 border border-white/10 text-white/40 text-[8px] font-black uppercase tracking-[0.3em] rounded-xl hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                   >
                     <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`}></i>

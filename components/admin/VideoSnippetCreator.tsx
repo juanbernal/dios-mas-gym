@@ -37,6 +37,8 @@ const VideoSnippetCreator: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const requestRef = useRef<number>(0);
+    const audioCtxRef = useRef<AudioContext | null>(null);
+    const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
     // Animation Refs for state-consistency in requestAnimationFrame
     const titleRef = useRef("");
@@ -50,6 +52,12 @@ const VideoSnippetCreator: React.FC = () => {
             bgImageRef.current = new Image();
             bgImageRef.current.crossOrigin = "anonymous";
         }
+
+        return () => {
+            audioCtxRef.current?.close().catch(() => {});
+            audioCtxRef.current = null;
+            sourceRef.current = null;
+        };
     }, []);
 
     useEffect(() => { 
@@ -137,6 +145,10 @@ const VideoSnippetCreator: React.FC = () => {
 
     const handlePlayPause = () => {
         if (!audioRef.current) return;
+        if (!localFileUrl) {
+            alert("Sube un MP3 local antes de escuchar o exportar el snippet.");
+            return;
+        }
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -303,11 +315,52 @@ const VideoSnippetCreator: React.FC = () => {
         return () => cancelAnimationFrame(frameId);
     }, [selectedSong]);
 
+    const getSupportedMimeType = () => {
+        const candidates = [
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm'
+        ];
+
+        return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    };
+
+    const setupRecordingAudio = async () => {
+        if (!audioRef.current) throw new Error("Audio element not ready");
+
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+            audioCtxRef.current = new AudioContextClass();
+            sourceRef.current = null;
+        }
+
+        if (audioCtxRef.current.state === 'suspended') {
+            await audioCtxRef.current.resume();
+        }
+
+        if (!sourceRef.current) {
+            sourceRef.current = audioCtxRef.current.createMediaElementSource(audioRef.current);
+        }
+
+        const destination = audioCtxRef.current.createMediaStreamDestination();
+        sourceRef.current.disconnect();
+        sourceRef.current.connect(destination);
+        sourceRef.current.connect(audioCtxRef.current.destination);
+
+        return destination;
+    };
+
     const startRecording = async () => {
         if (!canvasRef.current || !audioRef.current) return;
+        if (!selectedSong) return;
+        if (!localFileUrl) {
+            alert("Sube un MP3 local antes de exportar. Los enlaces de Spotify/YouTube no se pueden grabar directamente desde el navegador.");
+            return;
+        }
         
         try {
             setIsRecording(true);
+            setRecordingProgress(0);
             const canvas = canvasRef.current;
             
             const img = new Image();
@@ -321,19 +374,13 @@ const VideoSnippetCreator: React.FC = () => {
             // Wait for canvas to be ready
             await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Audio capture
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const source = audioCtx.createMediaElementSource(audioRef.current);
-            const destination = audioCtx.createMediaStreamDestination();
-            source.connect(destination);
-            source.connect(audioCtx.destination);
+            const destination = await setupRecordingAudio();
             destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-            // Match LyricStudio v2.2 configuration (Confirmed working)
-            const mimeType = 'video/webm;codecs=vp9,opus';
-            const recorder = new MediaRecorder(stream, { 
-                mimeType: mimeType,
-                videoBitsPerSecond: 20000000 
+            const mimeType = getSupportedMimeType();
+            const recorder = new MediaRecorder(stream, {
+                ...(mimeType ? { mimeType } : {}),
+                videoBitsPerSecond: 12000000
             });
             
             const chunks: Blob[] = [];
@@ -348,13 +395,15 @@ const VideoSnippetCreator: React.FC = () => {
                 a.download = `Snippet_${songName}.webm`;
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 10_000);
-                
-                audioCtx.close();
+                stream.getTracks().forEach(track => track.stop());
+                sourceRef.current?.disconnect();
+                sourceRef.current?.connect(audioCtxRef.current!.destination);
+                setRecordingProgress(0);
                 setIsRecording(false);
             };
 
             audioRef.current.currentTime = startTime;
-            audioRef.current.play();
+            await audioRef.current.play();
             setIsPlaying(true);
             recorder.start(100);
 
