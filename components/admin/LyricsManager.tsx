@@ -7,7 +7,7 @@ interface LyricItem {
     title: string;
     artist: string;
     content: string;
-    status: 'LIVE' | 'DRAFT' | 'LOCAL';
+    status: 'LIVE' | 'DRAFT' | 'LOCAL' | 'CLOUD';
     date: string;
 }
 
@@ -18,6 +18,7 @@ const LyricsManager: React.FC = () => {
     const [selectedLyric, setSelectedLyric] = useState<LyricItem | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [googleToken, setGoogleToken] = useState(localStorage.getItem('blogger_google_token') || "");
     const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec");
     const [showTokenHelp, setShowTokenHelp] = useState(false);
@@ -78,6 +79,18 @@ const LyricsManager: React.FC = () => {
                         console.error("Sheets sync error", e);
                     }
                 }
+
+                // 5. Fetch Local Items
+                const localRaw = localStorage.getItem('lyric_studio_drafts');
+                const local = localRaw ? JSON.parse(localRaw) : [];
+                const localItems: LyricItem[] = local.map((l: any, i: number) => ({
+                    id: `local-${i}`,
+                    title: l.name,
+                    artist: l.artist || 'Dios Mas Gym',
+                    content: l.content,
+                    status: 'LOCAL',
+                    date: l.date
+                }));
 
                 setLyrics([...localItems, ...sheetItems, ...draftItems, ...publishedItems]);
             } catch (e) {
