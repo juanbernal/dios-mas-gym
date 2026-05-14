@@ -11,7 +11,7 @@ interface LyricItem {
     date: string;
 }
 
-const SYNC_SECRET = "DMG_SYNC_2026"; // Simple security handshake
+const SYNC_SECRET = "DMG_SYNC_2026";
 
 const LyricsManager: React.FC = () => {
     const navigate = useNavigate();
@@ -24,6 +24,12 @@ const LyricsManager: React.FC = () => {
     const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec");
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'editor'>('list'); // Mobile view toggle
+    const [toast, setToast] = useState<{message: string, show: boolean}>({message: "", show: false});
+
+    const showNotification = (msg: string) => {
+        setToast({message: msg, show: true});
+        setTimeout(() => setToast({message: "", show: false}), 3000);
+    };
 
     useEffect(() => {
         if (selectedLyric && window.innerWidth < 1024) {
@@ -193,9 +199,9 @@ const LyricsManager: React.FC = () => {
                     date: new Date().toISOString()
                 })
             });
-            alert("🚀 [V3.5] ¡CONECTADO A LA NUBE!\nVerifica tu panel de Blogger (Borradores)");
+            showNotification("🚀 [V3.6] ¡CONECTADO A LA NUBE!\nBorrador enviado a Blogger.");
         } catch (e: any) {
-            alert("❌ Error Blogger Cloud: " + e.message);
+            showNotification("❌ Error: " + e.message);
         } finally {
             setIsSaving(false);
         }
@@ -206,12 +212,12 @@ const LyricsManager: React.FC = () => {
     const handleSyncAllLocales = async () => {
         const localDrafts = lyrics.filter(l => l.status === 'LOCAL');
         if (localDrafts.length === 0) {
-            alert("No hay borradores locales para sincronizar.");
+            showNotification("No hay borradores locales.");
             return;
         }
 
         if (!sheetsSyncUrl) {
-            alert("Necesitas configurar tu Cloud Sync (Sheets) primero.");
+            showNotification("Configura Cloud Sync primero.");
             setShowSheetsConfig(true);
             return;
         }
@@ -241,7 +247,7 @@ const LyricsManager: React.FC = () => {
             }
         }
         setIsExporting(false);
-        alert(`✅ Sincronización Cloud completada: ${successCount} de ${localDrafts.length} letras subidas.`);
+        showNotification(`✅ Sincronización completada: ${successCount} letras.`);
     };
 
     const stripHtml = (html: string) => {
@@ -544,6 +550,20 @@ const LyricsManager: React.FC = () => {
         )}
 
 
+
+        {/* TOAST NOTIFICATION */}
+        {toast.show && (
+            <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[1000] animate-bounce-in">
+                <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4">
+                    <div className="w-8 h-8 bg-[#00ffcc]/10 rounded-full flex items-center justify-center text-[#00ffcc]">
+                        <i className="fas fa-check text-xs"></i>
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90 whitespace-pre-line">
+                        {toast.message}
+                    </p>
+                </div>
+            </div>
+        )}
 
       <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
