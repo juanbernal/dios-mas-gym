@@ -242,10 +242,10 @@ const AdminDashboard: React.FC = () => {
                 {/* Header / Saludo Premium */}
                 <div className="mb-12 md:mb-20 flex flex-col lg:flex-row lg:items-end justify-between gap-8 md:gap-10">
                     <div className="text-left">
-                        <h1 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-[#c5a059] mb-3 md:mb-4 flex items-center gap-3 md:gap-4">
-                            <span className="w-8 md:w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
+                        <h1 className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] text-[#c5a059] mb-3 md:mb-4 flex items-center gap-2 md:gap-4">
+                            <span className="w-6 md:w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
                         </h1>
-                        <h2 className="font-serif italic text-4xl md:text-7xl text-white leading-tight">
+                        <h2 className="font-serif italic text-3xl md:text-7xl text-white leading-tight">
                             Hola, <span className="text-[#c5a059] drop-shadow-[0_0_30px_rgba(197,160,89,0.2)]">Juan</span>
                         </h2>
                     </div>

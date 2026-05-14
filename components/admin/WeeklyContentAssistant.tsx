@@ -239,34 +239,34 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                 style={{ borderColor: `${typeInfo.color}30` }}>
 
                 {/* Header Section */}
-                <div className="px-8 py-8 border-b"
+                <div className="px-6 md:px-8 py-6 md:py-8 border-b"
                     style={{ borderColor: `${typeInfo.color}15`, background: `linear-gradient(135deg, ${typeInfo.color}08, transparent)` }}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-3 mb-2 md:mb-3">
                                 <i className={`fas ${typeInfo.icon}`} style={{ color: typeInfo.color }}></i>
-                                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
                                     {typeInfo.label}
                                 </span>
                             </div>
-                            <h3 className="text-2xl md:text-3xl font-serif italic text-white leading-tight">
+                            <h3 className="text-xl md:text-3xl font-serif italic text-white leading-tight">
                                 {suggestion.song?.name || 'Inspiración Diaria'}
                             </h3>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
                             <button
                                 onClick={() => setIsExpanded(!isExpanded)}
-                                className="flex-1 md:flex-none text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-3 rounded-2xl border border-white/10 flex items-center justify-center gap-2"
+                                className="flex-1 md:flex-none text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl border border-white/10 flex items-center justify-center gap-2"
                             >
                                 <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                                 <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
                             </button>
                             <button
                                 onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-5 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
                             >
-                                <span className="text-[9px] font-black uppercase tracking-widest">Siguiente</span>
+                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Siguiente</span>
                                 <i className="fas fa-arrow-right text-[10px]"></i>
                             </button>
                         </div>
@@ -274,45 +274,45 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                 </div>
 
                 {/* Content Section */}
-                <div className="p-8">
+                <div className="p-6 md:p-8">
                     <div className="flex flex-col lg:flex-row gap-8">
-                        <div className="flex-1 flex items-start gap-6">
+                        <div className="flex-1 flex items-start gap-4 md:gap-6">
                             {suggestion.song?.cover && (
                                 <div className="relative shrink-0">
-                                    <img src={suggestion.song.cover} alt={suggestion.song.name} className="w-24 h-24 rounded-2xl object-cover border border-white/10" />
-                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs"
+                                    <img src={suggestion.song.cover} alt={suggestion.song.name} className="w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl object-cover border border-white/10" />
+                                    <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[8px] md:text-xs"
                                         style={{ backgroundColor: typeInfo.color, color: '#000' }}>
                                         <i className={`fas ${typeInfo.icon}`}></i>
                                     </div>
                                 </div>
                             )}
                             <div>
-                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Recomendación Estratégica</p>
+                                <p className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-1 md:mb-2">Recomendación Estratégica</p>
                                 <p className="text-white/80 text-sm md:text-base leading-relaxed font-light italic">
                                     "{suggestion.reason}"
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 lg:w-56 shrink-0">
-                            <button onClick={() => handleAction('/admin/promo-image')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-left">Imagen Promo</span>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:flex lg:flex-col gap-2 md:gap-3 lg:w-56 shrink-0">
+                            <button onClick={() => handleAction('/admin/promo-image')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Imagen</span>
                                 <i className="fas fa-image text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
-                            <button onClick={() => handleAction('/admin/video-snippet')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-left">Video Snippet</span>
+                            <button onClick={() => handleAction('/admin/video-snippet')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Video</span>
                                 <i className="fas fa-video text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
-                            <button onClick={() => handleAction('/admin/social-post')} className="flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-left">Viral Post</span>
+                            <button onClick={() => handleAction('/admin/social-post')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Viral Post</span>
                                 <i className="fas fa-share-nodes text-xs group-hover:scale-110 transition-transform"></i>
                             </button>
-                            <div className="flex gap-2">
-                                <button onClick={() => window.open(`/#/link/${suggestion.song?.id}`, '_blank')} className="flex-1 flex items-center justify-between px-6 py-4 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-left">Smart Link</span>
+                            <div className="flex gap-2 col-span-1 md:col-span-1">
+                                <button onClick={() => window.open(`/#/link/${suggestion.song?.id}`, '_blank')} className="flex-1 flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Smart</span>
                                     <i className="fas fa-eye text-xs group-hover:scale-110 transition-transform"></i>
                                 </button>
-                                <button onClick={() => { if(suggestion.song) copyText(`${window.location.origin}/#/link/${suggestion.song.id}`, 'sl'); }} className={`px-5 py-4 rounded-2xl border transition-all flex items-center justify-center ${copied === 'sl' ? 'bg-green-500/20 border-green-500/40 text-green-500' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-[#c5a059]'}`}>
+                                <button onClick={() => { if(suggestion.song) copyText(`${window.location.origin}/#/link/${suggestion.song.id}`, 'sl'); }} className={`p-3 md:px-5 md:py-4 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center ${copied === 'sl' ? 'bg-green-500/20 border-green-500/40 text-green-500' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-[#c5a059]'}`}>
                                     <i className={`fas ${copied === 'sl' ? 'fa-check' : 'fa-copy'} text-xs`}></i>
                                 </button>
                             </div>
