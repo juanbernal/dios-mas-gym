@@ -457,7 +457,7 @@ const LyricsManager: React.FC = () => {
                             <textarea 
                                 value={selectedLyric.content}
                                 onChange={e => setSelectedLyric({...selectedLyric, content: e.target.value})}
-                                className="flex-1 bg-transparent p-6 md:p-12 text-base md:text-lg leading-relaxed outline-none resize-none custom-scrollbar font-serif italic text-white/80"
+                                className="flex-1 bg-white/[0.02] p-8 md:p-12 text-white text-base md:text-xl leading-relaxed outline-none resize-none custom-scrollbar font-sans font-medium placeholder:text-white/10"
                                 placeholder="Escribe tu letra aquí..."
                             ></textarea>
                             <div className="p-3 bg-black/40 border-t border-white/5 text-center">
