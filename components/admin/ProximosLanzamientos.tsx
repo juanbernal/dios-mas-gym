@@ -247,7 +247,7 @@ const ProximosLanzamientos: React.FC = () => {
         const failed: ReleaseData[] = [];
         for (let i = 0; i < items.length; i++) {
             const release = items[i];
-            setStatus({ type: 'loading', message: `Auto-Sync [${i+1}/${items.length}]: "${release.name}"` });
+            setStatus({ type: 'loading', message: `${i+1} de ${items.length}: ${release.name}` });
             try {
                 const payload = {
                     Artista: release.Artista,
@@ -333,7 +333,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.4</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.5</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
                     <button onClick={() => fetchCurrentReleases(true)} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
@@ -353,7 +353,7 @@ const ProximosLanzamientos: React.FC = () => {
                                         {isSyncing ? 'Sincronizando...' : (status.type === 'error' ? 'Error al sincronizar' : 'Nueva música detectada')}
                                     </h4>
                                     <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
-                                        {isSyncing ? 'El catálogo se está actualizando...' : (status.type === 'error' ? status.message : `${pendingSync.length} canciones listas para sincronizar.`)}
+                                        {isSyncing ? (status.message || 'Sincronizando...') : (status.type === 'error' ? status.message : `${pendingSync.length} canciones listas para sincronizar.`)}
                                     </p>
                                 </div>
                             </div>
@@ -364,22 +364,22 @@ const ProximosLanzamientos: React.FC = () => {
                             )}
                         </div>
                         {!isSyncing && pendingSync.length > 0 && (
-                            <details className="mt-6 group">
-                                <summary className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]/60 cursor-pointer hover:text-[#c5a059] transition-colors">
-                                    <i className="fas fa-chevron-right text-[8px] mr-2"></i>
-                                    Ver {pendingSync.length} canciones
-                                </summary>
-                                <div className="mt-4 space-y-2">
+                            <div className="mt-6 pt-6 border-t border-[#c5a059]/20">
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#c5a059] mb-4">
+                                    <i className="fas fa-list mr-2"></i>
+                                    Canciones detectadas ({pendingSync.length})
+                                </p>
+                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                                     {pendingSync.map((item, i) => (
-                                        <div key={i} className="flex items-center gap-3 text-xs">
-                                            <span className="text-white/20 font-mono w-5 text-right">{i + 1}.</span>
-                                            <span className="text-[#c5a059] font-bold">{item.Artista}</span>
-                                            <span className="text-white/40">—</span>
-                                            <span className="text-white/80">{item.name}</span>
+                                        <div key={i} className="flex items-center gap-3 text-sm bg-black/20 px-4 py-2.5 rounded-xl">
+                                            <span className="text-white/30 font-mono text-xs w-5 text-right shrink-0">{i + 1}.</span>
+                                            <span className="text-[#c5a059] font-bold shrink-0">{item.Artista}</span>
+                                            <span className="text-white/30 shrink-0">—</span>
+                                            <span className="text-white/90 truncate">{item.name}</span>
                                         </div>
                                     ))}
                                 </div>
-                            </details>
+                            </div>
                         )}
                     </div>
                 )}
