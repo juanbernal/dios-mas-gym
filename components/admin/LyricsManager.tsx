@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchArsenalData } from '../../services/contentService';
+import { fetchMusicCatalog } from '../../services/musicService';
+import { MusicItem } from '../../types';
 
 interface LyricItem {
     id: string;
@@ -29,6 +31,14 @@ const LyricsManager: React.FC = () => {
     const [sortMode, setSortMode] = useState<'recent' | 'title' | 'artist' | 'status'>('recent');
     const [previewMode, setPreviewMode] = useState(false);
     const [savedSignature, setSavedSignature] = useState('');
+    const [showStoryBuilder, setShowStoryBuilder] = useState(false);
+    const [storyTitle, setStoryTitle] = useState('');
+    const [storyCatalog, setStoryCatalog] = useState<MusicItem[]>([]);
+    const [storySongId, setStorySongId] = useState('');
+    const [storyThumbnail, setStoryThumbnail] = useState('');
+    const [storyGenerated, setStoryGenerated] = useState('');
+    const [storyAiLoading, setStoryAiLoading] = useState(false);
+    const [storyPostHtml, setStoryPostHtml] = useState('');
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -340,6 +350,127 @@ const LyricsManager: React.FC = () => {
         navigate('/admin/lyric-cleaner', { state: { initialLyrics: selectedText } });
     };
 
+    const openStoryBuilder = async () => {
+        if (!selectedLyric) return;
+        setShowStoryBuilder(true);
+        setStoryTitle(selectedLyric.title);
+        setStorySongId('');
+        setStoryGenerated('');
+        setStoryPostHtml('');
+        const savedThumb = localStorage.getItem('last_generated_promo') || '';
+        setStoryThumbnail(savedThumb);
+        if (storyCatalog.length === 0) {
+            try {
+                const [dm, j6] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614')
+                ]);
+                setStoryCatalog([...dm, ...j6]);
+            } catch (e) {
+                console.error('Error loading catalog for story', e);
+            }
+        }
+    };
+
+    const getSmartLink = (songId: string) => {
+        if (!songId) return '';
+        const song = storyCatalog.find(s => s.id === songId);
+        if (!song) return '';
+        return `${window.location.origin}/#/link/${song.id}`;
+    };
+
+    const handleStorySongSelect = (songId: string) => {
+        setStorySongId(songId);
+        const song = storyCatalog.find(s => s.id === songId);
+        if (song && song.cover) {
+            setStoryThumbnail(song.cover);
+        }
+    };
+
+    const generateStoryPost = async () => {
+        if (!selectedLyric || !storyTitle.trim()) return;
+        setStoryAiLoading(true);
+        try {
+            const smartLink = storySongId ? getSmartLink(storySongId) : '';
+            const songName = storySongId ? storyCatalog.find(s => s.id === storySongId)?.name : selectedLyric.title;
+            const prompt = `Genera una historia/reflexión espiritual para un blog cristiano sobre la canción "${songName}" de ${selectedLyric.artist}. La historia debe:
+1. Tener un título llamativo
+2. Una introducción emocional que conecte con el lector
+3. Una reflexión basada en el mensaje de la letra
+4. Incluir la frase "Escucha "${songName}" disponible en todas las plataformas" con el enlace: ${smartLink || 'Link de la canción'}
+5. Terminar con un mensaje de bendición y los hashtags: #DiosMasGym #Juan614 #MusicaCristiana #Letra
+
+Letra de la canción:
+${selectedText}`;
+
+            const response = await fetch('/api/generate-post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: JSON.stringify({ input: prompt }) })
+            });
+            const data = await response.json();
+            if (data.text) {
+                setStoryGenerated(data.text);
+                const thumbHtml = storyThumbnail
+                    ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>`
+                    : '';
+                const smartLinkHtml = smartLink
+                    ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#000;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">🎧 Escuchar "${songName}"</a></div>`
+                    : '';
+                const lyricHtml = `<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`;
+                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${data.text.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n${lyricHtml}`;
+                setStoryPostHtml(fullHtml);
+            } else {
+                const fallback = `Reflexión sobre "${songName}".\n\nUna canción que toca el corazón y nos recuerda el amor de Dios. Disponible ahora en todas las plataformas. ${smartLink || ''}\n\n#DiosMasGym #Juan614`;
+                setStoryGenerated(fallback);
+                const thumbHtml = storyThumbnail ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>` : '';
+                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#000;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">🎧 Escuchar "${songName}"</a></div>` : '';
+                setStoryPostHtml(`<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${fallback.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`);
+            }
+        } catch (e) {
+            showNotification('Error generando la historia.');
+        } finally {
+            setStoryAiLoading(false);
+        }
+    };
+
+    const saveStoryAsDraft = async () => {
+        if (!selectedLyric || !storyPostHtml) return;
+        if (!sheetsSyncUrl) {
+            showNotification('Configura Cloud Sync primero.');
+            setShowSheetsConfig(true);
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await fetch(sheetsSyncUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'blogger',
+                    secret: SYNC_SECRET,
+                    title: storyTitle,
+                    artist: selectedLyric.artist,
+                    content: storyPostHtml,
+                    date: new Date().toISOString()
+                })
+            });
+            showNotification('Historia guardada como borrador en Blogger Cloud.');
+            setShowStoryBuilder(false);
+        } catch (e: any) {
+            showNotification('Error: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const copyStoryHtml = () => {
+        if (!storyPostHtml) return;
+        navigator.clipboard.writeText(storyPostHtml);
+        showNotification('HTML del post copiado al portapapeles.');
+    };
+
     return (
         <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] flex flex-col">
             {/* Header */}
@@ -623,8 +754,14 @@ const LyricsManager: React.FC = () => {
                                         >
                                             <i className="fas fa-download"></i> TXT
                                         </button>
+                                        <button 
+                                            onClick={openStoryBuilder}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-black uppercase rounded-xl hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fas fa-newspaper"></i> Blog
+                                        </button>
                                      </div>
-                                 </div>
+                                  </div>
                              </div>
                             {previewMode ? (
                                 <div className="flex-1 bg-white/[0.03] p-10 md:p-16 text-white text-lg md:text-2xl leading-[1.8] overflow-y-auto custom-scrollbar whitespace-pre-wrap font-sans font-semibold tracking-tight">
@@ -722,6 +859,154 @@ const LyricsManager: React.FC = () => {
         )}
 
 
+
+        {/* STORY BUILDER MODAL */}
+        {showStoryBuilder && selectedLyric && (
+            <div className="fixed inset-0 z-[400] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+                <div className="bg-[#0f111a] border border-white/10 rounded-[2.5rem] w-full max-w-5xl shadow-2xl relative max-h-[95vh] overflow-y-auto custom-scrollbar">
+                    <button onClick={() => setShowStoryBuilder(false)} className="sticky top-6 z-10 float-right mr-6 mt-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white transition-all flex items-center justify-center">
+                        <i className="fas fa-times"></i>
+                    </button>
+                    
+                    <div className="p-8 md:p-12">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 text-2xl">
+                                <i className="fas fa-newspaper"></i>
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-1">Historia <span className="text-[#c5a059]">Blogger</span></h2>
+                                <p className="text-[9px] uppercase font-black tracking-[0.3em] text-white/20">Genera un post con historia + smart link + letra</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            {/* Left Column: Config */}
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 block">Título del Post</label>
+                                    <input 
+                                        type="text"
+                                        value={storyTitle}
+                                        onChange={e => setStoryTitle(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-amber-500/40 transition-all"
+                                        placeholder="Título de la historia..."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 block">Canción Relacionada (para Smart Link)</label>
+                                    {storyCatalog.length === 0 ? (
+                                        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl text-[10px] text-white/40">
+                                            <i className="fas fa-spinner fa-spin"></i> Cargando catálogo...
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={storySongId}
+                                            onChange={e => handleStorySongSelect(e.target.value)}
+                                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-amber-500/40 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Sin canción (solo letra)</option>
+                                            {storyCatalog.map(song => (
+                                                <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    {storySongId && (
+                                        <p className="mt-2 text-[9px] text-amber-400/60 break-all">
+                                            <i className="fas fa-link mr-1"></i> {getSmartLink(storySongId)}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 block">Miniatura del Post</label>
+                                    {storyThumbnail ? (
+                                        <div className="relative group">
+                                            <img src={storyThumbnail} alt="Thumbnail" className="w-full h-40 object-cover rounded-2xl border border-white/10" />
+                                            <button
+                                                onClick={() => {
+                                                    const url = prompt('URL de la miniatura (dejar vacío para usar portada de la canción):');
+                                                    if (url) setStoryThumbnail(url);
+                                                    else if (storySongId) {
+                                                        const s = storyCatalog.find(x => x.id === storySongId);
+                                                        if (s?.cover) setStoryThumbnail(s.cover);
+                                                    }
+                                                }}
+                                                className="absolute top-3 right-3 px-3 py-1.5 bg-black/60 backdrop-blur rounded-full text-[8px] font-black uppercase tracking-widest text-white/80 hover:text-white border border-white/10"
+                                            >
+                                                Cambiar
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                const url = prompt('Pega URL de la imagen para el post:');
+                                                if (url) setStoryThumbnail(url);
+                                            }}
+                                            className="w-full h-40 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/30 hover:border-amber-500/40 hover:text-amber-400 transition-all"
+                                        >
+                                            <i className="fas fa-image text-2xl"></i>
+                                            <span className="text-[8px] font-black uppercase tracking-widest">Agregar Miniatura</span>
+                                        </button>
+                                    )}
+                                    <p className="mt-2 text-[8px] text-white/20">
+                                        Usa Studio PRO Generator v4.3.1 para crear una imagen y automáticamente aparecerá aquí.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Preview & Actions */}
+                            <div className="space-y-6">
+                                {!storyGenerated ? (
+                                    <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+                                        <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 text-2xl mb-6">
+                                            <i className="fas fa-wand-magic-sparkles"></i>
+                                        </div>
+                                        <p className="text-sm text-white/60 mb-2">Genera la historia con IA</p>
+                                        <p className="text-[9px] text-white/30 max-w-xs">Completa los campos de la izquierda y presiona "Generar Historia".</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 min-h-[300px] max-h-[400px] overflow-y-auto custom-scrollbar">
+                                        <div className="text-xs text-white/80 leading-relaxed prose prose-invert" dangerouslySetInnerHTML={{ __html: storyPostHtml }} />
+                                    </div>
+                                )}
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        onClick={generateStoryPost}
+                                        disabled={storyAiLoading || !storyTitle.trim()}
+                                        className="flex-1 px-6 py-4 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest rounded-2xl hover:bg-white transition-all disabled:opacity-30 shadow-lg shadow-amber-500/10 flex items-center justify-center gap-3"
+                                    >
+                                        {storyAiLoading ? (
+                                            <><i className="fas fa-spinner fa-spin"></i> Generando...</>
+                                        ) : (
+                                            <><i className="fas fa-wand-magic-sparkles"></i> Generar Historia</>
+                                        )}
+                                    </button>
+                                    {storyGenerated && (
+                                        <>
+                                            <button
+                                                onClick={copyStoryHtml}
+                                                className="flex-1 px-6 py-4 bg-white/5 border border-white/10 text-white/70 text-[9px] font-black uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+                                            >
+                                                <i className="fas fa-copy"></i> Copiar HTML
+                                            </button>
+                                            <button
+                                                onClick={saveStoryAsDraft}
+                                                disabled={isSaving}
+                                                className="flex-1 px-6 py-4 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[9px] font-black uppercase tracking-widest rounded-2xl hover:bg-purple-500/30 transition-all shadow-lg shadow-purple-500/10 flex items-center justify-center gap-3"
+                                            >
+                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i> Borrador Cloud
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* TOAST NOTIFICATION */}
         {toast.show && (
