@@ -43,6 +43,8 @@ const LyricsManager: React.FC = () => {
     const [storyPostHtml, setStoryPostHtml] = useState('');
     const [storySearchQuery, setStorySearchQuery] = useState('');
     const [storyShowResults, setStoryShowResults] = useState(false);
+    const [storyPreviewMode, setStoryPreviewMode] = useState<'preview' | 'html' | 'edit'>('preview');
+    const [storyEditHtml, setStoryEditHtml] = useState('');
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -426,21 +428,25 @@ ${selectedText}`;
                     .replace(/###?\s*/g, '')
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
+                const paragraphs = bodyText.split(/\n\n+/).map(p => `<p style="margin:0 0 1.2em 0;font-size:18px;line-height:1.8;">${p.replace(/\n/g, '<br/>')}</p>`).join('\n');
                 const thumbHtml = storyThumbnail
-                    ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>`
+                    ? `<div style="text-align:center;margin:0 0 20px 0;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;height:auto;" /></div>`
                     : '';
                 const smartLinkHtml = smartLink
-                    ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>`
+                    ? `<div style="text-align:center;margin:30px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:14px 40px;font-size:16px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>`
                     : '';
-                const lyricHtml = `<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`;
-                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${bodyText.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n${lyricHtml}`;
+                const lyricHtml = `<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`;
+                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n${lyricHtml}`;
                 setStoryPostHtml(fullHtml);
+                setStoryEditHtml(fullHtml);
             } else {
                 setStoryGenerated(true);
                 const fallback = `${storyTitle}\n\nUna canción que toca el corazón y nos recuerda el amor de Dios. Disponible ahora en todas las plataformas.`;
-                const thumbHtml = storyThumbnail ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>` : '';
-                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>` : '';
-                setStoryPostHtml(`<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${fallback.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`);
+                const paragraphs = fallback.split(/\n\n+/).map(p => `<p style="margin:0 0 1.2em 0;font-size:18px;line-height:1.8;">${p.replace(/\n/g, '<br/>')}</p>`).join('\n');
+                const thumbHtml = storyThumbnail ? `<div style="text-align:center;margin:0 0 20px 0;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;height:auto;" /></div>` : '';
+                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:30px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:14px 40px;font-size:16px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>` : '';
+                setStoryPostHtml(`<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`);
+                setStoryEditHtml(`<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`);
             }
         } catch (e) {
             showNotification('Error generando la historia.');
@@ -481,8 +487,8 @@ ${selectedText}`;
     };
 
     const copyStoryHtml = () => {
-        if (!storyPostHtml) return;
-        navigator.clipboard.writeText(storyPostHtml);
+        if (!storyEditHtml) return;
+        navigator.clipboard.writeText(storyEditHtml);
         showNotification('HTML del post copiado al portapapeles.');
     };
 
@@ -1064,9 +1070,49 @@ ${selectedText}`;
                                         <p className="text-[9px] text-white/30 max-w-xs">Completa los campos de la izquierda y presiona "Generar Historia".</p>
                                     </div>
                                 ) : (
-                                    <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 min-h-[300px] max-h-[400px] overflow-y-auto custom-scrollbar">
-                                        <div className="text-xs text-white/80 leading-relaxed prose prose-invert" dangerouslySetInnerHTML={{ __html: storyPostHtml }} />
-                                    </div>
+                                    <>
+                                        <div className="flex gap-2 mb-4">
+                                            <button
+                                                onClick={() => setStoryPreviewMode('preview')}
+                                                className={`px-4 py-2 text-[8px] font-black uppercase tracking-widest rounded-xl transition-all ${storyPreviewMode === 'preview' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+                                            >
+                                                <i className="fas fa-eye mr-1"></i> Vista Previa
+                                            </button>
+                                            <button
+                                                onClick={() => setStoryPreviewMode('html')}
+                                                className={`px-4 py-2 text-[8px] font-black uppercase tracking-widest rounded-xl transition-all ${storyPreviewMode === 'html' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+                                            >
+                                                <i className="fas fa-code mr-1"></i> HTML
+                                            </button>
+                                            <button
+                                                onClick={() => setStoryPreviewMode('edit')}
+                                                className={`px-4 py-2 text-[8px] font-black uppercase tracking-widest rounded-xl transition-all ${storyPreviewMode === 'edit' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+                                            >
+                                                <i className="fas fa-pen mr-1"></i> Editar
+                                            </button>
+                                        </div>
+                                        {storyPreviewMode === 'preview' && (
+                                            <div className="bg-white border border-gray-200 rounded-2xl p-8 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+                                                <div className="text-black" style={{ fontSize: '16px', lineHeight: '1.8' }} dangerouslySetInnerHTML={{ __html: storyPostHtml }} />
+                                            </div>
+                                        )}
+                                        {storyPreviewMode === 'html' && (
+                                            <div className="bg-[#1a1b2e] border border-white/10 rounded-2xl p-6 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
+                                                <pre className="text-[11px] text-green-400 font-mono leading-relaxed whitespace-pre-wrap">{storyPostHtml}</pre>
+                                            </div>
+                                        )}
+                                        {storyPreviewMode === 'edit' && (
+                                            <textarea
+                                                value={storyEditHtml}
+                                                onChange={e => {
+                                                    setStoryEditHtml(e.target.value);
+                                                    setStoryPostHtml(e.target.value);
+                                                }}
+                                                className="w-full bg-[#1a1b2e] border border-white/10 rounded-2xl p-6 min-h-[300px] max-h-[500px] text-[11px] text-green-400 font-mono leading-relaxed outline-none resize-y custom-scrollbar"
+                                                spellCheck={false}
+                                            />
+                                        )}
+                                    </>
                                 )}
 
                                 <div className="flex flex-wrap gap-3">
