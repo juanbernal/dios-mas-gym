@@ -171,6 +171,7 @@ const ProximosLanzamientos: React.FC = () => {
 
     const fetchCurrentReleases = async (force = false) => {
         setLoadingReleases(true);
+        setStatus({ type: 'idle' });
         try {
             const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
             if (response.ok) {
@@ -243,9 +244,10 @@ const ProximosLanzamientos: React.FC = () => {
         const items = itemsToSync || pendingSync;
         if (items.length === 0) return;
         setIsSyncing(true);
+        const failed: ReleaseData[] = [];
         for (let i = 0; i < items.length; i++) {
             const release = items[i];
-            setStatus({ type: 'loading', message: `Auto-Sync [${i+1}/${items.length}]: Sincronizando "${release.name}"...` });
+            setStatus({ type: 'loading', message: `Auto-Sync [${i+1}/${items.length}]: "${release.name}"` });
             try {
                 const payload = {
                     Artista: release.Artista,
@@ -255,17 +257,26 @@ const ProximosLanzamientos: React.FC = () => {
                     audioUrl: release.audioUrl || '',
                     coverImageUrl: release.coverImageUrl || ''
                 };
-                await fetch('/api/sheet-proxy', {
+                const res = await fetch('/api/sheet-proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                await new Promise(r => setTimeout(r, 1200)); 
-            } catch (e) { console.error("Error syncing item:", e); }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                await new Promise(r => setTimeout(r, 1200));
+            } catch (e) {
+                failed.push(release);
+                console.error("Error syncing item:", release.name, e);
+            }
         }
         setIsSyncing(false);
-        setPendingSync([]);
-        setStatus({ type: 'success', message: '¡Catálogo actualizado correctamente!' });
+        if (failed.length === 0) {
+            setPendingSync([]);
+            setStatus({ type: 'success', message: `¡${items.length} canciones sincronizadas correctamente!` });
+        } else {
+            setPendingSync(failed);
+            setStatus({ type: 'error', message: `${failed.length} de ${items.length} canciones no se pudieron sincronizar.` });
+        }
         setTimeout(fetchCurrentReleases, 2000);
     };
 
@@ -331,22 +342,44 @@ const ProximosLanzamientos: React.FC = () => {
                 </div>
 
                 {(pendingSync.length > 0 || isSyncing) && (
-                    <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in">
-                        <div className="flex items-center gap-6">
-                            <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black">
-                                <i className={`fas ${isSyncing ? 'fa-circle-notch animate-spin' : 'fa-magic'} text-xl`}></i>
+                    <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl animate-fade-in">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-center gap-6">
+                                <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black shrink-0">
+                                    <i className={`fas ${isSyncing ? 'fa-circle-notch animate-spin' : (status.type === 'error' ? 'fa-exclamation-triangle' : 'fa-magic')} text-xl`}></i>
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-bold text-lg">
+                                        {isSyncing ? 'Sincronizando...' : (status.type === 'error' ? 'Error al sincronizar' : 'Nueva música detectada')}
+                                    </h4>
+                                    <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
+                                        {isSyncing ? 'El catálogo se está actualizando...' : (status.type === 'error' ? status.message : `${pendingSync.length} canciones listas para sincronizar.`)}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-white font-bold text-lg">{isSyncing ? 'Sincronizando...' : 'Nueva música detectada'}</h4>
-                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
-                                    {isSyncing ? 'El catálogo se está actualizando automáticamente...' : `${pendingSync.length} canciones listas para sincronizar.`}
-                                </p>
-                            </div>
+                            {!isSyncing && (
+                                <button onClick={() => handleAutoSync()} className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full min-w-[250px] shrink-0">
+                                    Sincronizar Todo Ahora
+                                </button>
+                            )}
                         </div>
-                        {!isSyncing && (
-                            <button onClick={() => handleAutoSync()} className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full min-w-[300px]">
-                                Sincronizar Todo Ahora
-                            </button>
+                        {!isSyncing && pendingSync.length > 0 && (
+                            <details className="mt-6 group">
+                                <summary className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]/60 cursor-pointer hover:text-[#c5a059] transition-colors">
+                                    <i className="fas fa-chevron-right text-[8px] mr-2"></i>
+                                    Ver {pendingSync.length} canciones
+                                </summary>
+                                <div className="mt-4 space-y-2">
+                                    {pendingSync.map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 text-xs">
+                                            <span className="text-white/20 font-mono w-5 text-right">{i + 1}.</span>
+                                            <span className="text-[#c5a059] font-bold">{item.Artista}</span>
+                                            <span className="text-white/40">—</span>
+                                            <span className="text-white/80">{item.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
                         )}
                     </div>
                 )}
