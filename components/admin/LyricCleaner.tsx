@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const LyricCleaner: React.FC = () => {
     const navigate = useNavigate();
-    const [rawLyrics, setRawLyrics] = useState('');
+    const location = useLocation();
+    const [rawLyrics, setRawLyrics] = useState(() => (location.state as { initialLyrics?: string } | null)?.initialLyrics || '');
     const [finalLyrics, setFinalLyrics] = useState('');
     const [toastMsg, setToastMsg] = useState('');
 

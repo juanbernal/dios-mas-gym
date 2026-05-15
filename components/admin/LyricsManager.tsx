@@ -25,6 +25,10 @@ const LyricsManager: React.FC = () => {
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'editor'>('list'); // Mobile view toggle
     const [toast, setToast] = useState<{message: string, show: boolean}>({message: "", show: false});
+    const [statusFilter, setStatusFilter] = useState<LyricItem['status'] | 'ALL'>('ALL');
+    const [sortMode, setSortMode] = useState<'recent' | 'title' | 'artist' | 'status'>('recent');
+    const [previewMode, setPreviewMode] = useState(false);
+    const [savedSignature, setSavedSignature] = useState('');
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -108,10 +112,63 @@ const LyricsManager: React.FC = () => {
         loadAllLyrics();
     }, []);
 
-    const filteredLyrics = lyrics.filter(l => 
-        l.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        l.content.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const stripHtml = (html: string) => {
+        if (typeof document === 'undefined') return html.replace(/<[^>]*>?/gm, '');
+        const tmp = document.createElement("DIV");
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || "";
+    };
+
+    const getSignature = (lyric: LyricItem | null) => lyric ? `${lyric.title}|${lyric.artist}|${lyric.content}` : '';
+
+    const lyricsStats = {
+        total: lyrics.length,
+        live: lyrics.filter(l => l.status === 'LIVE').length,
+        draft: lyrics.filter(l => l.status === 'DRAFT').length,
+        cloud: lyrics.filter(l => l.status === 'CLOUD').length,
+        local: lyrics.filter(l => l.status === 'LOCAL').length,
+        unsynced: lyrics.filter(l => l.status === 'LOCAL').length
+    };
+
+    const duplicateTitles = lyrics.reduce((acc, lyric) => {
+        const key = lyric.title.trim().toLowerCase();
+        if (!key) return acc;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const filteredLyrics = lyrics
+        .filter(l => {
+            const term = searchTerm.toLowerCase();
+            const matchesStatus = statusFilter === 'ALL' || l.status === statusFilter;
+            const matchesSearch = !term ||
+                l.title.toLowerCase().includes(term) ||
+                l.artist.toLowerCase().includes(term) ||
+                l.status.toLowerCase().includes(term) ||
+                stripHtml(l.content).toLowerCase().includes(term);
+            return matchesStatus && matchesSearch;
+        })
+        .sort((a, b) => {
+            if (sortMode === 'title') return a.title.localeCompare(b.title);
+            if (sortMode === 'artist') return a.artist.localeCompare(b.artist);
+            if (sortMode === 'status') return a.status.localeCompare(b.status);
+            return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+        });
+
+    const selectedText = stripHtml(selectedLyric?.content || '');
+    const selectedMetrics = {
+        lines: selectedText.split('\n').filter(line => line.trim()).length,
+        words: selectedText.trim() ? selectedText.trim().split(/\s+/).length : 0,
+        estimatedMinutes: Math.max(1, Math.ceil((selectedText.trim() ? selectedText.trim().split(/\s+/).length : 0) / 150)),
+        duplicate: selectedLyric ? duplicateTitles[selectedLyric.title.trim().toLowerCase()] > 1 : false
+    };
+    const hasUnsavedChanges = !!selectedLyric && getSignature(selectedLyric) !== savedSignature;
+
+    const selectLyric = (lyric: LyricItem) => {
+        setSelectedLyric(lyric);
+        setSavedSignature(getSignature(lyric));
+        setPreviewMode(false);
+    };
 
     const handleSaveLocal = () => {
         if (!selectedLyric) return;
@@ -141,7 +198,8 @@ const LyricsManager: React.FC = () => {
 
         setTimeout(() => {
             setIsSaving(false);
-            alert("✅ Guardado en Borradores Locales");
+            setSavedSignature(getSignature(selectedLyric));
+            showNotification("✅ Guardado en Borradores Locales");
         }, 500);
     };
 
@@ -167,7 +225,8 @@ const LyricsManager: React.FC = () => {
                 })
             });
             
-            alert("✅ Sincronizado con Google Sheets");
+            showNotification("✅ Sincronizado con Google Sheets");
+            setSavedSignature(getSignature(selectedLyric));
             
             // Actualizar estado local para reflejar que ahora es 'CLOUD'
             if (selectedLyric.status !== 'CLOUD') {
@@ -176,7 +235,7 @@ const LyricsManager: React.FC = () => {
                 setSelectedLyric(newItem);
             }
         } catch (e: any) {
-            alert("❌ Error Sheets: " + e.message);
+            showNotification("❌ Error Sheets: " + e.message);
         } finally {
             setIsSaving(false);
         }
@@ -250,13 +309,6 @@ const LyricsManager: React.FC = () => {
         showNotification(`✅ Sincronización completada: ${successCount} letras.`);
     };
 
-    const stripHtml = (html: string) => {
-        if (typeof document === 'undefined') return html.replace(/<[^>]*>?/gm, '');
-        const tmp = document.createElement("DIV");
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || "";
-    };
-
     const goToStudio = () => {
         if (!selectedLyric) return;
         navigate('/admin/lyric-studio', { 
@@ -264,6 +316,28 @@ const LyricsManager: React.FC = () => {
                 initialLyrics: stripHtml(selectedLyric.content) 
             } 
         });
+    };
+
+    const copySelectedLyric = async () => {
+        if (!selectedLyric) return;
+        await navigator.clipboard.writeText(selectedText);
+        showNotification("Letra copiada al portapapeles.");
+    };
+
+    const exportSelectedLyric = () => {
+        if (!selectedLyric) return;
+        const blob = new Blob([selectedText], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${selectedLyric.title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'letra'}.txt`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const goToCleaner = () => {
+        if (!selectedLyric) return;
+        navigate('/admin/lyric-cleaner', { state: { initialLyrics: selectedText } });
     };
 
     return (
@@ -299,7 +373,7 @@ const LyricsManager: React.FC = () => {
                             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
                             <input 
                                 type="text" 
-                                placeholder="Buscar letra..."
+                                placeholder="Buscar letra, artista o estado..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="bg-black/40 border border-white/10 rounded-full pl-10 pr-6 py-2 text-xs outline-none focus:border-[#00ffcc]/30 w-full md:w-64"
@@ -326,7 +400,10 @@ const LyricsManager: React.FC = () => {
                                 onClick={() => {
                                     const title = prompt("Título de la nueva canción:");
                                     if (title) {
-                                        setSelectedLyric({ id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL', date: new Date().toISOString() });
+                                        const newLyric = { id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                        setSelectedLyric(newLyric);
+                                        setSavedSignature(getSignature(newLyric));
+                                        setPreviewMode(false);
                                         setViewMode('editor');
                                     }
                                 }}
@@ -340,7 +417,48 @@ const LyricsManager: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 grid grid-cols-12 overflow-hidden h-[calc(100vh-140px)] md:h-[calc(100vh-100px)]">
+            <div className="px-4 md:px-8 py-4 border-b border-white/5 bg-[#05070a]">
+                <div className="max-w-screen-2xl mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 flex-1">
+                        {[
+                            ['Total', lyricsStats.total],
+                            ['Live', lyricsStats.live],
+                            ['Draft', lyricsStats.draft],
+                            ['Cloud', lyricsStats.cloud],
+                            ['Local', lyricsStats.local],
+                            ['Sin sync', lyricsStats.unsynced]
+                        ].map(([label, value]) => (
+                            <div key={label as string} className="bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3">
+                                <p className="text-lg font-serif italic text-white">{value}</p>
+                                <p className="text-[7px] font-black uppercase tracking-widest text-white/25">{label}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {(['ALL', 'LIVE', 'DRAFT', 'CLOUD', 'LOCAL'] as const).map(status => (
+                            <button
+                                key={status}
+                                onClick={() => setStatusFilter(status)}
+                                className={`px-4 py-2 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/35 border-white/10 hover:text-white'}`}
+                            >
+                                {status === 'ALL' ? 'Todas' : status}
+                            </button>
+                        ))}
+                        <select
+                            value={sortMode}
+                            onChange={e => setSortMode(e.target.value as typeof sortMode)}
+                            className="bg-black/40 border border-white/10 rounded-full px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white/60 outline-none focus:border-[#00ffcc]/40"
+                        >
+                            <option value="recent">Recientes</option>
+                            <option value="title">Título</option>
+                            <option value="artist">Artista</option>
+                            <option value="status">Estado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-12 overflow-hidden h-[calc(100vh-270px)] md:h-[calc(100vh-210px)]">
                 {/* List Sidebar */}
                 <div className={`${viewMode === 'list' ? 'col-span-12' : 'hidden'} lg:flex lg:col-span-4 border-r border-white/5 overflow-y-auto custom-scrollbar bg-black/20 flex-col`}>
                     {loading ? (
@@ -353,7 +471,7 @@ const LyricsManager: React.FC = () => {
                             {filteredLyrics.map((lyric) => (
                                 <div 
                                     key={lyric.id}
-                                    onClick={() => setSelectedLyric(lyric)}
+                                    onClick={() => selectLyric(lyric)}
                                     className={`p-6 cursor-pointer transition-all hover:bg-white/5 ${selectedLyric?.id === lyric.id ? 'bg-[#00ffcc]/5 border-l-4 border-[#00ffcc]' : ''}`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
@@ -364,9 +482,13 @@ const LyricsManager: React.FC = () => {
                                         }`}>
                                             {lyric.status}
                                         </span>
+                                        {duplicateTitles[lyric.title.trim().toLowerCase()] > 1 && (
+                                            <span className="text-[8px] font-black uppercase px-2 py-1 rounded bg-red-500/15 text-red-400">Duplicada</span>
+                                        )}
                                         <span className="text-[8px] text-white/20">{new Date(lyric.date).toLocaleDateString()}</span>
                                     </div>
                                     <h3 className="text-sm font-bold truncate">{lyric.title}</h3>
+                                    <p className="text-[9px] text-[#00ffcc]/50 font-black uppercase tracking-widest mt-1">{lyric.artist}</p>
                                     <p className="text-[10px] text-white/40 line-clamp-1 mt-1 font-light italic">
                                         {stripHtml(lyric.content).slice(0, 100)}
                                     </p>
@@ -396,6 +518,11 @@ const LyricsManager: React.FC = () => {
                                             className="bg-transparent text-xl md:text-2xl font-black italic uppercase outline-none border-b border-transparent focus:border-[#00ffcc]/20 w-full"
                                             placeholder="Título de la Canción"
                                         />
+                                        {hasUnsavedChanges && (
+                                            <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] font-black uppercase tracking-widest shrink-0">
+                                                Cambios pendientes
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <button 
@@ -417,12 +544,39 @@ const LyricsManager: React.FC = () => {
                                             className="bg-transparent text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#00ffcc] outline-none border-b border-white/10 focus:border-[#00ffcc]/40 min-w-[100px]"
                                             placeholder="Otro Artista..."
                                         />
-                                    </div>
-                                </div>
-                                
-                                <div className="flex flex-wrap gap-2 md:gap-3">
+                                     </div>
+                                     <div className="flex flex-wrap gap-2 mt-4">
+                                        {[
+                                            ['Líneas', selectedMetrics.lines],
+                                            ['Palabras', selectedMetrics.words],
+                                            ['Min est.', selectedMetrics.estimatedMinutes],
+                                            ['Duplicada', selectedMetrics.duplicate ? 'Sí' : 'No']
+                                        ].map(([label, value]) => (
+                                            <div key={label as string} className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2">
+                                                <p className="text-xs font-bold text-white/80">{value}</p>
+                                                <p className="text-[7px] font-black uppercase tracking-widest text-white/20">{label}</p>
+                                            </div>
+                                        ))}
+                                     </div>
+                                 </div>
+                                 
+                                 <div className="flex flex-wrap gap-2 md:gap-3">
                                     <div className="flex gap-2 w-full md:w-auto">
-                                        {sheetsSyncUrl && (
+                                        <button 
+                                            onClick={() => setPreviewMode(!previewMode)}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white/5 border border-white/10 text-white/60 text-[9px] font-black uppercase rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <i className={`fas ${previewMode ? 'fa-pen' : 'fa-eye'}`}></i> {previewMode ? 'Editar' : 'Vista'}
+                                        </button>
+                                        <button 
+                                            onClick={copySelectedLyric}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white/5 border border-white/10 text-white/60 text-[9px] font-black uppercase rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fas fa-copy"></i> Copiar
+                                        </button>
+                                    </div>
+                                     <div className="flex gap-2 w-full md:w-auto">
+                                         {sheetsSyncUrl && (
                                             <button 
                                                 onClick={handleSaveToSheets}
                                                 disabled={isSaving}
@@ -451,25 +605,43 @@ const LyricsManager: React.FC = () => {
                                         >
                                             <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> Local
                                         </button>
-                                        <button 
-                                            onClick={goToStudio}
-                                            className="flex-1 md:flex-none px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[9px] font-black uppercase rounded-xl hover:scale-105 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+                                         <button 
+                                             onClick={goToStudio}
+                                             className="flex-1 md:flex-none px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[9px] font-black uppercase rounded-xl hover:scale-105 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+                                         >
+                                             <i className="fas fa-wand-magic-sparkles"></i> Studio
+                                         </button>
+                                         <button 
+                                            onClick={goToCleaner}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-black uppercase rounded-xl hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2"
                                         >
-                                            <i className="fas fa-wand-magic-sparkles"></i> Studio
+                                            <i className="fas fa-broom"></i> Limpiar
                                         </button>
-                                    </div>
+                                        <button 
+                                            onClick={exportSelectedLyric}
+                                            className="flex-1 md:flex-none px-4 py-2 bg-white/5 border border-white/10 text-white/60 text-[9px] font-black uppercase rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fas fa-download"></i> TXT
+                                        </button>
+                                     </div>
+                                 </div>
+                             </div>
+                            {previewMode ? (
+                                <div className="flex-1 bg-white/[0.03] p-10 md:p-16 text-white text-lg md:text-2xl leading-[1.8] overflow-y-auto custom-scrollbar whitespace-pre-wrap font-sans font-semibold tracking-tight">
+                                    {selectedText || <span className="text-white/10">Sin contenido para previsualizar.</span>}
                                 </div>
-                            </div>
-                            <textarea 
-                                value={selectedLyric.content}
-                                onChange={e => setSelectedLyric({...selectedLyric, content: e.target.value})}
-                                className="flex-1 bg-white/[0.03] p-10 md:p-16 text-white text-lg md:text-2xl leading-[1.8] outline-none resize-none custom-scrollbar font-sans font-semibold tracking-tight placeholder:text-white/5"
-                                style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}
-                                placeholder="Escribe la letra de tu próximo éxito aquí..."
-                            ></textarea>
+                            ) : (
+                                <textarea 
+                                    value={selectedLyric.content}
+                                    onChange={e => setSelectedLyric({...selectedLyric, content: e.target.value})}
+                                    className="flex-1 bg-white/[0.03] p-10 md:p-16 text-white text-lg md:text-2xl leading-[1.8] outline-none resize-none custom-scrollbar font-sans font-semibold tracking-tight placeholder:text-white/5"
+                                    style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}
+                                    placeholder="Escribe la letra de tu próximo éxito aquí..."
+                                ></textarea>
+                            )}
                             <div className="p-3 bg-black/40 border-t border-white/5 text-center">
                                 <p className="text-[8px] md:text-[9px] uppercase font-black tracking-widest text-white/20">
-                                    Autoguardado disponible en Cloud y Local
+                                    {hasUnsavedChanges ? 'Guarda para sincronizar los cambios pendientes' : 'Autoguardado disponible en Cloud y Local'}
                                 </p>
                             </div>
                         </>

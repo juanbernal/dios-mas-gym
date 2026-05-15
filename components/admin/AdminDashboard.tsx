@@ -12,6 +12,14 @@ const AdminDashboard: React.FC = () => {
     const [musicCatalog, setMusicCatalog] = useState<MusicItem[]>([]);
     const [isSyncingMusic, setIsSyncingMusic] = useState(false);
     const [lastMusicSync, setLastMusicSync] = useState<string>('Pendiente');
+    const [toolSearch, setToolSearch] = useState('');
+    const [activeCategory, setActiveCategory] = useState('Todo');
+    const [favoriteToolIds, setFavoriteToolIds] = useState<string[]>(() => {
+        try { return JSON.parse(localStorage.getItem('admin_favorite_tools') || '[]'); } catch { return []; }
+    });
+    const [recentToolIds, setRecentToolIds] = useState<string[]>(() => {
+        try { return JSON.parse(localStorage.getItem('admin_recent_tools') || '[]'); } catch { return []; }
+    });
     const push = useOneSignal();
 
     const loadMusicCatalog = async (forceRefresh = false) => {
@@ -227,12 +235,32 @@ const AdminDashboard: React.FC = () => {
         }
     ];
 
-    // Agrupar tools por categoría
-    const toolsByCategory = tools.reduce((acc, tool) => {
-        if (!acc[tool.category]) acc[tool.category] = [];
-        acc[tool.category].push(tool);
-        return acc;
-    }, {} as Record<string, typeof tools>);
+    const toolCategories = ['Todo', ...Array.from(new Set(tools.map(tool => tool.category)))];
+    const recentTools = recentToolIds
+        .map(id => tools.find(tool => tool.id === id))
+        .filter(Boolean) as typeof tools;
+    const visibleTools = tools
+        .filter(tool => activeCategory === 'Todo' || tool.category === activeCategory)
+        .filter(tool => {
+            const term = toolSearch.toLowerCase();
+            return !term || tool.title.toLowerCase().includes(term) || tool.description.toLowerCase().includes(term) || tool.category.toLowerCase().includes(term);
+        })
+        .sort((a, b) => Number(favoriteToolIds.includes(b.id)) - Number(favoriteToolIds.includes(a.id)));
+
+    const openTool = (tool: typeof tools[number]) => {
+        const nextRecent = [tool.id, ...recentToolIds.filter(id => id !== tool.id)].slice(0, 4);
+        setRecentToolIds(nextRecent);
+        localStorage.setItem('admin_recent_tools', JSON.stringify(nextRecent));
+        if (tool.route) navigate(tool.route);
+    };
+
+    const toggleFavorite = (toolId: string) => {
+        const nextFavorites = favoriteToolIds.includes(toolId)
+            ? favoriteToolIds.filter(id => id !== toolId)
+            : [toolId, ...favoriteToolIds];
+        setFavoriteToolIds(nextFavorites);
+        localStorage.setItem('admin_favorite_tools', JSON.stringify(nextFavorites));
+    };
 
     const musicStats = {
         total: musicCatalog.length,
@@ -325,11 +353,38 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
 
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+                    {[
+                        { label: 'Nueva Letra', icon: 'fa-file-circle-plus', route: '/admin/lyrics-manager', color: '#00ffcc' },
+                        { label: 'Nuevo Post', icon: 'fa-bullhorn', route: '/admin/social-post', color: '#fbbf24' },
+                        { label: 'Smart Link', icon: 'fa-link', route: '/admin/smart-links', color: '#3b82f6' },
+                        { label: 'Calendario', icon: 'fa-calendar-plus', route: '/admin/content-calendar', color: '#38bdf8' }
+                    ].map(action => (
+                        <button
+                            key={action.label}
+                            onClick={() => navigate(action.route)}
+                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-5 text-left hover:-translate-y-1 hover:border-[#c5a059]/30 transition-all group"
+                        >
+                            <i className={`fas ${action.icon} text-xl mb-6`} style={{ color: action.color }}></i>
+                            <p className="text-white text-xs font-black uppercase tracking-widest group-hover:text-[#c5a059] transition-colors">{action.label}</p>
+                        </button>
+                    ))}
+                </div>
+
                 {/* Sección de Herramientas Premium (Bento Grid) */}
                 <div className="mb-32">
-                    <div className="flex items-center gap-6 mb-16">
+                    <div className="flex flex-col xl:flex-row xl:items-center gap-6 mb-10">
                         <h3 className="text-white text-[11px] font-black uppercase tracking-[0.6em] shrink-0">Arsenal Creativo</h3>
                         <div className="h-px bg-white/5 flex-1"></div>
+                        <div className="relative w-full xl:w-80">
+                            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+                            <input
+                                value={toolSearch}
+                                onChange={e => setToolSearch(e.target.value)}
+                                placeholder="Buscar herramienta..."
+                                className="w-full bg-[#0f111a] border border-white/10 rounded-full pl-11 pr-5 py-3 text-xs text-white outline-none focus:border-[#c5a059]/40"
+                            />
+                        </div>
                         {push.isSupported && (
                             <button 
                                 onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
@@ -343,15 +398,55 @@ const AdminDashboard: React.FC = () => {
                         )}
                     </div>
 
+                    <div className="flex flex-wrap gap-2 mb-8">
+                        {toolCategories.map(category => (
+                            <button
+                                key={category}
+                                onClick={() => setActiveCategory(category)}
+                                className={`px-5 py-2.5 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${activeCategory === category ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/35 border-white/10 hover:text-white'}`}
+                            >
+                                {category}
+                            </button>
+                        ))}
+                    </div>
+
+                    {recentTools.length > 0 && (
+                        <div className="mb-10">
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mb-4">Últimas usadas</p>
+                            <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                                {recentTools.map(tool => (
+                                    <button
+                                        key={tool.id}
+                                        onClick={() => openTool(tool)}
+                                        className="shrink-0 bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 flex items-center gap-3 hover:border-[#c5a059]/30 transition-all"
+                                    >
+                                        <i className={`fas ${tool.icon}`} style={{ color: tool.color }}></i>
+                                        <span className="text-[10px] font-bold text-white/70">{tool.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {tools.map(tool => (
+                        {visibleTools.map(tool => (
                             <div 
                                 key={tool.id}
-                                onClick={() => tool.route && navigate(tool.route)}
+                                onClick={() => openTool(tool)}
                                 className="group bg-[#0f111a] border border-white/5 p-8 rounded-[2rem] cursor-pointer hover:border-[#c5a059]/40 transition-all hover:-translate-y-2 relative overflow-hidden flex flex-col"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                
+                                <button
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        toggleFavorite(tool.id);
+                                    }}
+                                    className={`absolute top-5 right-5 z-10 w-8 h-8 rounded-full border transition-all ${favoriteToolIds.includes(tool.id) ? 'bg-[#c5a059] border-[#c5a059] text-black' : 'bg-white/5 border-white/10 text-white/20 hover:text-[#c5a059]'}`}
+                                    title="Marcar como favorito"
+                                >
+                                    <i className="fas fa-star text-[10px]"></i>
+                                </button>
+                                 
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner border border-white/5 group-hover:border-[#c5a059]/30 transition-all"
                                          style={{ backgroundColor: `${tool.color}10`, color: tool.color }}>
