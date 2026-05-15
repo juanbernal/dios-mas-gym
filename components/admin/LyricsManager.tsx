@@ -39,6 +39,8 @@ const LyricsManager: React.FC = () => {
     const [storyGenerated, setStoryGenerated] = useState('');
     const [storyAiLoading, setStoryAiLoading] = useState(false);
     const [storyPostHtml, setStoryPostHtml] = useState('');
+    const [storySearchQuery, setStorySearchQuery] = useState('');
+    const [storyShowResults, setStoryShowResults] = useState(false);
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -355,6 +357,8 @@ const LyricsManager: React.FC = () => {
         setShowStoryBuilder(true);
         setStoryTitle(selectedLyric.title);
         setStorySongId('');
+        setStorySearchQuery('');
+        setStoryShowResults(false);
         setStoryGenerated('');
         setStoryPostHtml('');
         const savedThumb = localStorage.getItem('last_generated_promo') || '';
@@ -382,9 +386,12 @@ const LyricsManager: React.FC = () => {
     const handleStorySongSelect = (songId: string) => {
         setStorySongId(songId);
         const song = storyCatalog.find(s => s.id === songId);
-        if (song && song.cover) {
-            setStoryThumbnail(song.cover);
+        if (song) {
+            if (song.cover) setStoryThumbnail(song.cover);
+            setStoryTitle(song.name);
         }
+        setStoryShowResults(false);
+        setStorySearchQuery(song ? `${song.artist} - ${song.name}` : '');
     };
 
     const generateStoryPost = async () => {
@@ -900,16 +907,71 @@ ${selectedText}`;
                                             <i className="fas fa-spinner fa-spin"></i> Cargando catálogo...
                                         </div>
                                     ) : (
-                                        <select
-                                            value={storySongId}
-                                            onChange={e => handleStorySongSelect(e.target.value)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none focus:border-amber-500/40 transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Sin canción (solo letra)</option>
-                                            {storyCatalog.map(song => (
-                                                <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>
-                                            ))}
-                                        </select>
+                                        <div className="relative">
+                                            <div className="relative">
+                                                <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+                                                <input
+                                                    type="text"
+                                                    value={storySearchQuery}
+                                                    onChange={e => {
+                                                        setStorySearchQuery(e.target.value);
+                                                        setStoryShowResults(true);
+                                                        if (!e.target.value) {
+                                                            setStorySongId('');
+                                                        }
+                                                    }}
+                                                    onFocus={() => storySearchQuery && setStoryShowResults(true)}
+                                                    placeholder="Buscar canción o artista..."
+                                                    className="w-full bg-black/40 border border-white/10 rounded-2xl pl-11 pr-5 py-4 text-sm outline-none focus:border-amber-500/40 transition-all"
+                                                />
+                                                {storySongId && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setStorySongId('');
+                                                            setStorySearchQuery('');
+                                                            setStoryShowResults(false);
+                                                        }}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {storyShowResults && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0f111a] border border-white/10 rounded-2xl overflow-hidden z-50 shadow-2xl max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {storyCatalog
+                                                        .filter(song => {
+                                                            const q = storySearchQuery.toLowerCase();
+                                                            return !q || song.name.toLowerCase().includes(q) || song.artist.toLowerCase().includes(q);
+                                                        })
+                                                        .slice(0, 8)
+                                                        .map(song => (
+                                                            <button
+                                                                key={song.id}
+                                                                onClick={() => handleStorySongSelect(song.id)}
+                                                                className={`w-full flex items-center gap-4 px-5 py-4 hover:bg-white/5 border-b border-white/5 last:border-0 transition-all text-left ${storySongId === song.id ? 'bg-amber-500/10' : ''}`}
+                                                            >
+                                                                {song.cover && (
+                                                                    <img src={song.cover} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" alt="" />
+                                                                )}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-[11px] font-bold text-white/90 truncate">{song.name}</p>
+                                                                    <p className="text-[9px] text-amber-400/70 truncate">{song.artist}</p>
+                                                                </div>
+                                                                {storySongId === song.id && (
+                                                                    <i className="fas fa-check text-amber-400 text-xs"></i>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    {storyCatalog.filter(song => {
+                                                        const q = storySearchQuery.toLowerCase();
+                                                        return !q || song.name.toLowerCase().includes(q) || song.artist.toLowerCase().includes(q);
+                                                    }).length === 0 && (
+                                                        <div className="px-5 py-8 text-center text-[10px] text-white/30">Sin resultados</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                     {storySongId && (
                                         <p className="mt-2 text-[9px] text-amber-400/60 break-all">
