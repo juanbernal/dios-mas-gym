@@ -61,7 +61,6 @@ const ProximosLanzamientos: React.FC = () => {
     const [loadingReleases, setLoadingReleases] = useState(true);
     const [pendingSync, setPendingSync] = useState<ReleaseData[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [forceScan, setForceScan] = useState(false);
     const [scanLog, setScanLog] = useState<{name: string, artist: string, found: boolean}[]>([]);
     const syncStartedRef = React.useRef(false);
     const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(getNotifPrefs);
@@ -81,8 +80,8 @@ const ProximosLanzamientos: React.FC = () => {
 
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
-    const checkCatalogSync = async (existing: ReleaseData[]) => {
-        if (syncStartedRef.current && !forceScan) return;
+    const checkCatalogSync = async (existing: ReleaseData[], force = false) => {
+        if (syncStartedRef.current && !force) return;
         
         try {
             const [dM, j6] = await Promise.all([
@@ -162,16 +161,15 @@ const ProximosLanzamientos: React.FC = () => {
                     syncStartedRef.current = true;
                     handleAutoSync(missing);
                 }
-            } else if (forceScan) {
+            } else if (force) {
                 setStatus({ type: 'success', message: 'El catálogo ya está 100% sincronizado.' });
             }
-            setForceScan(false);
         } catch (e) {
             console.error("Error checking catalog sync:", e);
         }
     };
 
-    const fetchCurrentReleases = async () => {
+    const fetchCurrentReleases = async (force = false) => {
         setLoadingReleases(true);
         try {
             const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
@@ -192,7 +190,7 @@ const ProximosLanzamientos: React.FC = () => {
                     } as ReleaseData;
                 });
                 setCurrentReleases(normalized);
-                checkCatalogSync(normalized);
+                checkCatalogSync(normalized, force);
             }
         } catch (error) {
             console.error("Error fetching admin releases:", error);
@@ -327,25 +325,29 @@ const ProximosLanzamientos: React.FC = () => {
                         <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.2</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
-                    <button onClick={() => { setForceScan(true); fetchCurrentReleases(); }} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
+                    <button onClick={() => fetchCurrentReleases(true)} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
                         <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i> Rastrear de nuevo
                     </button>
                 </div>
 
-                {pendingSync.length > 0 && (
+                {(pendingSync.length > 0 || isSyncing) && (
                     <div className="mb-12 bg-[#c5a059]/10 border border-[#c5a059]/30 p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in">
                         <div className="flex items-center gap-6">
                             <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center text-black">
-                                <i className="fas fa-magic text-xl"></i>
+                                <i className={`fas ${isSyncing ? 'fa-circle-notch animate-spin' : 'fa-magic'} text-xl`}></i>
                             </div>
                             <div>
-                                <h4 className="text-white font-bold text-lg">Nueva música detectada</h4>
-                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">{pendingSync.length} canciones listas para sincronizar.</p>
+                                <h4 className="text-white font-bold text-lg">{isSyncing ? 'Sincronizando...' : 'Nueva música detectada'}</h4>
+                                <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">
+                                    {isSyncing ? 'El catálogo se está actualizando automáticamente...' : `${pendingSync.length} canciones listas para sincronizar.`}
+                                </p>
                             </div>
                         </div>
-                        <button onClick={() => handleAutoSync()} disabled={isSyncing} className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full min-w-[300px]">
-                            Sincronizar Todo Ahora
-                        </button>
+                        {!isSyncing && (
+                            <button onClick={() => handleAutoSync()} className="px-10 py-4 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all rounded-full min-w-[300px]">
+                                Sincronizar Todo Ahora
+                            </button>
+                        )}
                     </div>
                 )}
 
