@@ -23,7 +23,7 @@ const LyricsManager: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec");
+    const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "/api/sheet-proxy?script=lyrics");
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'editor'>('list'); // Mobile view toggle
     const [toast, setToast] = useState<{message: string, show: boolean}>({message: "", show: false});
@@ -227,9 +227,8 @@ const LyricsManager: React.FC = () => {
             // El script recibirá el JSON string en e.postData.contents
             await fetch(sheetsSyncUrl, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: {
-                    'Content-Type': 'text/plain'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     action: 'save',
@@ -263,8 +262,7 @@ const LyricsManager: React.FC = () => {
         try {
             await fetch(sheetsSyncUrl, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'blogger',
                     secret: SYNC_SECRET,
@@ -305,8 +303,7 @@ const LyricsManager: React.FC = () => {
             try {
                 const res = await fetch(sheetsSyncUrl, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'blogger',
                         secret: SYNC_SECRET,
@@ -466,8 +463,7 @@ ${selectedText}`;
         try {
             await fetch(sheetsSyncUrl, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'blogger',
                     secret: SYNC_SECRET,

@@ -72,7 +72,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     useEffect(() => {
         const loadReleases = async () => {
             try {
-                const res = await fetch("https://script.google.com/macros/s/AKfycby5-Y8O5uI2-B3wXmX2v8B3z-z-z/exec").then(r => r.json());
+                const res = await fetch("/api/sheet-proxy?read=true").then(r => r.json());
                 setReleases(res || []);
             } catch (err) {
                 console.error("Error loading releases:", err);

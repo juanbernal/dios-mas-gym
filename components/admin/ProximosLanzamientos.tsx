@@ -174,7 +174,7 @@ const ProximosLanzamientos: React.FC = () => {
     const fetchCurrentReleases = async () => {
         setLoadingReleases(true);
         try {
-            const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
+            const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
                 const normalized = (data as any[]).map(r => {
@@ -249,18 +249,18 @@ const ProximosLanzamientos: React.FC = () => {
             const release = items[i];
             setStatus({ type: 'loading', message: `Auto-Sync [${i+1}/${items.length}]: Sincronizando "${release.name}"...` });
             try {
-                const params = new URLSearchParams();
-                params.append('Artista', release.Artista);
-                params.append('name', release.name);
-                params.append('releaseDate', release.releaseDate);
-                params.append('preSaveLink', release.preSaveLink || '');
-                params.append('audioUrl', release.audioUrl || '');
-                params.append('coverImageUrl', release.coverImageUrl || '');
-                await fetch(googleScriptUrl, {
+                const payload = {
+                    Artista: release.Artista,
+                    name: release.name,
+                    releaseDate: release.releaseDate,
+                    preSaveLink: release.preSaveLink || '',
+                    audioUrl: release.audioUrl || '',
+                    coverImageUrl: release.coverImageUrl || ''
+                };
+                await fetch('/api/sheet-proxy', {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: params.toString()
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
                 await new Promise(r => setTimeout(r, 1200)); 
             } catch (e) { console.error("Error syncing item:", e); }
@@ -275,18 +275,18 @@ const ProximosLanzamientos: React.FC = () => {
         e.preventDefault();
         setStatus({ type: 'loading' });
         try {
-            const params = new URLSearchParams();
-            params.append('Artista', formData.artista);
-            params.append('name', formData.titulo);
-            params.append('releaseDate', formData.fecha);
-            params.append('preSaveLink', formData.spotify);
-            params.append('audioUrl', formData.youtube);
-            params.append('coverImageUrl', formData.imagen);
-            await fetch(googleScriptUrl, {
+            const payload = {
+                Artista: formData.artista,
+                name: formData.titulo,
+                releaseDate: formData.fecha,
+                preSaveLink: formData.spotify,
+                audioUrl: formData.youtube,
+                coverImageUrl: formData.imagen
+            };
+            await fetch('/api/sheet-proxy', {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
             setStatus({ type: 'success', message: '¡Lanzamiento sincronizado con éxito!' });
             setFormData({ artista: 'Diosmasgym', titulo: '', fecha: '', spotify: '', youtube: '', apple: '', imagen: '' });

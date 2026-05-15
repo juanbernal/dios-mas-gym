@@ -161,8 +161,7 @@ const SmartLinkView: React.FC = () => {
 
                 // Fetch de la hoja de Próximos Lanzamientos
                 try {
-                    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
-                    const response = await fetch(`${googleScriptUrl}?read=true&t=${Date.now()}`);
+                    const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
                     if (response.ok) {
                         const data = await response.json();
                         const extraReleases = (data as any[]).map(r => {
