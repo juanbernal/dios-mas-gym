@@ -36,7 +36,9 @@ const LyricsManager: React.FC = () => {
     const [storyCatalog, setStoryCatalog] = useState<MusicItem[]>([]);
     const [storySongId, setStorySongId] = useState('');
     const [storyThumbnail, setStoryThumbnail] = useState('');
-    const [storyGenerated, setStoryGenerated] = useState('');
+    const [storyGenerated, setStoryGenerated] = useState(false);
+    const [storyCatalogLoading, setStoryCatalogLoading] = useState(false);
+    const [storyCatalogError, setStoryCatalogError] = useState('');
     const [storyAiLoading, setStoryAiLoading] = useState(false);
     const [storyPostHtml, setStoryPostHtml] = useState('');
     const [storySearchQuery, setStorySearchQuery] = useState('');
@@ -359,19 +361,24 @@ const LyricsManager: React.FC = () => {
         setStorySongId('');
         setStorySearchQuery('');
         setStoryShowResults(false);
-        setStoryGenerated('');
+        setStoryGenerated(false);
         setStoryPostHtml('');
+        setStoryCatalogError('');
         const savedThumb = localStorage.getItem('last_generated_promo') || '';
         setStoryThumbnail(savedThumb);
         if (storyCatalog.length === 0) {
+            setStoryCatalogLoading(true);
             try {
                 const [dm, j6] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
                     fetchMusicCatalog('juan614')
                 ]);
                 setStoryCatalog([...dm, ...j6]);
+                setStoryCatalogLoading(false);
             } catch (e) {
                 console.error('Error loading catalog for story', e);
+                setStoryCatalogError('No se pudo cargar el catálogo. Verifica tu conexión.');
+                setStoryCatalogLoading(false);
             }
         }
     };
@@ -400,12 +407,7 @@ const LyricsManager: React.FC = () => {
         try {
             const smartLink = storySongId ? getSmartLink(storySongId) : '';
             const songName = storySongId ? storyCatalog.find(s => s.id === storySongId)?.name : selectedLyric.title;
-            const prompt = `Genera una historia/reflexión espiritual para un blog cristiano sobre la canción "${songName}" de ${selectedLyric.artist}. La historia debe:
-1. Tener un título llamativo
-2. Una introducción emocional que conecte con el lector
-3. Una reflexión basada en el mensaje de la letra
-4. Incluir la frase "Escucha "${songName}" disponible en todas las plataformas" con el enlace: ${smartLink || 'Link de la canción'}
-5. Terminar con un mensaje de bendición y los hashtags: #DiosMasGym #Juan614 #MusicaCristiana #Letra
+            const prompt = `Escribe 3 o 4 párrafos de reflexión espiritual para un blog cristiano sobre la canción "${songName}" de ${selectedLyric.artist}. La reflexión debe ser emotiva, conectar con el lector y estar basada en el mensaje de la letra. Importante: NO incluyas título, NO uses markdown ni formato especial, NO incluyas hashtags ni tips de marketing. Solo texto plano con párrafos separados por saltos de línea.
 
 Letra de la canción:
 ${selectedText}`;
@@ -417,21 +419,27 @@ ${selectedText}`;
             });
             const data = await response.json();
             if (data.text) {
-                setStoryGenerated(data.text);
+                setStoryGenerated(true);
+                const bodyText = data.text
+                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                    .replace(/\*(.*?)\*/g, '$1')
+                    .replace(/###?\s*/g, '')
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
                 const thumbHtml = storyThumbnail
                     ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>`
                     : '';
                 const smartLinkHtml = smartLink
-                    ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#000;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">🎧 Escuchar "${songName}"</a></div>`
+                    ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>`
                     : '';
                 const lyricHtml = `<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`;
-                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${data.text.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n${lyricHtml}`;
+                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${bodyText.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n${lyricHtml}`;
                 setStoryPostHtml(fullHtml);
             } else {
-                const fallback = `Reflexión sobre "${songName}".\n\nUna canción que toca el corazón y nos recuerda el amor de Dios. Disponible ahora en todas las plataformas. ${smartLink || ''}\n\n#DiosMasGym #Juan614`;
-                setStoryGenerated(fallback);
+                setStoryGenerated(true);
+                const fallback = `${storyTitle}\n\nUna canción que toca el corazón y nos recuerda el amor de Dios. Disponible ahora en todas las plataformas.`;
                 const thumbHtml = storyThumbnail ? `<div style="text-align:center;margin-bottom:20px;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;border-radius:12px;" /></div>` : '';
-                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#000;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">🎧 Escuchar "${songName}"</a></div>` : '';
+                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:20px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:12px 30px;border-radius:50px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>` : '';
                 setStoryPostHtml(`<h2 style="font-size:28px;font-weight:bold;margin-bottom:20px;">${storyTitle}</h2>\n${thumbHtml}\n<div style="font-size:16px;line-height:1.8;">${fallback.replace(/\n/g, '<br/>')}</div>\n${smartLinkHtml}\n<hr style="margin:20px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin-bottom:10px;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;border-radius:12px;margin-top:20px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8;">${selectedText}</div>`);
             }
         } catch (e) {
@@ -902,9 +910,37 @@ ${selectedText}`;
 
                                 <div>
                                     <label className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 block">Canción Relacionada (para Smart Link)</label>
-                                    {storyCatalog.length === 0 ? (
+                                    {storyCatalogLoading ? (
                                         <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl text-[10px] text-white/40">
                                             <i className="fas fa-spinner fa-spin"></i> Cargando catálogo...
+                                        </div>
+                                    ) : storyCatalogError ? (
+                                        <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] text-red-400">
+                                            <i className="fas fa-exclamation-triangle"></i> {storyCatalogError}
+                                            <button
+                                                onClick={async () => {
+                                                    setStoryCatalogError('');
+                                                    setStoryCatalogLoading(true);
+                                                    try {
+                                                        const [dm, j6] = await Promise.all([
+                                                            fetchMusicCatalog('diosmasgym'),
+                                                            fetchMusicCatalog('juan614')
+                                                        ]);
+                                                        setStoryCatalog([...dm, ...j6]);
+                                                        setStoryCatalogLoading(false);
+                                                    } catch (e) {
+                                                        setStoryCatalogError('No se pudo cargar el catálogo. Verifica tu conexión.');
+                                                        setStoryCatalogLoading(false);
+                                                    }
+                                                }}
+                                                className="ml-auto px-3 py-1 bg-white/10 rounded-full text-white/70 hover:bg-white/20 transition-all"
+                                            >
+                                                Reintentar
+                                            </button>
+                                        </div>
+                                    ) : storyCatalog.length === 0 ? (
+                                        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl text-[10px] text-white/40">
+                                            <i className="fas fa-info-circle"></i> Catálogo vacío
                                         </div>
                                     ) : (
                                         <div className="relative">

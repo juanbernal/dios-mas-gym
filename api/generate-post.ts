@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // MODELO DETECTADO EN EL CÓDIGO DEL USUARIO
     const modelName = "gemini-3-flash-preview";
     
-    const promptText = `Actúa como estratega viral. Crea un post para: ${content}. Usa emojis y hashtags.`;
+    const promptText = `Escribe contenido espiritual y reflexivo para un blog cristiano. NO uses markdown ni formato especial. NO incluyas hashtags, tips de marketing ni emojis en exceso. Solo texto plano con párrafos separados por saltos de línea. Contenido: ${content}`;
 
     try {
         // Para modelos Preview/Experimental, usamos v1beta
