@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface HeroProps {
   verse: { t: string; r: string };
@@ -6,7 +6,30 @@ interface HeroProps {
   onAleatorio: () => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
+const VERSES = [
+  { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
+  { t: "NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.", r: "ISAÍAS 41:10" },
+  { t: "TODO LO PUEDO EN CRISTO QUE ME FORTALECE.", r: "FILIPENSES 4:13" },
+  { t: "JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?", r: "SALMOS 27:1" }
+];
+
+const scrollToSection = (sectionId: string) => {
+  const el = document.querySelector(sectionId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatorio }) => {
+  const [verseIndex, setVerseIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setVerseIndex(i => (i + 1) % VERSES.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const verse = VERSES[verseIndex];
+
   return (
     <header className="relative min-h-[96vh] flex flex-col items-center justify-center overflow-hidden cinematic-grain">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(197,160,89,0.16),transparent_34%),linear-gradient(180deg,rgba(5,7,10,0.2),#05070a_92%)]"></div>
@@ -26,7 +49,7 @@ const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
 
       <div className="section-container relative z-10 animate-zen px-4 text-center pt-20">
         <div className="inline-flex items-center gap-4 mb-8 px-5 py-3 rounded-full border border-[#c5a059]/20 bg-black/20 backdrop-blur-xl text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059] opacity-90">
-           <span className="w-2 h-2 rounded-full bg-[#c5a059] shadow-[0_0_20px_#c5a059]"></span> Faith · Music · Discipline
+           <span className="w-2 h-2 rounded-full bg-[#c5a059] shadow-[0_0_20px_#c5a059] animate-pulse"></span> Faith · Music · Discipline
         </div>
         
         <h1 className="h1-display mb-10 text-white drop-shadow-2xl max-w-6xl mx-auto">
@@ -34,9 +57,13 @@ const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
           <span className="serif-italic pr-4 text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-white to-[#8B5A2B] drop-shadow-[0_0_40px_rgba(197,160,89,0.28)]">Espíritu</span>
         </h1>
         
-        <div className="max-w-4xl mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] p-7 md:p-10 backdrop-blur-md shadow-[0_30px_100px_rgba(0,0,0,0.25)]">
-               <p className="text-2xl md:text-4xl font-serif italic text-white/95 leading-tight mb-8 drop-shadow-lg">
+        <div className="max-w-4xl mx-auto mb-12 transition-all duration-700" key={verse.r}>
+            <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] p-7 md:p-10 backdrop-blur-md shadow-[0_30px_100px_rgba(0,0,0,0.25)] animate-fade-in-up">
+               <div className="flex justify-between items-start mb-4">
+                 <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/15">Versículo del día</span>
+                 <span className="text-[7px] text-white/20">v3.3</span>
+               </div>
+               <p className="text-2xl md:text-4xl font-serif italic text-white/95 leading-tight mb-8 drop-shadow-lg transition-all">
                   "{verse.t}"
                </p>
                <span className="inline-block px-4 py-1.5 border-l-2 border-[#c5a059] text-[10px] font-black tracking-[0.5em] text-[#c5a059] uppercase">
@@ -47,7 +74,7 @@ const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
 
         <div className="flex flex-wrap justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
           <button 
-            onClick={onEntrenar} 
+            onClick={() => { onEntrenar(); scrollToSection('#arsenal-content'); }} 
             className="px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(197,160,89,0.2)] rounded-sm"
           >
             Explorar el Arsenal
@@ -69,10 +96,13 @@ const Hero: React.FC<HeroProps> = ({ verse, onEntrenar, onAleatorio }) => {
         </div>
       </div>
       
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-20">
+      <button 
+        onClick={() => scrollToSection('#lanzamientos-section')}
+        className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-20 hover:opacity-60 transition-all cursor-pointer"
+      >
          <span className="text-[8px] font-black uppercase tracking-[0.4em]">Descubrir</span>
          <div className="w-0.5 h-12 bg-gradient-to-b from-white to-transparent"></div>
-      </div>
+      </button>
     </header>
   );
 };

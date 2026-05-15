@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import Hero from './components/Hero';
 import PostCard from './components/PostCard';
 import MusicCard from './components/MusicCard';
@@ -315,12 +316,12 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
-      <main className={!hideGlobalUI ? "pt-20" : ""}>
+      <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
         <Routes>
           <Route path="/" element={
             <>
               <Hero verse={verse} onEntrenar={() => changeView('reflexiones')} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
-              <UpcomingReleases />
+              <section id="arsenal-content"><UpcomingReleases /></section>
               <section className="py-32 bg-[#0a0c14]"><div className="section-container"><div className="flex items-center gap-6 mb-16"><div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div><h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2><div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div></div><div className="grid grid-cols-12 gap-8">{randomPosts.map((p, idx) => ( <div key={p.id} className="col-span-12 md:col-span-4 transition-all hover:scale-105 duration-300"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div>))}</div></div></section>
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} />}
@@ -422,6 +423,7 @@ const App: React.FC = () => {
           <Route path="/bio/:artist" element={<LinkBioPublic />} />
         </Routes>
       </main>
+      {!hideGlobalUI && <BottomNav currentView={state.currentView} changeView={changeView} />}
       {!hideGlobalUI && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}
       {location.pathname.startsWith('/admin') && <PWAInstallPrompt />}
       {!hideGlobalUI && <Footer />}

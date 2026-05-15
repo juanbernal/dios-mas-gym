@@ -754,15 +754,15 @@ ${selectedText}`;
                                         >
                                             <i className="fas fa-download"></i> TXT
                                         </button>
-                                        <button 
-                                            onClick={openStoryBuilder}
-                                            className="flex-1 md:flex-none px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-black uppercase rounded-xl hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <i className="fas fa-newspaper"></i> Blog
-                                        </button>
                                      </div>
                                   </div>
-                             </div>
+                                  <button 
+                                      onClick={openStoryBuilder}
+                                      className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-2xl hover:from-white hover:to-white transition-all flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20"
+                                  >
+                                      <i className="fas fa-newspaper text-sm"></i> Historia Blogger
+                                  </button>
+                              </div>
                             {previewMode ? (
                                 <div className="flex-1 bg-white/[0.03] p-10 md:p-16 text-white text-lg md:text-2xl leading-[1.8] overflow-y-auto custom-scrollbar whitespace-pre-wrap font-sans font-semibold tracking-tight">
                                     {selectedText || <span className="text-white/10">Sin contenido para previsualizar.</span>}

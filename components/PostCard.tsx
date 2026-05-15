@@ -19,7 +19,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onClick, isFav, isRead, onFav
         <img 
           src={post.images?.[0]?.url || 'https://placehold.co/800x1200/05070a/c5a059?text=Reflections'} 
           className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" 
-          alt={post.title} 
+          alt={post.title}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-[#05070a]/35 to-transparent opacity-95 group-hover:opacity-65 transition-opacity"></div>
         <div className="absolute left-6 bottom-6 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl text-[8px] font-black uppercase tracking-[0.35em] text-[#c5a059]">

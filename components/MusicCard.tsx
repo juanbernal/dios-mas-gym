@@ -25,6 +25,7 @@ const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
             src={item.cover} 
             alt={item.name} 
             className="w-full h-full object-cover"
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent group-hover:from-black/25 transition-colors"></div>
           
