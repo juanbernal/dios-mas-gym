@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
@@ -31,6 +31,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import Footer from './components/Footer';
 import CommentSection from './components/CommentSection';
 import RecommendedSongs from './components/RecommendedSongs';
+import RelatedPosts from './components/RelatedPosts';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
@@ -92,6 +93,23 @@ const App: React.FC = () => {
   const location = useLocation();
 
   const syncLocked = useRef(false);
+
+  const refreshRandomPosts = useCallback(() => {
+    if (state.allPosts.length > 0) setRandomPosts(getRandomSample(state.allPosts, 3));
+  }, [state.allPosts]);
+
+  // Scroll-based infinite load for home
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '400px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [location.pathname, state.nextPageToken, state.loading]);
 
   const getSlugFromUrl = (url: string) => {
     if (!url) return '';
@@ -291,6 +309,35 @@ const App: React.FC = () => {
     state.allPosts.forEach(p => p.labels?.forEach(label => labelCounts[label] = (labelCounts[label] || 0) + 1));
     return Object.entries(labelCounts).sort((a, b) => b[1] - a[1]).map(([label]) => label).slice(0, 10);
   }, [state.allPosts]);
+
+  const readingCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    readingHistory.forEach(id => { map[id] = (map[id] || 0) + 1; });
+    return map;
+  }, [readingHistory]);
+
+  const recentPosts = useMemo(() => {
+    const weekAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    return state.allPosts.filter(p => new Date(p.published).getTime() > weekAgo).slice(0, 4);
+  }, [state.allPosts]);
+
+  const continueReading = useMemo(() => {
+    return readingHistory.map(id => state.allPosts.find(p => p.id === id)).filter((p): p is ContentPost => !!p).reverse().slice(0, 3);
+  }, [readingHistory, state.allPosts]);
+
+  const popularPosts = useMemo(() => {
+    return [...state.allPosts]
+      .filter(p => readingCounts[p.id] > 0)
+      .sort((a, b) => (readingCounts[b.id] || 0) - (readingCounts[a.id] || 0))
+      .slice(0, 3);
+  }, [state.allPosts, readingCounts]);
+
+  const unreadPosts = useMemo(() => {
+    return state.allPosts
+      .filter(p => !readingHistory.includes(p.id))
+      .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
+      .slice(0, 3);
+  }, [state.allPosts, readingHistory]);
   
   useEffect(() => {
     const path = location.pathname;
@@ -322,49 +369,164 @@ const App: React.FC = () => {
             <>
               <Hero verse={verse} onEntrenar={() => changeView('reflexiones')} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
               <section id="arsenal-content"><UpcomingReleases /></section>
-              <section className="py-32 bg-[#0a0c14]"><div className="section-container"><div className="flex items-center gap-6 mb-16"><div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div><h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2><div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div></div><div className="grid grid-cols-12 gap-8">{randomPosts.map((p, idx) => ( <div key={p.id} className="col-span-12 md:col-span-4 transition-all hover:scale-105 duration-300"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div>))}</div></div></section>
+
+              {/* CONTINUAR LEYENDO */}
+              {continueReading.length > 0 && (
+                <section className="py-24 bg-[#05070a] border-b border-white/5">
+                  <div className="section-container">
+                    <div className="flex items-center gap-4 mb-12">
+                      <div className="w-10 h-10 rounded-full bg-[#c5a059]/20 flex items-center justify-center text-[#c5a059]">
+                        <i className="fas fa-book-open text-sm"></i>
+                      </div>
+                      <h2 className="font-serif italic text-3xl text-white">Continuar Leyendo</h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-12 gap-8">
+                      {continueReading.map(p => (
+                        <div key={p.id} className="col-span-12 md:col-span-4">
+                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={true} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* INSPIRACIÓN DIARIA */}
+              <section className="py-28 bg-[#0a0c14]">
+                <div className="section-container">
+                  <div className="flex items-center gap-6 mb-16">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
+                    <div className="flex items-center gap-4">
+                      <h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2>
+                      <button onClick={refreshRandomPosts} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/30 hover:text-[#c5a059] hover:border-[#c5a059]/30 transition-all text-xs" title="Refrescar">
+                        <i className="fas fa-shuffle"></i>
+                      </button>
+                    </div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#c5a059]/20 via-transparent to-transparent"></div>
+                  </div>
+                  <div className="grid grid-cols-12 gap-8">
+                    {randomPosts.length > 0 ? randomPosts.slice(0, 3).map((p, idx) => (
+                      <div key={p.id} className={`col-span-12 ${idx === 0 ? 'md:col-span-6' : 'md:col-span-3'} transition-all hover:scale-[1.02] duration-300`}>
+                        <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size={idx === 0 ? 'lg' : 'md'} />
+                      </div>
+                    )) : (
+                      <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">Cargando arsenal...</div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* RECIÉN LLEGADOS */}
+              {recentPosts.length > 0 && (
+                <section className="py-28 bg-[#05070a] border-y border-white/5">
+                  <div className="section-container">
+                    <div className="flex items-center gap-4 mb-16">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                        <i className="fas fa-clock text-sm"></i>
+                      </div>
+                      <h2 className="font-serif italic text-3xl md:text-4xl text-white">Recién Llegados</h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                      <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8 flex-shrink-0">
+                        Ver Todo
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-8">
+                      {recentPosts.map(p => (
+                        <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-3">
+                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} />}
-              <section className="py-32 bg-[#05070a] border-y border-white/5"><div className="section-container"><div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12"><h2 className="font-serif text-5xl md:text-7xl leading-tight">Última <br /> <span className="italic text-[#c5a059]">Inspiración</span></h2><p className="text-[#94a3b8] max-w-sm pb-4 font-bold uppercase tracking-[0.3em] text-[10px] leading-relaxed">Artillería pesada para el espíritu guerrero.</p></div>               {state.allPosts[0] && ( <div className="grid grid-cols-12 gap-8 md:gap-16"><div className="col-span-12 lg:col-span-7"><PostCard post={state.allPosts[0]} onClick={() => navigate(`/post/${getSlugFromUrl(state.allPosts[0].url)}`)} isFav={state.favorites.includes(state.allPosts[0].id)} isRead={readingHistory.includes(state.allPosts[0].id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(state.allPosts[0].id) ? prev.favorites.filter(id => id !== state.allPosts[0].id) : [...prev.favorites, state.allPosts[0].id] })); }} /></div><div className="col-span-12 lg:col-span-5 flex flex-col gap-16">{state.allPosts.slice(1, 3).map(p => ( <div key={p.id} className="transition-all hover:translate-x-2 duration-300"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div>))}</div></div>)}
-              </div></section>
-              {categories.slice(1, 4).map((tag, sIdx) => {
+
+              {/* ÚLTIMA INSPIRACIÓN */}
+              <section className="py-32 bg-[#05070a] border-y border-white/5">
+                <div className="section-container">
+                  <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
+                    <h2 className="font-serif text-5xl md:text-7xl leading-tight">Última <br /> <span className="italic text-[#c5a059]">Inspiración</span></h2>
+                    <p className="text-[#94a3b8] max-w-sm pb-4 font-bold uppercase tracking-[0.3em] text-[10px] leading-relaxed">Artillería pesada para el espíritu guerrero.</p>
+                  </div>
+                  {state.allPosts[0] && (
+                    <div className="grid grid-cols-12 gap-8 md:gap-16">
+                      <div className="col-span-12 lg:col-span-7">
+                        <PostCard post={state.allPosts[0]} onClick={() => navigate(`/post/${getSlugFromUrl(state.allPosts[0].url)}`)} isFav={state.favorites.includes(state.allPosts[0].id)} isRead={readingHistory.includes(state.allPosts[0].id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(state.allPosts[0].id) ? prev.favorites.filter((id: string) => id !== state.allPosts[0].id) : [...prev.favorites, state.allPosts[0].id] })); }} size="lg" />
+                      </div>
+                      <div className="col-span-12 lg:col-span-5 flex flex-col gap-16">
+                        {state.allPosts.slice(1, 3).map(p => (
+                          <div key={p.id} className="transition-all hover:translate-x-2 duration-300">
+                            <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* LO MÁS LEÍDO */}
+              {popularPosts.length > 0 && (
+                <section className="py-28 bg-[#0a0c14]">
+                  <div className="section-container">
+                    <div className="flex items-center gap-4 mb-16">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
+                        <i className="fas fa-fire text-sm"></i>
+                      </div>
+                      <h2 className="font-serif italic text-3xl md:text-4xl text-white">Lo Más Leído</h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-12 gap-8">
+                      {popularPosts.map(p => (
+                        <div key={p.id} className="col-span-12 md:col-span-4">
+                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="md" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* CATEGORÍAS */}
+              {categories.slice(1, 6).map((tag, sIdx) => {
                  const tagPosts = state.allPosts.filter(p => p.labels?.includes(tag));
                  const sample: ContentPost[] = getRandomSample(tagPosts, 3);
                  return (
-                   <section key={tag} className={`py-32 ${sIdx % 2 === 0 ? 'bg-[#0a0c14]' : 'bg-[#05070a]'}`}>
+                   <section key={tag} className={`py-28 ${sIdx % 2 === 0 ? 'bg-[#0a0c14]' : 'bg-[#05070a]'}`}>
                      <div className="section-container">
                        <div className="flex items-center justify-between mb-16 px-4 border-l-4 border-[#c5a059]">
-                         <h3 className="font-serif italic text-4xl md:text-6xl text-white">{tag}</h3>
+                         <div className="flex items-center gap-4">
+                           <h3 className="font-serif italic text-3xl md:text-5xl text-white">{tag}</h3>
+                           <span className="text-[9px] font-black text-white/20 bg-white/5 px-3 py-1 rounded-full">{tagPosts.length} posts</span>
+                         </div>
                          <button 
-                           onClick={() => { setState(p => ({ ...p, selectedCategory: tag })); navigate('/reflexiones'); }} 
+                           onClick={() => { setState((p: any) => ({ ...p, selectedCategory: tag })); navigate('/reflexiones'); }} 
                            className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8"
                          >
                            Material Completo
                          </button>
                        </div>
                        <div className="magazine-grid">
-                         {sample.map(p => (
+                         {sample.length > 0 ? sample.map(p => (
                             <div key={p.id} className="col-span-12 lg:col-span-4">
-                              <PostCard 
-                                post={p} 
-                                onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} 
-                                isFav={state.favorites.includes(p.id)} 
-                                isRead={readingHistory.includes(p.id)} 
-                                onFav={(e) => { 
-                                  e.stopPropagation(); 
-                                  setState(prev => ({ 
-                                    ...prev, 
-                                    favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] 
-                                  })); 
-                                }} 
-                              />
+                              <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
                             </div>
-                         ))}
+                         )) : (
+                           <div className="col-span-12 py-16 text-center text-white/20 font-serif italic text-xl">Explorando esta categoría...</div>
+                         )}
                        </div>
                      </div>
                    </section>
                  );
                })}
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="h-10"></div>
             </>
           } />
           <Route path="/reflexiones" element={
@@ -425,6 +587,15 @@ const App: React.FC = () => {
       </main>
       {!hideGlobalUI && <BottomNav currentView={state.currentView} changeView={changeView} />}
       {!hideGlobalUI && <GlobalPlayer activeSong={state.activeSong} onClear={() => setState(p => ({ ...p, activeSong: null }))} />}
+      {!hideGlobalUI && state.allPosts.length > 0 && (
+        <button
+          onClick={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }}
+          className="fixed bottom-28 md:bottom-8 right-6 z-[100] w-14 h-14 rounded-full bg-[#c5a059] text-black shadow-xl hover:bg-white transition-all hover:scale-110 flex items-center justify-center"
+          title="Post Aleatorio"
+        >
+          <i className="fas fa-shuffle text-lg"></i>
+        </button>
+      )}
       {location.pathname.startsWith('/admin') && <PWAInstallPrompt />}
       {!hideGlobalUI && <Footer />}
       {isSearchOpen && !hideGlobalUI && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
@@ -583,6 +754,11 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
   if (error) return <div className="py-80 bg-[#05070a] text-center px-8 text-white"><h2 className="font-serif italic text-4xl text-[#c5a059] mb-8">{error}</h2><button onClick={() => navigate('/reflexiones')} className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 border-b border-[#c5a059]">Regresar al Arsenal</button></div>;
   if (!state.selectedPost) return <div className="py-80 bg-[#05070a] text-center font-serif italic text-5xl opacity-20 text-[#c5a059] animate-pulse">Sincronizando sabiduría...</div>;
 
+  const handleFav = (e: React.MouseEvent, p: ContentPost) => {
+    e.stopPropagation();
+    setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] }));
+  };
+
   return (
     <div className="bg-[#05070a] animate-fade-in-up">
       <div className="relative min-h-[70vh] flex items-center overflow-hidden">
@@ -625,7 +801,15 @@ const PostView: React.FC<{ state: AppState; setState: any; getSlugFromUrl: (url:
               />
           </div>
       </article>
-      <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10"><div className="section-container"><h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3><div className="grid grid-cols-12 gap-8">{state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => ( <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}</div></div></section>
+      <RelatedPosts 
+        currentPost={state.selectedPost}
+        allPosts={state.allPosts}
+        favorites={state.favorites}
+        readingHistory={readingHistory}
+        onNavigate={(slug) => navigate(`/post/${slug}`)}
+        onFav={handleFav}
+      />
+      <section className="py-32 bg-[#0a0c14] border-t border-[#c5a059]/10"><div className="section-container"><h3 className="font-serif italic text-4xl mb-16 text-white/40">Más del Arsenal</h3><div className="grid grid-cols-12 gap-8">{state.allPosts.filter(p => p.id !== state.selectedPost?.id).slice(0, 3).map(p => ( <div key={p.id} className="col-span-12 lg:col-span-4 transition-all hover:-translate-y-2 duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" /></div> ))}</div></div></section>
     </div>
   );
 };
