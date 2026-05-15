@@ -116,6 +116,41 @@ async function startServer() {
     }
   });
 
+  // Sheet proxy (Google Apps Script)
+  const GS_MAIN_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+  const GS_LYRICS_URL = 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+
+  app.all("/api/sheet-proxy", async (req, res) => {
+    try {
+      const script = (req.query.script as string) || 'main';
+      let url = script === 'lyrics' ? GS_LYRICS_URL : GS_MAIN_URL;
+
+      if (req.method === 'GET') {
+        const q = { ...req.query } as Record<string, string>;
+        delete q.script;
+        const qs = new URLSearchParams(q).toString();
+        if (qs) url += `?${qs}`;
+      }
+
+      const opts: RequestInit = {
+        method: req.method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      if (req.method === 'POST') opts.body = JSON.stringify(req.body);
+
+      const resp = await fetch(url, opts);
+      const ct = resp.headers.get('content-type');
+      if (ct?.includes('application/json')) {
+        res.json(await resp.json());
+      } else {
+        res.send(await resp.text());
+      }
+    } catch (err: any) {
+      console.error('[sheet-proxy] Error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
