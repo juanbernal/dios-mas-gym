@@ -57,76 +57,81 @@ const LyricsManager: React.FC = () => {
         }
     }, [selectedLyric]);
 
-    useEffect(() => {
-        const loadAllLyrics = async () => {
-            setLoading(true);
-            try {
-                // 1. Fetch Published
-                const published = await fetchArsenalData(50);
-                const publishedItems: LyricItem[] = (published.posts || []).map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
-                    content: p.content,
-                    status: 'LIVE',
-                    date: p.published
-                }));
+    const loadAllLyrics = async () => {
+        setLoading(true);
+        try {
+            // 1. Fetch Published
+            const published = await fetchArsenalData(50);
+            const publishedItems: LyricItem[] = (published.posts || []).map(p => ({
+                id: p.id,
+                title: p.title,
+                artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
+                content: p.content,
+                status: 'LIVE',
+                date: p.published
+            }));
 
-                // 2. Fetch Drafts
-                (window as any).BLOGGER_STATUS = 'DRAFT';
-                const drafts = await fetchArsenalData(50);
-                (window as any).BLOGGER_STATUS = undefined;
-                const draftItems: LyricItem[] = (drafts.posts || []).map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
-                    content: p.content,
-                    status: 'DRAFT',
-                    date: p.published
-                }));
+            // 2. Fetch Drafts
+            (window as any).BLOGGER_STATUS = 'DRAFT';
+            const drafts = await fetchArsenalData(50);
+            (window as any).BLOGGER_STATUS = undefined;
+            const draftItems: LyricItem[] = (drafts.posts || []).map(p => ({
+                id: p.id,
+                title: p.title,
+                artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
+                content: p.content,
+                status: 'DRAFT',
+                date: p.published
+            }));
 
-                // 4. Fetch from Google Sheets
-                let sheetItems: LyricItem[] = [];
-                if (sheetsSyncUrl) {
-                    try {
-                        const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`);
-                        if (res.ok) {
-                            const data = await res.json();
-                            sheetItems = (data || []).map((l: any, i: number) => ({
-                                id: `sheet-${i}`,
-                                title: l.title,
-                                artist: l.artist,
-                                content: l.content,
-                                status: 'CLOUD',
-                                date: l.date
-                            }));
-                        }
-                    } catch (e) {
-                        console.error("Sheets sync error", e);
+            // 4. Fetch from Google Sheets
+            let sheetItems: LyricItem[] = [];
+            if (sheetsSyncUrl) {
+                try {
+                    const url = `${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Robust parsing for different possible JSON structures
+                        const items = Array.isArray(data) ? data : (data?.data || data?.items || data?.lyrics || []);
+                        sheetItems = items.map((l: any, i: number) => ({
+                            id: `sheet-${i}-${Date.now()}`,
+                            title: l.title || l.name || 'Sin título',
+                            artist: l.artist || 'Dios Mas Gym',
+                            content: l.content || l.lyrics || '',
+                            status: 'CLOUD',
+                            date: l.date || new Date().toISOString()
+                        }));
                     }
+                } catch (e) {
+                    console.error("Sheets sync error", e);
                 }
-
-                // 5. Fetch Local Items
-                const localRaw = localStorage.getItem('lyric_studio_drafts');
-                const local = localRaw ? JSON.parse(localRaw) : [];
-                const localItems: LyricItem[] = local.map((l: any, i: number) => ({
-                    id: `local-${i}`,
-                    title: l.name,
-                    artist: l.artist || 'Dios Mas Gym',
-                    content: l.content,
-                    status: 'LOCAL',
-                    date: l.date
-                }));
-
-                setLyrics([...localItems, ...sheetItems, ...draftItems, ...publishedItems]);
-            } catch (e) {
-                console.error("Error loading lyrics", e);
-            } finally {
-                setLoading(false);
             }
-        };
+
+            // 5. Fetch Local Items
+            const localRaw = localStorage.getItem('lyric_studio_drafts');
+            const local = localRaw ? JSON.parse(localRaw) : [];
+            const localItems: LyricItem[] = local.map((l: any, i: number) => ({
+                id: `local-${i}`,
+                title: l.name,
+                artist: l.artist || 'Dios Mas Gym',
+                content: l.content,
+                status: 'LOCAL',
+                date: l.date
+            }));
+
+            setLyrics([...localItems, ...sheetItems, ...draftItems, ...publishedItems]);
+        } catch (e) {
+            console.error("Error loading lyrics", e);
+            showNotification("❌ Error al cargar letras");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         loadAllLyrics();
-    }, []);
+    }, [sheetsSyncUrl]);
 
     const stripHtml = (html: string) => {
         if (typeof document === 'undefined') return html.replace(/<[^>]*>?/gm, '');
@@ -608,6 +613,15 @@ ${cleanedLyrics}`;
                                 <span className="hidden md:inline text-[8px] not-italic text-[#00ffcc]/60 bg-[#00ffcc]/10 px-2 py-0.5 rounded-full ml-3 border border-[#00ffcc]/20">v3.7 - SUPREME CLOUD & SYNC</span>
                             </h1>
                         </div>
+                        
+                        <button 
+                            onClick={loadAllLyrics}
+                            disabled={loading}
+                            className={`px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/10 ${loading ? 'opacity-50' : ''}`}
+                        >
+                            <i className={`fas fa-rotate ${loading ? 'fa-spin' : ''} mr-2`}></i>
+                            Actualizar
+                        </button>
                         
                         {/* Mobile View Toggle */}
                         {selectedLyric && (
