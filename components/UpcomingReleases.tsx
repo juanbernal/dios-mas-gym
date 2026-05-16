@@ -69,11 +69,19 @@ const UpcomingReleases: React.FC = () => {
                                 const k = Object.keys(r).find(key => keys.includes(key.replace(/\s+/g, '').trim().toLowerCase()));
                                 return k ? r[k] : '';
                             };
+
+                            let rawDate = findKey(['releasedate', 'fecha']);
+                            // Convert DD/MM/YYYY to YYYY-MM-DD if needed
+                            if (rawDate && rawDate.includes('/') && !rawDate.includes('-')) {
+                                const [d, m, y] = rawDate.split('/');
+                                if (d && m && y) rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                            }
+
                             return {
                                 id: `prx-${r.rowId || Math.random().toString(36).substr(2, 9)}`,
                                 artist: findKey(['artista']) || 'Desconocido',
                                 name: findKey(['name', 'nombre', 'titulo', 'título']),
-                                date: findKey(['releasedate', 'fecha']),
+                                date: rawDate,
                                 url: findKey(['audiourl', 'youtube', 'audio']),
                                 cover: findKey(['coverimageurl', 'imagen', 'portada']),
                                 type: 'Próximo Lanzamiento'

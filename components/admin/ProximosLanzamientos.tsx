@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
+import { useOneSignal } from '../../services/useOneSignal';
 
 interface ReleaseData {
     Artista: string;
@@ -56,6 +57,7 @@ async function sendReleaseNotif(release: ReleaseData) {
 
 const ProximosLanzamientos: React.FC = () => {
     const navigate = useNavigate();
+    const { testNotification } = useOneSignal();
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message?: string }>({ type: 'idle' });
     const [currentReleases, setCurrentReleases] = useState<ReleaseData[]>([]);
     const [loadingReleases, setLoadingReleases] = useState(true);
@@ -201,10 +203,18 @@ const ProximosLanzamientos: React.FC = () => {
                         const k = Object.keys(r).find(key => keys.includes(key.replace(/\s+/g, '').trim().toLowerCase()));
                         return k ? r[k] : '';
                     };
+                    
+                    let rawDate = findKey(['releasedate', 'fecha']);
+                    // Convert DD/MM/YYYY to YYYY-MM-DD if needed
+                    if (rawDate && rawDate.includes('/') && !rawDate.includes('-')) {
+                        const [d, m, y] = rawDate.split('/');
+                        if (d && m && y) rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                    }
+
                     return {
                         Artista: findKey(['artista']),
                         name: findKey(['name', 'nombre', 'titulo', 'título']),
-                        releaseDate: findKey(['releasedate', 'fecha']),
+                        releaseDate: rawDate,
                         preSaveLink: findKey(['presavelink', 'spotify', 'presave']),
                         audioUrl: findKey(['audiourl', 'youtube', 'audio']),
                         coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
@@ -225,11 +235,19 @@ const ProximosLanzamientos: React.FC = () => {
     }, []);
 
     const checkTodaysReleases = useCallback((releases: ReleaseData[]) => {
+        // Today in YYYY-MM-DD
         const todayStr = new Date().toISOString().split('T')[0];
         releases.forEach(r => {
-            const key = `${r.name}-${r.releaseDate}`;
+            // Ensure r.releaseDate is in YYYY-MM-DD for comparison
+            let checkDate = r.releaseDate;
+            if (checkDate && checkDate.includes('/') && !checkDate.includes('-')) {
+                const [d, m, y] = checkDate.split('/');
+                checkDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+
+            const key = `${r.name}-${checkDate}`;
             const prefs = getNotifPrefs();
-            if (r.releaseDate === todayStr && prefs[r.name] !== false && !wasFired(key)) {
+            if (checkDate === todayStr && prefs[r.name] !== false && !wasFired(key)) {
                 markFired(key);
                 sendReleaseNotif(r);
             }
@@ -363,9 +381,14 @@ const ProximosLanzamientos: React.FC = () => {
                         <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.5</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
-                    <button onClick={() => fetchCurrentReleases(true)} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
-                        <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i> Rastrear de nuevo
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button onClick={testNotification} className="px-8 py-4 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full">
+                            <i className="fas fa-bell mr-3"></i> Enviar Notif. de Hoy
+                        </button>
+                        <button onClick={() => fetchCurrentReleases(true)} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
+                            <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i> Rastrear de nuevo
+                        </button>
+                    </div>
                 </div>
 
                 {(pendingSync.length > 0 || isSyncing) && (
@@ -469,6 +492,7 @@ const ProximosLanzamientos: React.FC = () => {
                                                         <div className="flex-1 min-w-0">
                                                             <div className="text-[8px] font-black uppercase text-[#c5a059]">{rev.Artista}</div>
                                                             <div className="text-sm font-bold text-white truncate">{rev.name}</div>
+                                                            <div className="text-[8px] text-white/40 mt-1 uppercase tracking-widest">{rev.releaseDate}</div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-between pt-4 border-t border-white/5">

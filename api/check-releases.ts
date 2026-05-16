@@ -21,10 +21,17 @@ function normalizeRow(r: Record<string, string>): ReleaseRow {
         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
         return k ? (r[k] ?? '') : '';
     };
+    let rawDate = find(['releasedate', 'fecha']);
+    // Convert DD/MM/YYYY to YYYY-MM-DD if needed
+    if (rawDate && rawDate.includes('/') && !rawDate.includes('-')) {
+        const [d, m, y] = rawDate.split('/');
+        if (d && m && y) rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
     return {
         Artista: find(['artista']),
         name: find(['name', 'nombre', 'titulo', 'título']),
-        releaseDate: find(['releasedate', 'fecha']),
+        releaseDate: rawDate,
         preSaveLink: find(['presavelink', 'spotify', 'presave']),
         coverImageUrl: find(['coverimageurl', 'imagen', 'portada']),
     };
