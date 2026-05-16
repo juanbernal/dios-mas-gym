@@ -323,21 +323,17 @@ const ProximosLanzamientos: React.FC = () => {
             
             if (data.error) {
                 setStatus({ type: 'error', message: data.error });
-                alert(`Error del Servidor: ${data.error}`);
+                alert(`Error del Servidor: ${JSON.stringify(data)}`);
                 return;
             }
 
             if (data.sent > 0) {
                 setStatus({ type: 'success', message: `¡Enviadas ${data.sent} notificaciones!` });
-                alert(`¡ÉXITO! Se enviaron ${data.sent} notificaciones.`);
+                alert(`¡ÉXITO! ${JSON.stringify(data)}`);
             } else {
                 let msg = data.message || 'No hay estrenos hoy.';
-                if (data.debug && data.debug.all_releases_dates) {
-                    const latest = data.debug.all_releases_dates.slice(0, 3).join(', ');
-                    msg += ` (Servidor ve: ${latest})`;
-                }
                 setStatus({ type: 'success', message: msg });
-                alert(`Resultado: ${msg}`);
+                alert(`Resultado: ${JSON.stringify(data)}`);
             }
         } catch (e: any) {
             console.error('[Push] Catch error:', e);
