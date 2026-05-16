@@ -319,7 +319,7 @@ const ProximosLanzamientos: React.FC = () => {
         setStatus({ type: 'loading', message: 'Enviando notificaciones...' });
         try {
             const data = await testNotification();
-            console.log('[Push] Result:', data);
+            alert(`Respuesta Servidor: ${JSON.stringify(data)}`);
             
             if (data.sent > 0) {
                 setStatus({ type: 'success', message: `¡Notificaciones de hoy enviadas con éxito!` });

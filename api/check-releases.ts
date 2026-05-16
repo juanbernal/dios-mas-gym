@@ -75,19 +75,18 @@ function normalizeRow(r: Record<string, string>): ReleaseRow {
     };
 }
 
-async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
+async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
     const APP_ID = process.env.ONESIGNAL_APP_ID;
     const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
     if (!APP_ID || !API_KEY) {
-        console.warn('[check-releases] ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set');
-        return; // sendOneSignalPush will just do nothing
+        return { error: 'Missing environment variables' };
     }
 
     const artistEmoji = release.Artista.toLowerCase().includes('juan') ? '🤠' : '💪';
     const payload = {
         app_id: APP_ID,
-        included_segments: ['Active Users', 'Subscribed Users', 'Total Subscriptions'], // Multi-segment delivery for reliability
+        included_segments: ['Active Users', 'Subscribed Users', 'Total Subscriptions'],
         headings: { 
             en: `${artistEmoji} New Release! ${release.name}`,
             es: `${artistEmoji} ¡Hoy estrena! ${release.name}` 
@@ -100,10 +99,6 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
         ...(release.coverImageUrl
             ? { big_picture: release.coverImageUrl, large_icon: release.coverImageUrl }
             : { large_icon: 'https://app.diosmasgym.com/icon-192.png' }),
-        android_accent_color: 'c5a059',
-        chrome_web_icon: 'https://app.diosmasgym.com/icon-192.png',
-        chrome_web_badge: 'https://app.diosmasgym.com/icon-192.png',
-        ttl: 86400, // expire after 24h if not delivered
     };
 
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
@@ -115,12 +110,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
         body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-        console.error('[check-releases] OneSignal error:', data);
-    } else {
-        console.log(`[check-releases] ✅ Push sent for "${release.name}":`, data.id);
-    }
+    return await response.json();
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -264,12 +254,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Send push
-        await Promise.all(todaysReleases.map(sendOneSignalPush));
+        const pushResults = await Promise.all(todaysReleases.map(sendOneSignalPush));
 
         return res.status(200).json({
             sent: todaysReleases.length,
             releases: todaysReleases.map(r => r.name),
-            detected: newlyDetected.length
+            detected: newlyDetected.length,
+            pushResults
         });
     } catch (err: any) {
         console.error('[check-releases] Error:', err);
