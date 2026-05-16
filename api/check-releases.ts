@@ -18,25 +18,32 @@ interface ReleaseRow {
 
 async function fetchRows(): Promise<Record<string, string>[]> {
     const res = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
-    if (!res.ok) throw new Error('Failed to fetch Google Sheet');
+    if (!res.ok) throw new Error(`Google Sheet respondió con error ${res.status}`);
     
-    const contentType = res.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-        return await res.json();
-    } else {
-        const text = await res.text();
-        const lines = text.split('\n').filter(l => l.trim());
-        if (lines.length === 0) return [];
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        return lines.slice(1).map(line => {
-            const values = line.split(',');
-            const obj: Record<string, string> = {};
-            headers.forEach((h, i) => {
-                obj[h] = values[i] ? values[i].trim() : '';
-            });
-            return obj;
-        });
+    const text = await res.text();
+    
+    // Try JSON
+    try {
+        if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
+            return JSON.parse(text);
+        }
+    } catch (e) {
+        console.log('[check-releases] Falló JSON parse, intentando CSV...');
     }
+
+    // Fallback to CSV
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    return lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj: Record<string, string> = {};
+        headers.forEach((h, i) => {
+            obj[h] = values[i] ? values[i].trim() : '';
+        });
+        return obj;
+    });
 }
 
 function normalizeRow(r: Record<string, string>): ReleaseRow {
@@ -263,8 +270,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     } catch (err: any) {
         console.error('[check-releases] Error:', err);
-        return res.status(500).json({ 
-            error: err.message,
+        return res.status(200).json({ 
+            error: `Error interno: ${err.message}`,
+            version: '4.7.1',
             env_check: {
                 has_app_id: !!process.env.ONESIGNAL_APP_ID,
                 has_api_key: !!process.env.ONESIGNAL_REST_API_KEY
