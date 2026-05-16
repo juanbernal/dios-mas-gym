@@ -170,25 +170,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (freshRes.ok) finalRows = await freshRes.json();
         }
 
-        const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        // Calculate "today" in Mexico City timezone (UTC-6)
+        const now = new Date();
+        const mxNow = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+        const todayStr = mxNow.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Allow manual override via query param
+        const targetDate = (req.query.date as string) || todayStr;
+
         const releases = finalRows.map(normalizeRow);
         
-        // Match releases for today
+        // Match releases for the target date
         const todaysReleases = releases.filter(r => {
             if (!r.name || !r.releaseDate) return false;
-            // Support both YYYY-MM-DD and DD/MM/YYYY just in case
+            // Support both YYYY-MM-DD and DD/MM/YYYY
             let cleanDate = r.releaseDate;
             if (cleanDate.includes('/') && !cleanDate.includes('-')) {
                 const [d, m, y] = cleanDate.split('/');
                 cleanDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
             }
-            return cleanDate === todayStr;
+            return cleanDate === targetDate;
         });
 
-        console.log(`[check-releases] Date: ${todayStr} | Total Rows: ${finalRows.length} | Today: ${todaysReleases.length}`);
+        console.log(`[check-releases] Target Date: ${targetDate} | Total Rows: ${finalRows.length} | Today: ${todaysReleases.length}`);
         
         const debugInfo = {
-            today: todayStr,
+            targetDate,
             all_releases_dates: releases.map(r => `${r.name}: ${r.releaseDate}`),
             todays_count: todaysReleases.length
         };
@@ -196,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (todaysReleases.length === 0) {
             return res.status(200).json({ 
                 sent: 0, 
-                message: 'No hay estrenos hoy para notificar.',
+                message: `No hay estrenos para la fecha ${targetDate}.`,
                 detected: newlyDetected.length,
                 debug: debugInfo
             });
