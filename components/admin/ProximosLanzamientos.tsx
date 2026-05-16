@@ -179,10 +179,8 @@ const ProximosLanzamientos: React.FC = () => {
             setScanLog(logs);
             if (missing.length > 0) {
                 setPendingSync(missing);
-                if (!isSyncing && (!syncStartedRef.current || force)) {
-                    syncStartedRef.current = true;
-                    handleAutoSync(missing);
-                }
+                // DISABLED AUTO-SYNC: Let the user click "Sincronizar Todo Ahora" manually.
+                setStatus({ type: 'idle' });
             } else if (force) {
                 setStatus({ type: 'success', message: 'El catálogo ya está 100% sincronizado.' });
             }

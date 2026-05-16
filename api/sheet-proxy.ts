@@ -26,7 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             method: req.method,
             headers: {
                 'Content-Type': 'text/plain',
-            }
+            },
+            cache: 'no-store'
         };
 
         if (req.method === 'POST') {
