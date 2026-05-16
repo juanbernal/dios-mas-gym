@@ -42,17 +42,20 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
     const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
     if (!APP_ID || !API_KEY) {
-        console.warn('[check-releases] ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set — skipping push');
-        return;
+        throw new Error('ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set in Vercel environment variables');
     }
 
     const artistEmoji = release.Artista.toLowerCase().includes('juan') ? '🤠' : '💪';
     const payload = {
         app_id: APP_ID,
         included_segments: ['All'],          // All subscribers
-        headings: { en: `${artistEmoji} ¡Hoy estrena! ${release.name}` },
+        headings: { 
+            en: `${artistEmoji} New Release! ${release.name}`,
+            es: `${artistEmoji} ¡Hoy estrena! ${release.name}` 
+        },
         contents: {
-            en: `${release.Artista} acaba de lanzar algo nuevo. ¡Es el momento de hacer ruido en redes! 🔥`,
+            en: `${release.Artista} just released something new. It's time to make some noise! 🔥`,
+            es: `${release.Artista} acaba de lanzar algo nuevo. ¡Es el momento de hacer ruido en redes! 🔥`,
         },
         url: release.preSaveLink || 'https://app.diosmasgym.com/#/admin/proximos-lanzamientos',
         ...(release.coverImageUrl
@@ -192,6 +195,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     } catch (err: any) {
         console.error('[check-releases] Error:', err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ 
+            error: err.message,
+            env_check: {
+                has_app_id: !!process.env.ONESIGNAL_APP_ID,
+                has_api_key: !!process.env.ONESIGNAL_REST_API_KEY
+            }
+        });
     }
 }
