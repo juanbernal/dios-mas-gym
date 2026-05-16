@@ -94,26 +94,32 @@ const ProximosLanzamientos: React.FC = () => {
                 .replace(/[\u0300-\u036f]/g, "")
                 .replace(/\(feat\..*?\)/g, '')
                 .replace(/\(ft\..*?\)/g, '')
+                .replace(/^album/g, '') // Ignore album prefix for matching
                 .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
 
-            // Group songs by cover URL: same URL Portada = same album → one entry
+            // Group songs by exact date OR cover: same date = same album → one entry
             const groupIntoAlbums = (songs: typeof dM): typeof dM => {
-                const coverMap = new Map<string, typeof dM>();
+                const groupMap = new Map<string, typeof dM>();
                 songs.forEach(song => {
-                    const key = song.cover && song.cover.trim() ? song.cover.trim() : `single-${song.id}`;
-                    if (!coverMap.has(key)) coverMap.set(key, []);
-                    coverMap.get(key)!.push(song);
+                    // Precise ISO date is a strong grouping key
+                    const key = song.date ? `date-${song.date}` : (song.cover && song.cover.trim() ? song.cover.trim() : `single-${song.id}`);
+                    if (!groupMap.has(key)) groupMap.set(key, []);
+                    groupMap.get(key)!.push(song);
                 });
                 const result: typeof dM = [];
-                coverMap.forEach((group) => {
+                groupMap.forEach((group) => {
                     if (group.length === 1) {
                         result.push(group[0]);
                     } else {
                         const sorted = [...group].sort((a, b) => a.name.length - b.name.length);
                         const rep = { ...sorted[0] };
                         rep.name = rep.name.replace(/\s*\(feat\..*?\)/gi, '').trim();
+                        // If it's a significant group, mark as album
+                        if (group.length >= 3) {
+                            rep.name = `Álbum: ${rep.name}`;
+                        }
                         result.push(rep);
                     }
                 });
@@ -121,8 +127,8 @@ const ProximosLanzamientos: React.FC = () => {
             };
 
             const latestCatalog = [
-                ...groupIntoAlbums(dM.slice(0, 5)),
-                ...groupIntoAlbums(j6.slice(0, 5))
+                ...groupIntoAlbums(dM.slice(0, 20)),
+                ...groupIntoAlbums(j6.slice(0, 20))
             ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             const logs: typeof scanLog = [];
             
@@ -270,6 +276,7 @@ const ProximosLanzamientos: React.FC = () => {
             }
         }
         setIsSyncing(false);
+        syncStartedRef.current = false; // Allow next auto-sync attempt if needed
         if (failed.length === 0) {
             setPendingSync([]);
             setStatus({ type: 'success', message: `¡${items.length} canciones sincronizadas correctamente!` });
