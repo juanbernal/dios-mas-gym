@@ -634,7 +634,7 @@ ${cleanedLyrics}`;
                             </button>
 
                             <button 
-                                onClick={handleSyncAll}
+                                onClick={handleSyncAllLocales}
                                 className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2"
                             >
                                 <i className="fas fa-upload"></i>
