@@ -135,6 +135,13 @@ const LyricsManager: React.FC = () => {
         return tmp.textContent || tmp.innerText || "";
     };
 
+    const cleanLyrics = (text: string) => {
+        return text
+            .replace(/\[.*?\]/g, '') // Remove [Verse], [Chorus], etc.
+            .replace(/\n{3,}/g, '\n\n') // Normalize spacing
+            .trim();
+    };
+
     const getSignature = (lyric: LyricItem | null) => lyric ? `${lyric.title}|${lyric.artist}|${lyric.content}` : '';
 
     const lyricsStats = {
@@ -206,6 +213,11 @@ const LyricsManager: React.FC = () => {
 
         localStorage.setItem('lyric_studio_drafts', JSON.stringify(local));
         
+        // Auto-sync to cloud if available
+        if (sheetsSyncUrl) {
+            handleSaveToSheets();
+        }
+
         // Update list if it's a new local one
         if (selectedLyric.status !== 'LOCAL') {
              const newItem: LyricItem = { ...selectedLyric, id: `local-${Date.now()}`, status: 'LOCAL' };
@@ -428,10 +440,12 @@ const LyricsManager: React.FC = () => {
         try {
             const smartLink = storySongId ? getSmartLink(storySongId) : '';
             const songName = storySongId ? storyCatalog.find(s => s.id === storySongId)?.name : selectedLyric.title;
+            const cleanedLyrics = cleanLyrics(selectedText);
+            
             const prompt = `Escribe 3 o 4 párrafos de reflexión espiritual para un blog cristiano sobre la canción "${songName}" de ${selectedLyric.artist}. La reflexión debe ser emotiva, conectar con el lector y estar basada en el mensaje de la letra. Importante: NO incluyas título, NO uses markdown ni formato especial, NO incluyas hashtags ni tips de marketing. Solo texto plano con párrafos separados por saltos de línea.
 
 Letra de la canción:
-${selectedText}`;
+${cleanedLyrics}`;
 
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
@@ -439,6 +453,47 @@ ${selectedText}`;
                 body: JSON.stringify({ content: JSON.stringify({ input: prompt }) })
             });
             const data = await response.json();
+            
+            const createPremiumHtml = (text: string, lyrics: string) => {
+                const paragraphs = text.split(/\n\n+/).map(p => `<p style="margin:0 0 1.5em 0; font-size:19px; line-height:1.8; color:#333; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${p.replace(/\n/g, '<br/>')}</p>`).join('\n');
+                
+                const thumbHtml = storyThumbnail
+                    ? `<div style="text-align:center; margin:0 0 40px 0; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.15);"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%; height:auto; display:block; margin:0 auto;" /></div>`
+                    : '';
+                
+                const smartLinkHtml = smartLink
+                    ? `<div style="text-align:center; margin:45px 0;">
+                        <a href="${smartLink}" style="display:inline-block; background:linear-gradient(135deg, #c5a059 0%, #a68545 100%); color:#fff; padding:18px 45px; font-size:17px; font-weight:900; text-decoration:none; text-transform:uppercase; border-radius:50px; box-shadow:0 8px 20px rgba(197, 160, 89, 0.3); letter-spacing:1px; transition:all 0.3s ease;">
+                            <span style="margin-right:10px;">▶</span> Escuchar "${songName}"
+                        </a>
+                       </div>`
+                    : '';
+
+                const lyricContentHtml = lyrics.split('\n').map(line => line.trim() ? line : '<br/>').join('\n');
+                
+                return `
+<div style="max-width:800px; margin:0 auto; padding:20px; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:#222; background:#fff;">
+    <h1 style="font-size:36px; font-weight:900; margin:0 0 30px 0; text-align:center; color:#111; letter-spacing:-1px; line-height:1.1; text-transform:uppercase; font-style:italic;">${storyTitle}</h1>
+    
+    ${thumbHtml}
+    
+    <div style="margin-bottom:40px;">
+        ${paragraphs}
+    </div>
+
+    ${smartLinkHtml}
+
+    <div style="margin-top:60px; padding:40px; background:#f9f9f9; border-radius:24px; border:1px solid #eee; position:relative;">
+        <div style="position:absolute; top:-15px; left:40px; background:#c5a059; color:#fff; padding:4px 20px; font-size:12px; font-weight:900; border-radius:20px; text-transform:uppercase; letter-spacing:2px;">Letra Oficial</div>
+        <div style="font-family:Georgia, 'Times New Roman', Times, serif; font-size:18px; line-height:1.9; color:#444; text-align:center; white-space:pre-wrap; font-style:italic;">${lyrics}</div>
+    </div>
+    
+    <div style="margin-top:40px; text-align:center; font-size:12px; color:#aaa; text-transform:uppercase; letter-spacing:3px;">
+        &copy; ${new Date().getFullYear()} Dios Mas Gym Records
+    </div>
+</div>`;
+            };
+
             if (data.text) {
                 setStoryGenerated(true);
                 const bodyText = data.text
@@ -447,25 +502,15 @@ ${selectedText}`;
                     .replace(/###?\s*/g, '')
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
-                const paragraphs = bodyText.split(/\n\n+/).map(p => `<p style="margin:0 0 1.2em 0;font-size:18px;line-height:1.8;">${p.replace(/\n/g, '<br/>')}</p>`).join('\n');
-                const thumbHtml = storyThumbnail
-                    ? `<div style="text-align:center;margin:0 0 20px 0;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;height:auto;" /></div>`
-                    : '';
-                const smartLinkHtml = smartLink
-                    ? `<div style="text-align:center;margin:30px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:14px 40px;font-size:16px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>`
-                    : '';
-                const lyricHtml = `<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`;
-                const fullHtml = `<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n${lyricHtml}`;
+                const fullHtml = createPremiumHtml(bodyText, cleanedLyrics);
                 setStoryPostHtml(fullHtml);
                 setStoryEditHtml(fullHtml);
             } else {
                 setStoryGenerated(true);
                 const fallback = `${storyTitle}\n\nUna canción que toca el corazón y nos recuerda el amor de Dios. Disponible ahora en todas las plataformas.`;
-                const paragraphs = fallback.split(/\n\n+/).map(p => `<p style="margin:0 0 1.2em 0;font-size:18px;line-height:1.8;">${p.replace(/\n/g, '<br/>')}</p>`).join('\n');
-                const thumbHtml = storyThumbnail ? `<div style="text-align:center;margin:0 0 20px 0;"><img src="${storyThumbnail}" alt="${storyTitle}" style="max-width:100%;height:auto;" /></div>` : '';
-                const smartLinkHtml = smartLink ? `<div style="text-align:center;margin:30px 0;"><a href="${smartLink}" style="display:inline-block;background:#c5a059;color:#fff;padding:14px 40px;font-size:16px;font-weight:bold;text-decoration:none;text-transform:uppercase;">Escuchar "${songName}"</a></div>` : '';
-                setStoryPostHtml(`<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`);
-                setStoryEditHtml(`<h2 style="font-size:28px;font-weight:bold;margin:0 0 20px 0;">${storyTitle}</h2>\n${thumbHtml}\n${paragraphs}\n${smartLinkHtml}\n<hr style="margin:30px 0;"/>\n<h3 style="font-size:20px;font-weight:bold;margin:0 0 10px 0;">Letra</h3>\n<div style="background:#f5f5f5;padding:20px;margin-top:20px;font-family:Georgia,serif;line-height:1.8;font-size:16px;white-space:pre-wrap;">${selectedText}</div>`);
+                const fullHtml = createPremiumHtml(fallback, cleanedLyrics);
+                setStoryPostHtml(fullHtml);
+                setStoryEditHtml(fullHtml);
             }
         } catch (e) {
             showNotification('Error generando la historia.');

@@ -199,15 +199,50 @@ const LyricStudio: React.FC = () => {
     }
   }, [branding]);
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     if (!rawLyrics && !lyricsInput) return;
     const name = draftName || `Borrador ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-    const newDraft = { name, content: rawLyrics, sync: lyricsInput, date: new Date().toISOString() };
+    const content = rawLyrics;
+    const sync = lyricsInput;
+    const date = new Date().toISOString();
+    
+    const newDraft = { name, content, sync, date };
     const updated = [newDraft, ...savedDrafts].slice(0, 10); // Keep last 10
     setSavedDrafts(updated);
     localStorage.setItem('lyric_studio_drafts', JSON.stringify(updated));
     setDraftName("");
-    alert("✅ Borrador guardado localmente.");
+    
+    // Auto-sync to cloud if available
+    if (sheetsSyncUrl) {
+      try {
+        const SYNC_SECRET = "DMG_SYNC_2026";
+        const queryString = new URLSearchParams({
+          action: 'save',
+          secret: SYNC_SECRET,
+          title: name,
+          artist: "Dios Mas Gym", // Default artist for Studio
+          date: date
+        }).toString();
+        
+        await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save',
+            secret: SYNC_SECRET,
+            title: name,
+            artist: "Dios Mas Gym",
+            content: content,
+            date: date
+          })
+        });
+        console.log("Synced to cloud");
+      } catch (e) {
+        console.error("Cloud sync error", e);
+      }
+    }
+
+    alert("✅ Borrador guardado" + (sheetsSyncUrl ? " y sincronizado en la nube." : " localmente."));
   };
 
   const loadDraft = (draft: any) => {
