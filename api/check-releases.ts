@@ -220,7 +220,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!APP_ID || !API_KEY) {
             return res.status(200).json({ 
                 sent: 0, 
-                message: 'Error: Faltan ONESIGNAL_APP_ID o ONESIGNAL_REST_API_KEY en Vercel.',
+                message: 'Error: El servidor no detecta las variables de OneSignal. ¿Has desplegado los cambios en Vercel después de añadirlas?',
+                debug: {
+                    has_app_id: !!APP_ID,
+                    has_api_key: !!API_KEY,
+                    app_id_start: APP_ID ? APP_ID.substring(0, 5) + '...' : 'nulo',
+                },
                 detected: newlyDetected.length
             });
         }
