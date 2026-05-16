@@ -95,7 +95,8 @@ const ProximosLanzamientos: React.FC = () => {
                 .replace(/[\u0300-\u036f]/g, "")
                 .replace(/\(feat\..*?\)/g, '')
                 .replace(/\(ft\..*?\)/g, '')
-                .replace(/^album/g, '') // Ignore album prefix for matching
+                .replace(/^album\s*:\s*/g, '') // Strips "album: "
+                .replace(/^album\s+/g, '')     // Strips "album "
                 .replace(/[^a-z0-9]+/g, '')
                 .trim();
 
@@ -127,10 +128,18 @@ const ProximosLanzamientos: React.FC = () => {
                 return result;
             };
 
+            const now = new Date();
+            const threeWeeksAgo = new Date(now.getTime() - (21 * 24 * 60 * 60 * 1000));
+
             const latestCatalog = [
-                ...groupIntoAlbums(dM.slice(0, 20)),
-                ...groupIntoAlbums(j6.slice(0, 20))
-            ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                ...groupIntoAlbums(dM.slice(0, 30)),
+                ...groupIntoAlbums(j6.slice(0, 30))
+            ].filter(item => {
+                // Only auto-sync items from the last 21 days
+                if (!item.date) return false;
+                const itemDate = new Date(item.date);
+                return itemDate >= threeWeeksAgo;
+            }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             const logs: typeof scanLog = [];
             
             const missing = latestCatalog.filter((cat) => {
