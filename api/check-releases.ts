@@ -103,27 +103,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 
     try {
-        // Fetch releases from Google Sheet
+        // Fetch current sheet data
         const sheetRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
         if (!sheetRes.ok) throw new Error('Failed to fetch Google Sheet');
         const rows: Record<string, string>[] = await sheetRes.json();
 
-        const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const releases = rows.map(normalizeRow);
-        const todaysReleases = releases.filter(r => r.releaseDate === todayStr && r.name);
+        // --- 1. Fetch Catalog & Detect New Releases ---
+        const dMRes = await fetch('https://app.diosmasgym.com/api/music?artist=diosmasgym');
+        const j6Res = await fetch('https://app.diosmasgym.com/api/music?artist=juan614');
+        const dMCatalog = dMRes.ok ? await dMRes.json() : [];
+        const j6Catalog = j6Res.ok ? await j6Res.json() : [];
+        
+        // Group and find latest for each artist (within last 7 days for auto-sync)
+        const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+        const catalogs = [
+            { artist: 'Diosmasgym', items: dMCatalog },
+            { artist: 'Juan 614', items: j6Catalog }
+        ];
 
-        console.log(`[check-releases] Date: ${todayStr} | Releases today: ${todaysReleases.length}`);
+        const newlyDetected: any[] = [];
+        for (const cat of catalogs) {
+            const recent = cat.items.filter((i: any) => new Date(i.date) >= sevenDaysAgo);
+            if (recent.length > 0) {
+                // Find latest
+                const latest = recent.sort((a: any, b: any) => b.date.localeCompare(a.date))[0];
+                // Check if already in sheet (by name)
+                const alreadyInSheet = rows.some(r => {
+                    const row = normalizeRow(r);
+                    return row.name.toLowerCase().includes(latest.name.toLowerCase()) || 
+                           latest.name.toLowerCase().includes(row.name.toLowerCase());
+                });
 
-        if (todaysReleases.length === 0) {
-            return res.status(200).json({ sent: 0, message: 'No releases today' });
+                if (!alreadyInSheet) {
+                    newlyDetected.push(latest);
+                    // Attempt to sync to sheet
+                    try {
+                        const syncPayload = {
+                            Artista: latest.artist,
+                            name: latest.name,
+                            releaseDate: latest.date.split('T')[0],
+                            coverImageUrl: latest.cover,
+                            preSaveLink: `https://app.diosmasgym.com/#/link/${latest.id}`,
+                            audioUrl: latest.url
+                        };
+                        const qs = new URLSearchParams(syncPayload as any).toString();
+                        await fetch(`${GOOGLE_SHEET_URL}?${qs}`, { method: 'POST', body: JSON.stringify(syncPayload) });
+                        console.log(`[check-releases] Auto-synced new release: ${latest.name}`);
+                    } catch (e) {
+                        console.error(`[check-releases] Failed to auto-sync ${latest.name}:`, e);
+                    }
+                }
+            }
         }
 
-        // Send a push for each release today
+        // --- 2. Fetch Fresh Sheet (if we synced anything) ---
+        let finalRows = rows;
+        if (newlyDetected.length > 0) {
+            const freshRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
+            if (freshRes.ok) finalRows = await freshRes.json();
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const releases = finalRows.map(normalizeRow);
+        
+        // Match releases for today
+        const todaysReleases = releases.filter(r => {
+            if (!r.name || !r.releaseDate) return false;
+            return r.releaseDate === todayStr;
+        });
+
+        console.log(`[check-releases] Date: ${todayStr} | Total Rows: ${finalRows.length} | Today: ${todaysReleases.length}`);
+
+        if (todaysReleases.length === 0) {
+            return res.status(200).json({ 
+                sent: 0, 
+                message: 'No hay estrenos hoy para notificar.',
+                detected: newlyDetected.length 
+            });
+        }
+
+        // Send push
         await Promise.all(todaysReleases.map(sendOneSignalPush));
 
         return res.status(200).json({
             sent: todaysReleases.length,
             releases: todaysReleases.map(r => r.name),
+            detected: newlyDetected.length
         });
     } catch (err: any) {
         console.error('[check-releases] Error:', err);
