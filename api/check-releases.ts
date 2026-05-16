@@ -47,7 +47,8 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
     const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
     if (!APP_ID || !API_KEY) {
-        throw new Error('ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set in Vercel environment variables');
+        console.warn('[check-releases] ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set');
+        return; // sendOneSignalPush will just do nothing
     }
 
     const artistEmoji = release.Artista.toLowerCase().includes('juan') ? '🤠' : '💪';
@@ -211,6 +212,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 message: `No hay estrenos para la fecha ${targetDate}.`,
                 detected: newlyDetected.length,
                 debug: debugInfo
+            });
+        }
+
+        const APP_ID = process.env.ONESIGNAL_APP_ID;
+        const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+        if (!APP_ID || !API_KEY) {
+            return res.status(200).json({ 
+                sent: 0, 
+                message: 'Error: Faltan ONESIGNAL_APP_ID o ONESIGNAL_REST_API_KEY en Vercel.',
+                detected: newlyDetected.length
             });
         }
 

@@ -131,7 +131,7 @@ const ProximosLanzamientos: React.FC = () => {
             };
 
             const now = new Date();
-            const twoWeeksAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+            const fiveDaysAgo = new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000));
 
             const latestCatalog = [
                 ...groupIntoAlbums(dM), // Scan full catalog
@@ -139,7 +139,7 @@ const ProximosLanzamientos: React.FC = () => {
             ].filter(item => {
                 if (!item.date) return false;
                 const itemDate = new Date(item.date);
-                return itemDate >= twoWeeksAgo;
+                return itemDate >= fiveDaysAgo;
             }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             
             console.log(`[Sync] Catalog items after grouping/filtering: ${latestCatalog.length}`);
