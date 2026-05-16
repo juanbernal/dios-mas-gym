@@ -111,11 +111,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
 
-    try {
-        // Fetch current sheet data
         const sheetRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
         if (!sheetRes.ok) throw new Error('Failed to fetch Google Sheet');
-        const rows: Record<string, string>[] = await sheetRes.json();
+        
+        const contentType = sheetRes.headers.get('content-type') || '';
+        let rows: Record<string, string>[] = [];
+
+        if (contentType.includes('application/json')) {
+            rows = await sheetRes.json();
+        } else {
+            // Parse CSV manually
+            const text = await sheetRes.text();
+            console.log('[check-releases] Parsing CSV response');
+            const lines = text.split('\n').filter(l => l.trim());
+            if (lines.length > 0) {
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                rows = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    const obj: Record<string, string> = {};
+                    headers.forEach((h, i) => {
+                        obj[h] = values[i] ? values[i].trim() : '';
+                    });
+                    return obj;
+                });
+            }
+        }
+
+        if (rows.length === 0) {
+            return res.status(200).json({ sent: 0, message: 'La hoja de cálculo parece estar vacía.' });
+        }
 
         // --- 1. Fetch Catalog & Detect New Releases ---
         const protocol = req.headers['x-forwarded-proto'] || 'https';
