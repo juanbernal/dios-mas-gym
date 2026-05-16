@@ -21,11 +21,16 @@ function normalizeRow(r: Record<string, string>): ReleaseRow {
         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
         return k ? (r[k] ?? '') : '';
     };
-    let rawDate = find(['releasedate', 'fecha']);
+    let rawDate = find(['releasedate', 'fecha']).trim();
     // Convert DD/MM/YYYY to YYYY-MM-DD if needed
     if (rawDate && rawDate.includes('/') && !rawDate.includes('-')) {
-        const [d, m, y] = rawDate.split('/');
-        if (d && m && y) rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        const parts = rawDate.split('/');
+        if (parts.length === 3) {
+            const d = parts[0].trim();
+            const m = parts[1].trim();
+            const y = parts[2].trim();
+            rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
     }
 
     return {

@@ -322,8 +322,12 @@ const ProximosLanzamientos: React.FC = () => {
             if (data.sent > 0) {
                 setStatus({ type: 'success', message: `¡Enviadas ${data.sent} notificaciones!` });
             } else {
-                // Use 'success' type but with the "nothing found" message so it stays visible
-                setStatus({ type: 'success', message: 'No hay estrenos hoy para notificar.' });
+                let msg = data.message || 'No hay estrenos hoy.';
+                if (data.debug && data.debug.all_releases_dates) {
+                    const latest = data.debug.all_releases_dates.slice(0, 3).join(', ');
+                    msg += ` (Servidor ve: ${latest})`;
+                }
+                setStatus({ type: 'success', message: msg });
             }
         } catch (e) {
             setStatus({ type: 'error', message: 'Error al enviar notificaciones.' });
@@ -402,7 +406,7 @@ const ProximosLanzamientos: React.FC = () => {
 
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
-                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.5</span></h1>
+                        <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.6</span></h1>
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
                     <div className="flex items-center gap-4">
