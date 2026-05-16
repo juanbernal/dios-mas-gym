@@ -91,21 +91,33 @@ const LyricsManager: React.FC = () => {
                 try {
                     const url = `${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`;
                     const res = await fetch(url);
+                    const text = await res.text();
+                    
                     if (res.ok) {
-                        const data = await res.json();
-                        // Robust parsing for different possible JSON structures
-                        const items = Array.isArray(data) ? data : (data?.data || data?.items || data?.lyrics || []);
-                        sheetItems = items.map((l: any, i: number) => ({
-                            id: `sheet-${i}-${Date.now()}`,
-                            title: l.title || l.name || 'Sin título',
-                            artist: l.artist || 'Dios Mas Gym',
-                            content: l.content || l.lyrics || '',
-                            status: 'CLOUD',
-                            date: l.date || new Date().toISOString()
-                        }));
+                        try {
+                            const data = JSON.parse(text);
+                            // Robust parsing for different possible JSON structures
+                            const items = Array.isArray(data) ? data : (data?.data || data?.items || data?.lyrics || []);
+                            sheetItems = items.map((l: any, i: number) => ({
+                                id: `sheet-${i}-${Date.now()}`,
+                                title: l.title || l.name || 'Sin título',
+                                artist: l.artist || 'Dios Mas Gym',
+                                content: l.content || l.lyrics || '',
+                                status: 'CLOUD',
+                                date: l.date || new Date().toISOString()
+                            }));
+                        } catch (parseError) {
+                            console.error("Sheets sync parsing error. Response was:", text);
+                            // If it's not JSON, maybe it's an error message from the script
+                            if (text.includes("Error") || text.includes("Unauthorized")) {
+                                showNotification("❌ Error de Nube: " + text.slice(0, 50));
+                            }
+                        }
+                    } else {
+                        console.error("Sheets sync fetch error", res.status, text);
                     }
                 } catch (e) {
-                    console.error("Sheets sync error", e);
+                    console.error("Sheets sync fetch exception", e);
                 }
             }
 
