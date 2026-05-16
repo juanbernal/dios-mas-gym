@@ -111,6 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
 
+    try {
         const sheetRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
         if (!sheetRes.ok) throw new Error('Failed to fetch Google Sheet');
         
