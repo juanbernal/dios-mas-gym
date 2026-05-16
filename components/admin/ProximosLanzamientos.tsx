@@ -322,7 +322,8 @@ const ProximosLanzamientos: React.FC = () => {
             if (data.sent > 0) {
                 setStatus({ type: 'success', message: `¡Enviadas ${data.sent} notificaciones!` });
             } else {
-                setStatus({ type: 'idle', message: 'No hay estrenos hoy para notificar.' });
+                // Use 'success' type but with the "nothing found" message so it stays visible
+                setStatus({ type: 'success', message: 'No hay estrenos hoy para notificar.' });
             }
         } catch (e) {
             setStatus({ type: 'error', message: 'Error al enviar notificaciones.' });

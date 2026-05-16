@@ -112,8 +112,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rows: Record<string, string>[] = await sheetRes.json();
 
         // --- 1. Fetch Catalog & Detect New Releases ---
-        const dMRes = await fetch('https://app.diosmasgym.com/api/music?artist=diosmasgym');
-        const j6Res = await fetch('https://app.diosmasgym.com/api/music?artist=juan614');
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host || 'app.diosmasgym.com';
+        const baseUrl = `${protocol}://${host}`;
+
+        const dMRes = await fetch(`${baseUrl}/api/music?artist=diosmasgym`);
+        const j6Res = await fetch(`${baseUrl}/api/music?artist=juan614`);
         const dMCatalog = dMRes.ok ? await dMRes.json() : [];
         const j6Catalog = j6Res.ok ? await j6Res.json() : [];
         
@@ -172,16 +176,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Match releases for today
         const todaysReleases = releases.filter(r => {
             if (!r.name || !r.releaseDate) return false;
-            return r.releaseDate === todayStr;
+            // Support both YYYY-MM-DD and DD/MM/YYYY just in case
+            let cleanDate = r.releaseDate;
+            if (cleanDate.includes('/') && !cleanDate.includes('-')) {
+                const [d, m, y] = cleanDate.split('/');
+                cleanDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+            return cleanDate === todayStr;
         });
 
         console.log(`[check-releases] Date: ${todayStr} | Total Rows: ${finalRows.length} | Today: ${todaysReleases.length}`);
+        
+        const debugInfo = {
+            today: todayStr,
+            all_releases_dates: releases.map(r => `${r.name}: ${r.releaseDate}`),
+            todays_count: todaysReleases.length
+        };
 
         if (todaysReleases.length === 0) {
             return res.status(200).json({ 
                 sent: 0, 
                 message: 'No hay estrenos hoy para notificar.',
-                detected: newlyDetected.length 
+                detected: newlyDetected.length,
+                debug: debugInfo
             });
         }
 
