@@ -68,6 +68,11 @@ const SocialPostGenerator: React.FC = () => {
 
     const handleGenerate = async () => {
         if (!formData.input.trim()) return;
+
+        // Limpiar etiquetas de Suno/IA [Verse], [Chorus], etc.
+        const cleanInput = formData.input.replace(/\[[^[\]]*\]/g, "").trim();
+        const cleanFormData = { ...formData, input: cleanInput };
+
         setLoading(true);
         setError(null);
         setCopied(false);
@@ -75,7 +80,7 @@ const SocialPostGenerator: React.FC = () => {
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: JSON.stringify(formData) })
+                body: JSON.stringify({ content: JSON.stringify(cleanFormData) })
             });
 
             const data = await response.json();

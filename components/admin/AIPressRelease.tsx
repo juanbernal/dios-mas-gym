@@ -20,6 +20,10 @@ const AIPressRelease: React.FC = () => {
 
     const handleGenerate = async () => {
         if (!formData.input.trim()) return;
+        
+        // Limpiar etiquetas de Suno/IA [Verse], [Chorus], etc.
+        const cleanInput = formData.input.replace(/\[[^[\]]*\]/g, "").trim();
+        
         setLoading(true);
         setError(null);
         setCopied(false);
@@ -29,7 +33,7 @@ const AIPressRelease: React.FC = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    content: `Actúa como un experto relacionista público (PR). Crea un Comunicado de Prensa Oficial basado en esta información: "${formData.input}". Tono: ${formData.tone}. Debe incluir título, ciudad/fecha de lanzamiento, cuerpo de la noticia, citas del artista y contacto al final.` 
+                    content: `Actúa como un experto relacionista público (PR). Crea un Comunicado de Prensa Oficial / Historia de Blog basada en esta información: "${cleanInput}". Tono: ${formData.tone}. Debe incluir título, ciudad/fecha de lanzamiento, cuerpo de la noticia, citas del artista y contacto al final.` 
                 })
             });
 
