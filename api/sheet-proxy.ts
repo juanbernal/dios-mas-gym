@@ -14,14 +14,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { script = 'main' } = req.query;
         let url = SCRIPTS[script as keyof typeof SCRIPTS] || SCRIPTS.main;
         
-        // Build the URL for GET requests
-        if (req.method === 'GET') {
-            const queryParams = { ...req.query };
-            delete queryParams.script; // Remove internal param
-            const queryString = new URLSearchParams(queryParams as any).toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+        // Build the URL with query parameters for all requests
+        const queryParams = { ...req.query };
+        delete queryParams.script; // Remove internal param
+        const queryString = new URLSearchParams(queryParams as any).toString();
+        if (queryString) {
+            url += (url.includes('?') ? '&' : '?') + queryString;
         }
 
         const fetchOptions: RequestInit = {

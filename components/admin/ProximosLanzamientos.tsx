@@ -263,7 +263,8 @@ const ProximosLanzamientos: React.FC = () => {
                     audioUrl: release.audioUrl || '',
                     coverImageUrl: release.coverImageUrl || ''
                 };
-                const res = await fetch('/api/sheet-proxy', {
+                const queryString = new URLSearchParams(payload as any).toString();
+                const res = await fetch(`/api/sheet-proxy?${queryString}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -299,7 +300,8 @@ const ProximosLanzamientos: React.FC = () => {
                 audioUrl: formData.youtube,
                 coverImageUrl: formData.imagen
             };
-            await fetch('/api/sheet-proxy', {
+            const queryString = new URLSearchParams(payload as any).toString();
+            await fetch(`/api/sheet-proxy?${queryString}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

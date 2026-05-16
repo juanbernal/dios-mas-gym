@@ -225,7 +225,15 @@ const LyricsManager: React.FC = () => {
         try {
             // Usamos text/plain para evitar problemas de CORS preflight con Apps Script
             // El script recibirá el JSON string en e.postData.contents
-            await fetch(sheetsSyncUrl, {
+            const queryString = new URLSearchParams({
+                action: 'save',
+                secret: SYNC_SECRET,
+                title: selectedLyric.title,
+                artist: selectedLyric.artist,
+                date: new Date().toISOString()
+                // Content is not included in query string to avoid length limits
+            }).toString();
+            await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -260,7 +268,14 @@ const LyricsManager: React.FC = () => {
         if (!selectedLyric || !sheetsSyncUrl) return;
         setIsSaving(true);
         try {
-            await fetch(sheetsSyncUrl, {
+            const queryString = new URLSearchParams({
+                action: 'blogger',
+                secret: SYNC_SECRET,
+                title: selectedLyric.title,
+                artist: selectedLyric.artist,
+                date: new Date().toISOString()
+            }).toString();
+            await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -301,7 +316,14 @@ const LyricsManager: React.FC = () => {
         let successCount = 0;
         for (const lyric of localDrafts) {
             try {
-                const res = await fetch(sheetsSyncUrl, {
+                const queryString = new URLSearchParams({
+                    action: 'blogger',
+                    secret: SYNC_SECRET,
+                    title: lyric.title,
+                    artist: lyric.artist,
+                    date: lyric.date || new Date().toISOString()
+                }).toString();
+                const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
