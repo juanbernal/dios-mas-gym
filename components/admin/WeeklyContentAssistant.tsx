@@ -111,9 +111,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         } catch(e) {}
 
         if (releaseThisWeek && !promotedIds.includes(releaseThisWeek.name)) {
-            const matchedSong = catalog.find(s =>
-                s.name.toLowerCase().includes(releaseThisWeek.name.toLowerCase().slice(0, 6))
-            );
+            const cleanReleaseName = releaseThisWeek.name.replace(/^(Álbum:|Single:|EP:)\s*/i, '').trim().toLowerCase();
+            const matchedSong = catalog.find(s => {
+                const cleanSongName = s.name.toLowerCase();
+                return cleanSongName.includes(cleanReleaseName) || cleanReleaseName.includes(cleanSongName);
+            });
+            
             const caps = CAPTIONS_BY_TYPE.new_release(releaseThisWeek.name, releaseThisWeek.Artista);
             return {
                 song: matchedSong || null,
