@@ -381,6 +381,24 @@ const ProximosLanzamientos: React.FC = () => {
                     </div>
                 )}
 
+                {status.type !== 'idle' && (
+                    <div className={`mb-12 p-6 rounded-2xl border flex items-center gap-4 animate-fade-in ${
+                        status.type === 'loading' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' :
+                        status.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                        'bg-red-500/10 border-red-500/30 text-red-400'
+                    }`}>
+                        <i className={`fas ${
+                            status.type === 'loading' ? 'fa-circle-notch animate-spin' :
+                            status.type === 'success' ? 'fa-check-circle' :
+                            'fa-exclamation-circle'
+                        } text-xl`}></i>
+                        <span className="text-[11px] font-black uppercase tracking-widest">{status.message || 'Procesando...'}</span>
+                        {status.type !== 'loading' && (
+                            <button onClick={() => setStatus({ type: 'idle' })} className="ml-auto text-[10px] opacity-40 hover:opacity-100">CERRAR</button>
+                        )}
+                    </div>
+                )}
+
                 <div className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
                         <h1 className="font-serif italic text-6xl md:text-8xl text-white mb-6">Próximos <br /><span className="text-[#c5a059]">Lanzamientos</span> <span className="text-[10px] font-black tracking-widest text-white/20 not-italic">v4.5</span></h1>
