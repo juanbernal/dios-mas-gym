@@ -136,9 +136,10 @@ const LyricStudio: React.FC = () => {
     updateScale();
     window.addEventListener('resize', updateScale);
 
-    // Load saved drafts
+    // Initial load of drafts
     const saved = localStorage.getItem('lyric_studio_drafts');
     if (saved) setSavedDrafts(JSON.parse(saved));
+    fetchBloggerDrafts(true); // Silent fetch on mount
 
     return () => window.removeEventListener('resize', updateScale);
   }, []);
@@ -264,7 +265,7 @@ const LyricStudio: React.FC = () => {
     reader.readAsText(file);
   };
 
-  const fetchBloggerDrafts = async () => {
+  const fetchBloggerDrafts = async (silent = false) => {
     setIsFetchingBlogger(true);
     try {
       let allDrafts: any[] = [];
@@ -284,7 +285,7 @@ const LyricStudio: React.FC = () => {
           const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`);
           if (res.ok) {
             const data = await res.json();
-            const sheetDrafts = (data || []).map((l: any) => ({
+            const sheetDrafts = (Array.isArray(data) ? data : (data?.data || [])).map((l: any) => ({
               title: l.title,
               content: l.content,
               published: l.date,
@@ -296,7 +297,7 @@ const LyricStudio: React.FC = () => {
       }
 
       setBloggerDrafts(allDrafts);
-      if (allDrafts.length === 0) alert("No se encontraron borradores en la nube.");
+      if (allDrafts.length === 0 && !silent) alert("No se encontraron borradores en la nube.");
     } catch (e) {
       console.error("Fetch error", e);
     } finally {
@@ -1568,15 +1569,39 @@ const LyricStudio: React.FC = () => {
                     </button>
                 </div>
 
-                {savedDrafts.length > 0 && (
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                        {savedDrafts.map((draft, i) => (
-                            <div key={i} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/5 group">
-                                <div className="flex-1 cursor-pointer" onClick={() => loadDraft(draft)}>
-                                    <div className="text-[10px] font-bold text-white/80 group-hover:text-[#00ffcc] transition-all">{draft.name}</div>
-                                    <div className="text-[8px] text-white/20 uppercase tracking-widest">{new Date(draft.date).toLocaleDateString()}</div>
+                {(savedDrafts.length > 0 || bloggerDrafts.some(d => d.type === 'SHEET')) && (
+                    <div className="space-y-2 mt-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                        {/* Cloud Sheets Items First */}
+                        {bloggerDrafts.filter(d => d.type === 'SHEET').map((draft, i) => (
+                            <div key={`cloud-${i}`} className="group relative bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl hover:border-amber-500 hover:bg-amber-500/20 transition-all cursor-pointer" onClick={() => importFromBlogger(draft)}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-500 text-[10px]">
+                                        <i className="fas fa-cloud"></i>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-[10px] font-black uppercase text-white group-hover:text-amber-400 transition-colors line-clamp-1">{draft.title}</h4>
+                                        <p className="text-[7px] text-amber-500/60 uppercase font-bold tracking-widest">Nube (Google Sheet)</p>
+                                    </div>
                                 </div>
-                                <button onClick={() => deleteDraft(i)} className="text-white/20 hover:text-red-500 px-2 transition-all">
+                            </div>
+                        ))}
+
+                        {/* Local Items */}
+                        {savedDrafts.map((draft, i) => (
+                            <div key={i} className="group relative bg-white/5 border border-white/5 p-3 rounded-xl hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer" onClick={() => loadDraft(draft)}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-white/40 text-[10px]">
+                                        <i className="fas fa-file-lines"></i>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-[10px] font-black uppercase text-white/70 group-hover:text-white transition-colors line-clamp-1">{draft.name}</h4>
+                                        <p className="text-[7px] text-white/20 uppercase font-bold tracking-widest">{draft.date}</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); deleteDraft(i); }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 text-red-500/50 hover:text-red-500 transition-all"
+                                >
                                     <i className="fas fa-trash-can text-[10px]"></i>
                                 </button>
                             </div>
