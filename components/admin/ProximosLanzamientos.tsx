@@ -132,25 +132,29 @@ const ProximosLanzamientos: React.FC = () => {
             const threeWeeksAgo = new Date(now.getTime() - (21 * 24 * 60 * 60 * 1000));
 
             const latestCatalog = [
-                ...groupIntoAlbums(dM.slice(0, 30)),
-                ...groupIntoAlbums(j6.slice(0, 30))
+                ...groupIntoAlbums(dM), // Scan full catalog
+                ...groupIntoAlbums(j6)
             ].filter(item => {
-                // Only auto-sync items from the last 21 days
                 if (!item.date) return false;
                 const itemDate = new Date(item.date);
                 return itemDate >= threeWeeksAgo;
             }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            
+            console.log(`[Sync] Catalog items after grouping/filtering: ${latestCatalog.length}`);
             const logs: typeof scanLog = [];
             
             const missing = latestCatalog.filter((cat) => {
                 const normCatName = normalize(cat.name);
                 const normCatArtist = normalize(cat.artist);
                 
-                const isFound = existing.some(ex => {
+                const foundItem = existing.find(ex => {
                     const normExName = normalize(ex.name || '');
                     const normExArtist = normalize(ex.Artista || '');
                     return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
                 });
+                
+                const isFound = !!foundItem;
+                if (!isFound) console.log(`[Sync] MISSING: ${cat.name} (${cat.date})`);
                 
                 const isDM = cat.artist.toLowerCase().includes('diosmasgym');
                 const isJ6 = cat.artist.toLowerCase().includes('juan');
