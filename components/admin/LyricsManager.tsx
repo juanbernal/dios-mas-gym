@@ -89,7 +89,7 @@ const LyricsManager: React.FC = () => {
                 let sheetItems: LyricItem[] = [];
                 if (sheetsSyncUrl) {
                     try {
-                        const res = await fetch(sheetsSyncUrl);
+                        const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`);
                         if (res.ok) {
                             const data = await res.json();
                             sheetItems = (data || []).map((l: any, i: number) => ({

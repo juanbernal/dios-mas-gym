@@ -25,6 +25,7 @@ const INTRO_DURATION = 4;
 const OUTRO_DURATION = 7;
 const MAX_VIDEO_DURATION = 90; // Límite estricto para TikTok (1:30 minutos)
 const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
+const SYNC_SECRET = "DMG_SYNC_2026";
 
 // --- ANTI-AI ORGANIC NOISE ENGINE ---
 const noise = (x: number, y: number) => {
@@ -215,7 +216,6 @@ const LyricStudio: React.FC = () => {
     // Auto-sync to cloud if available
     if (sheetsSyncUrl) {
       try {
-        const SYNC_SECRET = "DMG_SYNC_2026";
         const queryString = new URLSearchParams({
           action: 'save',
           secret: SYNC_SECRET,
@@ -281,7 +281,7 @@ const LyricStudio: React.FC = () => {
       // 2. Fetch from Google Sheets
       if (sheetsSyncUrl) {
         try {
-          const res = await fetch(sheetsSyncUrl);
+          const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`);
           if (res.ok) {
             const data = await res.json();
             const sheetDrafts = (data || []).map((l: any) => ({
