@@ -81,6 +81,7 @@ const ProximosLanzamientos: React.FC = () => {
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     const checkCatalogSync = async (existing: ReleaseData[], force = false) => {
+        if (force) syncStartedRef.current = false;
         if (syncStartedRef.current && !force) return;
         
         try {
@@ -163,7 +164,7 @@ const ProximosLanzamientos: React.FC = () => {
             setScanLog(logs);
             if (missing.length > 0) {
                 setPendingSync(missing);
-                if (!isSyncing && !syncStartedRef.current) {
+                if (!isSyncing && (!syncStartedRef.current || force)) {
                     syncStartedRef.current = true;
                     handleAutoSync(missing);
                 }
@@ -247,8 +248,12 @@ const ProximosLanzamientos: React.FC = () => {
     };
 
     const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
-        const items = itemsToSync || pendingSync;
-        if (items.length === 0) return;
+        const originalItems = itemsToSync || pendingSync;
+        if (originalItems.length === 0) return;
+        
+        // Reverse to sync oldest first, so if the script inserts at the top, the newest ends up at the top.
+        const items = [...originalItems].reverse();
+        
         setIsSyncing(true);
         const failed: ReleaseData[] = [];
         for (let i = 0; i < items.length; i++) {
@@ -277,15 +282,15 @@ const ProximosLanzamientos: React.FC = () => {
             }
         }
         setIsSyncing(false);
-        syncStartedRef.current = false; // Allow next auto-sync attempt if needed
+        // Do NOT reset syncStartedRef.current here to avoid infinite loops.
+        // It will be reset if the user clicks "Rastrear de nuevo" manually.
         if (failed.length === 0) {
             setPendingSync([]);
-            setStatus({ type: 'success', message: `¡${items.length} canciones sincronizadas correctamente!` });
+            setStatus({ type: 'success', message: `¡${items.length} lanzamientos sincronizados! Refresca para ver cambios.` });
         } else {
             setPendingSync(failed);
-            setStatus({ type: 'error', message: `${failed.length} de ${items.length} canciones no se pudieron sincronizar.` });
+            setStatus({ type: 'error', message: `${failed.length} lanzamientos fallaron. Reintenta manualmente.` });
         }
-        setTimeout(fetchCurrentReleases, 2000);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
