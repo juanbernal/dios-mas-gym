@@ -119,16 +119,16 @@ export function useOneSignal(): OneSignalState {
     }, [getOS, refreshState]);
 
     const testNotification = useCallback(async () => {
-        // Calls our Vercel endpoint manually to trigger a test push
         try {
             const res = await fetch('/api/check-releases', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });
             const data = await res.json();
-            console.log('[useOneSignal] Test push result:', data);
+            return data;
         } catch (e) {
             console.error('[useOneSignal] Test notification error:', e);
+            throw e;
         }
     }, []);
 

@@ -131,7 +131,7 @@ const ProximosLanzamientos: React.FC = () => {
             };
 
             const now = new Date();
-            const threeWeeksAgo = new Date(now.getTime() - (21 * 24 * 60 * 60 * 1000));
+            const twoWeeksAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
 
             const latestCatalog = [
                 ...groupIntoAlbums(dM), // Scan full catalog
@@ -139,7 +139,7 @@ const ProximosLanzamientos: React.FC = () => {
             ].filter(item => {
                 if (!item.date) return false;
                 const itemDate = new Date(item.date);
-                return itemDate >= threeWeeksAgo;
+                return itemDate >= twoWeeksAgo;
             }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             
             console.log(`[Sync] Catalog items after grouping/filtering: ${latestCatalog.length}`);
@@ -322,6 +322,20 @@ const ProximosLanzamientos: React.FC = () => {
         }
     };
 
+    const handleManualPush = async () => {
+        setStatus({ type: 'loading', message: 'Enviando notificaciones...' });
+        try {
+            const data = await testNotification();
+            if (data.sent > 0) {
+                setStatus({ type: 'success', message: `¡Enviadas ${data.sent} notificaciones!` });
+            } else {
+                setStatus({ type: 'idle', message: 'No hay estrenos hoy para notificar.' });
+            }
+        } catch (e) {
+            setStatus({ type: 'error', message: 'Error al enviar notificaciones.' });
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus({ type: 'loading' });
@@ -380,8 +394,8 @@ const ProximosLanzamientos: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40">Sincronización Crítica</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={testNotification} className="px-8 py-4 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full">
-                            <i className="fas fa-bell mr-3"></i> Enviar Notif. de Hoy
+                        <button onClick={handleManualPush} disabled={status.type === 'loading'} className="px-8 py-4 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#c5a059] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-50">
+                            <i className={`fas ${status.type === 'loading' ? 'fa-spinner animate-spin' : 'fa-bell'} mr-3`}></i> Enviar Notif. de Hoy
                         </button>
                         <button onClick={() => fetchCurrentReleases(true)} disabled={loadingReleases || isSyncing} className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all rounded-full disabled:opacity-30">
                             <i className={`fas fa-sync-alt mr-3 ${loadingReleases ? 'animate-spin' : ''}`}></i> Rastrear de nuevo
