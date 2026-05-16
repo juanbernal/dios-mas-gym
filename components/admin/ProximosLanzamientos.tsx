@@ -143,29 +143,22 @@ const ProximosLanzamientos: React.FC = () => {
             }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             
             console.log(`[Sync] Catalog items after grouping/filtering: ${latestCatalog.length}`);
-            const logs: typeof scanLog = [];
+            const logs: {name: string, artist: string, found: boolean}[] = [];
             
             const missing = latestCatalog.filter((cat) => {
-                const normCatName = normalize(cat.name);
-                const normCatArtist = normalize(cat.artist);
+                const normCatName = normalize(cat.name).replace(/[^a-z0-9]/g, '');
+                const normCatArtist = normalize(cat.artist).replace(/[^a-z0-9]/g, '');
                 
                 const foundItem = existing.find(ex => {
-                    const normExName = normalize(ex.name || '');
-                    const normExArtist = normalize(ex.Artista || '');
-                    return normExName === normCatName && (normExArtist.includes(normCatArtist) || normCatArtist.includes(normExArtist));
+                    const normExName = normalize(ex.name || '').replace(/[^a-z0-9]/g, '');
+                    const normExArtist = normalize(ex.Artista || '').replace(/[^a-z0-9]/g, '');
+                    return normExName === normCatName || normExName.includes(normCatName) || normCatName.includes(normExName);
                 });
                 
                 const isFound = !!foundItem;
                 if (!isFound) console.log(`[Sync] MISSING: ${cat.name} (${cat.date})`);
                 
-                const isDM = cat.artist.toLowerCase().includes('diosmasgym');
-                const isJ6 = cat.artist.toLowerCase().includes('juan');
-                const dMLogsCount = logs.filter(l => l.artist.toLowerCase().includes('diosmasgym')).length;
-                const j6LogsCount = logs.filter(l => l.artist.toLowerCase().includes('juan')).length;
-
-                if ((isDM && dMLogsCount < 10) || (isJ6 && j6LogsCount < 10)) {
-                    logs.push({ name: cat.name, artist: cat.artist, found: isFound });
-                }
+                logs.push({ name: cat.name, artist: cat.artist, found: isFound });
                 return !isFound;
             }).map(cat => ({
                 Artista: cat.artist,
@@ -176,10 +169,9 @@ const ProximosLanzamientos: React.FC = () => {
                 coverImageUrl: cat.cover
             }));
 
-            setScanLog(logs);
+            setScanLog(logs.slice(0, 20)); // Limit display logs
             if (missing.length > 0) {
                 setPendingSync(missing);
-                // DISABLED AUTO-SYNC: Let the user click "Sincronizar Todo Ahora" manually.
                 setStatus({ type: 'idle' });
             } else if (force) {
                 setStatus({ type: 'success', message: 'El catálogo ya está 100% sincronizado.' });
@@ -193,7 +185,7 @@ const ProximosLanzamientos: React.FC = () => {
         setLoadingReleases(true);
         setStatus({ type: 'idle' });
         try {
-            const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
+            const response = await fetch(`/api/sheet-proxy?read=true&nocache=${Math.random()}&t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
                 const normalized = (data as any[]).map(r => {
@@ -315,7 +307,8 @@ const ProximosLanzamientos: React.FC = () => {
         // It will be reset if the user clicks "Rastrear de nuevo" manually.
         if (failed.length === 0) {
             setPendingSync([]);
-            setStatus({ type: 'success', message: `¡${items.length} lanzamientos sincronizados! Refresca para ver cambios.` });
+            setStatus({ type: 'success', message: `¡Sincronización completa! Recargando...` });
+            setTimeout(() => window.location.reload(), 2000);
         } else {
             setPendingSync(failed);
             setStatus({ type: 'error', message: `${failed.length} lanzamientos fallaron. Reintenta manualmente.` });
