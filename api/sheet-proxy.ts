@@ -27,18 +27,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fetchOptions: RequestInit = {
             method: req.method,
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/plain',
             }
         };
 
         if (req.method === 'POST') {
-            // For POST, we might be receiving JSON from our updated components
-            // or we might need to forward what we get.
+            // Google Apps Script requires text/plain (not application/json)
             fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
 
         const response = await fetch(url, fetchOptions);
         
+        // No cache for sheet data (always fresh)
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         // Handle responses
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {

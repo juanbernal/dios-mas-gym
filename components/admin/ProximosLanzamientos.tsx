@@ -178,7 +178,7 @@ const ProximosLanzamientos: React.FC = () => {
                 const data = await response.json();
                 const normalized = (data as any[]).map(r => {
                     const findKey = (keys: string[]) => {
-                        const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
+                        const k = Object.keys(r).find(key => keys.includes(key.replace(/\s+/g, '').trim().toLowerCase()));
                         return k ? r[k] : '';
                     };
                     return {
