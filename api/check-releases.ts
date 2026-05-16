@@ -87,7 +87,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<void> {
     const artistEmoji = release.Artista.toLowerCase().includes('juan') ? '🤠' : '💪';
     const payload = {
         app_id: APP_ID,
-        included_segments: ['All'],          // All subscribers
+        included_segments: ['Subscribed Users'], // Standard OneSignal segment
         headings: { 
             en: `${artistEmoji} New Release! ${release.name}`,
             es: `${artistEmoji} ¡Hoy estrena! ${release.name}` 
