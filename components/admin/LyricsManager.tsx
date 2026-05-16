@@ -89,8 +89,14 @@ const LyricsManager: React.FC = () => {
             let sheetItems: LyricItem[] = [];
             if (sheetsSyncUrl) {
                 try {
-                    const url = `${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`;
-                    const res = await fetch(url);
+                    const res = await fetch(sheetsSyncUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'list',
+                            secret: SYNC_SECRET
+                        })
+                    });
                     const text = await res.text();
                     
                     if (res.ok) {
