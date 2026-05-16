@@ -45,6 +45,7 @@ const LyricsManager: React.FC = () => {
     const [storyShowResults, setStoryShowResults] = useState(false);
     const [storyPreviewMode, setStoryPreviewMode] = useState<'preview' | 'html' | 'edit'>('preview');
     const [storyEditHtml, setStoryEditHtml] = useState('');
+    const [showCloudExplorer, setShowCloudExplorer] = useState(false);
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -614,14 +615,40 @@ ${cleanedLyrics}`;
                             </h1>
                         </div>
                         
-                        <button 
-                            onClick={loadAllLyrics}
-                            disabled={loading}
-                            className={`px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/10 ${loading ? 'opacity-50' : ''}`}
-                        >
-                            <i className={`fas fa-rotate ${loading ? 'fa-spin' : ''} mr-2`}></i>
-                            Actualizar
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={loadAllLyrics}
+                                disabled={loading}
+                                className={`px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/10 ${loading ? 'opacity-50' : ''}`}
+                                title="Actualizar todo"
+                            >
+                                <i className={`fas fa-rotate ${loading ? 'fa-spin' : ''}`}></i>
+                            </button>
+
+                            <button 
+                                onClick={() => setShowCloudExplorer(true)}
+                                className="px-4 py-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/40 text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-full hover:from-amber-500 hover:to-amber-600 hover:text-black transition-all flex items-center gap-2 shadow-lg shadow-amber-500/10"
+                            >
+                                <i className="fas fa-cloud"></i>
+                                Ver Nube
+                            </button>
+
+                            <button 
+                                onClick={handleSyncAll}
+                                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2"
+                            >
+                                <i className="fas fa-upload"></i>
+                                Sincronizar Todo
+                            </button>
+
+                            <button 
+                                onClick={() => setShowSheetsConfig(true)}
+                                className={`px-4 py-2 border rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${sheetsSyncUrl ? 'bg-amber-500/10 border-amber-500/40 text-amber-400' : 'bg-white/5 border-white/10 text-white/40'}`}
+                            >
+                                <i className="fas fa-cloud-arrow-up"></i>
+                                {sheetsSyncUrl ? 'Cloud ON' : 'Config Cloud'}
+                            </button>
+                        </div>
                         
                         {/* Mobile View Toggle */}
                         {selectedLyric && (
@@ -1273,6 +1300,78 @@ ${cleanedLyrics}`;
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* CLOUD EXPLORER MODAL */}
+        {showCloudExplorer && (
+            <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-8">
+                <div className="bg-[#0f111a] border border-amber-500/20 rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+                    <button onClick={() => setShowCloudExplorer(false)} className="absolute top-8 right-8 text-white/20 hover:text-white transition-all z-10">
+                        <i className="fas fa-times text-2xl"></i>
+                    </button>
+                    
+                    <div className="p-10 border-b border-white/5 bg-black/20">
+                        <div className="flex items-center gap-6 mb-2">
+                            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 text-3xl shadow-[0_0_30px_rgba(245,158,11,0.1)]">
+                                <i className="fas fa-cloud"></i>
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter italic mb-1">Explorador de <span className="text-[#c5a059]">Nube</span></h2>
+                                <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Gestiona tus letras guardadas en Google Sheets</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                        {lyrics.filter(l => l.status === 'CLOUD').length === 0 ? (
+                            <div className="text-center py-20">
+                                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 opacity-20">
+                                    <i className="fas fa-cloud-slash text-4xl"></i>
+                                </div>
+                                <p className="text-white/30 text-xs font-light uppercase tracking-widest italic">No hay letras guardadas en la nube aún.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {lyrics.filter(l => l.status === 'CLOUD').map(lyric => (
+                                    <div key={lyric.id} className="bg-white/[0.03] border border-white/5 rounded-3xl p-6 hover:border-amber-500/20 transition-all group">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">{lyric.title}</h3>
+                                                <p className="text-[10px] text-white/30 uppercase font-black tracking-widest mt-1">{lyric.artist}</p>
+                                            </div>
+                                            <span className="text-[9px] text-white/10 font-mono">{new Date(lyric.date).toLocaleDateString()}</span>
+                                        </div>
+                                        
+                                        <p className="text-[11px] text-white/40 line-clamp-2 mb-6 font-light italic leading-relaxed">
+                                            {stripHtml(lyric.content).slice(0, 150)}...
+                                        </p>
+                                        
+                                        <div className="flex gap-2 pt-4 border-t border-white/5">
+                                            <button 
+                                                onClick={() => {
+                                                    setSelectedLyric(lyric);
+                                                    setShowCloudExplorer(false);
+                                                    setShowStoryBuilder(true);
+                                                }}
+                                                className="flex-1 py-3 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <i className="fas fa-newspaper"></i> Publicar Post
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteFromSheets(lyric)}
+                                                className="w-12 h-12 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-sm"
+                                                title="Eliminar de la nube"
+                                            >
+                                                <i className="fas fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
