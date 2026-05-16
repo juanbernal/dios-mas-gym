@@ -16,6 +16,29 @@ interface ReleaseRow {
     coverImageUrl?: string;
 }
 
+async function fetchRows(): Promise<Record<string, string>[]> {
+    const res = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
+    if (!res.ok) throw new Error('Failed to fetch Google Sheet');
+    
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        return await res.json();
+    } else {
+        const text = await res.text();
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length === 0) return [];
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        return lines.slice(1).map(line => {
+            const values = line.split(',');
+            const obj: Record<string, string> = {};
+            headers.forEach((h, i) => {
+                obj[h] = values[i] ? values[i].trim() : '';
+            });
+            return obj;
+        });
+    }
+}
+
 function normalizeRow(r: Record<string, string>): ReleaseRow {
     const find = (keys: string[]) => {
         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
@@ -112,31 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 
     try {
-        const sheetRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
-        if (!sheetRes.ok) throw new Error('Failed to fetch Google Sheet');
-        
-        const contentType = sheetRes.headers.get('content-type') || '';
-        let rows: Record<string, string>[] = [];
-
-        if (contentType.includes('application/json')) {
-            rows = await sheetRes.json();
-        } else {
-            // Parse CSV manually
-            const text = await sheetRes.text();
-            console.log('[check-releases] Parsing CSV response');
-            const lines = text.split('\n').filter(l => l.trim());
-            if (lines.length > 0) {
-                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                rows = lines.slice(1).map(line => {
-                    const values = line.split(',');
-                    const obj: Record<string, string> = {};
-                    headers.forEach((h, i) => {
-                        obj[h] = values[i] ? values[i].trim() : '';
-                    });
-                    return obj;
-                });
-            }
-        }
+        const rows = await fetchRows();
 
         if (rows.length === 0) {
             return res.status(200).json({ sent: 0, message: 'La hoja de cálculo parece estar vacía.' });
@@ -197,8 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // --- 2. Fetch Fresh Sheet (if we synced anything) ---
         let finalRows = rows;
         if (newlyDetected.length > 0) {
-            const freshRes = await fetch(`${GOOGLE_SHEET_URL}?read=true&t=${Date.now()}`);
-            if (freshRes.ok) finalRows = await freshRes.json();
+            finalRows = await fetchRows();
         }
 
         // Calculate "today" in Mexico City timezone (UTC-6)
