@@ -276,6 +276,44 @@ const LyricsManager: React.FC = () => {
         }
     };
 
+    const handleDeleteFromSheets = async (lyric: LyricItem) => {
+        if (!sheetsSyncUrl) return;
+        if (!confirm(`¿Estás seguro de que quieres eliminar "${lyric.title}" de la nube?`)) return;
+        
+        setIsSaving(true);
+        try {
+            const queryString = new URLSearchParams({
+                action: 'delete',
+                secret: SYNC_SECRET,
+                title: lyric.title,
+                artist: lyric.artist
+            }).toString();
+            
+            const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'delete',
+                    secret: SYNC_SECRET,
+                    title: lyric.title,
+                    artist: lyric.artist
+                })
+            });
+            
+            if (res.ok) {
+                showNotification("✅ Eliminado de la nube");
+                setLyrics(prev => prev.filter(l => l.id !== lyric.id));
+                if (selectedLyric?.id === lyric.id) setSelectedLyric(null);
+            } else {
+                showNotification("❌ Error al eliminar");
+            }
+        } catch (e: any) {
+            showNotification("❌ Error: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleSaveToBloggerCloud = async () => {
         if (!selectedLyric || !sheetsSyncUrl) return;
         setIsSaving(true);
@@ -690,13 +728,24 @@ ${cleanedLyrics}`;
                                     className={`p-6 cursor-pointer transition-all hover:bg-white/5 ${selectedLyric?.id === lyric.id ? 'bg-[#00ffcc]/5 border-l-4 border-[#00ffcc]' : ''}`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className={`text-[8px] font-black uppercase px-2 py-1 rounded ${
-                                            lyric.status === 'LIVE' ? 'bg-green-500/20 text-green-500' : 
-                                            lyric.status === 'DRAFT' ? 'bg-blue-500/20 text-blue-500' : 
-                                            lyric.status === 'CLOUD' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-zinc-500/20 text-zinc-500'
-                                        }`}>
-                                            {lyric.status}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[8px] font-black uppercase px-2 py-1 rounded ${
+                                                lyric.status === 'LIVE' ? 'bg-green-500/20 text-green-500' : 
+                                                lyric.status === 'DRAFT' ? 'bg-blue-500/20 text-blue-500' : 
+                                                lyric.status === 'CLOUD' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-zinc-500/20 text-zinc-500'
+                                            }`}>
+                                                {lyric.status}
+                                            </span>
+                                            {lyric.status === 'CLOUD' && (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteFromSheets(lyric); }}
+                                                    className="w-6 h-6 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-[10px]"
+                                                    title="Eliminar de la nube"
+                                                >
+                                                    <i className="fas fa-trash-can"></i>
+                                                </button>
+                                            )}
+                                        </div>
                                         {duplicateTitles[lyric.title.trim().toLowerCase()] > 1 && (
                                             <span className="text-[8px] font-black uppercase px-2 py-1 rounded bg-red-500/15 text-red-400">Duplicada</span>
                                         )}

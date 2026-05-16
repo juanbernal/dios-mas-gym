@@ -75,7 +75,7 @@ const LyricStudio: React.FC = () => {
   const [draftName, setDraftName] = useState("");
   const [bloggerDrafts, setBloggerDrafts] = useState<any[]>([]);
   const [isFetchingBlogger, setIsFetchingBlogger] = useState(false);
-  const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "");
+  const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "/api/sheet-proxy?script=lyrics");
   const [showBloggerModal, setShowBloggerModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
