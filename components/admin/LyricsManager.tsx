@@ -337,7 +337,7 @@ const LyricsManager: React.FC = () => {
                     date: new Date().toISOString()
                 })
             });
-            showNotification("🚀 [V3.6] ¡CONECTADO A LA NUBE!\nBorrador enviado a Blogger.");
+            showNotification("🚀 [V3.7] ¡CONECTADO A LA NUBE!\nBorrador enviado a Blogger.");
         } catch (e: any) {
             showNotification("❌ Error: " + e.message);
         } finally {
@@ -605,7 +605,7 @@ ${cleanedLyrics}`;
                             </button>
                             <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic">
                                 Gestor de <span className="text-[#00ffcc]">Letras</span>
-                                <span className="hidden md:inline text-[8px] not-italic text-[#00ffcc]/60 bg-[#00ffcc]/10 px-2 py-0.5 rounded-full ml-3 border border-[#00ffcc]/20">v3.5 - PREMIUM CLOUD</span>
+                                <span className="hidden md:inline text-[8px] not-italic text-[#00ffcc]/60 bg-[#00ffcc]/10 px-2 py-0.5 rounded-full ml-3 border border-[#00ffcc]/20">v3.7 - SUPREME CLOUD & SYNC</span>
                             </h1>
                         </div>
                         
