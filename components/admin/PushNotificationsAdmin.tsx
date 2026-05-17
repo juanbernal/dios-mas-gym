@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const PushNotificationsAdmin: React.FC = () => {
+    const navigate = useNavigate();
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
     const [url, setUrl] = useState('');
@@ -73,6 +75,9 @@ const PushNotificationsAdmin: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 font-['Poppins']">
             <div className="max-w-6xl mx-auto">
+                <button onClick={() => navigate('/admin')} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
+                    <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Dashboard
+                </button>
                 <div className="mb-12">
                     <h1 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-4 flex items-center gap-4">
                         <span className="w-12 h-px bg-[#c5a059]/30"></span> Módulo de Comunicación
