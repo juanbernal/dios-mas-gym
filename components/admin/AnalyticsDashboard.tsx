@@ -5,6 +5,7 @@ const AnalyticsDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [debugError, setDebugError] = useState<string>('');
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -17,10 +18,11 @@ const AnalyticsDashboard: React.FC = () => {
                 if (json && json.status === 'success' && json.data) {
                     setData(json.data);
                 } else {
-                    throw new Error('No data');
+                    throw new Error(json.message || 'Error en respuesta de Google');
                 }
-            } catch (err) {
-                console.warn('Failed to fetch real analytics, using mock data for preview.');
+            } catch (err: any) {
+                setDebugError(err.message || 'Error de conexión');
+                console.warn('Failed to fetch real analytics, using mock data for preview.', err);
                 // Fallback a datos de prueba (Mock Data) para visualización inicial
                 setData({
                     totalViews: 12450,
@@ -70,9 +72,12 @@ const AnalyticsDashboard: React.FC = () => {
                         </div>
                         
                         {data?.isMock && (
-                            <div className="bg-[#f43f5e]/10 border border-[#f43f5e]/30 px-4 py-3 rounded-xl flex items-center gap-3 shrink-0">
-                                <i className="fas fa-exclamation-circle text-[#f43f5e]"></i>
-                                <span className="text-[9px] font-black uppercase tracking-widest text-[#f43f5e]">Mostrando datos de prueba</span>
+                            <div className="bg-[#f43f5e]/10 border border-[#f43f5e]/30 px-4 py-3 rounded-xl flex flex-col gap-1 shrink-0 max-w-sm">
+                                <div className="flex items-center gap-2">
+                                    <i className="fas fa-exclamation-circle text-[#f43f5e]"></i>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#f43f5e]">Mostrando datos de prueba</span>
+                                </div>
+                                <span className="text-white/40 text-[10px] break-words">Error: {debugError}</span>
                             </div>
                         )}
                     </div>
