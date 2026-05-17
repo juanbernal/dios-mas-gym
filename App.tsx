@@ -22,7 +22,7 @@ import PostView from './components/PostView';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
-import SocialPromo from './components/SocialPromo';
+import SocialPopup, { InlineSocialBanner } from './components/SocialPromo';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
@@ -369,7 +369,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
-      {!hideGlobalUI && <SocialPromo />}
+      {!hideGlobalUI && <SocialPopup />}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
       <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
         <Routes>
@@ -377,6 +377,10 @@ const App: React.FC = () => {
             <>
               <Hero verse={verse} onEntrenar={() => changeView('reflexiones')} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
               <section id="arsenal-content"><UpcomingReleases /></section>
+
+              <div className="px-4 md:px-0">
+                  <InlineSocialBanner />
+              </div>
 
               {/* CONTINUAR LEYENDO */}
               {continueReading.length > 0 && (

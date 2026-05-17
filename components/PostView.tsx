@@ -6,6 +6,7 @@ import CommentSection from './CommentSection';
 import RelatedPosts from './RelatedPosts';
 import { ContentPost, AppState } from '../types';
 import { fetchPostBySlug } from '../services/contentService';
+import { InlineSocialBanner } from './SocialPromo';
 
 interface PostViewProps {
   state: AppState;
@@ -139,6 +140,10 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
                   musicCatalog={state.musicDiosmasgym} 
                   onPlaySong={(s) => setState((p: any) => ({ ...p, activeSong: s }))} 
                 />
+              </div>
+
+              <div className="my-12">
+                <InlineSocialBanner />
               </div>
 
               {/* Sección de Canciones Recomendadas que sustituye a Disqus */}
