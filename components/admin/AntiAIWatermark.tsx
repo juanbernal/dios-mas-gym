@@ -134,14 +134,53 @@ const AntiAIWatermark: React.FC = () => {
         // Add text if enabled
         if (showText) {
             ctx.globalAlpha = logoOpacity / 100;
-            const fontSize = Math.max(16, width * 0.02); // 2% of width
-            ctx.font = `600 ${fontSize}px Inter, Montserrat, sans-serif`;
-            ctx.fillStyle = '#ffffff';
+            
+            // Elegant subtle dark gradient at the bottom for contrast
+            const gradientHeight = Math.max(150, height * 0.15);
+            const grad = ctx.createLinearGradient(0, height - gradientHeight, 0, height);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, height - gradientHeight, width, gradientHeight);
+
+            const fontSize = Math.max(16, width * 0.018); 
+            
+            // Modern, elegant typography settings
+            ctx.font = `400 ${fontSize}px Montserrat, Inter, sans-serif`;
+            if ('letterSpacing' in ctx) {
+                (ctx as any).letterSpacing = `${fontSize * 0.6}px`;
+            }
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = fontSize / 2;
-            ctx.fillText('DIOSMASGYM.COM', width / 2, height - margin / 2);
-            ctx.shadowBlur = 0; // reset
+            ctx.textBaseline = 'middle';
+            
+            // Premium glow / shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = fontSize * 1.5;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            
+            // Position near the very bottom
+            const textY = height - (margin * 0.6);
+            ctx.fillText('DIOSMASGYM.COM', width / 2, textY);
+            
+            // Premium gold accent line
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            const textMetrics = ctx.measureText('DIOSMASGYM.COM');
+            const actualWidth = textMetrics.width;
+            
+            ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)'; // Brand gold
+            ctx.lineWidth = Math.max(1, fontSize * 0.1);
+            ctx.beginPath();
+            ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
+            ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
+            ctx.stroke();
+            
+            if ('letterSpacing' in ctx) {
+                (ctx as any).letterSpacing = '0px'; // Reset
+            }
         }
 
         ctx.globalAlpha = 1.0;
