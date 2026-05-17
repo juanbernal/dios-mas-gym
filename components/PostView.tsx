@@ -165,10 +165,20 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
               </div>
 
               <RelatedPosts 
-                  currentPostId={state.selectedPost.id}
+                  currentPost={state.selectedPost}
                   allPosts={state.allPosts}
-                  labels={state.selectedPost.labels || []}
-                  onSelectPost={(p) => navigate(`/post/${getSlugFromUrl(p.url)}`)}
+                  favorites={state.favorites}
+                  readingHistory={readingHistory}
+                  onNavigate={(slug) => navigate(`/post/${slug}`)}
+                  onFav={(e, post) => {
+                    e.stopPropagation();
+                    setState((prev: any) => ({
+                      ...prev,
+                      favorites: prev.favorites.includes(post.id)
+                        ? prev.favorites.filter((id: string) => id !== post.id)
+                        : [...prev.favorites, post.id]
+                    }));
+                  }}
               />
           </div>
       </section>
