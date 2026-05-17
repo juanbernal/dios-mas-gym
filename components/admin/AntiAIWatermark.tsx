@@ -249,12 +249,26 @@ const AntiAIWatermark: React.FC = () => {
 
                         const exifObj = {"0th": zeroth, "Exif": exif, "GPS": gps};
                         const exifBytes = piexif.dump(exifObj);
-                        const newJpeg = piexif.insert(exifBytes, dataURL);
+                        const newJpegDataUrl = piexif.insert(exifBytes, dataURL);
+
+                        // Convert dataURL to Blob to avoid Windows security warnings
+                        const arr = newJpegDataUrl.split(',');
+                        const mime = arr[0].match(/:(.*?);/)[1];
+                        const bstr = atob(arr[1]);
+                        let n = bstr.length;
+                        const u8arr = new Uint8Array(n);
+                        while (n--) {
+                            u8arr[n] = bstr.charCodeAt(n);
+                        }
+                        const blob = new Blob([u8arr], { type: mime });
+                        const blobUrl = URL.createObjectURL(blob);
 
                         const a = document.createElement('a');
-                        a.href = newJpeg;
+                        a.href = blobUrl;
                         a.download = `dmg_master_${new Date().getTime()}.jpg`;
                         a.click();
+                        
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
                         setIsDownloading(false);
                     } else {
                         canvas.toBlob((blob) => {
