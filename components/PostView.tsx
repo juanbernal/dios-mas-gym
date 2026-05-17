@@ -144,11 +144,7 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
               {/* Sección de Comentarios Integrada */}
               {state.selectedPost && (
                 <div className="mt-16">
-                  <CommentSection 
-                    postId={state.selectedPost.id} 
-                    postTitle={state.selectedPost.title}
-                    postUrl={`https://app.diosmasgym.com/post/${getSlugFromUrl(state.selectedPost.url)}`}
-                  />
+                  <CommentSection url={`https://app.diosmasgym.com/post/${getSlugFromUrl(state.selectedPost.url)}`} />
                 </div>
               )}
           </div>
