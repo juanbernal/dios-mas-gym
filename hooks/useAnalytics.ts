@@ -38,10 +38,13 @@ CÓDIGO DE RASTREO PARA PÁGINAS EXTERNAS (Blogger, Sitios Web de terceros)
 Copia y pega este código antes de la etiqueta </head> o al final del <body>
 en páginas externas para registrar visitas en el Analytics Dashboard.
 =============================================================================
+<!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
 <script>
   window.addEventListener('load', function() {
+    // 1. Añadimos ?action=trackEvent directamente a la URL
     var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec?action=trackEvent";
     
+    // 2. Quitamos "action" de aquí, y añadimos timestamp/userAgent como espera la app
     var payload = {
       event: "post_view", 
       data: { 
@@ -54,7 +57,7 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 
     fetch(ANALYTICS_URL, {
       method: "POST",
-      mode: "no-cors", 
+      mode: "no-cors", // MUY IMPORTANTE: Evita que el navegador bloquee la petición
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(payload)
     }).catch(function(e) {
@@ -62,4 +65,5 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
     });
   });
 </script>
+<!-- FIN DEL CÓDIGO DE RASTREO -->
 */
