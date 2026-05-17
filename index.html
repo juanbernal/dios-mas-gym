@@ -49,6 +49,33 @@
     <meta property="og:url" content="https://app.diosmasgym.com/">
     <meta property="og:type" content="article">
     <link rel="manifest" href="/manifest.json">
+
+    <!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
+    <script>
+      window.addEventListener('load', function() {
+        var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
+        
+        // Aquí puedes cambiar "post_view" por otro nombre si quieres diferenciarlo, 
+        // pero si lo dejas así, aparecerá en el "Top Reflexiones" de tu panel.
+        var payload = {
+          action: "trackEvent",
+          event: "post_view", 
+          data: { 
+            title: document.title, // Automáticamente toma el título de la página
+            artist: "Externa" 
+          }
+        };
+
+        fetch(ANALYTICS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        }).catch(function(e) {
+          console.log("Analytics Error:", e);
+        });
+      });
+    </script>
+    <!-- FIN DEL CÓDIGO DE RASTREO -->
 </head>
 <body class="flex flex-col">
     <script>
