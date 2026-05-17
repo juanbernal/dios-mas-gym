@@ -47,7 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         if (testPlayerId) {
-            payload.include_player_ids = [testPlayerId];
+            // OneSignal v16+ uses subscription_ids
+            payload.include_subscription_ids = [testPlayerId];
         } else {
             payload.included_segments = ['Active Users', 'Subscribed Users', 'Total Subscriptions'];
         }
@@ -65,6 +66,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         if (!response.ok) {
             throw new Error(data.errors ? data.errors.join(', ') : 'Failed to send notification');
+        }
+
+        if (data.recipients === 0) {
+            return res.status(400).json({ error: 'La notificación se envió pero ningún dispositivo la recibió (recipients = 0). Asegúrate de tener permisos activos.' });
         }
 
         return res.status(200).json({ success: true, data });
