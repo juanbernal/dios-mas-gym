@@ -283,7 +283,7 @@ const SmartLinkView: React.FC = () => {
         
         if (platform === 'Spotify') {
             if (urlStr.includes('spotify.com')) return song.url;
-            return `https://open.spotify.com/search/${query}`;
+            return isJuan ? 'https://open.spotify.com/intl-es/artist/0vEKa5AOcBkQVXNfGb2FNh' : 'https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do';
         }
         if (platform === 'YouTube') {
             if (urlStr.includes('youtube.com') || urlStr.includes('youtu.be')) return song.url;

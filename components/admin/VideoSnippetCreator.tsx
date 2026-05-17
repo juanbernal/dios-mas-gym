@@ -281,13 +281,13 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.shadowBlur = 30;
         ctx.shadowColor = 'black';
         ctx.textAlign = 'center';
-        ctx.fillText((titleRef.current || selectedSong.name || "S/N").toUpperCase(), 540, 1530);
+        ctx.fillText((titleRef.current || selectedSong.name || "S/N").toUpperCase(), 540, 1530, 960);
 
         // Artist
         ctx.fillStyle = '#c5a059'; 
         ctx.font = '900 45px Arial, sans-serif';
         ctx.shadowBlur = 15;
-        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610);
+        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610, 960);
         ctx.shadowBlur = 0;
         
         ctx.restore();

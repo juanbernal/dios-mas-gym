@@ -59,7 +59,7 @@ const SocialPostGenerator: React.FC = () => {
         if (!song) return;
 
         setFormData({
-            input: `Crear una promo para la cancion "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}. Genera un caption fuerte, llamado a la accion, hashtags y una version corta para historia.`,
+            input: `Crear una promo para la cancion "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión extensa para artículo de Blog (Blogger), bien redactada.\n2. Una versión MUY corta y directa para redes sociales (Instagram/TikTok).\n3. Asegúrate de incluir hashtags relevantes al final de cada versión.`,
             platform: 'Instagram/TikTok',
             goal: 'Promocionar canción',
             tone: 'Épico y Motivador'

@@ -179,7 +179,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setAiLoading(true);
         try {
             const prompt = {
-                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}. Incluye una versión para Instagram y otra para TikTok. Mantén un tono épico, de fe y disciplina.`,
+                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión MUY corta y directa para Instagram.\n2. Una versión MUY corta y directa para TikTok.\nMantén un tono épico, de fe y disciplina.`,
                 platform: 'Instagram/TikTok',
                 goal: 'Inspirar y Viralizar',
                 tone: 'Épico y Motivador'
