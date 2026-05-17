@@ -241,6 +241,15 @@ const AdminDashboard: React.FC = () => {
             color: '#c5a059',
             route: '/admin/watermark',
             category: 'Contenido Audiovisual'
+        },
+        {
+            id: 'push-notifications',
+            title: 'Push Notifications',
+            description: 'Envía alertas directas a los dispositivos de tus seguidores (Lanzamientos, Noticias, etc).',
+            icon: 'fa-bell',
+            color: '#f43f5e',
+            route: '/admin/push-notifications',
+            category: 'Marketing & Social'
         }
     ];
 

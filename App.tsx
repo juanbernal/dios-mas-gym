@@ -22,6 +22,7 @@ import PostView from './components/PostView';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
+import SocialPromo from './components/SocialPromo';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
@@ -40,6 +41,7 @@ const VideoSnippetCreator = React.lazy(() => import('./components/admin/VideoSni
 const LyricsManager = React.lazy(() => import('./components/admin/LyricsManager'));
 const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalendar'));
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
+const PushNotificationsAdmin = React.lazy(() => import('./components/admin/PushNotificationsAdmin'));
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
@@ -367,6 +369,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
+      {!hideGlobalUI && <SocialPromo />}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
       <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
         <Routes>
@@ -591,6 +594,7 @@ const App: React.FC = () => {
                 <Route path="lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
                 <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
+                <Route path="push-notifications" element={<AdminAuthWrapper><PushNotificationsAdmin/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />

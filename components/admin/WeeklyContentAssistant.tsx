@@ -129,7 +129,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // 2. Recent
-        const recentSong = pool
+        const recentSong = dailyPool
             .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         
