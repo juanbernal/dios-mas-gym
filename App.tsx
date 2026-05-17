@@ -129,7 +129,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (state.activeSong) {
       trackEvent('song_play', { 
-        title: state.activeSong.title, 
+        title: state.activeSong.name, 
         artist: state.activeSong.artist 
       });
     }
