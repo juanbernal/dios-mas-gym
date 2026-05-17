@@ -9,6 +9,8 @@ const AntiAIWatermark: React.FC = () => {
     const [logoSize, setLogoSize] = useState<number>(20); // 20% of image width
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
+    const [bothLayout, setBothLayout] = useState<'opposite' | 'stacked' | 'side-by-side'>('opposite');
+    const [showText, setShowText] = useState<boolean>(true);
     const [isDownloading, setIsDownloading] = useState(false);
     
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -39,6 +41,8 @@ const AntiAIWatermark: React.FC = () => {
     };
 
     const drawComposition = (ctx: CanvasRenderingContext2D, width: number, height: number, sourceImage: HTMLImageElement) => {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         // Draw main image
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(sourceImage, 0, 0, width, height);
@@ -62,30 +66,54 @@ const AntiAIWatermark: React.FC = () => {
             let x = 0;
             let y = 0;
             
-            // Offset for multiple logos
-            const offsetMultiplier = index;
-
-            switch (pos) {
-                case 'bottom-right':
-                    x = width - logoW - margin - (offsetMultiplier * (logoW + margin));
-                    y = height - logoH - margin;
-                    break;
-                case 'bottom-left':
-                    x = margin + (offsetMultiplier * (logoW + margin));
-                    y = height - logoH - margin;
-                    break;
-                case 'top-right':
-                    x = width - logoW - margin - (offsetMultiplier * (logoW + margin));
-                    y = margin;
-                    break;
-                case 'top-left':
-                    x = margin + (offsetMultiplier * (logoW + margin));
-                    y = margin;
-                    break;
-                case 'center':
-                    x = (width / 2) - (logoW / 2) + ((index - (total-1)/2) * (logoW + margin));
-                    y = (height / 2) - (logoH / 2);
-                    break;
+            if (total === 1) {
+                switch (pos) {
+                    case 'bottom-right': x = width - logoW - margin; y = height - logoH - margin; break;
+                    case 'bottom-left': x = margin; y = height - logoH - margin; break;
+                    case 'top-right': x = width - logoW - margin; y = margin; break;
+                    case 'top-left': x = margin; y = margin; break;
+                    case 'center': x = (width / 2) - (logoW / 2); y = (height / 2) - (logoH / 2); break;
+                }
+            } else {
+                // Total === 2
+                if (bothLayout === 'opposite') {
+                    // Put first at pos, second at opposite corner (horizontally)
+                    if (index === 0) {
+                        switch (pos) {
+                            case 'bottom-right': x = width - logoW - margin; y = height - logoH - margin; break;
+                            case 'bottom-left': x = margin; y = height - logoH - margin; break;
+                            case 'top-right': x = width - logoW - margin; y = margin; break;
+                            case 'top-left': x = margin; y = margin; break;
+                            case 'center': x = (width / 2) - logoW - margin/2; y = (height / 2) - (logoH / 2); break;
+                        }
+                    } else {
+                        switch (pos) {
+                            case 'bottom-right': x = margin; y = height - logoH - margin; break; // opposite is bottom-left
+                            case 'bottom-left': x = width - logoW - margin; y = height - logoH - margin; break;
+                            case 'top-right': x = margin; y = margin; break;
+                            case 'top-left': x = width - logoW - margin; y = margin; break;
+                            case 'center': x = (width / 2) + margin/2; y = (height / 2) - (logoH / 2); break;
+                        }
+                    }
+                } else if (bothLayout === 'stacked') {
+                    const totalH = (logoH * 2) + margin;
+                    switch (pos) {
+                        case 'bottom-right': x = width - logoW - margin; y = height - totalH - margin + (index * (logoH + margin)); break;
+                        case 'bottom-left': x = margin; y = height - totalH - margin + (index * (logoH + margin)); break;
+                        case 'top-right': x = width - logoW - margin; y = margin + (index * (logoH + margin)); break;
+                        case 'top-left': x = margin; y = margin + (index * (logoH + margin)); break;
+                        case 'center': x = (width / 2) - (logoW / 2); y = (height / 2) - (totalH / 2) + (index * (logoH + margin)); break;
+                    }
+                } else { // side-by-side
+                    const totalW = (logoW * 2) + margin;
+                    switch (pos) {
+                        case 'bottom-right': x = width - totalW - margin + (index * (logoW + margin)); y = height - logoH - margin; break;
+                        case 'bottom-left': x = margin + (index * (logoW + margin)); y = height - logoH - margin; break;
+                        case 'top-right': x = width - totalW - margin + (index * (logoW + margin)); y = margin; break;
+                        case 'top-left': x = margin + (index * (logoW + margin)); y = margin; break;
+                        case 'center': x = (width / 2) - (totalW / 2) + (index * (logoW + margin)); y = (height / 2) - (logoH / 2); break;
+                    }
+                }
             }
             return { x, y };
         };
@@ -102,6 +130,19 @@ const AntiAIWatermark: React.FC = () => {
                 drawLogo(logo, x, y);
             }
         });
+
+        // Add text if enabled
+        if (showText) {
+            ctx.globalAlpha = logoOpacity / 100;
+            const fontSize = Math.max(16, width * 0.02); // 2% of width
+            ctx.font = `600 ${fontSize}px Inter, Montserrat, sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = fontSize / 2;
+            ctx.fillText('DIOSMASGYM.COM', width / 2, height - margin / 2);
+            ctx.shadowBlur = 0; // reset
+        }
 
         ctx.globalAlpha = 1.0;
     };
@@ -128,7 +169,7 @@ const AntiAIWatermark: React.FC = () => {
         };
         img.src = imageSrc;
 
-    }, [imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition]);
+    }, [imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, bothLayout, showText]);
 
     const handleDownload = () => {
         if (!imageSrc || !originalSize) return;
@@ -251,6 +292,31 @@ const AntiAIWatermark: React.FC = () => {
                                         <option value="top-left">Arriba - Izquierda</option>
                                         <option value="center">Centro</option>
                                     </select>
+                                </div>
+
+                                {logoSelection === 'both' && (
+                                    <div>
+                                        <label className="text-[10px] font-bold text-white/70 block mb-2">Diseño Ambos Logos</label>
+                                        <select 
+                                            value={bothLayout}
+                                            onChange={(e) => setBothLayout(e.target.value as any)}
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none mb-2"
+                                        >
+                                            <option value="opposite">Esquinas Opuestas</option>
+                                            <option value="side-by-side">Lado a Lado (Horizontal)</option>
+                                            <option value="stacked">Apilados (Vertical)</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5">
+                                    <label className="text-[10px] font-bold text-white/70">Texto "DIOSMASGYM.COM"</label>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={showText} 
+                                        onChange={(e) => setShowText(e.target.checked)}
+                                        className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                    />
                                 </div>
 
                                 <div>
