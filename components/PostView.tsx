@@ -38,8 +38,11 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
       const cached = allPossiblePosts.find(p => getSlugFromUrl(p.url) === slug);
       
       if (cached && cached.content && !cached.content.endsWith('...')) {
-        setState((p: any) => ({ ...p, selectedPost: cached }));
-        if (!readingHistory.includes(cached.id)) setReadingHistory((prev: string[]) => [...prev, cached.id]);
+        setState((p: any) => {
+          if (p.selectedPost?.id === cached.id) return p;
+          return { ...p, selectedPost: cached };
+        });
+        setReadingHistory((prev: string[]) => prev.includes(cached.id) ? prev : [...prev, cached.id]);
         return;
       }
 
@@ -47,8 +50,11 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
       try {
         const fetched = await fetchPostBySlug(slug);
         if (fetched) {
-          setState((p: any) => ({ ...p, selectedPost: fetched }));
-          if (!readingHistory.includes(fetched.id)) setReadingHistory((prev: string[]) => [...prev, fetched.id]);
+          setState((p: any) => {
+            if (p.selectedPost?.id === fetched.id) return p;
+            return { ...p, selectedPost: fetched };
+          });
+          setReadingHistory((prev: string[]) => prev.includes(fetched.id) ? prev : [...prev, fetched.id]);
         } else {
           setError("Lo sentimos, no pudimos encontrar esta reflexión en El Arsenal.");
         }
@@ -58,7 +64,7 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
     };
     
     load();
-  }, [slug, state.allPosts, state.searchResults, getSlugFromUrl, readingHistory, setReadingHistory, setState]);
+  }, [slug]);
 
   // 2. SCROLL TO TOP ON NAVIGATION
   useEffect(() => {
