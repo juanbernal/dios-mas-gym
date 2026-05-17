@@ -34,7 +34,6 @@ const VideoSnippetCreator = React.lazy(() => import('./components/admin/VideoSni
 const LyricsManager = React.lazy(() => import('./components/admin/LyricsManager'));
 const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalendar'));
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
-import { ContentPost, AppState, AppView, MusicItem } from './types';
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
