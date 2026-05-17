@@ -570,22 +570,22 @@ const App: React.FC = () => {
           <Route path="/admin/*" element={
             <React.Suspense fallback={<div className="min-h-screen bg-[#05070a] flex items-center justify-center text-[#c5a059] font-serif italic text-4xl animate-pulse">Cargando Módulo...</div>}>
               <Routes>
-                <Route path="/" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
-                <Route path="/promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
-                <Route path="/smart-links" element={<AdminAuthWrapper><SmartLinksAdmin/></AdminAuthWrapper>} />
-                <Route path="/epk-generator" element={<AdminAuthWrapper><EPKGenerator/></AdminAuthWrapper>} />
-                <Route path="/canvas-creator" element={<AdminAuthWrapper><CanvasCreator/></AdminAuthWrapper>} />
-                <Route path="/lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
-                <Route path="/lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
-                <Route path="/proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />
-                <Route path="/social-post" element={<AdminAuthWrapper><SocialPostGenerator/></AdminAuthWrapper>} />
-                <Route path="/press-release" element={<AdminAuthWrapper><AIPressRelease/></AdminAuthWrapper>} />
-                <Route path="/metadata-tagger" element={<AdminAuthWrapper><MetadataTagger/></AdminAuthWrapper>} />
-                <Route path="/links" element={<AdminAuthWrapper><LinkBioAdmin/></AdminAuthWrapper>} />
-                <Route path="/video-snippet" element={<AdminAuthWrapper><VideoSnippetCreator/></AdminAuthWrapper>} />
-                <Route path="/lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
-                <Route path="/content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
-                <Route path="/watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
+                <Route path="" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
+                <Route path="promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
+                <Route path="smart-links" element={<AdminAuthWrapper><SmartLinksAdmin/></AdminAuthWrapper>} />
+                <Route path="epk-generator" element={<AdminAuthWrapper><EPKGenerator/></AdminAuthWrapper>} />
+                <Route path="canvas-creator" element={<AdminAuthWrapper><CanvasCreator/></AdminAuthWrapper>} />
+                <Route path="lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
+                <Route path="lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
+                <Route path="proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />
+                <Route path="social-post" element={<AdminAuthWrapper><SocialPostGenerator/></AdminAuthWrapper>} />
+                <Route path="press-release" element={<AdminAuthWrapper><AIPressRelease/></AdminAuthWrapper>} />
+                <Route path="metadata-tagger" element={<AdminAuthWrapper><MetadataTagger/></AdminAuthWrapper>} />
+                <Route path="links" element={<AdminAuthWrapper><LinkBioAdmin/></AdminAuthWrapper>} />
+                <Route path="video-snippet" element={<AdminAuthWrapper><VideoSnippetCreator/></AdminAuthWrapper>} />
+                <Route path="lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
+                <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
+                <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
