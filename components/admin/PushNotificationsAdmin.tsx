@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const PushNotificationsAdmin: React.FC = () => {
     const [title, setTitle] = useState('');
@@ -6,41 +6,68 @@ const PushNotificationsAdmin: React.FC = () => {
     const [url, setUrl] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loadingTest, setLoadingTest] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+    const [subscribers, setSubscribers] = useState<number | null>(null);
 
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
+    useEffect(() => {
+        // Fetch stats
+        fetch('/api/send-notification')
+            .then(res => res.json())
+            .then(data => {
+                if (data.subscribers !== undefined) setSubscribers(data.subscribers);
+            })
+            .catch(err => console.error("Error fetching subscribers:", err));
+    }, []);
+
+    const sendPush = async (isTest: boolean) => {
         if (!title || !message) {
             setStatus({ type: 'error', msg: 'El título y el mensaje son obligatorios.' });
             return;
         }
 
-        setLoading(true);
+        let testPlayerId = null;
+        if (isTest) {
+            testPlayerId = (window as any).OneSignal?.User?.PushSubscription?.id;
+            if (!testPlayerId) {
+                setStatus({ type: 'error', msg: 'No se pudo obtener tu ID de suscripción para la prueba. ¿Has aceptado las notificaciones en este dispositivo?' });
+                return;
+            }
+        }
+
+        isTest ? setLoadingTest(true) : setLoading(true);
         setStatus(null);
 
         try {
             const response = await fetch('/api/send-notification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, message, url, imageUrl })
+                body: JSON.stringify({ title, message, url, imageUrl, testPlayerId })
             });
 
             const data = await response.json();
 
             if (response.ok && data.success) {
-                setStatus({ type: 'success', msg: 'Notificación enviada exitosamente a todos los usuarios.' });
-                setTitle('');
-                setMessage('');
-                setUrl('');
-                setImageUrl('');
+                setStatus({ type: 'success', msg: isTest ? 'Prueba enviada exitosamente a tu dispositivo.' : 'Notificación enviada exitosamente a todos los usuarios.' });
+                if (!isTest) {
+                    setTitle('');
+                    setMessage('');
+                    setUrl('');
+                    setImageUrl('');
+                }
             } else {
                 setStatus({ type: 'error', msg: data.error || 'Hubo un error al enviar la notificación.' });
             }
         } catch (error: any) {
             setStatus({ type: 'error', msg: error.message || 'Error de conexión.' });
         } finally {
-            setLoading(false);
+            isTest ? setLoadingTest(false) : setLoading(false);
         }
+    };
+
+    const handleSend = (e: React.FormEvent) => {
+        e.preventDefault();
+        sendPush(false);
     };
 
     return (
@@ -50,12 +77,23 @@ const PushNotificationsAdmin: React.FC = () => {
                     <h1 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-4 flex items-center gap-4">
                         <span className="w-12 h-px bg-[#c5a059]/30"></span> Módulo de Comunicación
                     </h1>
-                    <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-tight">
-                        Push <span className="text-[#c5a059]">Notifications</span>
-                    </h2>
-                    <p className="text-white/40 mt-4 max-w-2xl text-sm leading-relaxed">
-                        Envía alertas instantáneas a todos los usuarios que han instalado la aplicación o aceptado notificaciones en su navegador.
-                    </p>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-tight">
+                                Push <span className="text-[#c5a059]">Notifications</span>
+                            </h2>
+                            <p className="text-white/40 mt-4 max-w-2xl text-sm leading-relaxed">
+                                Envía alertas instantáneas a todos los usuarios que han instalado la aplicación o aceptado notificaciones en su navegador.
+                            </p>
+                        </div>
+                        <div className="bg-[#c5a059]/10 border border-[#c5a059]/30 px-6 py-4 rounded-2xl flex items-center gap-4 shrink-0">
+                            <i className="fas fa-users text-[#c5a059] text-2xl"></i>
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Audiencia Total</p>
+                                <p className="text-2xl font-bold text-white">{subscribers !== null ? subscribers.toLocaleString() : '...'}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -123,17 +161,32 @@ const PushNotificationsAdmin: React.FC = () => {
                                 </div>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={loading || !title || !message}
-                                className={`mt-4 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ${loading || !title || !message ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-[#c5a059] text-black hover:bg-white hover:scale-[1.02] active:scale-95 shadow-[0_0_30px_rgba(197,160,89,0.3)]'}`}
-                            >
-                                {loading ? (
-                                    <><i className="fas fa-spinner fa-spin"></i> Enviando Flota...</>
-                                ) : (
-                                    <><i className="fas fa-paper-plane"></i> Lanzar Notificación Global</>
-                                )}
-                            </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => sendPush(true)}
+                                    disabled={loadingTest || loading || !title || !message}
+                                    className={`py-4 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${loadingTest || loading || !title || !message ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'}`}
+                                >
+                                    {loadingTest ? (
+                                        <><i className="fas fa-spinner fa-spin"></i> Probando...</>
+                                    ) : (
+                                        <><i className="fas fa-mobile-screen"></i> Enviar Prueba (A mí)</>
+                                    )}
+                                </button>
+                                
+                                <button
+                                    type="submit"
+                                    disabled={loading || loadingTest || !title || !message}
+                                    className={`py-4 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${loading || loadingTest || !title || !message ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-[#c5a059] text-black hover:bg-white hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(197,160,89,0.3)]'}`}
+                                >
+                                    {loading ? (
+                                        <><i className="fas fa-spinner fa-spin"></i> Enviando...</>
+                                    ) : (
+                                        <><i className="fas fa-paper-plane"></i> Lanzar a Todos</>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                     </div>
 
