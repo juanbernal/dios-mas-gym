@@ -16,6 +16,7 @@ export const useAnalytics = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    action: 'trackEvent',
                     event: eventName,
                     data: eventData,
                     timestamp: new Date().toISOString(),
@@ -41,11 +42,12 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 <!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
 <script>
   window.addEventListener('load', function() {
-    // 1. Añadimos ?action=trackEvent directamente a la URL
-    var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec?action=trackEvent";
+    // 1. Usamos la URL base
+    var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
     
-    // 2. Quitamos "action" de aquí, y añadimos timestamp/userAgent como espera la app
+    // 2. Incluimos action en el payload, de lo contrario Apps Script lo rechaza
     var payload = {
+      action: "trackEvent",
       event: "post_view", 
       data: { 
         title: document.title,
