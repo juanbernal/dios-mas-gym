@@ -232,6 +232,15 @@ const AdminDashboard: React.FC = () => {
             color: '#00ffcc',
             route: '/admin/lyrics-manager',
             category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'anti-ai-watermark',
+            title: 'Anti-AI Watermark',
+            description: 'Añade logos oficiales a tus imágenes sin perder calidad para evitar que TikTok las marque como IA.',
+            icon: 'fa-shield-halved',
+            color: '#c5a059',
+            route: '/admin/watermark',
+            category: 'Contenido Audiovisual'
         }
     ];
 

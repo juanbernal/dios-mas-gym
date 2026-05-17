@@ -26,6 +26,7 @@ import LinkBioPublic from "./components/LinkBioPublic";
 import VideoSnippetCreator from "./components/admin/VideoSnippetCreator";
 import LyricsManager from "./components/admin/LyricsManager";
 import ContentCalendar from "./components/admin/ContentCalendar";
+import AntiAIWatermark from "./components/admin/AntiAIWatermark";
 import UpcomingReleases from "./components/UpcomingReleases";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import Footer from './components/Footer';
@@ -581,6 +582,7 @@ const App: React.FC = () => {
           <Route path="/admin/video-snippet" element={<AdminAuthWrapper><VideoSnippetCreator/></AdminAuthWrapper>} />
           <Route path="/admin/lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
           <Route path="/admin/content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
+          <Route path="/admin/watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
           <Route path="/bio" element={<LinkBioPublic />} />
           <Route path="/bio/:artist" element={<LinkBioPublic />} />
         </Routes>
