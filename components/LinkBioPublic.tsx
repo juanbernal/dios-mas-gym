@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { LinkBioData, MusicItem } from '../types';
 import { fetchMusicCatalog } from '../services/musicService';
 import InlineAudioPlayer from './InlineAudioPlayer';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 const FALLBACK_DATA: LinkBioData = {
     profile: {
@@ -24,6 +25,7 @@ const LinkBioPublic: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [randomSong, setRandomSong] = useState<MusicItem | null>(null);
     const [isSubscribed, setIsSubscribed] = useState(false);
+    const { trackEvent } = useAnalytics();
 
     useEffect(() => {
         const checkSub = async () => {
@@ -85,6 +87,17 @@ const LinkBioPublic: React.FC = () => {
             }
         }).catch(err => console.error("Error loading music catalog for bio:", err));
     }, [artist]);
+
+    useEffect(() => {
+        if (data && data.profile) {
+            const pageTitle = `${data.profile.name} | Bio`;
+            document.title = pageTitle;
+            trackEvent('post_view', {
+                title: `${data.profile.name} (Bio Link)`,
+                artist: artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'
+            });
+        }
+    }, [data, artist]);
 
     if (!data || !data.profile) return (
         <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-8 text-center font-['Poppins']">
@@ -161,6 +174,13 @@ const LinkBioPublic: React.FC = () => {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => {
+                                trackEvent('link_click', {
+                                    title: link.title,
+                                    url: link.url,
+                                    artist: artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'
+                                });
+                            }}
                             className={`
                                 w-full py-5 px-6 rounded-2xl flex items-center gap-4 transition-all duration-300 border backdrop-blur-md group
                                 ${link.type === 'special' 
