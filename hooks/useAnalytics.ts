@@ -42,10 +42,8 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 <!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
 <script>
   window.addEventListener('load', function() {
-    // 1. Usamos la URL base
     var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
     
-    // 2. Incluimos action en el payload, de lo contrario Apps Script lo rechaza
     var payload = {
       action: "trackEvent",
       event: "post_view", 
@@ -59,7 +57,7 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 
     fetch(ANALYTICS_URL, {
       method: "POST",
-      mode: "no-cors", // MUY IMPORTANTE: Evita que el navegador bloquee la petición
+      mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(payload)
     }).catch(function(e) {
