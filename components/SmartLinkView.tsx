@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../services/musicService';
 import { MusicItem } from '../types';
 import { useOneSignal } from '../services/useOneSignal';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 declare global {
   interface Window {
@@ -148,6 +149,16 @@ const SmartLinkView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const { isSubscribed, subscribe, unsubscribe } = useOneSignal();
+    const { trackEvent } = useAnalytics();
+
+    useEffect(() => {
+        if (song) {
+            trackEvent('smart_link_view', {
+                title: song.name,
+                artist: song.artist
+            });
+        }
+    }, [song]);
 
     useEffect(() => {
         const loadSong = async () => {
