@@ -10,7 +10,7 @@ const AnalyticsDashboard: React.FC = () => {
         const fetchAnalytics = async () => {
             try {
                 // Intenta obtener analíticas reales del backend
-                const res = await fetch('/api/sheet-proxy?action=getAnalytics');
+                const res = await fetch('/api/sheet-proxy?script=analytics&action=getAnalytics');
                 if (!res.ok) throw new Error('API Error');
                 const json = await res.json();
                 

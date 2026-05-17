@@ -8,7 +8,7 @@ export const useAnalytics = () => {
 
             // We use the existing sheet-proxy to send the data to Google Apps Script.
             // The Apps Script must be updated to handle action=trackEvent
-            fetch('/api/sheet-proxy?action=trackEvent', {
+            fetch('/api/sheet-proxy?script=analytics&action=trackEvent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
