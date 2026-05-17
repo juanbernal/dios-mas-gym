@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as piexif from 'piexifjs';
 
 const AntiAIWatermark: React.FC = () => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const AntiAIWatermark: React.FC = () => {
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [bothLayout, setBothLayout] = useState<'opposite' | 'stacked' | 'side-by-side'>('opposite');
     const [showText, setShowText] = useState<boolean>(true);
+    const [injectExif, setInjectExif] = useState<boolean>(true);
     const [isDownloading, setIsDownloading] = useState(false);
     
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -226,18 +228,62 @@ const AntiAIWatermark: React.FC = () => {
             if (ctx) {
                 drawComposition(ctx, canvas.width, canvas.height, img);
                 
-                // Export at max quality
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        const url = URL.createObjectURL(blob);
+                try {
+                    if (injectExif) {
+                        const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+                        
+                        const zeroth: any = {};
+                        const exif: any = {};
+                        const gps: any = {};
+
+                        zeroth[piexif.ImageIFD.Make] = "Diosmasgym Records";
+                        zeroth[piexif.ImageIFD.Model] = "Lyric Studio Modern FX (DSLR-Simulation)";
+                        zeroth[piexif.ImageIFD.Software] = "Diosmasgym Anti-AI Engine";
+                        zeroth[piexif.ImageIFD.Artist] = "Diosmasgym / Juan 614";
+                        zeroth[piexif.ImageIFD.Copyright] = "Copyright " + new Date().getFullYear() + " Diosmasgym";
+
+                        const now = new Date();
+                        const dateStr = `${now.getFullYear()}:${String(now.getMonth()+1).padStart(2, '0')}:${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                        exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
+                        exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
+
+                        const exifObj = {"0th": zeroth, "Exif": exif, "GPS": gps};
+                        const exifBytes = piexif.dump(exifObj);
+                        const newJpeg = piexif.insert(exifBytes, dataURL);
+
                         const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `watermarked_image_${new Date().getTime()}.png`;
+                        a.href = newJpeg;
+                        a.download = `dmg_master_${new Date().getTime()}.jpg`;
                         a.click();
-                        URL.revokeObjectURL(url);
+                        setIsDownloading(false);
+                    } else {
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `watermarked_image_${new Date().getTime()}.png`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            }
+                            setIsDownloading(false);
+                        }, 'image/png', 1.0);
                     }
-                    setIsDownloading(false);
-                }, 'image/png', 1.0);
+                } catch (err) {
+                    console.error(err);
+                    alert("Error al inyectar metadatos. Descargando sin EXIF.");
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `watermarked_image_${new Date().getTime()}.png`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        }
+                        setIsDownloading(false);
+                    }, 'image/png', 1.0);
+                }
             } else {
                 setIsDownloading(false);
             }
@@ -388,8 +434,25 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* EXIF Metadata */}
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-4 block">3. Opciones Avanzadas (Anti-IA)</label>
+                            <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5 group hover:border-[#c5a059]/40 transition-all cursor-pointer" onClick={() => setInjectExif(!injectExif)}>
+                                <div>
+                                    <label className="text-[10px] font-bold text-white/70 block cursor-pointer">Inyectar Metadatos EXIF</label>
+                                    <span className="text-[8px] text-white/40 uppercase tracking-widest">Simula cámara real y firma tu autoría</span>
+                                </div>
+                                <input 
+                                    type="checkbox" 
+                                    checked={injectExif} 
+                                    onChange={(e) => setInjectExif(e.target.checked)}
+                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                />
+                            </div>
+                        </div>
+
                         {/* Export */}
-                        <div className="pt-4">
+                        <div className="pt-2">
                             <button 
                                 onClick={handleDownload}
                                 disabled={!imageSrc || isDownloading}
