@@ -10,7 +10,7 @@ interface OneSignalState {
     isPushEnabled: boolean;
     subscribe: () => Promise<void>;
     unsubscribe: () => Promise<void>;
-    testNotification: () => Promise<void>;
+    testNotification: () => Promise<any>;
 }
 
 declare global {
