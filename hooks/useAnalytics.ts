@@ -41,29 +41,37 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 =============================================================================
 <!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
 <script>
-  window.addEventListener('load', function() {
-    var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
-    
-    var payload = {
-      action: "trackEvent",
-      event: "post_view", 
-      data: { 
-        title: document.title,
-        artist: "Externa" 
-      },
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    };
+  (function() {
+    function trackView() {
+      var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
+      
+      var payload = {
+        action: "trackEvent",
+        event: "post_view", 
+        data: { 
+          title: document.title,
+          artist: "Externa" 
+        },
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      };
 
-    fetch(ANALYTICS_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(payload)
-    }).catch(function(e) {
-      console.log("Analytics Error:", e);
-    });
-  });
+      fetch(ANALYTICS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      }).catch(function(e) {
+        console.log("Analytics Error:", e);
+      });
+    }
+
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      trackView();
+    } else {
+      window.addEventListener('load', trackView);
+    }
+  })();
 </script>
 <!-- FIN DEL CÓDIGO DE RASTREO -->
 */
