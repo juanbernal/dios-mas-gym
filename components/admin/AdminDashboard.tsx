@@ -250,6 +250,15 @@ const AdminDashboard: React.FC = () => {
             color: '#f43f5e',
             route: '/admin/push-notifications',
             category: 'Marketing & Social'
+        },
+        {
+            id: 'analytics',
+            title: 'Centro de Análisis',
+            description: 'Métricas en tiempo real: descubre qué reflexiones y canciones están impactando más.',
+            icon: 'fa-chart-pie',
+            color: '#c5a059',
+            route: '/admin/analytics',
+            category: 'Métricas & Audiencia'
         }
     ];
 

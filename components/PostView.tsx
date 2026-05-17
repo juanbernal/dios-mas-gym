@@ -7,6 +7,7 @@ import RelatedPosts from './RelatedPosts';
 import { ContentPost, AppState } from '../types';
 import { fetchPostBySlug } from '../services/contentService';
 import { InlineSocialBanner } from './SocialPromo';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface PostViewProps {
   state: AppState;
@@ -19,6 +20,7 @@ interface PostViewProps {
 const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, readingHistory, setReadingHistory }) => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
   const [error, setError] = useState<string | null>(null);
 
   // 0. PRECOMPUTE RECOMMENDED SONGS (Hooks must be at the top level)
@@ -98,6 +100,8 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
       updateMeta('og:url', url);
       updateMeta('og:image', image);
       updateMeta('description', description);
+
+      trackEvent('post_view', { title, id: p.id });
     }
   }, [state.selectedPost]);
 

@@ -23,6 +23,7 @@ import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/con
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
 import SocialPopup, { InlineSocialBanner } from './components/SocialPromo';
+import { useAnalytics } from './hooks/useAnalytics';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
@@ -42,6 +43,7 @@ const LyricsManager = React.lazy(() => import('./components/admin/LyricsManager'
 const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalendar'));
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
 const PushNotificationsAdmin = React.lazy(() => import('./components/admin/PushNotificationsAdmin'));
+const AnalyticsDashboard = React.lazy(() => import('./components/admin/AnalyticsDashboard'));
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
@@ -98,6 +100,7 @@ const App: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const { trackEvent } = useAnalytics();
 
   const syncLocked = useRef(false);
 
@@ -122,6 +125,15 @@ const App: React.FC = () => {
     if (!url) return '';
     return url.split('/').pop()?.replace('.html', '') || '';
   };
+
+  useEffect(() => {
+    if (state.activeSong) {
+      trackEvent('song_play', { 
+        title: state.activeSong.title, 
+        artist: state.activeSong.artist 
+      });
+    }
+  }, [state.activeSong]);
 
   const changeView = (view: AppView) => {
     setState(prev => ({ ...prev, currentView: view, selectedPost: null }));
@@ -599,6 +611,7 @@ const App: React.FC = () => {
                 <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
                 <Route path="push-notifications" element={<AdminAuthWrapper><PushNotificationsAdmin/></AdminAuthWrapper>} />
+                <Route path="analytics" element={<AdminAuthWrapper><AnalyticsDashboard/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
