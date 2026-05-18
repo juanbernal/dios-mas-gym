@@ -122,17 +122,20 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 2. Canción más nueva de ambos artistas
-        const newestSongs = [...pool]
-            .filter(s => s.date)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const recentSong = newestSongs[0];
+        // 2. Canción más nueva de cada artista (alterna uno y uno)
+        const newestDM = [...pool]
+            .filter(s => (s as any).artistGroup === 'diosmasgym' && s.date)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        const newestJ6 = [...pool]
+            .filter(s => (s as any).artistGroup === 'juan614' && s.date)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        const recentSong = dayOfYear % 2 === 0 ? (newestDM || newestJ6) : (newestJ6 || newestDM);
         
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
             return {
                 song: recentSong,
-                reason: `"${recentSong.name}" es lo más nuevo del catálogo. Aprovecha el impulzo para maximizar el alcance.`,
+                reason: `"${recentSong.name}" es lo más nuevo de ${recentSong.artist}. Aprovecha el impulso para maximizar el alcance.`,
                 type: 'recent',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -140,9 +143,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 3. Rotación aleatoria de ambos artistas
-        const rotationIdx = dayOfYear % pool.length;
-        const picked = pool[rotationIdx];
+        // 3. Rotación uno de cada artista (alterna)
+        const dmPool = pool.filter(s => (s as any).artistGroup === 'diosmasgym');
+        const j6Pool = pool.filter(s => (s as any).artistGroup === 'juan614');
+        const picked = dayOfYear % 2 === 0
+            ? (dmPool[dayOfYear % dmPool.length] || j6Pool[dayOfYear % j6Pool.length])
+            : (j6Pool[dayOfYear % j6Pool.length] || dmPool[dayOfYear % dmPool.length]);
         if (picked) {
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
             return {
@@ -155,9 +161,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 4. Joya del archivo
-        const gemIdx = (dayOfYear + 10) % pool.length;
-        const gem = pool[gemIdx] || pool[0];
+        // 4. Joya del archivo (alterna uno de cada artista)
+        const gemDM = dmPool[(dayOfYear + 10) % (dmPool.length || 1)] || pool[0];
+        const gemJ6 = j6Pool[(dayOfYear + 10) % (j6Pool.length || 1)] || pool[0];
+        const gem = dayOfYear % 2 === 0 ? (gemDM || gemJ6) : (gemJ6 || gemDM);
         const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
         return {
             song: gem,
