@@ -3,6 +3,15 @@ import { useEffect } from 'react';
 export const useAnalytics = () => {
     const trackEvent = async (eventName: string, eventData: any = {}) => {
         try {
+            // Comprobar si el usuario es administrador y tiene activa la exclusión
+            const isAdminStorage = localStorage.getItem('pwa_admin_user') === 'true';
+            const isAdminCookie = document.cookie.includes('is_admin_user=true');
+
+            if (isAdminStorage || isAdminCookie) {
+                console.log(`[Analytics] [EXCLUIDO - Admin User] Track: ${eventName}`, eventData);
+                return;
+            }
+
             // Local dev / debugging
             console.log(`[Analytics] Track: ${eventName}`, eventData);
 
@@ -42,6 +51,22 @@ en páginas externas para registrar visitas en el Analytics Dashboard.
 <!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
 <script>
   (function() {
+    // Si la URL contiene ?admin=true, activar exclusión permanente en este navegador
+    if (window.location.search.includes('admin=true')) {
+      try {
+        localStorage.setItem('pwa_admin_user', 'true');
+        console.log('👑 Modo Administrador activado. Tus visitas a este blog serán excluidas permanentemente en este navegador.');
+      } catch (e) {}
+    }
+
+    // Comprobar si debemos excluir esta visita
+    try {
+      if (localStorage.getItem('pwa_admin_user') === 'true') {
+        console.log('🚫 Visita excluida del rastreo de analíticas (Usuario Administrador)');
+        return;
+      }
+    } catch (e) {}
+
     function trackView() {
       var ANALYTICS_URL = "https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec";
       

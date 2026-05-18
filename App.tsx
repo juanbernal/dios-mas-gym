@@ -44,6 +44,7 @@ const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalen
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
 const PushNotificationsAdmin = React.lazy(() => import('./components/admin/PushNotificationsAdmin'));
 const AnalyticsDashboard = React.lazy(() => import('./components/admin/AnalyticsDashboard'));
+const MusicVideoPromptGenerator = React.lazy(() => import('./components/admin/MusicVideoPromptGenerator'));
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
@@ -612,6 +613,7 @@ const App: React.FC = () => {
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
                 <Route path="push-notifications" element={<AdminAuthWrapper><PushNotificationsAdmin/></AdminAuthWrapper>} />
                 <Route path="analytics" element={<AdminAuthWrapper><AnalyticsDashboard/></AdminAuthWrapper>} />
+                <Route path="music-video-prompt" element={<AdminAuthWrapper><MusicVideoPromptGenerator/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />

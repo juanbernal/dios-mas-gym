@@ -79,8 +79,11 @@ const AdminDashboard: React.FC = () => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.addEventListener('pwa-ready', handlePWAReady);
 
-        localStorage.setItem('pwa_admin_user', 'true'); // Marca persistente siempre que entre al panel
-        document.cookie = "is_admin_user=true; path=/; max-age=31536000; samesite=lax"; // Cookie de respaldo
+        // Solo marcar como admin por defecto si no se ha configurado previamente (para permitir apagar el filtro en analíticas)
+        if (localStorage.getItem('pwa_admin_user') === null) {
+            localStorage.setItem('pwa_admin_user', 'true');
+            document.cookie = "is_admin_user=true; path=/; max-age=31536000; samesite=lax"; // Cookie de respaldo
+        }
         if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
             setIsInstalled(true);
         }
@@ -107,6 +110,15 @@ const AdminDashboard: React.FC = () => {
     };
 
     const tools = [
+        {
+            id: 'music-video-prompt',
+            title: 'AI Music Video Prompt',
+            description: 'Genera prompts ultra-profesionales y detallados para tus videos musicales por IA, basados 100% en tus letras.',
+            icon: 'fa-wand-magic-sparkles',
+            color: '#00ffcc',
+            route: '/admin/music-video-prompt',
+            category: 'Contenido Audiovisual'
+        },
         {
             id: 'promo-image',
             title: 'Promo Image Generator',

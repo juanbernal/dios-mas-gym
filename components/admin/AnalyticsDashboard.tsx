@@ -7,6 +7,21 @@ const AnalyticsDashboard: React.FC = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [debugError, setDebugError] = useState<string>('');
+    const [excludeVisits, setExcludeVisits] = useState(() => {
+        return localStorage.getItem('pwa_admin_user') === 'true';
+    });
+
+    const handleToggleExclusion = () => {
+        const nextVal = !excludeVisits;
+        setExcludeVisits(nextVal);
+        if (nextVal) {
+            localStorage.setItem('pwa_admin_user', 'true');
+            document.cookie = "is_admin_user=true; path=/; max-age=31536000; samesite=lax";
+        } else {
+            localStorage.setItem('pwa_admin_user', 'false');
+            document.cookie = "is_admin_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; samesite=lax";
+        }
+    };
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -105,6 +120,46 @@ const AnalyticsDashboard: React.FC = () => {
                                 {debugError && <span className="text-[#f43f5e]/50 text-[9px] mt-1">Debug: {debugError}</span>}
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* Control de Exclusión de Visitas (Filtro de Desarrollador) */}
+                <div className="mb-12 bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-8 relative overflow-hidden group shadow-2xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className={`w-2 h-2 rounded-full ${excludeVisits ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                <h3 className="text-white text-xs font-black uppercase tracking-widest">
+                                    Filtro de Administrador: {excludeVisits ? 'Activo (Excluyendo tus visitas)' : 'Inactivo (Registrando tus visitas)'}
+                                </h3>
+                            </div>
+                            <p className="text-white/40 text-xs leading-relaxed max-w-3xl">
+                                Al estar activado, tus acciones y visitas en esta aplicación (como reproducir canciones o leer reflexiones) **no serán contabilizadas** en el Centro de Análisis para mantener limpias tus métricas reales.
+                            </p>
+                            
+                            {/* Panel de Blogger / Sitios Externos */}
+                            <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-4">
+                                <div className="text-[10px] text-[#c5a059] font-black uppercase tracking-widest shrink-0 flex items-center gap-2">
+                                    <i className="fas fa-circle-info text-[#c5a059]"></i> ¿Sitio externo (Blogger)?
+                                </div>
+                                <p className="text-white/30 text-[10px] leading-relaxed">
+                                    Para no contar tus visitas en Blogger, abre tu blog una vez en este navegador agregando <code className="text-white bg-white/5 px-2 py-0.5 rounded font-mono font-normal">?admin=true</code> al final del enlace (ej: <code className="text-white/50">mi-sitio.blogspot.com/?admin=true</code>). El sistema te excluirá permanentemente en este dispositivo.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center shrink-0">
+                            <button
+                                onClick={handleToggleExclusion}
+                                className={`relative w-16 h-8 rounded-full transition-all duration-300 focus:outline-none ${excludeVisits ? 'bg-[#c5a059]' : 'bg-white/10'}`}
+                            >
+                                <span 
+                                    className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-black transition-transform duration-300 flex items-center justify-center ${excludeVisits ? 'translate-x-8' : 'translate-x-0'}`}
+                                >
+                                    <i className={`fas ${excludeVisits ? 'fa-eye-slash text-[#c5a059]' : 'fa-eye text-white/50'} text-[10px]`}></i>
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
