@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "colors": ["#C5A059", "#000000", "#1A2536", "#F3F4F6"]
       },
       "suggestedVibe": "E.g. Cinematic Neo-Noir, Dark Epic Gothic, Modern Cyber-Vibe, Minimalist Golden Light",
-      "masterPrompt": "Un prompt general ultra-detallado EN INGLÉS para IAs de video que describa el look cinematográfico global del video. Debe incluir especificaciones técnicas profesionales como: '8k resolution, cinematic lighting, anamorphic lens, shot on Arri Alexa, masterfully color-graded, rich textures, volumetric dust, slow-motion'.",
+      "masterPrompt": "Un prompt maestro global de estilo visual y dirección de arte EN INGLÉS para IAs de video que represente e introduzca la atmósfera visual de la canción. PROHIBIDO copiar los ejemplos por defecto o usar siempre el mismo texto genérico (como 'moves from industrial to natural landscapes' o 'gold dust'). El prompt debe ser 100% PERSONALIZADO y derivarse directamente de la letra de la canción para servir como una intro espectacular del video musical. Por ejemplo: si la letra es de disciplina física/gimnasio, detalla sombras duras, neones, grano de película y texturas de sudor; si la letra es celestial/fe, detalla iluminación celestial volumétrica, niebla y rayos de luz dorada; si es una batalla interna, detalla elementos simbólicos acordes. Incluye especificaciones técnicas profesionales como 'shot on Arri Alexa LF, anamorphic 35mm lens, cinematic color grading, slow-motion 60fps, high dynamic range' pero adaptándolas al concepto de la canción.",
       "scenes": [
         {
           "timeframe": "Rango aproximado de tiempo (ej. 0:00 - 0:25 o Intro)",
@@ -51,9 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     Asegúrate de que:
     1. Las descripciones e ideas visuales sean altamente artísticas y creativas, no genéricas. Que transmitan el poder de la superación, la disciplina física, mental y la fe.
-    2. Haya al menos 4 o 5 escenas detalladas que cubran toda la canción de principio a fin (Intro, Versos, Coros, Outro).
-    3. Los campos de prompts de IA ("masterPrompt" y "aiPrompt" de cada escena) estén obligatoriamente EN INGLÉS, ya que las IAs generadoras de video operan infinitamente mejor en este idioma. Deben ser de calidad cinematográfica profesional de Hollywood.
-    4. La salida sea estrictamente un JSON válido. No incluyas explicaciones previas ni posteriores al JSON.`;
+    2. El \"masterPrompt\" sea una introducción atmosférica cinematográfica espectacular diseñada y personalizada exactamente para reflejar el alma lírica y el mensaje de esta canción en particular. No utilices la plantilla predeterminada de desiertos/paisajes a menos que la letra hable explícitamente de ello.
+    3. Haya al menos 4 o 5 escenas detalladas que cubran toda la canción de principio a fin (Intro, Versos, Coros, Outro).
+    4. Los campos de prompts de IA (\"masterPrompt\" y \"aiPrompt\" de cada escena) estén obligatoriamente EN INGLÉS, ya que las IAs generadoras de video operan infinitamente mejor en este idioma. Deben ser de calidad cinematográfica profesional de Hollywood.
+    5. La salida sea estrictamente un JSON válido. No incluyas explicaciones previas ni posteriores al JSON.`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
