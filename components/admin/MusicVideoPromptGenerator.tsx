@@ -50,7 +50,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         artist: '',
-        style: 'Cinematográfico y Épico',
+        style: 'Narrativa de Superación y Esfuerzo',
         lyrics: ''
     });
 
@@ -117,7 +117,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
         setFormData({
             title: song.name,
             artist: song.artist,
-            style: 'Cinematográfico y Épico',
+            style: 'Narrativa de Superación y Esfuerzo',
             lyrics: song.lyrics || ''
         });
     };
@@ -337,11 +337,11 @@ const MusicVideoPromptGenerator: React.FC = () => {
                                     onChange={(e) => setFormData({ ...formData, style: e.target.value })}
                                     className="w-full bg-[#05070a] border border-white/10 rounded-xl p-4 text-xs text-white focus:border-[#c5a059]/50 outline-none cursor-pointer"
                                 >
-                                    <option value="Cinematográfico y Épico">Cinematográfico y Épico (Oscuridad, niebla, luz divina enfocada)</option>
-                                    <option value="Neo-Noir Glitch Urbano">Neo-Noir Glitch Urbano (Lluvia, neones cyberpunk, drama nocturno)</option>
-                                    <option value="Brillo Dorado Espiritual">Brillo Dorado Espiritual (Luces volumétricas cálidas, minimalismo etéreo)</option>
-                                    <option value="Futurista / Cyber-Gótico">Futurista / Cyber-Gótico (Estilo industrial de alto contraste, acero y fuego)</option>
-                                    <option value="Fantasía Mística / Desierto">Fantasía Mística / Desierto (Planos amplios de naturaleza, batallas simbólicas)</option>
+                                    <option value="Narrativa de Superación y Esfuerzo">Narrativa de Superación y Esfuerzo (Historia lineal: lucha física y mental hasta la victoria)</option>
+                                    <option value="Metáfora Conceptual y Espiritual">Metáfora Conceptual y Espiritual (Simbología onírica de guerra interna y fe)</option>
+                                    <option value="Historia Dramática Urbana">Historia Dramática Urbana (Drama realista en la ciudad: superando dudas y temores)</option>
+                                    <option value="Épico Gótico y Viaje del Héroe">Épico Gótico y Viaje del Héroe (Fantasía, desiertos y montañas derrotando gigantes)</option>
+                                    <option value="Estilo Documental / Retrato Motivador">Estilo Documental / Retrato Motivador (Historias cruzadas de disciplina y atletas reales)</option>
                                 </select>
                             </div>
 

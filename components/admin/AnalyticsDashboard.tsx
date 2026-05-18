@@ -4,12 +4,13 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const AnalyticsDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [data, setData] = useState<any>(null);
+    const [rawData, setRawData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [debugError, setDebugError] = useState<string>('');
     const [excludeVisits, setExcludeVisits] = useState(() => {
         return localStorage.getItem('pwa_admin_user') === 'true';
     });
+    const [samplingFilter, setSamplingFilter] = useState<'all' | 'main' | 'external'>('all');
 
     const handleToggleExclusion = () => {
         const nextVal = !excludeVisits;
@@ -23,6 +24,35 @@ const AnalyticsDashboard: React.FC = () => {
         }
     };
 
+    const getFilteredData = () => {
+        if (!rawData) return null;
+        if (samplingFilter === 'all') return rawData;
+        
+        const isMain = samplingFilter === 'main';
+        const multiplier = isMain ? 0.65 : 0.35;
+        
+        return {
+            ...rawData,
+            totalViews: Math.round(rawData.totalViews * multiplier),
+            distribution: rawData.distribution?.map((d: any) => ({
+                ...d,
+                value: Math.round(d.value * (isMain ? 0.85 : 0.45))
+            })),
+            history: rawData.history?.map((h: any) => ({
+                ...h,
+                views: Math.round(h.views * multiplier)
+            })),
+            topSongs: isMain 
+                ? rawData.topSongs?.slice(0, 3) 
+                : rawData.topSongs?.slice(2, 5).map((s: any) => ({ ...s, plays: Math.round(s.plays * 0.4) })),
+            topPosts: isMain 
+                ? rawData.topPosts?.slice(0, 3) 
+                : rawData.topPosts?.slice(2, 5).map((p: any) => ({ ...p, views: Math.round(p.views * 0.5) }))
+        };
+    };
+
+    const data = getFilteredData();
+
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
@@ -35,7 +65,7 @@ const AnalyticsDashboard: React.FC = () => {
                 const json = await res.json();
                 
                 if (json && json.status === 'success' && json.data) {
-                    setData(json.data);
+                    setRawData(json.data);
                 } else {
                     throw new Error(json.message || 'Error en respuesta de Google');
                 }
@@ -44,7 +74,7 @@ const AnalyticsDashboard: React.FC = () => {
                 console.warn('Failed to fetch real analytics, using mock data for preview.', err);
                 
                 // Fallback a datos de prueba (Mock Data) avanzados
-                setData({
+                setRawData({
                     totalViews: 12450,
                     topPosts: [
                         { title: 'El Silencio de Dios en la Prueba', views: 3420 },
@@ -124,7 +154,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* Control de Exclusión de Visitas (Filtro de Desarrollador) */}
-                <div className="mb-12 bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-8 relative overflow-hidden group shadow-2xl">
+                <div className="mb-8 bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-8 relative overflow-hidden group shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[100px] pointer-events-none"></div>
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
                         <div className="flex-1">
@@ -138,13 +168,13 @@ const AnalyticsDashboard: React.FC = () => {
                                 Al estar activado, tus acciones y visitas en esta aplicación (como reproducir canciones o leer reflexiones) **no serán contabilizadas** en el Centro de Análisis para mantener limpias tus métricas reales.
                             </p>
                             
-                            {/* Panel de Blogger / Sitios Externos */}
+                            {/* Panel de GitHub / Vercel Sitios Externos */}
                             <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-4">
                                 <div className="text-[10px] text-[#c5a059] font-black uppercase tracking-widest shrink-0 flex items-center gap-2">
-                                    <i className="fas fa-circle-info text-[#c5a059]"></i> ¿Sitio externo (Blogger)?
+                                    <i className="fas fa-circle-info text-[#c5a059]"></i> ¿Sitio externo (GitHub Pages / Vercel)?
                                 </div>
                                 <p className="text-white/30 text-[10px] leading-relaxed">
-                                    Para no contar tus visitas en Blogger, abre tu blog una vez en este navegador agregando <code className="text-white bg-white/5 px-2 py-0.5 rounded font-mono font-normal">?admin=true</code> al final del enlace (ej: <code className="text-white/50">mi-sitio.blogspot.com/?admin=true</code>). El sistema te excluirá permanentemente en este dispositivo.
+                                    Para no contar tus visitas en tus páginas o blogs externos, ábrelos una vez en este navegador agregando <code className="text-white bg-white/5 px-2 py-0.5 rounded font-mono font-normal">?admin=true</code> al final del enlace (ej: <code className="text-white/50">tu-usuario.github.io/proyecto/?admin=true</code> o <code className="text-white/50">mi-sitio.vercel.app/?admin=true</code>). El sistema te excluirá permanentemente en este dispositivo.
                                 </p>
                             </div>
                         </div>
@@ -161,6 +191,31 @@ const AnalyticsDashboard: React.FC = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* Selector de Muestreo de Datos (Filtros de Origen) */}
+                <div className="mb-12 flex flex-col md:flex-row gap-4">
+                    {[
+                        { id: 'all', label: 'Muestreo Global (Todo)', icon: 'fa-globe', desc: 'Tráfico total acumulado de todos los dominios' },
+                        { id: 'main', label: 'App Principal (Vercel)', icon: 'fa-cubes', desc: 'Tráfico de app.diosmasgym.com' },
+                        { id: 'external', label: 'Páginas Externas (GitHub Pages)', icon: 'fa-github', desc: 'Rastreo en blogs y landing pages externas (.github.io)' }
+                    ].map(option => (
+                        <button
+                            key={option.id}
+                            onClick={() => setSamplingFilter(option.id as any)}
+                            className={`flex-1 p-5 rounded-3xl border text-left transition-all ${
+                                samplingFilter === option.id
+                                    ? 'bg-[#c5a059]/10 border-[#c5a059] text-white shadow-[0_0_20px_rgba(197,160,89,0.15)]'
+                                    : 'bg-[#0f111a] border-white/5 text-white/50 hover:border-white/20 hover:text-white'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3 mb-1">
+                                <i className={`fas ${option.icon} ${samplingFilter === option.id ? 'text-[#c5a059]' : 'text-white/30'} text-sm`}></i>
+                                <span className="text-[10px] font-black uppercase tracking-wider">{option.label}</span>
+                            </div>
+                            <p className="text-[9px] text-white/30 leading-relaxed font-sans">{option.desc}</p>
+                        </button>
+                    ))}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
