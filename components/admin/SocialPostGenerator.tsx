@@ -14,6 +14,7 @@ const SocialPostGenerator: React.FC = () => {
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [selectedSongId, setSelectedSongId] = useState('');
+    const [searchingLyrics, setSearchingLyrics] = useState(false);
 
     const VERSION = "v1.3.7 Future-Flash";
 
@@ -53,7 +54,7 @@ const SocialPostGenerator: React.FC = () => {
         loadCatalog();
     }, [location.state]);
 
-    const handleSongSelect = (songId: string, customCatalog?: MusicItem[]) => {
+    const handleSongSelect = async (songId: string, customCatalog?: MusicItem[]) => {
         setSelectedSongId(songId);
         const pool = customCatalog || catalog;
         const song = pool.find(item => item.id === songId);
@@ -62,10 +63,28 @@ const SocialPostGenerator: React.FC = () => {
         setFormData(prev => ({
             ...prev,
             input: `Crear una promo para la canción "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}.`,
+            lyrics: '', // Reset first
             platform: 'Instagram/TikTok',
             goal: 'Promocionar canción',
             tone: 'Épico y Motivador'
         }));
+
+        setSearchingLyrics(true);
+        try {
+            const response = await fetch('/api/search-lyrics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: song.name, artist: song.artist })
+            });
+            const data = await response.json();
+            if (response.ok && data.lyrics && data.lyrics !== "LETRA_NO_ENCONTRADA") {
+                setFormData(prev => ({ ...prev, lyrics: data.lyrics }));
+            }
+        } catch (err) {
+            console.warn("No se pudo buscar la letra automáticamente en internet:", err);
+        } finally {
+            setSearchingLyrics(false);
+        }
     };
 
     const handleGenerate = async () => {
@@ -176,11 +195,20 @@ const SocialPostGenerator: React.FC = () => {
                                 />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">Letra de la Canción (Opcional pero Recomendado)</label>
-                                <p className="text-white/35 text-xs mb-3">Pega la letra de tu canción aquí para que los copies y hashtags sean 100% acordes a tu tema.</p>
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]">Letra de la Canción (Opcional pero Recomendado)</label>
+                                    {searchingLyrics && (
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-[#c5a059] animate-pulse flex items-center gap-2">
+                                            <i className="fas fa-spinner fa-spin animate-spin"></i> Buscando letra en internet...
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-white/35 text-xs mb-3">Si la letra ya está en internet se cargará automáticamente. Si no, puedes pegarla aquí.</p>
                                 <textarea 
                                     value={formData.lyrics} onChange={(e) => setFormData({...formData, lyrics: e.target.value})}
-                                    placeholder="Pega la letra de la canción aquí..." className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white min-h-[150px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
+                                    placeholder={searchingLyrics ? "🔍 Buscando la letra en internet automáticamente con IA..." : "Pega la letra de la canción aquí..."}
+                                    disabled={searchingLyrics}
+                                    className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white min-h-[150px] focus:border-[#c5a059]/50 outline-none transition-all resize-none disabled:opacity-55"
                                 />
                             </div>
                             {['plataforma', 'objetivo', 'tono'].map((key, idx) => (
