@@ -95,8 +95,16 @@ const VideoSnippetCreator: React.FC = () => {
 
     useEffect(() => { 
         const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
-        if (bgImageRef.current && bgImageRef.current.src !== url) {
-            bgImageRef.current.src = url;
+        if (bgImageRef.current) {
+            // Dynamic CORS setup: only use anonymous for remote HTTP(S) links to prevent local blob/data issues
+            if (url.startsWith('blob:') || url.startsWith('data:')) {
+                bgImageRef.current.removeAttribute('crossOrigin');
+            } else {
+                bgImageRef.current.crossOrigin = "anonymous";
+            }
+            if (bgImageRef.current.src !== url) {
+                bgImageRef.current.src = url;
+            }
         }
         promoImgRef.current = promoImageUrl; 
         localCoverRef.current = localCoverUrl;
@@ -245,11 +253,23 @@ const VideoSnippetCreator: React.FC = () => {
             ctx.save();
             ctx.shadowBlur = 80 + smoothNoise(time * 2) * 50;
             ctx.shadowColor = '#c5a059';
-            ctx.beginPath();
             // Handheld jitter for the cover container
             const coverX = 140 + nX * 15;
             const coverY = 460 + nY * 15;
-            ctx.roundRect(coverX, coverY, 800, 800, 80);
+            
+            // Safe rounded rectangle clip using compatible standard paths (avoids browser crashes)
+            ctx.beginPath();
+            const radius = 80;
+            ctx.moveTo(coverX + radius, coverY);
+            ctx.lineTo(coverX + 800 - radius, coverY);
+            ctx.quadraticCurveTo(coverX + 800, coverY, coverX + 800, coverY + radius);
+            ctx.lineTo(coverX + 800, coverY + 800 - radius);
+            ctx.quadraticCurveTo(coverX + 800, coverY + 800, coverX + 800 - radius, coverY + 800);
+            ctx.lineTo(coverX + radius, coverY + 800);
+            ctx.quadraticCurveTo(coverX, coverY + 800, coverX, coverY + 800 - radius);
+            ctx.lineTo(coverX, coverY + radius);
+            ctx.quadraticCurveTo(coverX, coverY, coverX + radius, coverY);
+            ctx.closePath();
             ctx.clip();
             try {
                 ctx.drawImage(img, coverX - 50 - zoom, coverY - 50 - zoom, 900 + zoom*2, 900 + zoom*2);
