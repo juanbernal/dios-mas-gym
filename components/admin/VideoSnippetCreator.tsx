@@ -113,13 +113,13 @@ const VideoSnippetCreator: React.FC = () => {
                 if (!img || img.naturalWidth === 0) return;
                 
                 const canvas = document.createElement('canvas');
-                canvas.width = 40;
-                canvas.height = 70;
+                canvas.width = 216;
+                canvas.height = 384;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'medium';
-                    ctx.drawImage(img, 0, 0, 40, 70);
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, 216, 384);
                     blurredBgCanvasRef.current = canvas;
                 }
             };
@@ -514,23 +514,37 @@ const VideoSnippetCreator: React.FC = () => {
     const waitForImageReady = async () => {
         const img = bgImageRef.current;
         if (!img || !img.src) return;
-        if (img.complete && img.naturalWidth > 0) {
-            if ('decode' in img) await img.decode().catch(() => {});
-            return;
+
+        if (!img.complete || img.naturalWidth === 0) {
+            await new Promise<void>((resolve) => {
+                const timeout = window.setTimeout(() => resolve(), 5000);
+                const cleanup = () => {
+                    window.clearTimeout(timeout);
+                    img.removeEventListener('load', onLoad);
+                    img.removeEventListener('error', onError);
+                };
+                const onLoad = () => { cleanup(); resolve(); };
+                const onError = () => { cleanup(); resolve(); };
+                img.addEventListener('load', onLoad, { once: true });
+                img.addEventListener('error', onError, { once: true });
+            });
+        } else if ('decode' in img) {
+            await img.decode().catch(() => {});
         }
 
-        await new Promise<void>((resolve) => {
-            const timeout = window.setTimeout(() => resolve(), 5000);
-            const cleanup = () => {
-                window.clearTimeout(timeout);
-                img.removeEventListener('load', onLoad);
-                img.removeEventListener('error', onError);
-            };
-            const onLoad = () => { cleanup(); resolve(); };
-            const onError = () => { cleanup(); resolve(); };
-            img.addEventListener('load', onLoad, { once: true });
-            img.addEventListener('error', onError, { once: true });
-        });
+        // Force-regenerate blurred background canvas before recording
+        if (img.complete && img.naturalWidth > 0 && !blurredBgCanvasRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 216;
+            canvas.height = 384;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, 216, 384);
+                blurredBgCanvasRef.current = canvas;
+            }
+        }
     };
 
     const startRecording = async () => {
@@ -898,7 +912,6 @@ const VideoSnippetCreator: React.FC = () => {
                                 }}
                                 onEnded={() => setIsPlaying(false)}
                                 onError={() => alert("Error al cargar el audio. Verifica el formato o la conexión.")}
-                                crossOrigin="anonymous"
                             />
                         </div>
                     )}
