@@ -287,11 +287,10 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
         
-        // High-Performance Film Grain & Anti-AI Visual Pattern Jitter
+        // High-Performance Film Grain — alpha alto para forzar al codec a usar mas bits
         ctx.save();
-        ctx.globalAlpha = 0.05 + smoothNoise(time * 10) * 0.02; // Temporal variance
+        ctx.globalAlpha = 0.10 + smoothNoise(time * 10) * 0.05; // Mas visible = mas bits en codec
         const grainPattern = getGrainCanvas();
-        // Shift pattern offset randomly per frame to break AI fingerprinting and compression indicators
         const gOffsetX = Math.floor(Math.random() * 200);
         const gOffsetY = Math.floor(Math.random() * 200);
         ctx.fillStyle = ctx.createPattern(grainPattern, 'repeat') || '#000';
@@ -425,12 +424,12 @@ const VideoSnippetCreator: React.FC = () => {
     }, [selectedSong]);
 
     const getSupportedMimeType = () => {
+        // VP8 preferido: menos agresivo con compresion en contenido semi-estatico
         const candidates = [
-            'video/webm;codecs=vp9,opus',
             'video/webm;codecs=vp8,opus',
+            'video/webm;codecs=vp9,opus',
             'video/webm'
         ];
-
         return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
     };
 
@@ -596,8 +595,8 @@ const VideoSnippetCreator: React.FC = () => {
             await waitForImageReady();
             renderCanvas(0, 0);
 
-            // Stream with explicit video and audio separation
-            stream = canvas.captureStream(30);
+            // Stream a 60fps para mayor fidelidad en exportacion
+            stream = canvas.captureStream(60);
             
             // Wait for canvas to be ready
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -608,8 +607,8 @@ const VideoSnippetCreator: React.FC = () => {
             const mimeType = getSupportedMimeType();
             recorder = new MediaRecorder(stream, {
                 ...(mimeType ? { mimeType } : {}),
-                videoBitsPerSecond: 30000000,  // 30 Mbps para alta calidad
-                audioBitsPerSecond: 192000      // 192 kbps audio
+                videoBitsPerSecond: 80_000_000,   // 80 Mbps objetivo
+                audioBitsPerSecond: 192_000
             });
             
             const chunks: Blob[] = [];
@@ -645,7 +644,7 @@ const VideoSnippetCreator: React.FC = () => {
             };
 
             audioRef.current.currentTime = startTime;
-            recorder.start(100);
+            recorder.start(16); // timeslice de 16ms = ~1 chunk por frame, fuerza mas keyframes
             await audioRef.current.play();
             setIsPlaying(true);
 
@@ -656,6 +655,9 @@ const VideoSnippetCreator: React.FC = () => {
                 const progress = Math.min(elapsed / exportDuration, 1);
                 renderCanvas(progress, elapsed);
                 setRecordingProgress(progress);
+
+                // Forzar al encoder a capturar este frame con todos sus datos
+                try { if (recorder.state === 'recording') recorder.requestData(); } catch(_) {}
 
                 if (progress >= 1) {
                     audioRef.current?.pause();
