@@ -26,7 +26,7 @@ const VideoSnippetCreator: React.FC = () => {
     
     // Video States
     const [startTime, setStartTime] = useState(0);
-    const [duration, setDuration] = useState(60); 
+    const [duration, setDuration] = useState(90); 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingProgress, setRecordingProgress] = useState(0);
@@ -41,6 +41,29 @@ const VideoSnippetCreator: React.FC = () => {
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
     const isRecordingRef = useRef(false);
     const exportFrameRef = useRef<number>(0);
+
+    const grainCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const getGrainCanvas = () => {
+        if (grainCanvasRef.current) return grainCanvasRef.current;
+        const gCanvas = document.createElement('canvas');
+        gCanvas.width = 400;
+        gCanvas.height = 400;
+        const gCtx = gCanvas.getContext('2d');
+        if (gCtx) {
+            const imgData = gCtx.createImageData(400, 400);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const val = Math.floor(Math.random() * 255);
+                data[i] = val;
+                data[i+1] = val;
+                data[i+2] = val;
+                data[i+3] = 18; // Microscopic grain opacity
+            }
+            gCtx.putImageData(imgData, 0, 0);
+        }
+        grainCanvasRef.current = gCanvas;
+        return gCanvas;
+    };
 
     // Animation Refs for state-consistency in requestAnimationFrame
     const titleRef = useRef("");
@@ -205,13 +228,16 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
         
-        // Film Grain Sutil
+        // High-Performance Film Grain & Anti-AI Visual Pattern Jitter
         ctx.save();
-        ctx.globalAlpha = 0.03;
-        for (let i = 0; i < 2000; i++) {
-            ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
-            ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-        }
+        ctx.globalAlpha = 0.05 + smoothNoise(time * 10) * 0.02; // Temporal variance
+        const grainPattern = getGrainCanvas();
+        // Shift pattern offset randomly per frame to break AI fingerprinting and compression indicators
+        const gOffsetX = Math.floor(Math.random() * 200);
+        const gOffsetY = Math.floor(Math.random() * 200);
+        ctx.fillStyle = ctx.createPattern(grainPattern, 'repeat') || '#000';
+        ctx.translate(gOffsetX, gOffsetY);
+        ctx.fillRect(-gOffsetX, -gOffsetY, w, h);
         ctx.restore();
 
         // 4. Portada con Glow Dinámico Orgánico (ONLY MANUAL)
@@ -358,6 +384,39 @@ const VideoSnippetCreator: React.FC = () => {
         sourceRef.current.disconnect();
         sourceRef.current.connect(destination);
         sourceRef.current.connect(audioCtxRef.current.destination);
+
+        // Anti-AI Sub-Audible Analog Room Signature Injection
+        try {
+            const bufferSize = 2 * audioCtxRef.current.sampleRate;
+            const noiseBuffer = audioCtxRef.current.createBuffer(1, bufferSize, audioCtxRef.current.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = (Math.random() * 2 - 1) * 0.00008; // extremely quiet micro noise
+            }
+            
+            const whiteNoiseSource = audioCtxRef.current.createBufferSource();
+            whiteNoiseSource.buffer = noiseBuffer;
+            whiteNoiseSource.loop = true;
+
+            const noiseFilter = audioCtxRef.current.createBiquadFilter();
+            noiseFilter.type = 'bandpass';
+            noiseFilter.frequency.value = 10000; // High-frequency analog room frequency
+            noiseFilter.Q.value = 0.5;
+
+            const noiseGain = audioCtxRef.current.createGain();
+            noiseGain.gain.value = 0.001; // Ultra sub-audible level to bypass automated digital filters
+
+            whiteNoiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            
+            // Connect to both recording destination and local physical audio output
+            noiseGain.connect(destination);
+            noiseGain.connect(audioCtxRef.current.destination);
+            
+            whiteNoiseSource.start();
+        } catch (e) {
+            console.warn("No se pudo iniciar el bypass de audio Anti-IA", e);
+        }
 
         return destination;
     };
@@ -542,6 +601,10 @@ const VideoSnippetCreator: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-4">
                     <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.8</span></h1>
+                    <div className="flex items-center gap-1.5 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full px-2.5 py-0.5 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
+                        <span className="text-[7.5px] font-black uppercase tracking-wider text-[#c5a059]">Bypass Anti-IA Activo</span>
+                    </div>
                 </div>
                 <div className="w-20"></div>
             </div>
@@ -696,13 +759,13 @@ const VideoSnippetCreator: React.FC = () => {
                                     <input 
                                         type="range" 
                                         min="0" 
-                                        max={audioRef.current?.duration ? Math.max(0, audioRef.current.duration - 60) : 300}
+                                        max={audioRef.current?.duration ? Math.max(0, audioRef.current.duration - duration) : 300}
                                         value={startTime}
                                         onChange={e => setStartTime(parseInt(e.target.value))}
                                         className="w-full accent-[#c5a059] bg-white/10 rounded-lg h-1"
                                     />
                                     <p className="text-[9px] text-white/30 mt-4 leading-relaxed italic">
-                                        * El video durará exactamente 60 segundos desde el punto de inicio seleccionado.
+                                        * El video durará exactamente 1:30 minutos ({duration} segundos) con protección Anti-IA activa desde el punto de inicio seleccionado.
                                     </p>
                                 </div>
                                 <div className="flex gap-4">
@@ -751,7 +814,7 @@ const VideoSnippetCreator: React.FC = () => {
                                 onTimeUpdate={(e) => {
                                     if (!isRecording) {
                                         const curr = e.currentTarget.currentTime;
-                                        if (curr > startTime + 60) {
+                                        if (curr > startTime + duration) {
                                             e.currentTarget.pause();
                                             e.currentTarget.currentTime = startTime;
                                             setIsPlaying(false);
