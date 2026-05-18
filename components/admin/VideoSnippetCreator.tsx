@@ -113,13 +113,13 @@ const VideoSnippetCreator: React.FC = () => {
                 if (!img || img.naturalWidth === 0) return;
                 
                 const canvas = document.createElement('canvas');
-                canvas.width = 216;
-                canvas.height = 384;
+                canvas.width = 540;
+                canvas.height = 960;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, 0, 0, 216, 384);
+                    ctx.drawImage(img, 0, 0, 540, 960);
                     blurredBgCanvasRef.current = canvas;
                 }
             };
@@ -532,16 +532,16 @@ const VideoSnippetCreator: React.FC = () => {
             await img.decode().catch(() => {});
         }
 
-        // Force-regenerate blurred background canvas before recording
-        if (img.complete && img.naturalWidth > 0 && !blurredBgCanvasRef.current) {
+        // Forzar regeneracion del canvas blur antes de grabar (siempre)
+        if (img.complete && img.naturalWidth > 0) {
             const canvas = document.createElement('canvas');
-            canvas.width = 216;
-            canvas.height = 384;
+            canvas.width = 540;
+            canvas.height = 960;
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, 216, 384);
+                ctx.drawImage(img, 0, 0, 540, 960);
                 blurredBgCanvasRef.current = canvas;
             }
         }
