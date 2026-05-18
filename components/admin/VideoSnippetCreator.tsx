@@ -138,8 +138,11 @@ const VideoSnippetCreator: React.FC = () => {
     }, [promoImageUrl, localCoverUrl, selectedSong?.cover]);
 
     useEffect(() => {
-        fetchMusicCatalog('diosmasgym').then(data => {
-            setCatalog(data);
+        Promise.all([
+            fetchMusicCatalog('diosmasgym'),
+            fetchMusicCatalog('juan614')
+        ]).then(([diosmasgym, juan614]) => {
+            setCatalog([...diosmasgym, ...juan614]);
             setIsLoading(false);
 
             // Auto-carga desde el Asistente

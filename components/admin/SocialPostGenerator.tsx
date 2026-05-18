@@ -15,6 +15,7 @@ const SocialPostGenerator: React.FC = () => {
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [selectedSongId, setSelectedSongId] = useState('');
     const [searchingLyrics, setSearchingLyrics] = useState(false);
+    const [songSearch, setSongSearch] = useState('');
 
     const VERSION = "v1.3.7 Future-Flash";
 
@@ -178,13 +179,22 @@ const SocialPostGenerator: React.FC = () => {
                                         Actualizar catálogo
                                     </button>
                                 </div>
+                                <input
+                                    type="text"
+                                    value={songSearch}
+                                    onChange={e => setSongSearch(e.target.value)}
+                                    placeholder="Buscar canción..."
+                                    className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-5 py-3 text-white text-xs focus:border-[#c5a059]/50 outline-none mb-2"
+                                />
                                 <select
                                     value={selectedSongId}
                                     onChange={(e) => handleSongSelect(e.target.value)}
                                     className="w-full bg-[#0f111a] border border-white/10 rounded-xl p-5 text-white focus:border-[#c5a059]/50 outline-none appearance-none cursor-pointer"
                                 >
                                     <option value="">{catalogLoading ? 'Cargando canciones...' : 'Elegir canción del catálogo'}</option>
-                                    {catalog.map(song => <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>)}
+                                    {catalog
+                                        .filter(song => !songSearch || `${song.artist} - ${song.name}`.toLowerCase().includes(songSearch.toLowerCase()))
+                                        .map(song => <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>)}
                                 </select>
                             </div>
                             <div className="col-span-2">
