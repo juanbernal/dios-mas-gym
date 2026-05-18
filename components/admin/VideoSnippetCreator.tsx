@@ -247,19 +247,18 @@ const VideoSnippetCreator: React.FC = () => {
         const isImgReady = img && img.complete && img.naturalWidth !== 0 && img.src !== "";
 
         if (isImgReady) {
-            // 2. Imagen de fondo escalada y desenfocada (Altamente optimizado y libre de sobrecarga de GPU)
+            // 2. Imagen de fondo escalada y desenfocada - alta visibilidad
             ctx.save();
-            // Lower opacity slightly for a clean elegant dark aesthetic
-            ctx.globalAlpha = 0.22 + smoothNoise(time * 0.5) * 0.05;
+            ctx.globalAlpha = 1.0; // Imagen completamente visible antes de aplicar overlay
             
-            // Soft zoom factor: bilinear interpolation handles the blur perfectly now!
+            // Soft zoom factor: bilinear interpolation handles the blur perfectly
             const bgZoom = 1.35 + smoothNoise(time * 0.1) * 0.1;
             
             const blurredCanvas = blurredBgCanvasRef.current;
             try {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
                 if (blurredCanvas) {
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(blurredCanvas, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
                 } else {
                     ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
@@ -267,14 +266,16 @@ const VideoSnippetCreator: React.FC = () => {
             } catch (e) {
                 console.warn("No se pudo dibujar el fondo del snippet.", e);
             }
-            
-            // Apply a premium dark overlay gradient to blend it perfectly and create depth
-            const overlayGrad = ctx.createRadialGradient(w/2, h/2, 200, w/2, h/2, w);
-            overlayGrad.addColorStop(0, 'rgba(5, 7, 10, 0.45)');
-            overlayGrad.addColorStop(1, 'rgba(5, 7, 10, 0.95)');
+            ctx.restore();
+
+            // Overlay oscuro elegante: preserva la imagen pero añade profundidad
+            ctx.save();
+            ctx.globalAlpha = 0.62 + smoothNoise(time * 0.5) * 0.04;
+            const overlayGrad = ctx.createRadialGradient(w/2, h/2, 150, w/2, h/2, w);
+            overlayGrad.addColorStop(0, 'rgba(5, 7, 10, 0.30)');
+            overlayGrad.addColorStop(1, 'rgba(5, 7, 10, 0.88)');
             ctx.fillStyle = overlayGrad;
             ctx.fillRect(0, 0, w, h);
-            
             ctx.restore();
         }
 
@@ -607,7 +608,8 @@ const VideoSnippetCreator: React.FC = () => {
             const mimeType = getSupportedMimeType();
             recorder = new MediaRecorder(stream, {
                 ...(mimeType ? { mimeType } : {}),
-                videoBitsPerSecond: 12000000
+                videoBitsPerSecond: 30000000,  // 30 Mbps para alta calidad
+                audioBitsPerSecond: 192000      // 192 kbps audio
             });
             
             const chunks: Blob[] = [];
