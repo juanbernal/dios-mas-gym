@@ -97,8 +97,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         const isDiosmasgymDay = dayOfYear % 2 === 0;
         const dailyArtistName = isDiosmasgymDay ? 'Diosmasgym' : 'Juan 614';
-        const dMSongs = pool.filter(s => s.artist.toLowerCase().includes('dios'));
-        const j6Songs = pool.filter(s => s.artist.toLowerCase().includes('juan'));
+        const dMSongs = pool.filter(s => (s as any).artistGroup === 'diosmasgym');
+        const j6Songs = pool.filter(s => (s as any).artistGroup === 'juan614');
         const dailyPool = isDiosmasgymDay ? (dMSongs.length > 0 ? dMSongs : pool) : (j6Songs.length > 0 ? j6Songs : pool);
 
         // 1. New release this week

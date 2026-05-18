@@ -29,7 +29,10 @@ const AdminDashboard: React.FC = () => {
                 fetchMusicCatalog('diosmasgym', forceRefresh),
                 fetchMusicCatalog('juan614', forceRefresh)
             ]);
-            setMusicCatalog([...diosmasgym, ...juan614]);
+            setMusicCatalog([
+                ...diosmasgym.map(s => ({ ...s, artistGroup: 'diosmasgym' as const })),
+                ...juan614.map(s => ({ ...s, artistGroup: 'juan614' as const }))
+            ]);
             setLastMusicSync(new Date().toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' }));
         } catch (error) {
             console.error('Error sincronizando musica:', error);

@@ -98,6 +98,7 @@ const App: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [randomPosts, setRandomPosts] = useState<ContentPost[]>([]);
   const [randomMusicSong, setRandomMusicSong] = useState<MusicItem | null>(null);
+  const [randomJuan614Song, setRandomJuan614Song] = useState<MusicItem | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -178,6 +179,7 @@ const App: React.FC = () => {
 
         if (posts.length > 0) setRandomPosts(getRandomSample(posts, 3));
         if (musicD.length > 0) setRandomMusicSong(musicD[Math.floor(Math.random() * musicD.length)]);
+        if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         setShowSplash(false);
       } catch (err) {
@@ -469,7 +471,7 @@ const App: React.FC = () => {
 
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
-              {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} />}
+              {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
 
               {/* ÚLTIMA INSPIRACIÓN */}
               <section className="py-32 bg-[#05070a] border-y border-white/5">
