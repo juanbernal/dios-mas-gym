@@ -46,6 +46,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [selectedSongId, setSelectedSongId] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     
     // Form Inputs
     const [formData, setFormData] = useState({
@@ -293,15 +294,37 @@ const MusicVideoPromptGenerator: React.FC = () => {
                                         Sincronizar Catálogo
                                     </button>
                                 </div>
+                                {/* Buscador de Canciones */}
+                                <div className="relative mb-3.5">
+                                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/30">
+                                        <i className="fas fa-search text-xs"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Buscar por título o artista..."
+                                        className="w-full bg-[#0f111a] border border-white/10 rounded-xl py-3.5 pl-10 pr-4 text-xs text-white placeholder-white/20 focus:border-[#c5a059]/40 outline-none transition-all"
+                                    />
+                                </div>
+
                                 <select
                                     value={selectedSongId}
                                     onChange={(e) => handleSongSelect(e.target.value)}
                                     className="w-full bg-[#0f111a] border border-white/10 rounded-xl p-4 text-xs text-white focus:border-[#c5a059]/50 outline-none cursor-pointer"
                                 >
-                                    <option value="">{catalogLoading ? 'Cargando catálogo...' : 'Seleccionar canción existente...'}</option>
-                                    {catalog.map(song => (
-                                        <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>
-                                    ))}
+                                    <option value="">
+                                        {catalogLoading ? 'Cargando catálogo...' : 'Seleccionar canción existente...'}
+                                    </option>
+                                    {catalog
+                                        .filter(song => {
+                                            const query = searchQuery.toLowerCase();
+                                            return song.name.toLowerCase().includes(query) || song.artist.toLowerCase().includes(query);
+                                        })
+                                        .map(song => (
+                                            <option key={song.id} value={song.id}>{song.artist} - {song.name}</option>
+                                        ))
+                                    }
                                 </select>
                             </div>
 
