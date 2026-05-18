@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { title, artist, lyrics, style } = req.body || {};
+    const { title, artist, lyrics } = req.body || {};
 
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
@@ -13,13 +13,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const modelName = "gemini-2.0-flash-exp"; // Usamos el modelo que sabemos que le funciona a tu API key
     
     const promptText = `Actúa como un Director de Arte y Director de Videos Musicales de élite mundial (estilo directores ganadores del Grammy como David Fincher, Spike Jonze, Michel Gondry).
-    Se te proporcionará la letra de una canción, el título, el artista y un estilo visual sugerido.
+    Se te proporcionará la letra de una canción, el título y el artista.
+    Tu primer paso es analizar a fondo el significado de la letra y determinar de forma autónoma el mejor estilo o género narrativo visual (como 'Narrativa de Superación y Esfuerzo', 'Metáfora Conceptual y Espiritual', 'Historia Dramática Urbana', 'Épico Gótico y Viaje del Héroe', o cualquier otro estilo narrativo/estético altamente descriptivo que se invente para que encaje al 100% con la letra).
+    
     Tu objetivo es crear una propuesta visual y artística cinematográfica insuperable para el video musical de este tema, diseñada para impactar visualmente, y estructurar un guion técnico escena por escena optimizado al 100% para generadores de video de IA modernos (como Sora, Runway Gen-3, Luma Dream Machine, Kling, Pika).
 
     Información de la Canción:
     - Título: ${title || 'Sin Título'}
     - Artista: ${artist || 'Desconocido'}
-    - Estilo Sugerido: ${style || 'Cinematográfico, Épico'}
     - Letra de la Canción:
     """
     ${lyrics || 'Letra no proporcionada.'}
@@ -30,6 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     {
       "songAnalysis": "Un párrafo analizando el trasfondo emocional, lírico y el mensaje central de la canción.",
+      "suggestedStyle": "El estilo/género narrativo visual de la historia que has determinado autónomamente (ej. 'Narrativa de Superación y Esfuerzo', 'Metáfora Conceptual y Espiritual', 'Historia Dramática Urbana', etc. según corresponda).",
       "mainConcept": "La idea artística o metáfora visual central del video. Por ejemplo, la batalla interna de un corredor en un desierto neblinoso que representa la superación espiritual.",
       "colorPalette": {
         "description": "Descripción general de la iluminación, contraste y paleta de colores del video (ej. HSL apagado, neones dorados y sombras de medianoche).",
@@ -87,12 +89,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     contents: [{ parts: [{ text: promptText }] }],
                     generationConfig: { responseMimeType: "application/json" }
                 })
-            });
-            const backupData = await backupResponse.json();
+             });
+             const backupData = await backupResponse.json();
              if (backupData.candidates) {
                 return res.status(200).json(JSON.parse(backupData.candidates[0].content.parts[0].text));
-            }
-            throw new Error(backupData.error?.message || data.error.message);
+             }
+             throw new Error(backupData.error?.message || data.error.message);
         }
 
         throw new Error(data.error?.message || "Error desconocido en la generación");

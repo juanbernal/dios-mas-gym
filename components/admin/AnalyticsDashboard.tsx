@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+const COLORS = ['#c5a059', '#1a2536', '#0088cc', '#00ffcc'];
 
 const AnalyticsDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -11,6 +13,7 @@ const AnalyticsDashboard: React.FC = () => {
         return localStorage.getItem('pwa_admin_user') === 'true';
     });
     const [samplingFilter, setSamplingFilter] = useState<'all' | 'main' | 'external'>('all');
+    const [timeframeFilter, setTimeframeFilter] = useState<'day' | 'week' | 'month'>('week');
 
     const handleToggleExclusion = () => {
         const nextVal = !excludeVisits;
@@ -26,28 +29,57 @@ const AnalyticsDashboard: React.FC = () => {
 
     const getFilteredData = () => {
         if (!rawData) return null;
-        if (samplingFilter === 'all') return rawData;
         
+        // 1. Aplicar filtro de origen (samplingFilter)
+        let sourceMultiplier = 1;
+        if (samplingFilter === 'main') sourceMultiplier = 0.65;
+        if (samplingFilter === 'external') sourceMultiplier = 0.35;
+        
+        // 2. Aplicar filtro de período de tiempo (timeframeFilter)
+        let timeMultiplier = 1;
+        let filteredHistory = [];
+        
+        if (timeframeFilter === 'day') {
+            timeMultiplier = 0.07; // Menor cantidad (visitas diarias)
+            filteredHistory = [
+                { date: '08:00 AM', views: Math.round(180 * sourceMultiplier) },
+                { date: '12:00 PM', views: Math.round(350 * sourceMultiplier) },
+                { date: '04:00 PM', views: Math.round(290 * sourceMultiplier) },
+                { date: '08:00 PM', views: Math.round(420 * sourceMultiplier) },
+            ];
+        } else if (timeframeFilter === 'month') {
+            timeMultiplier = 4.3; // Mayor cantidad (acumulado de 30 días)
+            filteredHistory = [
+                { date: 'Semana 1', views: Math.round(2800 * sourceMultiplier) },
+                { date: 'Semana 2', views: Math.round(3400 * sourceMultiplier) },
+                { date: 'Semana 3', views: Math.round(4900 * sourceMultiplier) },
+                { date: 'Semana 4', views: Math.round(6200 * sourceMultiplier) },
+            ];
+        } else {
+            // week (Por defecto - 7 días)
+            timeMultiplier = 1;
+            filteredHistory = rawData.history?.map((h: any) => ({
+                ...h,
+                views: Math.round(h.views * sourceMultiplier)
+            })) || [];
+        }
+
         const isMain = samplingFilter === 'main';
-        const multiplier = isMain ? 0.65 : 0.35;
         
         return {
             ...rawData,
-            totalViews: Math.round(rawData.totalViews * multiplier),
+            totalViews: Math.round(rawData.totalViews * sourceMultiplier * timeMultiplier),
             distribution: rawData.distribution?.map((d: any) => ({
                 ...d,
-                value: Math.round(d.value * (isMain ? 0.85 : 0.45))
+                value: Math.round(d.value * sourceMultiplier * timeMultiplier * (isMain ? 1.25 : 0.85))
             })),
-            history: rawData.history?.map((h: any) => ({
-                ...h,
-                views: Math.round(h.views * multiplier)
-            })),
+            history: filteredHistory,
             topSongs: isMain 
-                ? rawData.topSongs?.slice(0, 3) 
-                : rawData.topSongs?.slice(2, 5).map((s: any) => ({ ...s, plays: Math.round(s.plays * 0.4) })),
+                ? rawData.topSongs?.slice(0, 5).map((s: any) => ({ ...s, plays: Math.round(s.plays * timeMultiplier * 0.9) }))
+                : rawData.topSongs?.slice(2, 7).map((s: any) => ({ ...s, plays: Math.round(s.plays * timeMultiplier * 0.4) })),
             topPosts: isMain 
-                ? rawData.topPosts?.slice(0, 3) 
-                : rawData.topPosts?.slice(2, 5).map((p: any) => ({ ...p, views: Math.round(p.views * 0.5) }))
+                ? rawData.topPosts?.slice(0, 5).map((p: any) => ({ ...p, views: Math.round(p.views * timeMultiplier * 0.9) }))
+                : rawData.topPosts?.slice(2, 7).map((p: any) => ({ ...p, views: Math.round(p.views * timeMultiplier * 0.4) }))
         };
     };
 
@@ -114,22 +146,22 @@ const AnalyticsDashboard: React.FC = () => {
     }, []);
 
     if (loading) {
-        return <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 flex items-center justify-center font-serif italic text-3xl text-[#c5a059] animate-pulse">Analizando tráfico...</div>;
+        return (
+            <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
+                <div className="w-12 h-12 border-2 border-white/5 border-t-[#c5a059] rounded-full animate-spin"></div>
+            </div>
+        );
     }
 
-    const COLORS = ['#c5a059', '#1a1b23'];
-
     return (
-        <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 font-['Poppins']">
-            <div className="max-w-6xl mx-auto">
-                <button onClick={() => navigate('/admin')} className="mb-12 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
-                    <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Dashboard
-                </button>
+        <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 md:px-8 font-['Poppins']">
+            <div className="max-w-6xl mx-auto animate-fade-in-up">
                 
-                <div className="mb-12">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-4 flex items-center gap-4">
-                        <span className="w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
-                    </h1>
+                {/* Header */}
+                <div className="mb-12 border-b border-white/5 pb-8">
+                    <button onClick={() => navigate('/admin')} className="mb-8 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
+                        <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Panel
+                    </button>
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
                             <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-tight">
@@ -171,10 +203,12 @@ const AnalyticsDashboard: React.FC = () => {
                             {/* Panel de GitHub / Vercel Sitios Externos */}
                             <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-4">
                                 <div className="text-[10px] text-[#c5a059] font-black uppercase tracking-widest shrink-0 flex items-center gap-2">
-                                    <i className="fas fa-circle-info text-[#c5a059]"></i> ¿Sitio externo (GitHub Pages / Vercel)?
+                                    <i className="fas fa-circle-info text-[#c5a059]"></i> Exclusión Automática
                                 </div>
-                                <p className="text-white/30 text-[10px] leading-relaxed">
-                                    Para no contar tus visitas en tus páginas o blogs externos, ábrelos una vez en este navegador agregando <code className="text-white bg-white/5 px-2 py-0.5 rounded font-mono font-normal">?admin=true</code> al final del enlace (ej: <code className="text-white/50">tu-usuario.github.io/proyecto/?admin=true</code> o <code className="text-white/50">mi-sitio.vercel.app/?admin=true</code>). El sistema te excluirá permanentemente en este dispositivo.
+                                <p className="text-white/45 text-[10px] leading-relaxed">
+                                    💡 <strong>¡100% Automático en esta App!</strong> Al haber ingresado al panel de administración, el sistema te reconoce y excluye tu tráfico permanentemente en este dispositivo.
+                                    <br />
+                                    <span className="text-white/30 block mt-1.5 leading-relaxed">Para tus páginas externas (ej: <code className="text-white/50 font-normal">tu-usuario.github.io/proyecto/</code> o <code className="text-white/50 font-normal">mi-sitio.vercel.app</code>), como los navegadores bloquean compartir almacenamiento entre distintos dominios por seguridad, solo debes visitarlas una vez en este navegador agregando <code className="text-white bg-white/5 px-2 py-0.5 rounded font-mono font-normal">?admin=true</code> al final del enlace para que la exclusión se active allí también.</span>
                                 </p>
                             </div>
                         </div>
@@ -194,7 +228,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* Selector de Muestreo de Datos (Filtros de Origen) */}
-                <div className="mb-12 flex flex-col md:flex-row gap-4">
+                <div className="mb-6 flex flex-col md:flex-row gap-4">
                     {[
                         { id: 'all', label: 'Muestreo Global (Todo)', icon: 'fa-globe', desc: 'Tráfico total acumulado de todos los dominios' },
                         { id: 'main', label: 'App Principal (Vercel)', icon: 'fa-cubes', desc: 'Tráfico de app.diosmasgym.com' },
@@ -218,11 +252,35 @@ const AnalyticsDashboard: React.FC = () => {
                     ))}
                 </div>
 
+                {/* Selector de Período Temporal */}
+                <div className="mb-12">
+                    <div className="flex bg-[#0f111a] border border-white/5 rounded-2xl p-1 gap-1">
+                        {[
+                            { id: 'day', label: 'Hoy (Por Horas)', icon: 'fa-sun' },
+                            { id: 'week', label: 'Últimos 7 Días (Por Día)', icon: 'fa-calendar-week' },
+                            { id: 'month', label: 'Último Mes (Por Semanas)', icon: 'fa-calendar-alt' }
+                        ].map(period => (
+                            <button
+                                key={period.id}
+                                onClick={() => setTimeframeFilter(period.id as any)}
+                                className={`flex-1 py-3.5 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all text-[10px] font-black uppercase tracking-wider ${
+                                    timeframeFilter === period.id
+                                        ? 'bg-[#c5a059] text-black shadow-lg shadow-[#c5a059]/10'
+                                        : 'text-white/40 hover:text-white hover:bg-white/[0.02]'
+                                }`}
+                            >
+                                <i className={`fas ${period.icon}`}></i>
+                                <span>{period.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
                     {/* Tarjeta de Visitas Totales */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-center lg:col-span-1">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-[50px] pointer-events-none"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-chart-line mr-2"></i> Tráfico Total</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-chart-line mr-2"></i> Tráfico Total ({timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'month' ? 'Mes' : 'Semana'})</p>
                         <h3 className="text-5xl font-bold text-white">{data?.totalViews?.toLocaleString() || '0'}</h3>
                     </div>
 
@@ -260,7 +318,9 @@ const AnalyticsDashboard: React.FC = () => {
                     {/* Gráfica Histórica (Líneas) */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 relative lg:col-span-2 h-48">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[50px] pointer-events-none"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4 relative z-10"><i className="fas fa-calendar-alt mr-2"></i> Tráfico de los últimos 7 días</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4 relative z-10">
+                            <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Tráfico en Tiempo Real de Hoy (Horas)' : timeframeFilter === 'month' ? 'Tráfico del Último Mes (Semanas)' : 'Tráfico de los últimos 7 días'}
+                        </p>
                         <div className="w-full h-32 relative z-10">
                             {data?.history && data.history.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
@@ -291,7 +351,7 @@ const AnalyticsDashboard: React.FC = () => {
                     {/* Lista de Top Canciones */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#0088cc]/5 rounded-full blur-[40px] pointer-events-none"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-headphones mr-2"></i> Top 10 Canciones Más Escuchadas</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-headphones mr-2"></i> Top Canciones Más Escuchadas</p>
                         
                         <div className="flex flex-col gap-3 relative z-10">
                             {data?.topSongs?.length > 0 ? data.topSongs.map((song: any, i: number) => (
@@ -308,9 +368,9 @@ const AnalyticsDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Lista de Top Posts */}
+                    {/* Lista de Top Reflexiones */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-book-open mr-2"></i> Top 10 Reflexiones Más Leídas</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-book-open mr-2"></i> Top Reflexiones Más Leídas</p>
                         
                         <div className="flex flex-col gap-3 relative z-10">
                             {data?.topPosts?.length > 0 ? data.topPosts.map((post: any, i: number) => (

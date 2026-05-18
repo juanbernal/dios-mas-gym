@@ -5,6 +5,7 @@ import { MusicItem } from '../../types';
 
 interface VideoPromptResult {
     songAnalysis: string;
+    suggestedStyle: string;
     mainConcept: string;
     colorPalette: {
         description: string;
@@ -50,7 +51,6 @@ const MusicVideoPromptGenerator: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         artist: '',
-        style: 'Narrativa de Superación y Esfuerzo',
         lyrics: ''
     });
 
@@ -66,12 +66,13 @@ const MusicVideoPromptGenerator: React.FC = () => {
         }
     });
 
-    const VERSION = "v2.0.4 Executive-Video";
+    const VERSION = "v2.1.0 Auto-Style";
 
     const loadingMessages = [
         "Iniciando análisis artístico...",
         "Analizando el significado de la letra y su trasfondo emocional...",
         "Mapeando los picos de intensidad lírica y tempo visual...",
+        "Determinando el estilo narrativo ideal según la letra...",
         "Diseñando la paleta de iluminación y color cinematográfico...",
         "Formulando la metáfora visual central del video...",
         "Escribiendo la dirección de cámara escena por escena en español...",
@@ -117,14 +118,13 @@ const MusicVideoPromptGenerator: React.FC = () => {
         setFormData({
             title: song.name,
             artist: song.artist,
-            style: 'Narrativa de Superación y Esfuerzo',
             lyrics: song.lyrics || ''
         });
     };
 
     // Cycle through loading messages
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (loading) {
             let index = 0;
             interval = setInterval(() => {
@@ -154,8 +154,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
                 body: JSON.stringify({
                     title: formData.title,
                     artist: formData.artist,
-                    lyrics: cleanLyrics,
-                    style: formData.style
+                    lyrics: cleanLyrics
                 })
             });
 
@@ -173,7 +172,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
                 timestamp: new Date().toLocaleDateString('es-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 title: formData.title,
                 artist: formData.artist,
-                style: formData.style,
+                style: data.suggestedStyle || 'Narrativa',
                 data: data
             };
             const updatedHistory = [newHistoryItem, ...history].slice(0, 15);
@@ -204,7 +203,6 @@ const MusicVideoPromptGenerator: React.FC = () => {
         setFormData({
             title: item.title,
             artist: item.artist,
-            style: item.style,
             lyrics: item.data.scenes.map(s => s.lyricsSnippet).join('\n')
         });
         setResult(item.data);
@@ -331,24 +329,9 @@ const MusicVideoPromptGenerator: React.FC = () => {
                             </div>
 
                             <div className="col-span-1 md:col-span-2">
-                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#c5a059] mb-3">Estilo Visual Sugerido</label>
-                                <select
-                                    value={formData.style}
-                                    onChange={(e) => setFormData({ ...formData, style: e.target.value })}
-                                    className="w-full bg-[#05070a] border border-white/10 rounded-xl p-4 text-xs text-white focus:border-[#c5a059]/50 outline-none cursor-pointer"
-                                >
-                                    <option value="Narrativa de Superación y Esfuerzo">Narrativa de Superación y Esfuerzo (Historia lineal: lucha física y mental hasta la victoria)</option>
-                                    <option value="Metáfora Conceptual y Espiritual">Metáfora Conceptual y Espiritual (Simbología onírica de guerra interna y fe)</option>
-                                    <option value="Historia Dramática Urbana">Historia Dramática Urbana (Drama realista en la ciudad: superando dudas y temores)</option>
-                                    <option value="Épico Gótico y Viaje del Héroe">Épico Gótico y Viaje del Héroe (Fantasía, desiertos y montañas derrotando gigantes)</option>
-                                    <option value="Estilo Documental / Retrato Motivador">Estilo Documental / Retrato Motivador (Historias cruzadas de disciplina y atletas reales)</option>
-                                </select>
-                            </div>
-
-                            <div className="col-span-1 md:col-span-2">
                                 <div className="flex justify-between items-center mb-3">
                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#c5a059]">Letra de la Canción</label>
-                                    <span className="text-[9px] text-white/30 font-mono">Recomendado: Versos y coros bien estructurados</span>
+                                    <span className="text-[9px] text-white/30 font-mono">💡 La Inteligencia Artificial determinará el estilo visual exacto según el significado de la letra</span>
                                 </div>
                                 <textarea
                                     value={formData.lyrics}
@@ -364,17 +347,26 @@ const MusicVideoPromptGenerator: React.FC = () => {
                             disabled={!formData.title.trim() || !formData.lyrics.trim() || loading}
                             className="w-full py-5 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.4em] rounded-2xl hover:bg-white transition-all transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-xl flex items-center justify-center gap-2"
                         >
-                            <i className="fas fa-wand-magic-sparkles"></i> GENERAR GUION CINEMATOGRÁFICO
+                            {loading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    <span>ANALIZANDO LÍRICAS...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-wand-magic-sparkles text-xs"></i>
+                                    <span>AUTODETECTAR ESTILO Y GENERAR GUION</span>
+                                </>
+                            )}
                         </button>
 
                         {error && (
-                            <div className="mt-8 p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
-                                <h3 className="text-red-500 font-black text-[9px] uppercase tracking-widest mb-3">
-                                    <i className="fas fa-bug mr-2"></i> ERROR EN LA GENERACIÓN
-                                </h3>
-                                <p className="text-[11px] text-red-400 font-mono leading-relaxed">
-                                    {error.error || error.message || 'Error inesperado de red.'}
-                                </p>
+                            <div className="mt-6 bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-xs flex items-center gap-3">
+                                <i className="fas fa-circle-exclamation text-sm"></i>
+                                <div className="flex-1">
+                                    <p className="font-bold">Error en la Generación</p>
+                                    <p className="opacity-80 mt-0.5">{error.error || error.message || 'Error al conectar con la API de Gemini.'}</p>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -382,21 +374,25 @@ const MusicVideoPromptGenerator: React.FC = () => {
 
                 {/* STEP 2: LOADER */}
                 {step === 2 && (
-                    <div className="bg-[#0f111a] border border-[#c5a059]/10 rounded-[2.5rem] py-24 px-10 text-center flex flex-col items-center justify-center min-h-[450px]">
-                        <div className="relative mb-12">
-                            {/* Inner Circle Spinner */}
-                            <div className="w-20 h-20 border-2 border-white/5 border-t-[#c5a059] rounded-full animate-spin"></div>
-                            {/* Outer Pulse */}
-                            <div className="absolute inset-0 border border-[#c5a059]/20 rounded-full animate-ping scale-125"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <i className="fas fa-film text-xl text-[#c5a059]"></i>
+                    <div className="py-28 text-center space-y-8 animate-fade-in-up bg-[#0f111a] border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-[#c5a059]/10 rounded-full blur-[80px] pointer-events-none"></div>
+                        <div className="relative w-24 h-24 mx-auto">
+                            <div className="absolute inset-0 rounded-full border-2 border-[#c5a059]/10"></div>
+                            <div className="absolute inset-0 rounded-full border-2 border-t-[#c5a059] animate-spin"></div>
+                            <div className="absolute inset-4 rounded-full bg-[#05070a] flex items-center justify-center text-[#c5a059]">
+                                <i className="fas fa-wand-magic-sparkles text-xl animate-pulse"></i>
                             </div>
                         </div>
-                        <h3 className="text-white text-base font-bold mb-3 tracking-wide">Dirección de Arte por IA</h3>
-                        <p className="text-[#c5a059] text-xs font-black uppercase tracking-[0.3em] h-6 animate-pulse px-4 max-w-md">
-                            {loaderMessage}
-                        </p>
-                        <p className="text-white/20 text-[10px] mt-10 max-w-xs leading-relaxed">
+                        <div className="space-y-3 max-w-md mx-auto px-6">
+                            <h3 className="font-serif italic text-2xl text-white">Diseñando Guion de Video...</h3>
+                            <p className="text-[#c5a059] text-[10px] font-mono uppercase tracking-widest min-h-[1.5rem] transition-all">
+                                {loaderMessage}
+                            </p>
+                            <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-6">
+                                <div className="bg-[#c5a059] h-full animate-progress-bar rounded-full"></div>
+                            </div>
+                        </div>
+                        <p className="text-white/30 text-[10px] max-w-xs mx-auto leading-relaxed font-sans">
                             Esto puede demorar hasta 20 segundos mientras el modelo analiza las metáforas líricas e ilumina tu concepto.
                         </p>
                     </div>
@@ -411,7 +407,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
                             <div className="flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-[#00ffcc] animate-pulse"></div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/60">
-                                    Resultado: {result.suggestedVibe}
+                                    Estilo: {result.suggestedStyle || 'Determinado por IA'} • Look: {result.suggestedVibe}
                                 </span>
                             </div>
                             <div className="flex gap-4">
@@ -506,6 +502,17 @@ const MusicVideoPromptGenerator: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* Style Summary */}
+                                    <div className="bg-[#0f111a] border border-white/5 p-6 rounded-3xl flex justify-between items-center">
+                                        <div>
+                                            <h5 className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-1">Estilo Determinado</h5>
+                                            <p className="text-white text-xs font-bold font-mono">{result.suggestedStyle || 'Narrativa lírica'}</p>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full bg-[#c5a059]/10 flex items-center justify-center text-[#c5a059]">
+                                            <i className="fas fa-wand-magic-sparkles text-sm"></i>
+                                        </div>
+                                    </div>
+
                                     {/* Vibe Summary */}
                                     <div className="bg-[#0f111a] border border-white/5 p-6 rounded-3xl flex justify-between items-center">
                                         <div>
@@ -551,111 +558,88 @@ const MusicVideoPromptGenerator: React.FC = () => {
 
                         {/* TAB CONTENT: SCENES TIMELINE */}
                         {activeTab === 'scenes' && (
-                            <div className="space-y-12">
-                                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">
-                                        <i className="fas fa-list-ol mr-2"></i> Guion Técnico Detallado Escena por Escena
+                            <div className="space-y-8">
+                                <div className="bg-[#0f111a] border border-white/5 p-8 rounded-3xl">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-2">
+                                        <i className="fas fa-film mr-2"></i> Timeline de Escenas y Prompts de Video
                                     </h4>
-                                    <span className="text-[9px] text-white/40 font-mono">
-                                        Total: {result.scenes.length} escenas generadas
-                                    </span>
+                                    <p className="text-white/40 text-xs leading-relaxed max-w-2xl">
+                                        Aquí tienes el desglose técnico escena por escena del video musical. Copia los prompts en inglés individuales para generar cada toma en Runway Gen-3 o Sora.
+                                    </p>
                                 </div>
 
-                                <div className="relative pl-6 md:pl-10 border-l border-white/5 ml-4 space-y-12">
+                                <div className="space-y-6">
                                     {result.scenes.map((scene, i) => (
-                                        <div key={i} className="relative">
+                                        <div 
+                                            key={i} 
+                                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 md:p-8 relative overflow-hidden group hover:border-[#c5a059]/25 transition-all"
+                                        >
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/5 rounded-full blur-[40px] pointer-events-none"></div>
                                             
-                                            {/* Timeline Node dot */}
-                                            <div className="absolute -left-[35px] md:-left-[51px] top-1 w-6 h-6 rounded-full bg-[#05070a] border border-[#c5a059] flex items-center justify-center text-[9px] font-black text-[#c5a059]">
-                                                {i + 1}
-                                            </div>
-
-                                            {/* Scene Container */}
-                                            <div className="bg-[#0f111a] border border-white/5 hover:border-[#c5a059]/30 rounded-3xl p-6 md:p-8 space-y-6 transition-all">
-                                                
-                                                {/* Meta Row */}
-                                                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <span className="px-3.5 py-1.5 bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/20 font-mono text-[10px] font-bold rounded-lg uppercase">
-                                                            {scene.timeframe}
-                                                        </span>
-                                                        <p className="text-white/60 font-serif italic text-xs truncate max-w-xs md:max-w-md">
-                                                            "{scene.lyricsSnippet}"
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleCopyToClipboard(scene.aiPrompt, `scene-${i}`)}
-                                                        className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all flex items-center gap-1.5 ${
-                                                            copiedStates[`scene-${i}`] 
-                                                                ? 'bg-green-500 border-green-500 text-black' 
-                                                                : 'bg-white/5 border-white/10 text-white/60 hover:bg-[#c5a059] hover:text-black hover:border-[#c5a059]'
-                                                        }`}
-                                                    >
-                                                        <i className={`fas ${copiedStates[`scene-${i}`] ? 'fa-check' : 'fa-copy'}`}></i>
-                                                        {copiedStates[`scene-${i}`] ? 'COPIADO' : 'COPIAR PROMPT'}
-                                                    </button>
-                                                </div>
-
-                                                {/* Visual Direction (Spanish) */}
+                                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-white/5">
                                                 <div className="space-y-2">
-                                                    <h5 className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]/70">
-                                                        Dirección Visual de la Toma
-                                                    </h5>
-                                                    <p className="text-white/80 text-sm leading-relaxed font-sans">
-                                                        {scene.visualDescription}
-                                                    </p>
-                                                </div>
-
-                                                {/* Specific AI Prompt (English) */}
-                                                <div className="space-y-2 bg-[#05070a] border border-white/5 p-5 rounded-2xl">
-                                                    <div className="flex justify-between items-center">
-                                                        <h5 className="text-[9px] font-black uppercase tracking-widest text-white/30">
-                                                            AI Video Generator Prompt (Optimizado en Inglés)
-                                                        </h5>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="px-3 py-1 bg-[#c5a059]/10 text-[#c5a059] font-mono text-[9px] font-black uppercase rounded-full border border-[#c5a059]/20">
+                                                            Escena {i+1} • {scene.timeframe}
+                                                        </span>
                                                     </div>
-                                                    <p className="font-mono text-xs text-[#00ffcc] leading-relaxed select-all">
-                                                        {scene.aiPrompt}
-                                                    </p>
+                                                    <blockquote className="font-serif italic text-sm text-white/50 pl-4 border-l-2 border-[#c5a059] mt-2">
+                                                        "{scene.lyricsSnippet}"
+                                                    </blockquote>
                                                 </div>
-
+                                                
+                                                <button
+                                                    onClick={() => handleCopyToClipboard(scene.aiPrompt, `scene-${i}`)}
+                                                    className={`px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 shrink-0 ${
+                                                        copiedStates[`scene-${i}`] 
+                                                            ? 'bg-green-500 border-green-500 text-black' 
+                                                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white hover:text-black hover:border-white'
+                                                    }`}
+                                                >
+                                                    <i className={`fas ${copiedStates[`scene-${i}`] ? 'fa-check' : 'fa-copy'}`}></i>
+                                                    {copiedStates[`scene-${i}`] ? 'COPIADO' : 'COPIAR PROMPT DE IA'}
+                                                </button>
                                             </div>
 
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 font-sans text-xs">
+                                                <div className="space-y-2.5">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Dirección de Arte y Toma (Español)</span>
+                                                    <p className="text-white/80 leading-relaxed font-sans">{scene.visualDescription}</p>
+                                                </div>
+                                                <div className="space-y-2.5 bg-[#05070a] p-5 rounded-xl border border-white/5">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block">Technical Video Prompt (Runway / Sora)</span>
+                                                    <p className="font-mono text-white/70 leading-relaxed break-words select-all">{scene.aiPrompt}</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* TAB CONTENT: AI GUIDE */}
+                        {/* TAB CONTENT: IA GENERATOR GUIDE */}
                         {activeTab === 'guide' && (
                             <div className="space-y-8">
                                 <div className="bg-[#0f111a] border border-white/5 p-8 rounded-3xl space-y-6">
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">
-                                        <i className="fas fa-lightbulb mr-2"></i> Consejos Técnicos para Generar Videos con IA
+                                        <i className="fas fa-book-open mr-2"></i> Guía de Uso del Guion con IAs de Video
                                     </h4>
-                                    <p className="text-white/50 text-xs leading-relaxed max-w-2xl">
-                                        Las IAs generadoras de video son extremadamente sensibles a la forma en que estructures tu prompt. Sigue estas recomendaciones utilizando nuestros prompts generados para obtener resultados dignos de un video musical profesional.
+                                    <p className="text-white/40 text-xs leading-relaxed max-w-2xl">
+                                        Aprende a transformar estos prompts de texto en secuencias de video hiperrealistas utilizando las plataformas líderes de la industria.
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {[
                                         {
                                             name: 'Runway Gen-3 Alpha',
                                             logo: 'R',
                                             tips: [
-                                                'Estructura básica: Describe primero el movimiento de cámara, luego la acción del sujeto, la iluminación y finalmente el look cinemático.',
-                                                'Evita palabras ambiguas. Sé extremadamente descriptivo con la luz.',
-                                                'Soporta prompts extensos. Agrega términos como "photorealistic, cinematic film, 35mm lens, volumetric light".'
-                                            ]
-                                        },
-                                        {
-                                            name: 'Luma Dream Machine',
-                                            logo: 'L',
-                                            tips: [
-                                                'Destaca enormemente con movimientos fluidos: Dolly shot, lateral tracking sweep, o drone flight.',
-                                                'Funciona genial con prompts que describen transiciones sutiles e interacciones físicas realistas.',
-                                                'Añade instrucciones de cámara al inicio del prompt: "A slow dramatic pan over..."'
+                                                'Excelente para control cinematográfico y texturas detalladas.',
+                                                'Copia el Master Prompt en el campo "System Prompt" o "Settings" si la plataforma lo permite.',
+                                                'Pega el prompt de la escena individual en el campo de texto de generación principal.',
+                                                'Utiliza un ratio de 16:9 y activa "Upscale" para máxima nitidez.',
+                                                'Establece la duración a 5 o 10 segundos según el tempo lírico de la escena.'
                                             ]
                                         },
                                         {
