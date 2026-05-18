@@ -15,6 +15,8 @@ const smoothNoise = (t: number) => {
     return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
 };
 
+export const SNIPPET_VERSION = '2.8';
+
 const VideoSnippetCreator: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -670,7 +672,7 @@ const VideoSnippetCreator: React.FC = () => {
                     Volver al Panel
                 </button>
                 <div className="flex items-center gap-4">
-                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v2.8</span></h1>
+                    <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Snippet <span className="text-[#c5a059]">Creator</span> <span className="text-white/20 ml-2">v{SNIPPET_VERSION}</span></h1>
                     <div className="flex items-center gap-1.5 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full px-2.5 py-0.5 animate-pulse">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
                         <span className="text-[7.5px] font-black uppercase tracking-wider text-[#c5a059]">Bypass Anti-IA Activo</span>
