@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import ysFixWebmDuration from 'fix-webm-duration';
 
 const noise = (x: number, y: number) => {
     return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
@@ -217,15 +218,20 @@ const VideoSnippetCreator: React.FC = () => {
         const isImgReady = img && img.complete && img.naturalWidth !== 0 && img.src !== "";
 
         if (isImgReady) {
-            // 2. Imagen de fondo escalada y desenfocada (Orgánica)
+            // 2. Imagen de fondo escalada y desenfocada (Orgánica con Desenfoque Gaussian)
+            ctx.save();
             ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
-            const bgZoom = 1.2 + smoothNoise(time * 0.1) * 0.15;
+            const bgZoom = 1.25 + smoothNoise(time * 0.1) * 0.15;
+            
+            // Premium background soft blur
+            ctx.filter = 'blur(40px)';
+            
             try {
-                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 40), (h - h*bgZoom)/2 + (nY * 40), w*bgZoom, h*bgZoom);
+                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 45), (h - h*bgZoom)/2 + (nY * 45), w*bgZoom, h*bgZoom);
             } catch (e) {
                 console.warn("No se pudo dibujar el fondo del snippet.", e);
             }
-            ctx.globalAlpha = 1.0;
+            ctx.restore();
         }
 
         // 3. Gradiente de viñeta (con ligero parpadeo orgánico)
@@ -561,16 +567,21 @@ const VideoSnippetCreator: React.FC = () => {
                     return;
                 }
 
-                const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
-                const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Snippet_${songName}.webm`;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(url), 10_000);
-                cleanupRecording();
-                setRecordingProgress(0);
+                const buggyBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
+                const durationMs = Math.round(exportDuration * 1000);
+                
+                // Inject Seekable EBML Duration metadata so video editors (Premiere, CapCut, etc.) read the full 90s (1:30) correctly
+                ysFixWebmDuration(buggyBlob, durationMs, (fixedBlob) => {
+                    const songName = selectedSong?.name.replace(/\s+/g, '_') || 'snippet';
+                    const url = URL.createObjectURL(fixedBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Snippet_${songName}.webm`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+                    cleanupRecording();
+                    setRecordingProgress(0);
+                });
             };
 
             audioRef.current.currentTime = startTime;
