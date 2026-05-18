@@ -11,7 +11,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // MODELO DETECTADO EN EL CÓDIGO DEL USUARIO
     const modelName = "gemini-3-flash-preview";
     
-    const promptText = `Escribe contenido espiritual y reflexivo para un blog cristiano. NO uses markdown ni formato especial. NO incluyas hashtags, tips de marketing ni emojis en exceso. Solo texto plano con párrafos separados por saltos de línea. Contenido: ${content}`;
+    let promptText = `Escribe contenido espiritual y reflexivo para un blog cristiano. NO uses markdown ni formato especial. NO incluyas hashtags, tips de marketing ni emojis en exceso. Solo texto plano con párrafos separados por saltos de línea. Contenido: ${content}`;
+
+    try {
+        if (content && content.trim().startsWith('{')) {
+            const parsed = JSON.parse(content);
+            const { input, platform, goal, tone, lyrics } = parsed;
+            
+            promptText = `Eres un experto estratega de marketing musical cristiano y creador de contenido viral para redes sociales.
+Tu tarea es generar contenido promocional extraordinario y de alta conversión para la canción descrita abajo.
+
+INFORMACIÓN DE LA CANCIÓN / PROMO:
+${input}
+
+${lyrics ? `LETRA DE LA CANCIÓN / TEMA EMOCIONAL:
+${lyrics}` : ''}
+
+PARÁMETROS DE LA CAMPAÑA:
+- Plataforma objetivo: ${platform || 'Instagram/TikTok'}
+- Objetivo de la publicación: ${goal || 'Inspirar y Viralizar'}
+- Tono y Estilo: ${tone || 'Épico y Motivador'}
+
+INSTRUCCIONES DE RESPUESTA:
+Por favor, genera una estructura de publicación dividida en las siguientes secciones claramente identificadas, usando un lenguaje de alta vibración, emocionante y centrado en la fe:
+
+1. 🌟 ARTÍCULO DE BLOG (Blogger / Prensa):
+Un texto de 3-4 párrafos, reflexivo y profundamente inspirador que narre el mensaje de fe, esfuerzo y fe detrás de la canción (e incluya el mensaje de la letra de la canción si está provista). Debe motivar a los lectores a escuchar la canción y reflexionar.
+
+2. 📱 PUBLICACIÓN PARA REDES SOCIALES (${platform || 'Instagram/TikTok'}):
+Un copy muy directo, impactante y magnético. Utiliza ganchos emocionales en la primera línea, micro-párrafos limpios y emojis estratégicos.
+
+3. 🏷️ ESTRATEGIA DE HASHTAGS EXCLUSIVOS:
+Genera un bloque de 10-15 hashtags altamente personalizados y relevantes basados STRICTAMENTE en el título de la canción, el artista, y los temas específicos de la letra de la canción provista (ej: #NombreDeCancion, #NombreDeArtista, y las palabras clave líricas/emocionales). ¡Evita hashtags genéricos aburridos!
+
+Entrega el resultado formateado de manera elegante y legible con separadores limpios.`;
+        }
+    } catch (e) {
+        // Fallback to default blog prompt if JSON parsing fails
+    }
 
     try {
         // Para modelos Preview/Experimental, usamos v1beta

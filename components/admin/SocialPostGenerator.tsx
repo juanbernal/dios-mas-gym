@@ -19,6 +19,7 @@ const SocialPostGenerator: React.FC = () => {
 
     const [formData, setFormData] = useState({
         input: '',
+        lyrics: '',
         platform: 'Instagram/TikTok',
         goal: 'Inspirar y Viralizar',
         tone: 'Épico y Motivador'
@@ -58,12 +59,13 @@ const SocialPostGenerator: React.FC = () => {
         const song = pool.find(item => item.id === songId);
         if (!song) return;
 
-        setFormData({
-            input: `Crear una promo para la cancion "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión extensa para artículo de Blog (Blogger), bien redactada.\n2. Una versión MUY corta y directa para redes sociales (Instagram/TikTok).\n3. Asegúrate de incluir hashtags relevantes al final de cada versión.`,
+        setFormData(prev => ({
+            ...prev,
+            input: `Crear una promo para la canción "${song.name}" de ${song.artist}. Link principal: ${song.url}. Tipo: ${song.type || 'lanzamiento musical'}. Fecha: ${song.date || 'disponible ahora'}.`,
             platform: 'Instagram/TikTok',
             goal: 'Promocionar canción',
             tone: 'Épico y Motivador'
-        });
+        }));
     };
 
     const handleGenerate = async () => {
@@ -167,10 +169,18 @@ const SocialPostGenerator: React.FC = () => {
                                 </select>
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">1. Contenido Base</label>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">1. Contenido Base / Promo</label>
                                 <textarea 
                                     value={formData.input} onChange={(e) => setFormData({...formData, input: e.target.value})}
-                                    placeholder="Letra o idea..." className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white min-h-[150px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
+                                    placeholder="Detalles sobre el lanzamiento..." className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white min-h-[100px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4">Letra de la Canción (Opcional pero Recomendado)</label>
+                                <p className="text-white/35 text-xs mb-3">Pega la letra de tu canción aquí para que los copies y hashtags sean 100% acordes a tu tema.</p>
+                                <textarea 
+                                    value={formData.lyrics} onChange={(e) => setFormData({...formData, lyrics: e.target.value})}
+                                    placeholder="Pega la letra de la canción aquí..." className="w-full bg-[#05070a] border border-white/10 rounded-xl p-6 text-white min-h-[150px] focus:border-[#c5a059]/50 outline-none transition-all resize-none"
                                 />
                             </div>
                             {['plataforma', 'objetivo', 'tono'].map((key, idx) => (
