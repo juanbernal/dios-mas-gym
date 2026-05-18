@@ -72,6 +72,7 @@ const VideoSnippetCreator: React.FC = () => {
     const promoImgRef = useRef<string | null>(null);
     const localCoverRef = useRef<string | null>(null);
     const bgImageRef = useRef<HTMLImageElement | null>(null);
+    const blurredBgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
         if (!bgImageRef.current) {
@@ -103,6 +104,29 @@ const VideoSnippetCreator: React.FC = () => {
             } else {
                 bgImageRef.current.crossOrigin = "anonymous";
             }
+            
+            // High-quality smooth bilinear blur canvas pre-generator
+            const handleBlurGeneration = () => {
+                const img = bgImageRef.current;
+                if (!img || img.naturalWidth === 0) return;
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 40;
+                canvas.height = 70;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'medium';
+                    ctx.drawImage(img, 0, 0, 40, 70);
+                    blurredBgCanvasRef.current = canvas;
+                }
+            };
+
+            bgImageRef.current.onload = handleBlurGeneration;
+            if (bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
+                handleBlurGeneration();
+            }
+
             if (bgImageRef.current.src !== url) {
                 bgImageRef.current.src = url;
             }
@@ -221,20 +245,27 @@ const VideoSnippetCreator: React.FC = () => {
             // 2. Imagen de fondo escalada y desenfocada (Altamente optimizado y libre de sobrecarga de GPU)
             ctx.save();
             // Lower opacity slightly for a clean elegant dark aesthetic
-            ctx.globalAlpha = 0.18 + smoothNoise(time * 0.5) * 0.05;
+            ctx.globalAlpha = 0.22 + smoothNoise(time * 0.5) * 0.05;
             
-            // Use a higher zoom factor to naturally make the background image smooth and abstract
-            const bgZoom = 2.4 + smoothNoise(time * 0.1) * 0.2;
+            // Soft zoom factor: bilinear interpolation handles the blur perfectly now!
+            const bgZoom = 1.35 + smoothNoise(time * 0.1) * 0.1;
             
+            const blurredCanvas = blurredBgCanvasRef.current;
             try {
-                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
+                if (blurredCanvas) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(blurredCanvas, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
+                } else {
+                    ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
+                }
             } catch (e) {
                 console.warn("No se pudo dibujar el fondo del snippet.", e);
             }
             
             // Apply a premium dark overlay gradient to blend it perfectly and create depth
             const overlayGrad = ctx.createRadialGradient(w/2, h/2, 200, w/2, h/2, w);
-            overlayGrad.addColorStop(0, 'rgba(5, 7, 10, 0.4)');
+            overlayGrad.addColorStop(0, 'rgba(5, 7, 10, 0.45)');
             overlayGrad.addColorStop(1, 'rgba(5, 7, 10, 0.95)');
             ctx.fillStyle = overlayGrad;
             ctx.fillRect(0, 0, w, h);
@@ -335,18 +366,18 @@ const VideoSnippetCreator: React.FC = () => {
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '12px';
         ctx.fillText('EL ARSENAL DE FE', 540, 1400);
 
-        // Song Name
+        // Song Name (Premium Poppins Font)
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 110px Arial, sans-serif'; 
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = 'black';
+        ctx.font = '900 95px Poppins, sans-serif'; 
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.textAlign = 'center';
         ctx.fillText((titleRef.current || selectedSong.name || "S/N").toUpperCase(), 540, 1530, 960);
 
-        // Artist
+        // Artist (Premium Poppins Font)
         ctx.fillStyle = '#c5a059'; 
-        ctx.font = '900 45px Arial, sans-serif';
-        ctx.shadowBlur = 15;
+        ctx.font = '700 45px Poppins, sans-serif';
+        ctx.shadowBlur = 10;
         ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610, 960);
         ctx.shadowBlur = 0;
         
