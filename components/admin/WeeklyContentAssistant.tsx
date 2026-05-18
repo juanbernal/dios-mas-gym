@@ -95,13 +95,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const sevenDaysAgo = new Date(now);
         sevenDaysAgo.setDate(now.getDate() - 7);
 
-        const isDiosmasgymDay = dayOfYear % 2 === 0;
-        const dailyArtistName = isDiosmasgymDay ? 'Diosmasgym' : 'Juan 614';
-        const dMSongs = pool.filter(s => (s as any).artistGroup === 'diosmasgym');
-        const j6Songs = pool.filter(s => (s as any).artistGroup === 'juan614');
-        const dailyPool = isDiosmasgymDay ? (dMSongs.length > 0 ? dMSongs : pool) : (j6Songs.length > 0 ? j6Songs : pool);
-
-        // 1. New release this week
+        // 1. New release this week (de ambos artistas)
         let releaseThisWeek = null;
         try {
             releaseThisWeek = (releases || []).find(r => {
@@ -128,16 +122,17 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 2. Recent
-        const recentSong = dailyPool
-            .filter(s => s.date && new Date(s.date) >= sevenDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        // 2. Canción más nueva de ambos artistas
+        const newestSongs = [...pool]
+            .filter(s => s.date)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const recentSong = newestSongs[0];
         
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
             return {
                 song: recentSong,
-                reason: `"${recentSong.name}" es tendencia. Aprovecha el impulso de esta semana para maximizar el alcance.`,
+                reason: `"${recentSong.name}" es lo más nuevo del catálogo. Aprovecha el impulzo para maximizar el alcance.`,
                 type: 'recent',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -145,14 +140,14 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 3. Rotation
-        const rotationIdx = dayOfYear % dailyPool.length;
-        const picked = dailyPool[rotationIdx];
+        // 3. Rotación aleatoria de ambos artistas
+        const rotationIdx = dayOfYear % pool.length;
+        const picked = pool[rotationIdx];
         if (picked) {
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
             return {
                 song: picked,
-                reason: `Hoy el algoritmo favorece a ${dailyArtistName}. Promociona "${picked.name}" para mantener tu perfil activo.`,
+                reason: `Hoy toca promocionar "${picked.name}" de ${picked.artist}. Mantén tu perfil activo con esta rotación.`,
                 type: 'rotation',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -160,13 +155,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 4. Old gem
+        // 4. Joya del archivo
         const gemIdx = (dayOfYear + 10) % pool.length;
         const gem = pool[gemIdx] || pool[0];
         const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
         return {
             song: gem,
-            reason: `Recomendación diaria: Reactiva "${gem.name}". Una joya del catálogo que merece volver a ser escuchada.`,
+            reason: `Recomendación diaria: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
             type: 'old_gem',
             caption: caps.ig,
             tiktokCaption: caps.tt,
