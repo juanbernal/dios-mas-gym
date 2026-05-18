@@ -218,19 +218,27 @@ const VideoSnippetCreator: React.FC = () => {
         const isImgReady = img && img.complete && img.naturalWidth !== 0 && img.src !== "";
 
         if (isImgReady) {
-            // 2. Imagen de fondo escalada y desenfocada (Orgánica con Desenfoque Gaussian)
+            // 2. Imagen de fondo escalada y desenfocada (Altamente optimizado y libre de sobrecarga de GPU)
             ctx.save();
-            ctx.globalAlpha = 0.25 + smoothNoise(time * 0.5) * 0.1;
-            const bgZoom = 1.25 + smoothNoise(time * 0.1) * 0.15;
+            // Lower opacity slightly for a clean elegant dark aesthetic
+            ctx.globalAlpha = 0.18 + smoothNoise(time * 0.5) * 0.05;
             
-            // Premium background soft blur
-            ctx.filter = 'blur(40px)';
+            // Use a higher zoom factor to naturally make the background image smooth and abstract
+            const bgZoom = 2.4 + smoothNoise(time * 0.1) * 0.2;
             
             try {
-                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 45), (h - h*bgZoom)/2 + (nY * 45), w*bgZoom, h*bgZoom);
+                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 35), (h - h*bgZoom)/2 + (nY * 35), w*bgZoom, h*bgZoom);
             } catch (e) {
                 console.warn("No se pudo dibujar el fondo del snippet.", e);
             }
+            
+            // Apply a premium dark overlay gradient to blend it perfectly and create depth
+            const overlayGrad = ctx.createRadialGradient(w/2, h/2, 200, w/2, h/2, w);
+            overlayGrad.addColorStop(0, 'rgba(5, 7, 10, 0.4)');
+            overlayGrad.addColorStop(1, 'rgba(5, 7, 10, 0.95)');
+            ctx.fillStyle = overlayGrad;
+            ctx.fillRect(0, 0, w, h);
+            
             ctx.restore();
         }
 
