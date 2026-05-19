@@ -433,9 +433,36 @@ const PromoImageApp: React.FC = () => {
       setCopySuccess("✅ ¡Copiado!");
       setTimeout(() => setCopySuccess(""), 2500);
     } catch {
-      setCopySuccess("⚠️ Error al copiar");
-      setTimeout(() => setCopySuccess(""), 2500);
+      setCopySuccess('⚠️ Error al copiar');
+      setTimeout(() => setCopySuccess(''), 2500);
     }
+  };
+
+  // Copia la imagen generada al portapapeles del sistema
+  const handleCopyImage = async () => {
+    if (!shareImageBlob) {
+      setCopySuccess('⏳ Imagen todavía generándose...');
+      setTimeout(() => setCopySuccess(''), 2000);
+      return;
+    }
+    try {
+      if (typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareImageBlob })]);
+        setCopySuccess('🖼️ ¡Imagen copiada! Pégala en cualquier app.');
+      } else {
+        throw new Error('ClipboardItem not supported');
+      }
+    } catch {
+      if (shareImageBlob) {
+        const url = URL.createObjectURL(shareImageBlob);
+        const a = document.createElement('a');
+        a.download = `PROMO-${title.replace(/\s+/g, '-')}.png`;
+        a.href = url; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setCopySuccess('📥 Imagen descargada (portapapeles no disponible en este navegador)');
+      }
+    }
+    setTimeout(() => setCopySuccess(''), 3500);
   };
 
   const handlePlatformShare = async (platform: 'facebook' | 'twitter' | 'instagram' | 'tiktok') => {
@@ -443,47 +470,66 @@ const PromoImageApp: React.FC = () => {
     const text = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
     const fileName = `PROMO-${title.replace(/\s+/g, '-')}.png`;
 
-    // Facebook y Twitter solo necesitan abrir una URL (no pueden recibir imagen desde web)
-    if (platform === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(smartLink)}&quote=${encodeURIComponent(`${aiCaption}\n\n${aiHashtags}`)}`, '_blank');
-      setCopySuccess('📫 Abriendo Facebook...');
-      setTimeout(() => setCopySuccess(''), 3000);
-      return;
-    }
-
-    if (platform === 'twitter') {
-      const tweetText = `${aiCaption.substring(0, 200)}... ${smartLink} ${aiHashtags.split(' ').slice(0, 4).join(' ')}`;
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
-      setCopySuccess('📫 Abriendo Twitter/X...');
-      setTimeout(() => setCopySuccess(''), 3000);
-      return;
-    }
-
-    // Instagram y TikTok: intentar Web Share API nativa (funciona en móvil)
+    // ──────────────────────────────────────────────────
+    // MÓVIL: Web Share API nativa (iOS/Android)
+    // Abre el menu nativo del sistema con la imagen adjunta
+    // ──────────────────────────────────────────────────
     if (shareImageBlob && navigator.share && navigator.canShare) {
       const file = new File([shareImageBlob], fileName, { type: 'image/png' });
       if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title, text });
-          return;
-        } catch (e) { /* usuario canceló, continuar con fallback */ }
+          return; // ¡Éxito en móvil!
+        } catch (e) { /* usuario canceló o error, fallback desktop */ }
       }
     }
 
-    // Desktop fallback: copiar texto + descargar imagen + abrir plataforma
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    // ──────────────────────────────────────────────────
+    // DESKTOP: Descargar imagen + copiar texto + abrir plataforma
+    // Las plataformas no permiten recibir imagen por URL desde el
+    // navegador. La forma correcta es descargar y subir manualmente.
+    // ──────────────────────────────────────────────────
+
+    // Paso 1: Intentar copiar imagen al portapapeles
+    let imageCopied = false;
+    if (shareImageBlob && typeof ClipboardItem !== 'undefined') {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareImageBlob })]);
+        imageCopied = true;
+      } catch { /* permiso negado o HTTPS requerido */ }
+    }
+
+    // Paso 2: Descargar imagen (siempre, como respaldo)
     if (shareImageBlob) {
-      const url = URL.createObjectURL(shareImageBlob);
+      const blobUrl = URL.createObjectURL(shareImageBlob);
       const a = document.createElement('a');
       a.download = fileName;
-      a.href = url;
+      a.href = blobUrl;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
-    if (platform === 'tiktok') window.open('https://www.tiktok.com/upload', '_blank');
-    else window.open('https://www.instagram.com/', '_blank');
-    setCopySuccess(`📋 Texto copiado. Pégalo en ${platform === 'tiktok' ? 'TikTok' : 'Instagram'}!`);
-    setTimeout(() => setCopySuccess(""), 4000);
+
+    // Paso 3: Copiar texto al portapapeles
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+
+    // Paso 4: Abrir la plataforma en la URL correcta para crear un post
+    const platformUrls: Record<string, string> = {
+      facebook: 'https://www.facebook.com/',
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.substring(0, 280))}`,
+      instagram: 'https://www.instagram.com/',
+      tiktok: 'https://www.tiktok.com/upload'
+    };
+    window.open(platformUrls[platform], '_blank');
+
+    // Paso 5: Mostrar instrucciones claras
+    const platformNames: Record<string, string> = {
+      facebook: 'Facebook', twitter: 'Twitter/X', instagram: 'Instagram', tiktok: 'TikTok'
+    };
+    const msg = imageCopied
+      ? `🖼️ Imagen copiada + descargada. Texto copiado. ¡Ábrelo en ${platformNames[platform]} y pégala!`
+      : `📥 Imagen descargada. Texto copiado. Sýbela en ${platformNames[platform]}.`;
+    setCopySuccess(msg);
+    setTimeout(() => setCopySuccess(''), 5000);
   };
 
   const handleSendToMake = async () => {
@@ -1220,6 +1266,18 @@ const PromoImageApp: React.FC = () => {
                 >
                   <i className="fas fa-clipboard"></i>
                   Copiar Descripción + Link + Hashtags
+                </button>
+
+                {/* COPIAR IMAGEN */}
+                <button
+                  id="btn-copy-image"
+                  onClick={handleCopyImage}
+                  disabled={isGeneratingCaption || !shareImageBlob}
+                  className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}
+                >
+                  <i className="fas fa-image"></i>
+                  {shareImageBlob ? 'Copiar Imagen al Portapapeles' : 'Generando imagen...'}
                 </button>
 
                 {/* 4 PLATAFORMAS */}
