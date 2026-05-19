@@ -20,6 +20,12 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     const hasSeekedRef = React.useRef(false);
 
     useEffect(() => {
+        // Reset player states for a fresh song when videoId changes
+        setIsPlaying(false);
+        setProgress(0);
+        setStartTime(0);
+        hasSeekedRef.current = false;
+
         if (!window.YT) {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
