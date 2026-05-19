@@ -12,12 +12,24 @@
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/links",
+      "destination": "/api/common?action=links"
+    },
+    {
+      "source": "/api/music",
+      "destination": "/api/common?action=music"
+    },
+    {
+      "source": "/api/verify-password",
+      "destination": "/api/common?action=verify-password"
     },
     {
       "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
+      "destination": "/api/common?action=sitemap"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
       "source": "/(.*)",
