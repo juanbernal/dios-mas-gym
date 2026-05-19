@@ -15,7 +15,9 @@ declare global {
 const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean, key?: any }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [startTime, setStartTime] = useState(0);
     const playerRef = React.useRef<any>(null);
+    const hasSeekedRef = React.useRef(false);
 
     useEffect(() => {
         if (!window.YT) {
@@ -54,6 +56,18 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
+                            if (!hasSeekedRef.current) {
+                                const duration = event.target.getDuration();
+                                if (duration > 60) {
+                                    const maxStart = duration - 60;
+                                    const randomStart = Math.floor(Math.random() * maxStart);
+                                    setStartTime(randomStart);
+                                    event.target.seekTo(randomStart);
+                                } else {
+                                    setStartTime(0);
+                                }
+                                hasSeekedRef.current = true;
+                            }
                         } else {
                             setIsPlaying(false);
                         }
@@ -81,10 +95,11 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             interval = setInterval(() => {
                 if (playerRef.current && playerRef.current.getCurrentTime) {
                     const time = playerRef.current.getCurrentTime();
-                    setProgress((time / 60) * 100);
-                    if (time >= 60) {
+                    const elapsed = time - startTime;
+                    setProgress((elapsed / 60) * 100);
+                    if (elapsed >= 60 || elapsed < 0) {
                         playerRef.current.pauseVideo();
-                        playerRef.current.seekTo(0);
+                        playerRef.current.seekTo(startTime);
                         setIsPlaying(false);
                         setProgress(0);
                     }
@@ -92,7 +107,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isPlaying]);
+    }, [isPlaying, startTime]);
 
     const togglePlay = () => {
         if (!playerRef.current || !playerRef.current.playVideo) return;

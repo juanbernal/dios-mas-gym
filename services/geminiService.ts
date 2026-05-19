@@ -9,14 +9,16 @@ export const generateSocialCaption = async (
     songTitle: string,
     artist: string,
     smartLink: string,
-    platform: 'Instagram' | 'TikTok' | 'Instagram/TikTok' = 'Instagram/TikTok'
+    platform: 'Instagram' | 'TikTok' | 'Instagram/TikTok' = 'Instagram/TikTok',
+    lyrics?: string
 ): Promise<SocialCaptionResult> => {
     const input = `Canción: "${songTitle}" | Artista: ${artist} | SmartLink: ${smartLink}`;
     const payload = JSON.stringify({
         input,
         platform,
         goal: 'Viralizar y generar streams',
-        tone: 'Épico, auténtico y con fe'
+        tone: 'Épico, auténtico y con fe',
+        lyrics
     });
 
     try {

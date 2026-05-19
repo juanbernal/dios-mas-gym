@@ -35,6 +35,8 @@ const CustomPromoCreator: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [songId, setSongId] = useState<string>("");
+  const [songAbout, setSongAbout] = useState("");
+  const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
 
   // Share panel
   const [showShare, setShowShare] = useState(false);
@@ -65,6 +67,48 @@ const CustomPromoCreator: React.FC = () => {
     loadCatalog();
   }, []);
 
+  const autoFetchLyrics = async (songName: string, songArtist: string) => {
+    setIsSearchingLyrics(true);
+    try {
+      const response = await fetch("/api/search-lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: songName, artist: songArtist })
+      });
+      const data = await response.json();
+      if (response.ok && data.lyrics && data.lyrics !== "LETRA_NO_ENCONTRADA") {
+        setSongAbout(data.lyrics);
+      }
+    } catch (e) {
+      console.error("Error auto-fetching lyrics:", e);
+    } finally {
+      setIsSearchingLyrics(false);
+    }
+  };
+
+  const handleSearchLyrics = async () => {
+    if (!title) return;
+    setIsSearchingLyrics(true);
+    try {
+      const response = await fetch("/api/search-lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: title, artist })
+      });
+      const data = await response.json();
+      if (response.ok && data.lyrics && data.lyrics !== "LETRA_NO_ENCONTRADA") {
+        setSongAbout(data.lyrics);
+      } else {
+        alert("No se encontró la letra automática. Puedes escribir de qué trata manualmente.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error al buscar la letra. Escríbela manualmente.");
+    } finally {
+      setIsSearchingLyrics(false);
+    }
+  };
+
   const handleSelectSong = (song: MusicItem) => {
     let normalizedArtist = song.artist;
     if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
@@ -76,6 +120,8 @@ const CustomPromoCreator: React.FC = () => {
     if (song.cover) setBg(song.cover);
     setSearchQuery("");
     setIsSearchOpen(false);
+    setSongAbout("");
+    autoFetchLyrics(song.name, normalizedArtist);
   };
 
   const getSmartLink = useCallback(() => {
@@ -132,7 +178,7 @@ const CustomPromoCreator: React.FC = () => {
     const smartLink = getSmartLink();
     try {
       const [result, canvas] = await Promise.all([
-        generateSocialCaption(title, artist, smartLink),
+        generateSocialCaption(title, artist, smartLink, 'Instagram/TikTok', songAbout),
         capture(1440)
       ]);
       setAiCaption(result.caption); setAiHashtags(result.hashtags);
@@ -289,6 +335,34 @@ const CustomPromoCreator: React.FC = () => {
                 <option value="Diosmasgym">Diosmasgym</option>
                 <option value="Juan 614">Juan 614</option>
               </select>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-[9px] uppercase font-black tracking-widest text-white/40">¿De qué trata la canción o cuál es la letra?</label>
+                <button 
+                  type="button"
+                  onClick={handleSearchLyrics}
+                  disabled={isSearchingLyrics || !title}
+                  className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] bg-[#c5a059]/10 hover:bg-[#c5a059]/20 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                >
+                  {isSearchingLyrics ? (
+                    <>
+                      <i className="fas fa-spinner animate-spin"></i> Buscando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-wand-magic-sparkles"></i> Cargar Letra
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea 
+                value={songAbout} 
+                onChange={e => setSongAbout(e.target.value)} 
+                placeholder="Escribe el mensaje de la canción, de qué trata, o pega la letra completa para que la descripción promocional generada por la IA esté inspirada en su temática..." 
+                rows={4}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-[#c5a059] transition-all text-white/80 leading-relaxed resize-none"
+              />
             </div>
           </div>
 
