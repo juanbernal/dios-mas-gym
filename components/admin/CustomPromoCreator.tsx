@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { generateSocialCaption } from "../../services/geminiService";
+import { fetchMusicCatalog } from "../../services/musicService";
+import { MusicItem } from "../../types";
 
 const sizes = {
   instagram: { w: 500, h: 650, label: "Instagram Post" },
@@ -27,6 +29,13 @@ const CustomPromoCreator: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Catalog
+  const [catalog, setCatalog] = useState<MusicItem[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [songId, setSongId] = useState<string>("");
+
   // Share panel
   const [showShare, setShowShare] = useState(false);
   const [isGenCaption, setIsGenCaption] = useState(false);
@@ -36,6 +45,45 @@ const CustomPromoCreator: React.FC = () => {
   const [copyMsg, setCopyMsg] = useState("");
 
   const cfg = sizes[size];
+
+  // ── Fetch Catalog ─────────────────────────────────────
+  useEffect(() => {
+    const loadCatalog = async () => {
+      setIsLoadingCatalog(true);
+      try {
+        const [dM, j6] = await Promise.all([
+          fetchMusicCatalog('diosmasgym'),
+          fetchMusicCatalog('juan614')
+        ]);
+        setCatalog([...dM, ...j6]);
+      } catch (err) {
+        console.error("Error loading catalog:", err);
+      } finally {
+        setIsLoadingCatalog(false);
+      }
+    };
+    loadCatalog();
+  }, []);
+
+  const handleSelectSong = (song: MusicItem) => {
+    let normalizedArtist = song.artist;
+    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+
+    setTitle(song.name.toUpperCase());
+    setArtist(normalizedArtist);
+    setSongId(song.id || "");
+    if (song.cover) setBg(song.cover);
+    setSearchQuery("");
+    setIsSearchOpen(false);
+  };
+
+  const getSmartLink = useCallback(() => {
+    if (songId) return `${window.location.origin}/#/link/${songId}`;
+    return artist.toLowerCase().includes('juan')
+      ? 'https://juan614.diosmasgym.com'
+      : 'https://musica.diosmasgym.com';
+  }, [songId, artist]);
 
   // ── Image upload ──────────────────────────────────────
   const loadFile = (file: File) => {
@@ -81,7 +129,7 @@ const CustomPromoCreator: React.FC = () => {
 
   const handleOpenShare = async () => {
     setShowShare(true); setAiCaption(""); setAiHashtags(""); setShareBlob(null); setIsGenCaption(true);
-    const smartLink = `${window.location.origin}/#/`;
+    const smartLink = getSmartLink();
     try {
       const [result, canvas] = await Promise.all([
         generateSocialCaption(title, artist, smartLink),
@@ -97,7 +145,7 @@ const CustomPromoCreator: React.FC = () => {
   };
 
   const handleShare = async (platform: "facebook"|"twitter"|"instagram"|"tiktok") => {
-    const smartLink = `${window.location.origin}/#/`;
+    const smartLink = getSmartLink();
     const shareText = `${aiCaption}\n\n${aiHashtags}`;
     const fullText = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
     const fileName = `CUSTOM-${title.replace(/\s+/g,"-")}.png`;
@@ -130,6 +178,11 @@ const CustomPromoCreator: React.FC = () => {
     setTimeout(() => setCopyMsg(""), 5000);
   };
 
+  const filteredCatalog = catalog.filter(song => 
+    song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    song.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 8);
+
   // ── Render ────────────────────────────────────────────
   const ratio = cfg.w / cfg.h;
   const previewW = 360;
@@ -151,6 +204,52 @@ const CustomPromoCreator: React.FC = () => {
       <div className="p-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* LEFT: Controls */}
         <div className="space-y-6">
+          {/* Song Selector */}
+          <div className="bg-white/3 p-5 rounded-2xl border border-white/5 space-y-4">
+            <div className="text-[10px] font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
+              <i className="fas fa-music"></i> Seleccionar de Catálogo
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/20">
+                <i className="fas fa-search text-xs"></i>
+              </div>
+              <input 
+                type="text"
+                placeholder="BUSCAR CANCIÓN..."
+                className="w-full bg-black/40 border border-white/5 pl-12 pr-4 py-3 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-medium tracking-wide transition-all"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchOpen(e.target.value.length > 0);
+                }}
+                onFocus={() => searchQuery.length > 0 && setIsSearchOpen(true)}
+              />
+              
+              {isSearchOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0f1d] border border-white/10 rounded-2xl overflow-hidden z-[200] shadow-2xl animate-fade-in">
+                  {filteredCatalog.length > 0 ? (
+                    filteredCatalog.map((song) => (
+                      <button
+                        key={song.id}
+                        onClick={() => handleSelectSong(song)}
+                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors text-left"
+                      >
+                        <img src={song.cover} className="w-10 h-10 rounded-lg object-cover bg-black" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-black text-white/90 truncate uppercase tracking-widest">{song.name}</div>
+                          <div className="text-[8px] font-bold text-[#c5a059] truncate uppercase tracking-widest">{song.artist}</div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-white/20 text-[9px] font-black uppercase tracking-[0.2em]">No se encontraron temas</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Background Upload */}
           <div
             ref={dropRef}
@@ -266,7 +365,7 @@ const CustomPromoCreator: React.FC = () => {
               {mode === "disponible" ? "YA DISPONIBLE" : "PRÓXIMO ESTRENO"}
             </div>
             <div style={{ marginTop:MASTER_W*0.01, fontSize:MASTER_W*0.01, fontWeight:900, letterSpacing:"0.3em", color:textColor, opacity:0.5 }}>
-              {artist.toLowerCase().includes("juan") ? "juan614.diosmasgym.com" : "musica.diosmasgym.com"}
+              {getSmartLink()}
             </div>
           </div>
         </div>
@@ -312,7 +411,7 @@ const CustomPromoCreator: React.FC = () => {
 
               {/* Buttons */}
               <div className="space-y-3">
-                <button onClick={async () => { try { await navigator.clipboard.writeText(`${aiCaption}\n\n${window.location.origin}/#/\n\n${aiHashtags}`); setCopyMsg("✅ Texto copiado"); setTimeout(()=>setCopyMsg(""),2500); } catch {} }} className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2" style={{ background:"rgba(197,160,89,0.12)", border:"1px solid rgba(197,160,89,0.3)", color:"#c5a059" }}>
+                <button onClick={async () => { try { await navigator.clipboard.writeText(`${aiCaption}\n\n${getSmartLink()}\n\n${aiHashtags}`); setCopyMsg("✅ Texto copiado"); setTimeout(()=>setCopyMsg(""),2500); } catch {} }} className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2" style={{ background:"rgba(197,160,89,0.12)", border:"1px solid rgba(197,160,89,0.3)", color:"#c5a059" }}>
                   <i className="fas fa-clipboard"></i> Copiar Descripción + Hashtags
                 </button>
                 <button onClick={async () => {

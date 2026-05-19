@@ -33,9 +33,16 @@ export const generateSocialCaption = async (
         // Extract social post section (between "📱 PUBLICACIÓN" and the next "🏷️" or "3.")
         const socialMatch = fullText.match(/📱[^\n]*\n+([\s\S]*?)(?=🏷️|3\.|$)/i)
             || fullText.match(/PUBLICACI[OÓ]N[^\n]*\n+([\s\S]*?)(?=HASHTAG|3\.|$)/i);
-        const caption = socialMatch
+        let caption = socialMatch
             ? socialMatch[1].trim()
             : fullText.split('\n').slice(0, 10).join('\n').trim();
+
+        // Strip AI-generated labels like "Copy Magnético:", "**Copy:**", headers, and surrounding markdown bold/italic
+        caption = caption
+            .replace(/^\*{0,3}(Copy\s*(Magnético|Sugerido|para\s+\w+)?)\s*:?\*{0,3}\s*/gim, '')
+            .replace(/^\*{2,3}[^*\n]+\*{2,3}\s*\n?/gm, '') // Remove headers on their own line
+            .replace(/^[-─—=]{3,}\s*$/gm, '') // Remove separators
+            .trim();
 
         // Extract hashtags section
         const hashtagMatch = fullText.match(/🏷️[^\n]*\n+([\s\S]*?)(?=---|\*\*\*|$)/i)
