@@ -467,18 +467,20 @@ const PromoImageApp: React.FC = () => {
 
   const handlePlatformShare = async (platform: 'facebook' | 'twitter' | 'instagram' | 'tiktok') => {
     const smartLink = getSmartLink();
-    const text = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
+    // Texto limpio: solo caption + hashtags (el link va SEPARADO como url)
+    const shareText = `${aiCaption}\n\n${aiHashtags}`;
+    // Texto completo para portapapeles (manual paste en desktop)
+    const fullText = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
     const fileName = `PROMO-${title.replace(/\s+/g, '-')}.png`;
 
     // ──────────────────────────────────────────────────
-    // MÓVIL: Web Share API nativa (iOS/Android)
-    // Abre el menu nativo del sistema con la imagen adjunta
+    // MÓVIL: Web Share API nativa — url va SEPARADO de text
     // ──────────────────────────────────────────────────
     if (shareImageBlob && navigator.share && navigator.canShare) {
       const file = new File([shareImageBlob], fileName, { type: 'image/png' });
       if (navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title, text });
+          await navigator.share({ files: [file], title, text: shareText, url: smartLink });
           return; // ¡Éxito en móvil!
         } catch (e) { /* usuario canceló o error, fallback desktop */ }
       }
@@ -486,8 +488,6 @@ const PromoImageApp: React.FC = () => {
 
     // ──────────────────────────────────────────────────
     // DESKTOP: Descargar imagen + copiar texto + abrir plataforma
-    // Las plataformas no permiten recibir imagen por URL desde el
-    // navegador. La forma correcta es descargar y subir manualmente.
     // ──────────────────────────────────────────────────
 
     // Paso 1: Intentar copiar imagen al portapapeles
@@ -509,28 +509,34 @@ const PromoImageApp: React.FC = () => {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
-    // Paso 3: Copiar texto al portapapeles
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    // Paso 3: Copiar texto al portapapeles (sobreescribe la imagen)
+    try { await navigator.clipboard.writeText(fullText); } catch { /* ignore */ }
 
-    // Paso 4: Abrir la plataforma en la URL correcta para crear un post
-    const platformUrls: Record<string, string> = {
-      facebook: 'https://www.facebook.com/',
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.substring(0, 280))}`,
-      instagram: 'https://www.instagram.com/',
-      tiktok: 'https://www.tiktok.com/upload'
-    };
-    window.open(platformUrls[platform], '_blank');
+    // Paso 4: Abrir la plataforma
+    if (platform === 'twitter') {
+      // Twitter: texto corto + link correctamente formateado
+      const tweetText = `${aiCaption.substring(0, 220)}\n\n${aiHashtags.split(' ').slice(0, 5).join(' ')}`;
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(smartLink)}`, '_blank');
+    } else {
+      const platformUrls: Record<string, string> = {
+        facebook: 'https://www.facebook.com/',
+        instagram: 'https://www.instagram.com/',
+        tiktok: 'https://www.tiktok.com/upload'
+      };
+      window.open(platformUrls[platform], '_blank');
+    }
 
-    // Paso 5: Mostrar instrucciones claras
+    // Paso 5: Toast de instrucciones
     const platformNames: Record<string, string> = {
       facebook: 'Facebook', twitter: 'Twitter/X', instagram: 'Instagram', tiktok: 'TikTok'
     };
     const msg = imageCopied
-      ? `🖼️ Imagen copiada + descargada. Texto copiado. ¡Ábrelo en ${platformNames[platform]} y pégala!`
-      : `📥 Imagen descargada. Texto copiado. Sýbela en ${platformNames[platform]}.`;
+      ? `🖼️ Imagen copiada + descargada. Texto copiado. ¡Pégala en ${platformNames[platform]}!`
+      : `📥 Imagen descargada. Texto copiado. Súbela en ${platformNames[platform]}.`;
     setCopySuccess(msg);
     setTimeout(() => setCopySuccess(''), 5000);
   };
+
 
   const handleSendToMake = async () => {
     setIsGenerating(true);

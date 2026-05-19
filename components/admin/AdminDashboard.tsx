@@ -125,10 +125,19 @@ const AdminDashboard: React.FC = () => {
         {
             id: 'promo-image',
             title: 'Promo Image Generator',
-            description: 'Crea imágenes promocionales para Instagram, Stories y más. Personaliza textos, artistas y fondos.',
+            description: 'Crea imágenes promocionales para Instagram, Stories y más desde el catálogo de canciones.',
             icon: 'fa-image',
             color: '#c5a059',
             route: '/admin/promo-image',
+            category: 'Contenido Audiovisual'
+        },
+        {
+            id: 'custom-promo',
+            title: 'Custom Promo Creator',
+            description: 'Sube tu propio fondo y genera una promo profesional con caption IA y compartición directa en redes.',
+            icon: 'fa-photo-film',
+            color: '#a855f7',
+            route: '/admin/custom-promo',
             category: 'Contenido Audiovisual'
         },
         {
