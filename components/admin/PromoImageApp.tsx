@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { fetchMusicCatalog } from "../../services/musicService";
+import { generateSocialCaption, SocialCaptionResult } from "../../services/geminiService";
 import { MusicItem } from "../../types";
 
 const sizes = {
@@ -99,6 +100,14 @@ const PromoImageApp: React.FC = () => {
   const [autoColor, setAutoColor] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false); // Progress feedback state
   const [country, setCountry] = useState(countryOptions[0]);
+
+  // SOCIAL SHARE PANEL STATE
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [aiCaption, setAiCaption] = useState("");
+  const [aiHashtags, setAiHashtags] = useState("");
+  const [shareImageBlob, setShareImageBlob] = useState<Blob | null>(null);
+  const [copySuccess, setCopySuccess] = useState("");
 
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
@@ -376,6 +385,84 @@ const PromoImageApp: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // SMART LINK POR ARTISTA
+  const getSmartLink = useCallback(() => {
+    return artist.toLowerCase().includes('juan')
+      ? 'https://juan614.diosmasgym.com'
+      : 'https://musica.diosmasgym.com';
+  }, [artist]);
+
+  // OPEN SOCIAL SHARE PANEL
+  const handleOpenSharePanel = async () => {
+    setShowSharePanel(true);
+    setAiCaption("");
+    setAiHashtags("");
+    setShareImageBlob(null);
+    setIsGeneratingCaption(true);
+    try {
+      // Generate image blob and AI caption in parallel
+      const [result, canvas] = await Promise.all([
+        generateSocialCaption(title, artist, getSmartLink()),
+        prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share)
+      ]);
+      setAiCaption(result.caption);
+      setAiHashtags(result.hashtags);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
+      if (blob) setShareImageBlob(blob);
+    } catch (err) {
+      console.error("Share panel error:", err);
+      // Fallback caption
+      setAiCaption(`🎵 "${title}" de ${artist} ya disponible!\n\n¡Escúchala ahora! 🎧\n👉 ${getSmartLink()}`);
+      setAiHashtags(`#${title.replace(/\s+/g,'')} #${artist.replace(/\s+/g,'')} #DiosMasGym #NuevaMusica #Corridos #MusicaCristiana`);
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
+  const handleCopyAll = async () => {
+    const text = `${aiCaption}\n\n${getSmartLink()}\n\n${aiHashtags}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess("✅ ¡Copiado!");
+      setTimeout(() => setCopySuccess(""), 2500);
+    } catch {
+      setCopySuccess("⚠️ Error al copiar");
+      setTimeout(() => setCopySuccess(""), 2500);
+    }
+  };
+
+  const handleNativeShare = async (platform: 'instagram' | 'tiktok') => {
+    const text = `${aiCaption}\n\n${getSmartLink()}\n\n${aiHashtags}`;
+    const fileName = `PROMO-${title.replace(/\s+/g,'-')}.png`;
+
+    // On mobile with Web Share API supporting files
+    if (shareImageBlob && navigator.share && navigator.canShare) {
+      const file = new File([shareImageBlob], fileName, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title, text });
+          return;
+        } catch (e) { /* user cancelled or error, fall through */ }
+      }
+    }
+
+    // Desktop fallback: copy text + download image
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    if (shareImageBlob) {
+      const url = URL.createObjectURL(shareImageBlob);
+      const a = document.createElement('a');
+      a.download = fileName;
+      a.href = url;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    // Open platform
+    if (platform === 'tiktok') window.open('https://www.tiktok.com/upload', '_blank');
+    else window.open('https://www.instagram.com/', '_blank');
+    setCopySuccess(`📋 Texto copiado. Pégalo en ${platform === 'tiktok' ? 'TikTok' : 'Instagram'}!`);
+    setTimeout(() => setCopySuccess(""), 4000);
   };
 
   const handleSendToMake = async () => {
@@ -828,6 +915,22 @@ const PromoImageApp: React.FC = () => {
                   </div>
                 </div>
 
+                {/* PREMIUM: PREPARAR PARA REDES */}
+                <button
+                  id="btn-preparar-redes"
+                  onClick={handleOpenSharePanel}
+                  disabled={isGenerating}
+                  className="w-full py-6 rounded-2xl font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
+                    boxShadow: '0 20px 50px rgba(131,58,180,0.35)',
+                    color: 'white'
+                  }}
+                >
+                  <i className="fas fa-rocket"></i>
+                  Preparar para Redes Sociales
+                </button>
+
                 <div className="pt-6 border-t border-white/5">
                   <button 
                     onClick={() => handleSendToMake()}
@@ -940,6 +1043,205 @@ const PromoImageApp: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          SOCIAL SHARE PANEL — Drawer premium
+          ═══════════════════════════════════════════════════════ */}
+      {showSharePanel && (
+        <div
+          className="fixed inset-0 z-[500] flex items-end lg:items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSharePanel(false); }}
+        >
+          <div
+            className="w-full max-w-2xl mx-auto rounded-t-[40px] lg:rounded-[32px] overflow-hidden"
+            style={{
+              background: 'linear-gradient(180deg, #0a0f1d 0%, #020617 100%)',
+              border: '1px solid rgba(197,160,89,0.25)',
+              boxShadow: '0 -40px 120px rgba(131,58,180,0.3), 0 0 0 1px rgba(197,160,89,0.1)',
+              maxHeight: '95vh',
+              overflowY: 'auto'
+            }}
+          >
+            {/* PANEL HEADER */}
+            <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: 'rgba(197,160,89,0.15)' }}>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg"
+                  style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}>
+                  <i className="fas fa-rocket"></i>
+                </div>
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.25em] text-white">Preparar para Redes</h2>
+                  <p className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">IA · SmartLink · Hashtags</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSharePanel(false)}
+                className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <i className="fas fa-times text-xs"></i>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+
+              {/* SONG INFO BADGE */}
+              <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: 'rgba(197,160,89,0.08)', border: '1px solid rgba(197,160,89,0.15)' }}>
+                {bg && <img src={bg} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />}
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-white uppercase tracking-widest truncate">{title}</div>
+                  <div className="text-[10px] text-[#c5a059] font-bold uppercase tracking-widest mt-1">{artist}</div>
+                  <div className="text-[9px] text-white/30 mt-1 flex items-center gap-1">
+                    <i className="fas fa-link text-[8px]"></i>
+                    <span className="truncate">{getSmartLink()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI CAPTION */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] uppercase font-black tracking-widest text-[#c5a059] flex items-center gap-2">
+                    <i className="fas fa-wand-magic-sparkles"></i>
+                    Descripción IA
+                  </label>
+                  {isGeneratingCaption && (
+                    <div className="flex items-center gap-2 text-[8px] text-white/40 uppercase tracking-widest">
+                      <i className="fas fa-circle-notch fa-spin text-[#c5a059]"></i>
+                      Generando...
+                    </div>
+                  )}
+                </div>
+                {isGeneratingCaption ? (
+                  <div className="w-full rounded-2xl p-5 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="h-3 bg-white/5 rounded animate-pulse w-full"></div>
+                    <div className="h-3 bg-white/5 rounded animate-pulse w-5/6"></div>
+                    <div className="h-3 bg-white/5 rounded animate-pulse w-4/6"></div>
+                    <div className="h-3 bg-white/5 rounded animate-pulse w-3/4"></div>
+                  </div>
+                ) : (
+                  <textarea
+                    value={aiCaption}
+                    onChange={(e) => setAiCaption(e.target.value)}
+                    rows={6}
+                    className="w-full rounded-2xl p-5 text-[11px] text-white/80 font-medium leading-relaxed resize-none outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', caretColor: '#c5a059' }}
+                    onFocus={(e) => e.target.style.borderColor = 'rgba(197,160,89,0.4)'}
+                    onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                  />
+                )}
+              </div>
+
+              {/* SMART LINK */}
+              <div className="space-y-2">
+                <label className="text-[9px] uppercase font-black tracking-widest text-white/30 flex items-center gap-2">
+                  <i className="fas fa-link"></i>
+                  SmartLink
+                </label>
+                <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <i className="fas fa-globe text-[#c5a059] text-sm"></i>
+                  <span className="text-[11px] text-[#c5a059] font-bold flex-1">{getSmartLink()}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(getSmartLink()).then(() => { setCopySuccess('🔗 Link copiado'); setTimeout(() => setCopySuccess(''), 2000); })}
+                    className="text-[9px] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest transition-all"
+                    style={{ background: 'rgba(197,160,89,0.15)', color: '#c5a059', border: '1px solid rgba(197,160,89,0.2)' }}
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* HASHTAGS */}
+              <div className="space-y-3">
+                <label className="text-[9px] uppercase font-black tracking-widest text-white/30 flex items-center gap-2">
+                  <i className="fas fa-hashtag"></i>
+                  Hashtags
+                </label>
+                {isGeneratingCaption ? (
+                  <div className="h-10 bg-white/3 rounded-xl animate-pulse"></div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {aiHashtags.split(' ').filter(h => h.startsWith('#')).map((tag, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-full text-[9px] font-black cursor-pointer transition-all hover:scale-105"
+                        style={{
+                          background: i % 3 === 0 ? 'rgba(131,58,180,0.2)' : i % 3 === 1 ? 'rgba(253,29,29,0.15)' : 'rgba(197,160,89,0.15)',
+                          border: i % 3 === 0 ? '1px solid rgba(131,58,180,0.3)' : i % 3 === 1 ? '1px solid rgba(253,29,29,0.25)' : '1px solid rgba(197,160,89,0.25)',
+                          color: i % 3 === 0 ? '#c084fc' : i % 3 === 1 ? '#fc8181' : '#c5a059'
+                        }}
+                        onClick={() => navigator.clipboard.writeText(tag)}
+                        title="Clic para copiar"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* COPY SUCCESS TOAST */}
+              {copySuccess && (
+                <div className="text-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest animate-pulse" style={{ background: 'rgba(197,160,89,0.1)', color: '#c5a059', border: '1px solid rgba(197,160,89,0.2)' }}>
+                  {copySuccess}
+                </div>
+              )}
+
+              {/* ACTION BUTTONS */}
+              <div className="space-y-3 pt-2">
+                {/* COPY ALL */}
+                <button
+                  id="btn-copy-all-social"
+                  onClick={handleCopyAll}
+                  disabled={isGeneratingCaption}
+                  className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: 'rgba(197,160,89,0.12)', border: '1px solid rgba(197,160,89,0.3)', color: '#c5a059' }}
+                >
+                  <i className="fas fa-clipboard"></i>
+                  Copiar Descripción + Link + Hashtags
+                </button>
+
+                {/* INSTAGRAM */}
+                <button
+                  id="btn-share-instagram"
+                  onClick={() => handleNativeShare('instagram')}
+                  disabled={isGeneratingCaption}
+                  className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40 text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
+                    boxShadow: '0 15px 40px rgba(131,58,180,0.35)'
+                  }}
+                >
+                  <i className="fab fa-instagram text-lg"></i>
+                  Compartir en Instagram
+                </button>
+
+                {/* TIKTOK */}
+                <button
+                  id="btn-share-tiktok"
+                  onClick={() => handleNativeShare('tiktok')}
+                  disabled={isGeneratingCaption}
+                  className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40"
+                  style={{
+                    background: 'linear-gradient(135deg, #010101 0%, #1a1a2e 100%)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'white',
+                    boxShadow: '0 15px 40px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  <i className="fab fa-tiktok text-lg"></i>
+                  Compartir en TikTok
+                </button>
+
+                <p className="text-center text-[8px] text-white/20 tracking-widest uppercase">
+                  📱 En móvil: comparte directo · 💻 En escritorio: descarga imagen + texto copiado
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
