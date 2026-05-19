@@ -108,6 +108,8 @@ const PromoImageApp: React.FC = () => {
   const [aiHashtags, setAiHashtags] = useState("");
   const [shareImageBlob, setShareImageBlob] = useState<Blob | null>(null);
   const [copySuccess, setCopySuccess] = useState("");
+  const [songId, setSongId] = useState<string>("");
+
 
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
@@ -160,6 +162,7 @@ const PromoImageApp: React.FC = () => {
     setTitle(song.name.toUpperCase());
     setArtist(normalizedArtist);
     setBg(song.cover);
+    setSongId(song.id || "");
     setMode("disponible");
     setSize("instagram");
     setSearchQuery("");
@@ -387,12 +390,14 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
-  // SMART LINK POR ARTISTA
+  // SMART LINK REAL — usa la ruta del proyecto igual que SmartLinksAdmin
   const getSmartLink = useCallback(() => {
+    if (songId) return `${window.location.origin}/#/link/${songId}`;
+    // Fallback si no hay id (selección manual de imagen)
     return artist.toLowerCase().includes('juan')
       ? 'https://juan614.diosmasgym.com'
       : 'https://musica.diosmasgym.com';
-  }, [artist]);
+  }, [songId, artist]);
 
   // OPEN SOCIAL SHARE PANEL
   const handleOpenSharePanel = async () => {
@@ -433,22 +438,39 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
-  const handleNativeShare = async (platform: 'instagram' | 'tiktok') => {
-    const text = `${aiCaption}\n\n${getSmartLink()}\n\n${aiHashtags}`;
-    const fileName = `PROMO-${title.replace(/\s+/g,'-')}.png`;
+  const handlePlatformShare = async (platform: 'facebook' | 'twitter' | 'instagram' | 'tiktok') => {
+    const smartLink = getSmartLink();
+    const text = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
+    const fileName = `PROMO-${title.replace(/\s+/g, '-')}.png`;
 
-    // On mobile with Web Share API supporting files
+    // Facebook y Twitter solo necesitan abrir una URL (no pueden recibir imagen desde web)
+    if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(smartLink)}&quote=${encodeURIComponent(`${aiCaption}\n\n${aiHashtags}`)}`, '_blank');
+      setCopySuccess('📫 Abriendo Facebook...');
+      setTimeout(() => setCopySuccess(''), 3000);
+      return;
+    }
+
+    if (platform === 'twitter') {
+      const tweetText = `${aiCaption.substring(0, 200)}... ${smartLink} ${aiHashtags.split(' ').slice(0, 4).join(' ')}`;
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
+      setCopySuccess('📫 Abriendo Twitter/X...');
+      setTimeout(() => setCopySuccess(''), 3000);
+      return;
+    }
+
+    // Instagram y TikTok: intentar Web Share API nativa (funciona en móvil)
     if (shareImageBlob && navigator.share && navigator.canShare) {
       const file = new File([shareImageBlob], fileName, { type: 'image/png' });
       if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title, text });
           return;
-        } catch (e) { /* user cancelled or error, fall through */ }
+        } catch (e) { /* usuario canceló, continuar con fallback */ }
       }
     }
 
-    // Desktop fallback: copy text + download image
+    // Desktop fallback: copiar texto + descargar imagen + abrir plataforma
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
     if (shareImageBlob) {
       const url = URL.createObjectURL(shareImageBlob);
@@ -458,7 +480,6 @@ const PromoImageApp: React.FC = () => {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    // Open platform
     if (platform === 'tiktok') window.open('https://www.tiktok.com/upload', '_blank');
     else window.open('https://www.instagram.com/', '_blank');
     setCopySuccess(`📋 Texto copiado. Pégalo en ${platform === 'tiktok' ? 'TikTok' : 'Instagram'}!`);
@@ -1201,37 +1222,56 @@ const PromoImageApp: React.FC = () => {
                   Copiar Descripción + Link + Hashtags
                 </button>
 
-                {/* INSTAGRAM */}
-                <button
-                  id="btn-share-instagram"
-                  onClick={() => handleNativeShare('instagram')}
-                  disabled={isGeneratingCaption}
-                  className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40 text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
-                    boxShadow: '0 15px 40px rgba(131,58,180,0.35)'
-                  }}
-                >
-                  <i className="fab fa-instagram text-lg"></i>
-                  Compartir en Instagram
-                </button>
+                {/* 4 PLATAFORMAS */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* FACEBOOK */}
+                  <button
+                    id="btn-share-facebook"
+                    onClick={() => handlePlatformShare('facebook')}
+                    disabled={isGeneratingCaption}
+                    className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 text-white"
+                    style={{ background: 'linear-gradient(135deg, #1877F2 0%, #0d5ebc 100%)', boxShadow: '0 10px 30px rgba(24,119,242,0.35)' }}
+                  >
+                    <i className="fab fa-facebook-f text-base"></i>
+                    Facebook
+                  </button>
 
-                {/* TIKTOK */}
-                <button
-                  id="btn-share-tiktok"
-                  onClick={() => handleNativeShare('tiktok')}
-                  disabled={isGeneratingCaption}
-                  className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-40"
-                  style={{
-                    background: 'linear-gradient(135deg, #010101 0%, #1a1a2e 100%)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    color: 'white',
-                    boxShadow: '0 15px 40px rgba(0,0,0,0.5)'
-                  }}
-                >
-                  <i className="fab fa-tiktok text-lg"></i>
-                  Compartir en TikTok
-                </button>
+                  {/* TWITTER / X */}
+                  <button
+                    id="btn-share-twitter"
+                    onClick={() => handlePlatformShare('twitter')}
+                    disabled={isGeneratingCaption}
+                    className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
+                    style={{ background: 'linear-gradient(135deg, #111 0%, #222 100%)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                  >
+                    <i className="fab fa-x-twitter text-base"></i>
+                    Twitter / X
+                  </button>
+
+                  {/* INSTAGRAM */}
+                  <button
+                    id="btn-share-instagram"
+                    onClick={() => handlePlatformShare('instagram')}
+                    disabled={isGeneratingCaption}
+                    className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 text-white"
+                    style={{ background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 60%, #fcb045 100%)', boxShadow: '0 10px 30px rgba(131,58,180,0.35)' }}
+                  >
+                    <i className="fab fa-instagram text-base"></i>
+                    Instagram
+                  </button>
+
+                  {/* TIKTOK */}
+                  <button
+                    id="btn-share-tiktok"
+                    onClick={() => handlePlatformShare('tiktok')}
+                    disabled={isGeneratingCaption}
+                    className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
+                    style={{ background: 'linear-gradient(135deg, #010101 0%, #1a1a2e 100%)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                  >
+                    <i className="fab fa-tiktok text-base"></i>
+                    TikTok
+                  </button>
+                </div>
 
                 <p className="text-center text-[8px] text-white/20 tracking-widest uppercase">
                   📱 En móvil: comparte directo · 💻 En escritorio: descarga imagen + texto copiado
