@@ -67,7 +67,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
         }
     });
 
-    const VERSION = "v2.1.0 Auto-Style";
+    const VERSION = "v2.2.0 Gemini-Flash";
 
     const loadingMessages = [
         "Iniciando análisis artístico...",

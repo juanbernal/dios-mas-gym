@@ -325,32 +325,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             finalRows = await fetchRows();
         }
 
-        // Calculate "today" in Mexico City timezone (UTC-6)
+        // Calculate "today" in multiple timezones to avoid misses
+        // The sheet dates might be stored in different TZ references
         const now = new Date();
+        
+        // Generate candidate dates covering UTC, UTC-5, UTC-6, UTC-7
+        const candidateDates = new Set<string>();
+        [-7, -6, -5, 0].forEach(offsetH => {
+            const adjusted = new Date(now.getTime() + (offsetH * 60 * 60 * 1000));
+            candidateDates.add(adjusted.toISOString().split('T')[0]);
+        });
+        
+        // Primary target: Mexico City (UTC-6)
         const mxNow = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-        const todayStr = mxNow.toISOString().split('T')[0]; // YYYY-MM-DD
+        const primaryDate = mxNow.toISOString().split('T')[0];
         
         // Allow manual override via query param
-        const targetDate = (req.query.date as string) || todayStr;
+        const targetDate = (req.query.date as string) || primaryDate;
+        
+        // If manual override, only use that date
+        const datesToCheck = req.query.date 
+            ? new Set<string>([targetDate]) 
+            : candidateDates;
 
         const releases = finalRows.map(normalizeRow);
         
-        // Match releases for the target date
+        // Match releases for any of the candidate dates
         const todaysReleases = releases.filter(r => {
             if (!r.name || !r.releaseDate) return false;
             // Support both YYYY-MM-DD and DD/MM/YYYY
-            let cleanDate = r.releaseDate;
+            let cleanDate = r.releaseDate.trim();
             if (cleanDate.includes('/') && !cleanDate.includes('-')) {
-                const [d, m, y] = cleanDate.split('/');
-                cleanDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                const parts = cleanDate.split('/');
+                if (parts.length === 3) {
+                    // Could be DD/MM/YYYY or MM/DD/YYYY — try both
+                    const [a, b, y] = parts;
+                    cleanDate = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+                }
             }
-            return cleanDate === targetDate;
+            return datesToCheck.has(cleanDate);
         });
 
-        console.log(`[check-releases] Target Date: ${targetDate} | Total Rows: ${finalRows.length} | Today: ${todaysReleases.length}`);
+        console.log(`[check-releases] Target: ${targetDate} | Candidate dates: ${[...datesToCheck].join(',')} | Total Rows: ${finalRows.length} | Today's releases: ${todaysReleases.length}`);
         
         const debugInfo = {
             targetDate,
+            candidateDates: [...datesToCheck],
             all_releases_dates: releases.map(r => `${r.name}: ${r.releaseDate}`),
             todays_count: todaysReleases.length
         };
@@ -358,11 +378,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (todaysReleases.length === 0) {
             return res.status(200).json({ 
                 sent: 0, 
-                message: `No hay estrenos para la fecha ${targetDate}.`,
+                message: `No hay estrenos para hoy (${targetDate}). Fechas en la hoja: ${releases.slice(0,5).map(r => r.releaseDate).join(', ')}`,
                 detected: newlyDetected.length,
                 debug: debugInfo
             });
         }
+
 
         const APP_ID = process.env.ONESIGNAL_APP_ID;
         const API_KEY = process.env.ONESIGNAL_REST_API_KEY;

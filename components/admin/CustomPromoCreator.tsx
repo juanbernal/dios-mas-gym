@@ -45,6 +45,7 @@ const CustomPromoCreator: React.FC = () => {
   const [aiHashtags, setAiHashtags] = useState("");
   const [shareBlob, setShareBlob] = useState<Blob | null>(null);
   const [copyMsg, setCopyMsg] = useState("");
+  const [aiError, setAiError] = useState("");
 
   const cfg = sizes[size];
 
@@ -180,19 +181,26 @@ const CustomPromoCreator: React.FC = () => {
   };
 
   const handleOpenShare = async () => {
-    setShowShare(true); setAiCaption(""); setAiHashtags(""); setShareBlob(null); setIsGenCaption(true);
+    setShowShare(true); setAiCaption(""); setAiHashtags(""); setShareBlob(null); setAiError(""); setIsGenCaption(true);
     const smartLink = getSmartLink();
     try {
+      const capturePromise = bg ? capture(1440) : Promise.resolve(null);
       const [result, canvas] = await Promise.all([
         generateSocialCaption(title, artist, smartLink, 'Instagram/TikTok', songAbout),
-        capture(1440)
+        capturePromise
       ]);
       setAiCaption(result.caption); setAiHashtags(result.hashtags);
-      const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png", 0.92));
-      if (blob) setShareBlob(blob);
-    } catch {
-      setAiCaption(`🎵 "${title}" de ${artist} — ¡Ya disponible!`);
-      setAiHashtags(`#${title.replace(/\s+/g,"")} #${artist.replace(/\s+/g,"")} #DiosMasGym #NuevaMusica`);
+      if (canvas) {
+        const blob = await new Promise<Blob | null>(r => (canvas as HTMLCanvasElement).toBlob(r, "image/png", 0.92));
+        if (blob) setShareBlob(blob);
+      }
+    } catch (err: any) {
+      console.error('[Share] AI error:', err);
+      const errorMsg = err?.message || 'Error al conectar con la IA';
+      setAiError(errorMsg);
+      // Fallback text
+      setAiCaption(`🎵 "${title}" de ${artist} — ¡Ya disponible! Escúchalo ahora en todas las plataformas.`);
+      setAiHashtags(`#${title.replace(/\s+/g,"")} #${artist.replace(/\s+/g,"")} #DiosMasGym #NuevaMusica #MusicaCristiana`);
     } finally { setIsGenCaption(false); }
   };
 
@@ -410,7 +418,7 @@ const CustomPromoCreator: React.FC = () => {
             <button onClick={handleDownload} disabled={!bg || isExporting} className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-black transition-all active:scale-95 disabled:opacity-30" style={{ background: "#c5a059" }}>
               <i className="fas fa-download mr-2"></i>{isExporting ? "Exportando..." : "Descargar HD"}
             </button>
-            <button onClick={handleOpenShare} disabled={!bg} className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white transition-all active:scale-95 disabled:opacity-30" style={{ background: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}>
+            <button onClick={handleOpenShare} disabled={!title} className="py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white transition-all active:scale-95 disabled:opacity-30" style={{ background: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}>
               <i className="fas fa-rocket mr-2"></i>Compartir
             </button>
           </div>
@@ -467,6 +475,13 @@ const CustomPromoCreator: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-5">
+              {/* AI Error */}
+              {aiError && (
+                <div className="p-3 rounded-xl text-[10px] font-black uppercase tracking-widest" style={{ background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.2)", color: "#ff6060" }}>
+                  <i className="fas fa-exclamation-triangle mr-2"></i>Error IA: {aiError}
+                  <div className="mt-1 text-[9px] opacity-70 normal-case tracking-normal">Se usó un texto alternativo. Puedes editarlo manualmente.</div>
+                </div>
+              )}
               {/* Caption */}
               <div>
                 <label className="text-[9px] uppercase font-black tracking-widest text-[#c5a059] flex items-center gap-2 mb-2"><i className="fas fa-wand-magic-sparkles"></i> Descripción IA</label>

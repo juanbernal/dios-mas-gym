@@ -17,7 +17,7 @@ const SocialPostGenerator: React.FC = () => {
     const [searchingLyrics, setSearchingLyrics] = useState(false);
     const [songSearch, setSongSearch] = useState('');
 
-    const VERSION = "v1.3.7 Future-Flash";
+    const VERSION = "v1.4.0 Gemini-Flash";
 
     const [formData, setFormData] = useState({
         input: '',
