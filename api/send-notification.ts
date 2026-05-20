@@ -53,15 +53,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') {
         try {
             const response = await fetch(`https://onesignal.com/api/v1/apps/${APP_ID}`, {
-                headers: { Authorization: `Basic ${API_KEY}` }
+                headers: { 
+                    Authorization: `Basic ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
             });
             const data = await response.json();
             if (!response.ok) {
+                console.error('[send-notification] OneSignal GET error:', JSON.stringify(data));
                 return res.status(response.status).json({ 
                     error: `Error de API de OneSignal (${response.status}): ${data.errors ? data.errors.join(', ') : 'Error desconocido de OneSignal'}` 
                 });
             }
-            return res.status(200).json({ subscribers: data.messageable_players || 0 });
+            // OneSignal devuelve el conteo en distintos campos según la versión de la API
+            const subscribers = data.messageable_players ?? data.players ?? data.total_subscriptions ?? 0;
+            console.log('[send-notification] OneSignal app data:', JSON.stringify({ 
+                messageable_players: data.messageable_players,
+                players: data.players,
+                total_subscriptions: data.total_subscriptions,
+                subscribers_used: subscribers
+            }));
+            return res.status(200).json({ subscribers });
         } catch (err: any) {
             return res.status(500).json({ error: err.message });
         }

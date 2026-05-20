@@ -198,56 +198,125 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ sent: 0, message: 'La hoja de cálculo parece estar vacía.' });
         }
 
-        // --- 1. Fetch Catalog & Detect New Releases ---
+        // --- 1. Detect New Releases from Catalog ---
+        // Usa el mismo endpoint de música pero con un parser robusto
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers.host || 'app.diosmasgym.com';
         const baseUrl = `${protocol}://${host}`;
 
-        const dMRes = await fetch(`${baseUrl}/api/music?artist=diosmasgym`);
-        const j6Res = await fetch(`${baseUrl}/api/music?artist=juan614`);
-        const dMCatalog = dMRes.ok ? parseCSV(await dMRes.text()) : [];
-        const j6Catalog = j6Res.ok ? parseCSV(await j6Res.text()) : [];
-        
-        // Group and find latest for each artist (within last 7 days for auto-sync)
-        const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
-        const catalogs = [
-            { artist: 'Diosmasgym', items: dMCatalog },
-            { artist: 'Juan 614', items: j6Catalog }
-        ];
+        // Parse CSV robusto (maneja comillas, comas dentro de campos, etc.)
+        const parseCatalogCSV = (text: string): any[] => {
+            const lines = text.split(/\r?\n/);
+            if (lines.length < 2) return [];
+            
+            // Buscar la línea de headers
+            let headerIdx = 0;
+            for (let i = 0; i < lines.length; i++) {
+                const l = lines[i].toLowerCase();
+                if (l.includes('nombre') || l.includes('artista')) { headerIdx = i; break; }
+            }
+            
+            const parseCSVLine = (line: string): string[] => {
+                const values: string[] = [];
+                let current = '';
+                let inQuotes = false;
+                for (const char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+                values.push(current.trim());
+                return values.map(v => v.replace(/^"|"$/g, '').trim());
+            };
+            
+            const headers = parseCSVLine(lines[headerIdx]);
+            const results: any[] = [];
+            
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line || line === '---') continue;
+                const vals = parseCSVLine(line);
+                const entry: any = {};
+                headers.forEach((h, idx) => {
+                    const key = h.toLowerCase();
+                    const val = vals[idx] || '';
+                    if (key === 'nombre') entry.name = val;
+                    else if (key === 'artista') entry.artist = val;
+                    else if (key.includes('url') || key === 'url spotify' || key === 'url youtube') { if (!entry.url) entry.url = val; }
+                    else if (key.includes('portada')) entry.cover = val;
+                    else if (key === 'fecha') entry.date = val;
+                    else if (key === 'tipo') entry.type = val;
+                });
+                // Positional fallbacks
+                if (!entry.name) entry.name = vals[0] || '';
+                if (!entry.artist) entry.artist = vals[1] || '';
+                if (!entry.url) entry.url = vals[2] || '';
+                if (!entry.cover) entry.cover = vals[3] || '';
+                if (!entry.date) entry.date = vals[5] || '';
+                
+                if (entry.name && entry.url && !entry.url.includes('spotify.com/artist')) {
+                    results.push(entry);
+                }
+            }
+            return results;
+        };
 
+        const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
         const newlyDetected: any[] = [];
-        for (const cat of catalogs) {
-            const recent = cat.items.filter((i: any) => new Date(i.date) >= sevenDaysAgo);
-            if (recent.length > 0) {
-                // Find latest
-                const latest = recent.sort((a: any, b: any) => b.date.localeCompare(a.date))[0];
-                // Check if already in sheet (by name)
+
+        try {
+            const [dMRes, j6Res] = await Promise.all([
+                fetch(`${baseUrl}/api/music?artist=diosmasgym`),
+                fetch(`${baseUrl}/api/music?artist=juan614`)
+            ]);
+            
+            const dMCatalog = dMRes.ok ? parseCatalogCSV(await dMRes.text()) : [];
+            const j6Catalog = j6Res.ok ? parseCatalogCSV(await j6Res.text()) : [];
+            
+            console.log(`[check-releases] Catalog sizes: dM=${dMCatalog.length}, j6=${j6Catalog.length}`);
+            
+            const allCatalog = [...dMCatalog, ...j6Catalog];
+            
+            for (const item of allCatalog) {
+                if (!item.date) continue;
+                const itemDate = new Date(item.date);
+                if (isNaN(itemDate.getTime()) || itemDate < sevenDaysAgo) continue;
+                
+                // Check if already in sheet
                 const alreadyInSheet = rows.some(r => {
                     const row = normalizeRow(r);
-                    return row.name.toLowerCase().includes(latest.name.toLowerCase()) || 
-                           latest.name.toLowerCase().includes(row.name.toLowerCase());
+                    const rowName = row.name.toLowerCase().trim();
+                    const itemName = (item.name || '').toLowerCase().trim();
+                    return rowName && itemName && (
+                        rowName === itemName || 
+                        rowName.includes(itemName) || 
+                        itemName.includes(rowName)
+                    );
                 });
-
-                if (!alreadyInSheet) {
-                    newlyDetected.push(latest);
+                
+                if (!alreadyInSheet && item.name) {
+                    console.log(`[check-releases] New item detected: ${item.name} (${item.date})`);
+                    newlyDetected.push(item);
                     // Attempt to sync to sheet
                     try {
                         const syncPayload = {
-                            Artista: latest.artist,
-                            name: latest.name,
-                            releaseDate: latest.date.split('T')[0],
-                            coverImageUrl: latest.cover,
-                            preSaveLink: `https://app.diosmasgym.com/#/link/${latest.id}`,
-                            audioUrl: latest.url
+                            Artista: item.artist || 'Diosmasgym',
+                            name: item.name,
+                            releaseDate: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+                            coverImageUrl: item.cover || '',
+                            preSaveLink: item.url || '',
+                            audioUrl: item.url || ''
                         };
                         const qs = new URLSearchParams(syncPayload as any).toString();
                         await fetch(`${GOOGLE_SHEET_URL}?${qs}`, { method: 'POST', body: JSON.stringify(syncPayload) });
-                        console.log(`[check-releases] Auto-synced new release: ${latest.name}`);
+                        console.log(`[check-releases] Auto-synced: ${item.name}`);
                     } catch (e) {
-                        console.error(`[check-releases] Failed to auto-sync ${latest.name}:`, e);
+                        console.error(`[check-releases] Failed to auto-sync ${item.name}:`, e);
                     }
                 }
             }
+        } catch (catalogErr: any) {
+            console.error('[check-releases] Catalog detection failed (non-fatal):', catalogErr.message);
         }
 
         // --- 2. Fetch Fresh Sheet (if we synced anything) ---

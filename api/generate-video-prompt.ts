@@ -51,8 +51,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // MODELO ESTABLE
-    const modelName = "gemini-2.0-flash-exp"; // Usamos el modelo que sabemos que le funciona a tu API key
+    // Modelo estable Gemini 2.0 Flash
+    const modelName = "gemini-2.0-flash";
     
     const promptText = `Actúa como un Director de Arte y Director de Videos Musicales de élite mundial (estilo directores ganadores del Grammy como David Fincher, Spike Jonze, Michel Gondry).
     Se te proporcionará la letra de una canción, el título y el artista.
@@ -123,9 +123,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        // Si falla por el modelo, intentamos con gemini-3-flash-preview
-        if (data.error?.code === 404) {
-             const backupResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+        if (data.error?.code === 404 || data.error?.code === 400) {
+             const backupResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
