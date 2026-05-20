@@ -13,8 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // Modelo estable Gemini 2.0 Flash
-    const modelName = "gemini-2.0-flash";
+    // Modelo estable Gemini 1.5 Flash
+    const modelName = "gemini-1.5-flash";
     
     const promptText = `Actúa como un Director de Arte y Director de Videos Musicales de élite mundial (estilo directores ganadores del Grammy como David Fincher, Spike Jonze, Michel Gondry).
     Se te proporcionará la letra de una canción, el título y el artista.
