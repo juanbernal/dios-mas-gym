@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyCronOrAdmin } from './_auth';
+import { verifyCronOrAdmin } from './_auth.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vercel Cron: runs daily at 9:00 AM (UTC-6 = 15:00 UTC)

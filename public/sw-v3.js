@@ -3,6 +3,9 @@ self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('/api/')) {
+    return event.respondWith(fetch(event.request));
+  }
   if (event.request.mode === 'navigate' || event.request.url.includes('manifest') || event.request.url.includes('.json')) {
     event.respondWith(fetch(event.request));
   } else {

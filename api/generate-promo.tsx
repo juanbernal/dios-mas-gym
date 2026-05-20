@@ -1,6 +1,6 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
-import { verifyCronOrAdmin } from './_auth';
+import { verifyCronOrAdmin } from './_auth.js';
 
 // VERSIÓN 2.1: Anti-Cache + Transformación Explícita
 export const config = {

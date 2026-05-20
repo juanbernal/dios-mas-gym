@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
-import { verifyAdminPassword } from './_auth';
+import { verifyAdminPassword } from './_auth.js';
 
 async function robustFetchText(urlStr: string): Promise<string> {
   // 1. Try global fetch first if available
