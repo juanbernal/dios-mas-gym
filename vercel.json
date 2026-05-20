@@ -29,7 +29,7 @@
     },
     {
       "source": "/post/:slug",
-      "destination": "/api/common?action=post-ssr&slug=$slug"
+      "destination": "/api/common?action=post-ssr&slug=:slug"
     },
     {
       "source": "/api/(.*)",
