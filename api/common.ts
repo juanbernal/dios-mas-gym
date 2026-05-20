@@ -147,17 +147,19 @@ export default async function handler(
     if (artist.toLowerCase() === 'diosmasgym') {
       const rawUrl = process.env.CSV_URL_DIOSMASGYM;
       csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultDiosmasgymUrl;
-      if (!csvUrl) csvUrl = defaultDiosmasgymUrl;
+      if (!csvUrl || !csvUrl.startsWith('http')) csvUrl = defaultDiosmasgymUrl;
     } else if (artist.toLowerCase() === 'juan614') {
       const rawUrl = process.env.CSV_URL_JUAN614;
       csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultJuan614Url;
-      if (!csvUrl) csvUrl = defaultJuan614Url;
+      if (!csvUrl || !csvUrl.startsWith('http')) csvUrl = defaultJuan614Url;
     } else {
       return res.status(404).json({ error: 'Artist not found' });
     }
 
     try {
-      const fetchUrl = refresh ? `${csvUrl}&t=${Date.now()}` : csvUrl;
+      const fetchUrl = refresh 
+        ? `${csvUrl}${csvUrl.includes('?') ? '&' : '?'}t=${Date.now()}` 
+        : csvUrl;
       console.log(`[api/common/music] Fetching music for ${artist} from: ${fetchUrl}`);
       const csvData = await robustFetchText(fetchUrl);
       

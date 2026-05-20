@@ -20,7 +20,18 @@ export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceR
     if (forceRefresh) url.searchParams.append('refresh', Date.now().toString());
 
     const response = await fetch(url.toString(), forceRefresh ? { cache: 'no-store' } : undefined);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      let errorDetails = '';
+      try {
+        const errJson = await response.json();
+        errorDetails = errJson.details || errJson.error || JSON.stringify(errJson);
+      } catch (e) {
+        try {
+          errorDetails = await response.text();
+        } catch (e2) {}
+      }
+      throw new Error(`HTTP error! status: ${response.status}${errorDetails ? ` - Details: ${errorDetails}` : ''}`);
+    }
     
     const csvText = await response.text();
     return parseMusicCSV(csvText);
