@@ -1,7 +1,66 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
+import http from 'http';
 import { verifyAdminPassword } from './_auth';
+
+async function robustFetchText(urlStr: string): Promise<string> {
+  // 1. Try global fetch first if available
+  if (typeof fetch === 'function') {
+    try {
+      const response = await fetch(urlStr);
+      if (response.ok) {
+        return await response.text();
+      }
+      console.warn(`[api/common] Global fetch returned status ${response.status}, falling back to native https.`);
+    } catch (fetchErr: any) {
+      console.warn(`[api/common] Global fetch failed: ${fetchErr.message}, falling back to native https.`);
+    }
+  }
+
+  // 2. Fallback to standard Node.js https/http with redirect support
+  return new Promise((resolve, reject) => {
+    function get(url: string, depth: number) {
+      if (depth > 5) {
+        return reject(new Error("Too many redirects"));
+      }
+
+      const client = url.startsWith('https') ? https : http;
+      client.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/csv,text/plain,*/*'
+        }
+      }, (res) => {
+        const statusCode = res.statusCode || 0;
+
+        // Redirects: 301, 302, 303, 307, 308
+        if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+          const redirectUrl = new URL(res.headers.location, url).toString();
+          return get(redirectUrl, depth + 1);
+        }
+
+        if (statusCode < 200 || statusCode >= 300) {
+          return reject(new Error(`HTTP Error status ${statusCode}`));
+        }
+
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          resolve(data);
+        });
+      }).on('error', (err) => {
+        reject(err);
+      });
+    }
+
+    get(urlStr, 0);
+  });
+}
+
 
 export default async function handler(
   req: VercelRequest,
@@ -100,12 +159,7 @@ export default async function handler(
     try {
       const fetchUrl = refresh ? `${csvUrl}&t=${Date.now()}` : csvUrl;
       console.log(`[api/common/music] Fetching music for ${artist} from: ${fetchUrl}`);
-      const response = await fetch(fetchUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch CSV from Google Sheets: ${response.statusText} (status: ${response.status})`);
-      }
-      const csvData = await response.text();
+      const csvData = await robustFetchText(fetchUrl);
       
       if (refresh) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -122,14 +176,11 @@ export default async function handler(
       try {
         console.warn(`[api/common/music] Attempting fallback fetch for ${artist} using default public sheet...`);
         const fallbackUrl = artist.toLowerCase() === 'diosmasgym' ? defaultDiosmasgymUrl : defaultJuan614Url;
-        const response = await fetch(fallbackUrl);
-        if (response.ok) {
-          const csvData = await response.text();
-          res.setHeader('Cache-Control', 'no-store');
-          res.setHeader('Content-Type', 'text/csv');
-          return res.status(200).send(csvData);
-        }
-      } catch (fallbackErr) {
+        const csvData = await robustFetchText(fallbackUrl);
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Content-Type', 'text/csv');
+        return res.status(200).send(csvData);
+      } catch (fallbackErr: any) {
         console.error(`[api/common/music] Fallback fetch also failed:`, fallbackErr);
       }
 
