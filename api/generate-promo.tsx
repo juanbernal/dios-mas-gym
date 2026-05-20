@@ -62,6 +62,10 @@ function parseMusicCSV(csvText: string) {
 }
 
 export default async function handler(req: Request) {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200 });
+  }
+
   // Security: only allow cron or admin calls
   if (!verifyCronOrAdmin(req)) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });

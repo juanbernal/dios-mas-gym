@@ -15,9 +15,11 @@ export const useAnalytics = () => {
             // Local dev / debugging
             console.log(`[Analytics] Track: ${eventName}`, eventData);
 
-            const isVercel = window.location.hostname.includes('vercel');
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+            const hostname = window.location.hostname;
+            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+            const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
+            const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
+            const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
 
             // We use the existing sheet-proxy to send the data to Google Apps Script.
             // The Apps Script must be updated to handle action=trackEvent

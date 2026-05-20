@@ -2,6 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyAdminPassword } from './_auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (!verifyAdminPassword(req)) {
         return res.status(401).json({ error: 'Unauthorized: Admin password required' });
     }
@@ -19,6 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 headers: { Authorization: `Basic ${API_KEY}` }
             });
             const data = await response.json();
+            if (!response.ok) {
+                return res.status(response.status).json({ 
+                    error: `Error de API de OneSignal (${response.status}): ${data.errors ? data.errors.join(', ') : 'Error desconocido de OneSignal'}` 
+                });
+            }
             return res.status(200).json({ subscribers: data.messageable_players || 0 });
         } catch (err: any) {
             return res.status(500).json({ error: err.message });

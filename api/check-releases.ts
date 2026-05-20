@@ -115,6 +115,10 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // Allow GET (cron) or POST (manual trigger from admin panel)
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });

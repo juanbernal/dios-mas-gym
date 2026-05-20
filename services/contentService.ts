@@ -1,5 +1,13 @@
 import { ContentPost } from '../types';
 
+const getApiBase = () => {
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+  const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
+  const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
+  return (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
+};
+
 const getSlugFromUrl = (url: string) => {
   if (!url) return '';
   return url.split('/').pop()?.replace('.html', '') || '';
@@ -16,12 +24,7 @@ const toTitleCase = (str: string) => {
 export const fetchArsenalData = async (maxResults: number = 50, pageToken?: string, query?: string): Promise<{ posts: ContentPost[], nextPageToken?: string }> => {
   try {
     const fetchFromServer = async (limit: number, token?: string, q?: string) => {
-      const hostname = window.location.hostname;
-      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
-      // Si estamos en Vercel o local, usamos el mismo origen.
-      const apiBase = (isLocal || hostname.includes('vercel.app')) 
-        ? window.location.origin 
-        : (hostname.includes('diosmasgym.com') ? window.location.origin : 'https://app.diosmasgym.com');
+      const apiBase = getApiBase();
       
       const url = new URL('/api/arsenal', apiBase);
       url.searchParams.append('maxResults', limit.toString());
@@ -84,8 +87,7 @@ export const fetchArsenalData = async (maxResults: number = 50, pageToken?: stri
 
 export const fetchPostById = async (postId: string): Promise<ContentPost | null> => {
   try {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
+    const apiBase = getApiBase();
     const url = new URL('/api/arsenal', apiBase);
     url.searchParams.append('maxResults', '15'); 
     const response = await fetch(url.toString());
@@ -97,8 +99,7 @@ export const fetchPostById = async (postId: string): Promise<ContentPost | null>
 
 export const fetchPostBySlug = async (slug: string): Promise<ContentPost | null> => {
   try {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiBase = isLocal ? window.location.origin : 'https://app.diosmasgym.com';
+    const apiBase = getApiBase();
 
     const searchApi = async (q: string) => {
       const url = new URL('/api/arsenal', apiBase);

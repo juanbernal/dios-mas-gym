@@ -9,9 +9,11 @@ const generateSlug = (text: string) => {
  */
 export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceRefresh = false): Promise<MusicItem[]> => {
   try {
-    const isVercel = window.location.hostname.includes('vercel');
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiBase = isLocal ? window.location.origin : (isVercel ? window.location.origin : 'https://app.diosmasgym.com');
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+    const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
+    const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
+    const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
     
     const url = new URL('/api/music', apiBase);
     url.searchParams.append('artist', artist);
