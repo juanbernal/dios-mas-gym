@@ -13,8 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // Modelo estable Gemini 1.5 Flash
-    const modelName = "gemini-1.5-flash";
+    // Modelo estable
+    const modelName = "gemini-2.5-flash";
     
     const promptText = `Actúa como un Director de Arte experto en edición de video musical para TikTok y YouTube.
     Se te proporcionará la letra de una canción. Tu objetivo es analizar la vibra, el sentimiento y el ritmo de esa letra, y generar una configuración visual única, creativa y espectacular que encaje perfectamente con ese tema.

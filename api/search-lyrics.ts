@@ -13,8 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // Modelo estable Gemini 1.5 Flash (con soporte para Google Search grounding)
-    const modelName = "gemini-1.5-flash";
+    // Modelo estable (con soporte para Google Search grounding)
+    const modelName = "gemini-2.5-flash";
     
     // We explicitly enable Google Search grounding so Gemini can search the live web for the lyrics!
     const promptText = `Busca en internet la letra exacta y oficial de la canción "${name}" del artista "${artist || 'Dios Mas Gym'}". 

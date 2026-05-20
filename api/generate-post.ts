@@ -9,8 +9,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // Modelo estable Gemini 1.5 Flash
-    const modelName = "gemini-1.5-flash";
+    // Modelo estable
+    const modelName = "gemini-2.5-flash";
     
     let promptText = `Escribe contenido espiritual y reflexivo para un blog cristiano. NO uses markdown ni formato especial. NO incluyas hashtags, tips de marketing ni emojis en exceso. Solo texto plano con párrafos separados por saltos de línea. Contenido: ${content}`;
 
