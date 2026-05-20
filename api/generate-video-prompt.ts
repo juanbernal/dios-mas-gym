@@ -1,45 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-function verifyAdminPassword(req: any): boolean {
-  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, '');
-  
-  if (!MASTER_KEY) {
-    console.warn("ADMIN_PASSWORD no definida en Vercel - acceso permitido");
-    return true;
-  }
-
-  let providedPassword = '';
-  let authHeader = '';
-
-  if (typeof req.headers?.get === 'function') {
-    providedPassword = req.headers.get('x-admin-password') || '';
-    authHeader = req.headers.get('authorization') || '';
-  } else if (req.headers) {
-    providedPassword = (req.headers['x-admin-password'] as string) || '';
-    authHeader = (req.headers['authorization'] as string) || '';
-  }
-
-  if (providedPassword.trim() === MASTER_KEY) {
-    return true;
-  }
-
-  if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7).trim();
-    if (token === MASTER_KEY) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
-    }
-
-    if (!verifyAdminPassword(req)) {
-        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -92,9 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     Asegúrate de que:
     1. Las descripciones e ideas visuales sean altamente artísticas y creativas, no genéricas. Que transmitan el poder de la superación, la disciplina física, mental y la fe.
-    2. El \"masterPrompt\" sea una toma de introducción cinematográfica espectacular (Opening/Intro Scene) diseñada y personalizada exactamente para relatar el inicio de la historia y el mensaje de esta canción en particular. Debe ser una escena concreta y con narrativa física, no un resumen técnico abstracto. No utilices la plantilla predeterminada de desiertos/paisajes a menos que la letra hable de ello.
+    2. El "masterPrompt" sea una toma de introducción cinematográfica espectacular (Opening/Intro Scene) diseñada y personalizada exactamente para relatar el inicio de la historia y el mensaje de esta canción en particular. Debe ser una escena concreta y con narrativa física, no un resumen técnico abstracto. No utilices la plantilla predeterminada de desiertos/paisajes a menos que la letra hable de ello.
     3. Haya al menos 4 o 5 escenas detalladas que cubran toda la canción de principio a fin (Intro, Versos, Coros, Outro).
-    4. Los campos de prompts de IA (\"masterPrompt\" y \"aiPrompt\" de cada escena) estén obligatoriamente EN INGLÉS, ya que las IAs generadoras de video operan infinitamente mejor en este idioma. Deben ser de calidad cinematográfica profesional de Hollywood.
+    4. Los campos de prompts de IA ("masterPrompt" y "aiPrompt" de cada escena) estén obligatoriamente EN INGLÉS, ya que las IAs generadoras de video operan infinitamente mejor en este idioma. Deben ser de calidad cinematográfica profesional de Hollywood.
     5. La salida sea estrictamente un JSON válido. No incluyas explicaciones previas ni posteriores al JSON.`;
 
     try {

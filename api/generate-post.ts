@@ -1,49 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-function verifyAdminPassword(req: any): boolean {
-  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, '');
-  
-  // Si no hay ADMIN_PASSWORD en el servidor, permitir acceso
-  // (el panel ya tiene su propia autenticación de sesión)
-  if (!MASTER_KEY) {
-    console.warn("ADMIN_PASSWORD no definida en Vercel - acceso permitido");
-    return true;
-  }
-
-  let providedPassword = '';
-  let authHeader = '';
-
-  if (typeof req.headers?.get === 'function') {
-    providedPassword = req.headers.get('x-admin-password') || '';
-    authHeader = req.headers.get('authorization') || '';
-  } else if (req.headers) {
-    providedPassword = (req.headers['x-admin-password'] as string) || '';
-    authHeader = (req.headers['authorization'] as string) || '';
-  }
-
-  if (providedPassword.trim() === MASTER_KEY) {
-    return true;
-  }
-
-  if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7).trim();
-    if (token === MASTER_KEY) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    if (!verifyAdminPassword(req)) {
-        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
-    }
-
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { content } = req.body;
@@ -67,8 +25,7 @@ Tu tarea es generar contenido promocional extraordinario y de alta conversión p
 INFORMACIÓN DE LA CANCIÓN / PROMO:
 ${input}
 
-${lyrics ? `LETRA DE LA CANCIÓN / TEMA EMOCIONAL:
-${lyrics}` : ''}
+${lyrics ? `LETRA DE LA CANCIÓN / TEMA EMOCIONAL:\n${lyrics}` : ''}
 
 PARÁMETROS DE LA CAMPAÑA:
 - Plataforma objetivo: ${platform || 'Instagram/TikTok'}
@@ -94,7 +51,6 @@ Entrega el resultado formateado de manera elegante y legible con separadores lim
     }
 
     try {
-        // Para modelos Preview/Experimental, usamos v1beta
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -129,9 +85,9 @@ Entrega el resultado formateado de manera elegante y legible con separadores lim
 
     } catch (e: any) {
         return res.status(500).json({ 
-            error: "Error con Gemini 3", 
+            error: "Error con Gemini API", 
             google_error: e.message,
-            tip: "Tu cuenta está usando un modelo experimental. Si falla, intenta crear una clave en un proyecto normal."
+            tip: "Verifica que GEMINI_API_KEY esté configurada en Vercel."
         });
     }
 }

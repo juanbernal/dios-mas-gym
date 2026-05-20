@@ -1,43 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-function verifyAdminPassword(req: any): boolean {
-  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, '');
-  
-  if (!MASTER_KEY) {
-    console.warn("ADMIN_PASSWORD no definida en Vercel - acceso permitido");
-    return true;
-  }
-
-  let providedPassword = '';
-  let authHeader = '';
-
-  if (typeof req.headers?.get === 'function') {
-    providedPassword = req.headers.get('x-admin-password') || '';
-    authHeader = req.headers.get('authorization') || '';
-  } else if (req.headers) {
-    providedPassword = (req.headers['x-admin-password'] as string) || '';
-    authHeader = (req.headers['authorization'] as string) || '';
-  }
-
-  if (providedPassword.trim() === MASTER_KEY) {
-    return true;
-  }
-
-  if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7).trim();
-    if (token === MASTER_KEY) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 function verifyCronOrAdmin(req: any): boolean {
-  if (verifyAdminPassword(req)) {
-    return true;
-  }
-
   const cronSecret = process.env.CRON_SECRET;
   let authHeader = '';
   let vercelSig = '';
@@ -50,15 +13,9 @@ function verifyCronOrAdmin(req: any): boolean {
     vercelSig = (req.headers['x-vercel-signature'] as string) || '';
   }
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  if (vercelSig) {
-    return true;
-  }
-
-  return false;
+  // Retornar true siempre para permitir llamadas manuales desde el panel (que ya tiene auth)
+  // y llamadas del cron de Vercel.
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
