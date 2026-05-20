@@ -9,8 +9,8 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const blogId = process.env.BLOG_ID || "5031959192789589903";
-  const apiKey = process.env.BLOGGER_API_KEY;
+  const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
+  const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
   if (req.method === 'POST') {
     try {
@@ -56,8 +56,8 @@ export default async function handler(
   }
 
   try {
-    const blogId = process.env.BLOG_ID || "5031959192789589903";
-    const apiKey = process.env.BLOGGER_API_KEY;
+    const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
+    const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
     
     if (!apiKey) {
       console.error("CRITICAL: BLOGGER_API_KEY is not defined.");

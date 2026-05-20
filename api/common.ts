@@ -82,20 +82,28 @@ export default async function handler(
     }
 
     let csvUrl = '';
+    const defaultDiosmasgymUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv';
+    const defaultJuan614Url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv';
+
     if (artist.toLowerCase() === 'diosmasgym') {
-      csvUrl = process.env.CSV_URL_DIOSMASGYM || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv';
+      const rawUrl = process.env.CSV_URL_DIOSMASGYM;
+      csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultDiosmasgymUrl;
+      if (!csvUrl) csvUrl = defaultDiosmasgymUrl;
     } else if (artist.toLowerCase() === 'juan614') {
-      csvUrl = process.env.CSV_URL_JUAN614 || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv';
+      const rawUrl = process.env.CSV_URL_JUAN614;
+      csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultJuan614Url;
+      if (!csvUrl) csvUrl = defaultJuan614Url;
     } else {
       return res.status(404).json({ error: 'Artist not found' });
     }
 
     try {
       const fetchUrl = refresh ? `${csvUrl}&t=${Date.now()}` : csvUrl;
+      console.log(`[api/common/music] Fetching music for ${artist} from: ${fetchUrl}`);
       const response = await fetch(fetchUrl);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+        throw new Error(`Failed to fetch CSV from Google Sheets: ${response.statusText} (status: ${response.status})`);
       }
       const csvData = await response.text();
       
@@ -107,9 +115,25 @@ export default async function handler(
       
       res.setHeader('Content-Type', 'text/csv');
       return res.status(200).send(csvData);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error fetching music for ${artist}:`, error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      
+      // FALLBACK GRACIOSO: Si falla la descarga personalizada, intentamos servir el CSV por defecto
+      try {
+        console.warn(`[api/common/music] Attempting fallback fetch for ${artist} using default public sheet...`);
+        const fallbackUrl = artist.toLowerCase() === 'diosmasgym' ? defaultDiosmasgymUrl : defaultJuan614Url;
+        const response = await fetch(fallbackUrl);
+        if (response.ok) {
+          const csvData = await response.text();
+          res.setHeader('Cache-Control', 'no-store');
+          res.setHeader('Content-Type', 'text/csv');
+          return res.status(200).send(csvData);
+        }
+      } catch (fallbackErr) {
+        console.error(`[api/common/music] Fallback fetch also failed:`, fallbackErr);
+      }
+
+      return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   }
 
@@ -153,8 +177,8 @@ export default async function handler(
   // ACTION: SITEMAP
   // -------------------------------------------------------------
   if (action === 'sitemap' || action === 'sitemap.xml') {
-    const blogId = process.env.BLOG_ID || "5031959192789589903";
-    const apiKey = process.env.BLOGGER_API_KEY;
+    const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
+    const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
     if (!apiKey) {
       console.error("Missing BLOGGER_API_KEY");
