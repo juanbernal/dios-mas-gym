@@ -28,6 +28,10 @@
       "destination": "/api/common?action=sitemap"
     },
     {
+      "source": "/post/:slug",
+      "destination": "/api/common?action=post-ssr&slug=$slug"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

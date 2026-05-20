@@ -364,5 +364,95 @@ export default async function handler(
     }
   }
 
+  // -------------------------------------------------------------
+  // ACTION: POST SSR (Server-Side Meta Injection)
+  // -------------------------------------------------------------
+  if (action === 'post-ssr' || action === 'post') {
+    const slug = req.query.slug as string;
+    if (!slug) {
+      try {
+        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+        const text = await htmlRes.text();
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(text);
+      } catch (err) {
+        return res.status(500).send("Error loading app");
+      }
+    }
+
+    const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
+    const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
+
+    try {
+      const queryTerm = slug.replace(/-/g, ' ');
+      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?key=${apiKey}&q=${encodeURIComponent(queryTerm)}&fetchImages=true&maxResults=10`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Referer': 'https://app.diosmasgym.com',
+          'Origin': 'https://app.diosmasgym.com',
+          'Accept': 'application/json',
+          'User-Agent': 'Vercel-Server-Function'
+        }
+      });
+      
+      let title = "Dios Mas Gym - El Arsenal de Fe";
+      let description = "Reflexiones de fe, valentía y disciplina en El Arsenal.";
+      let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.items || [];
+        const targetSlug = slug.toLowerCase();
+        
+        const getSlugFromUrl = (url: string) => {
+          if (!url) return '';
+          return url.split('/').pop()?.replace('.html', '') || '';
+        };
+
+        const match = items.find((p: any) => {
+          const pSlug = getSlugFromUrl(p.url).toLowerCase();
+          return pSlug === targetSlug || pSlug.includes(targetSlug) || targetSlug.includes(pSlug);
+        });
+
+        if (match) {
+          title = match.title || title;
+          description = (match.content || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
+          
+          if (match.images && match.images.length > 0) {
+            image = match.images[0].url;
+          } else {
+            const imgMatch = match.content?.match(/<img[^>]+src="([^">]+)"/);
+            if (imgMatch) image = imgMatch[1];
+          }
+        }
+      }
+
+      // Fetch the compiled production index.html
+      const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+      let html = await htmlRes.text();
+
+      // Perform meta tag injections
+      html = html.replace('<title>Dios Mas Gym - El Arsenal de Fe</title>', `<title>${title} | El Arsenal</title>`);
+      html = html.replace('<meta property="og:title" content="Dios Mas Gym - El Arsenal de Fe">', `<meta property="og:title" content="${title}">`);
+      html = html.replace('<meta property="og:description" content="Reflexiones de fe, valentía y disciplina en El Arsenal.">', `<meta property="og:description" content="${description}">`);
+      html = html.replace('<meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">', `<meta property="og:image" content="${image}">`);
+      html = html.replace('</head>', `<meta name="description" content="${description}">\n</head>`);
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(html);
+
+    } catch (err: any) {
+      console.error("Error in post-ssr:", err);
+      try {
+        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(await htmlRes.text());
+      } catch {
+        return res.status(500).send("Error loading app");
+      }
+    }
+  }
+
   return res.status(404).json({ error: 'Action not found' });
 }
