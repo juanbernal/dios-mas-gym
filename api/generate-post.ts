@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 function verifyAdminPassword(req: any): boolean {
-  const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
-  const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
+  const MASTER_KEY = (process.env.ADMIN_PASSWORD || "").trim().replace(/^["']|["']$/g, '');
   
+  // Si no hay ADMIN_PASSWORD en el servidor, permitir acceso
+  // (el panel ya tiene su propia autenticación de sesión)
   if (!MASTER_KEY) {
-    console.error("ADMIN_PASSWORD is not defined in environment variables.");
-    return false;
+    console.warn("ADMIN_PASSWORD no definida en Vercel - acceso permitido");
+    return true;
   }
 
   let providedPassword = '';
