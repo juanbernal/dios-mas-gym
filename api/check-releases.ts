@@ -102,7 +102,29 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
     }
 
     const artistEmoji = release.Artista.toLowerCase().includes('juan') ? '🤠' : '💪';
-    const payload = {
+    
+    // Generate SmartLink URL
+    const generateSlug = (text: string) => {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    };
+
+    let videoId = '';
+    if (release.preSaveLink) {
+        if (release.preSaveLink.includes('youtube.com') && release.preSaveLink.includes('v=')) {
+            videoId = release.preSaveLink.split('v=')[1].split('&')[0];
+        } else if (release.preSaveLink.includes('youtu.be/')) {
+            videoId = release.preSaveLink.split('youtu.be/')[1].split('?')[0];
+        }
+    }
+    const songId = videoId || generateSlug(`${release.Artista}-${release.name}`);
+    const smartLinkUrl = `https://app.diosmasgym.com/#/link/${songId}`;
+
+    const payload: any = {
         app_id: APP_ID,
         included_segments: ['Active Users', 'Subscribed Users', 'Total Subscriptions'],
         headings: { 
@@ -113,7 +135,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
             en: `${release.Artista} just released something new. It's time to make some noise! 🔥`,
             es: `${release.Artista} acaba de lanzar algo nuevo. ¡Es el momento de hacer ruido en redes! 🔥`,
         },
-        url: release.preSaveLink || 'https://app.diosmasgym.com/#/admin/proximos-lanzamientos',
+        url: smartLinkUrl,
         ...(release.coverImageUrl
             ? { big_picture: release.coverImageUrl, large_icon: release.coverImageUrl }
             : { large_icon: 'https://app.diosmasgym.com/icon-192.png' }),
