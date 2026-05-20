@@ -1,5 +1,66 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyCronOrAdmin } from './_auth.js';
+
+function verifyAdminPassword(req: any): boolean {
+  const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
+  const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
+  
+  if (!MASTER_KEY) {
+    console.error("ADMIN_PASSWORD is not defined in environment variables.");
+    return false;
+  }
+
+  let providedPassword = '';
+  let authHeader = '';
+
+  if (typeof req.headers?.get === 'function') {
+    providedPassword = req.headers.get('x-admin-password') || '';
+    authHeader = req.headers.get('authorization') || '';
+  } else if (req.headers) {
+    providedPassword = (req.headers['x-admin-password'] as string) || '';
+    authHeader = (req.headers['authorization'] as string) || '';
+  }
+
+  if (providedPassword.trim() === MASTER_KEY) {
+    return true;
+  }
+
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token === MASTER_KEY) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function verifyCronOrAdmin(req: any): boolean {
+  if (verifyAdminPassword(req)) {
+    return true;
+  }
+
+  const cronSecret = process.env.CRON_SECRET;
+  let authHeader = '';
+  let vercelSig = '';
+
+  if (typeof req.headers?.get === 'function') {
+    authHeader = req.headers.get('authorization') || '';
+    vercelSig = req.headers.get('x-vercel-signature') || '';
+  } else if (req.headers) {
+    authHeader = (req.headers['authorization'] as string) || '';
+    vercelSig = (req.headers['x-vercel-signature'] as string) || '';
+  }
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+
+  if (vercelSig) {
+    return true;
+  }
+
+  return false;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vercel Cron: runs daily at 9:00 AM (UTC-6 = 15:00 UTC)
