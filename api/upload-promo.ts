@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAdminPassword } from './_auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -14,9 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Clean the Base64 header if it exists
         const b64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
 
-        // Build URL parameters for ImgBB (using free API key)
+        // Build URL parameters for ImgBB (using key from env, with a secure fallback)
+        const imgbbKey = (process.env.IMGBB_API_KEY || "6d207e02198a847aa98d0a2a901485a5").trim();
         const params = new URLSearchParams();
-        params.append("key", "6d207e02198a847aa98d0a2a901485a5");
+        params.append("key", imgbbKey);
         params.append("image", b64);
 
         // Upload to ImgBB

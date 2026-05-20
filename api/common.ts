@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fs from 'fs';
 import path from 'path';
+import { verifyAdminPassword } from './_auth';
 
 export default async function handler(
   req: VercelRequest,
@@ -44,6 +45,9 @@ export default async function handler(
     }
 
     if (req.method === 'POST') {
+      if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+      }
       try {
         const data = req.body;
         const dir = path.dirname(LINKS_FILE);

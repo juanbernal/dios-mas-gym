@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAdminPassword } from './_auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+    }
+
     const APP_ID = process.env.ONESIGNAL_APP_ID;
     const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 

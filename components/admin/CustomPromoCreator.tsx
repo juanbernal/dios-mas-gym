@@ -72,7 +72,10 @@ const CustomPromoCreator: React.FC = () => {
     try {
       const response = await fetch("/api/search-lyrics", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-password": localStorage.getItem("admin_password") || ""
+        },
         body: JSON.stringify({ name: songName, artist: songArtist })
       });
       const data = await response.json();
@@ -92,7 +95,10 @@ const CustomPromoCreator: React.FC = () => {
     try {
       const response = await fetch("/api/search-lyrics", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-password": localStorage.getItem("admin_password") || ""
+        },
         body: JSON.stringify({ name: title, artist })
       });
       const data = await response.json();

@@ -42,7 +42,10 @@ const LinkBioAdmin: React.FC = () => {
         try {
             const res = await fetch(`/api/links?artist=${selectedArtist}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify(data)
             });
             if (res.ok) showToast("Configuración guardada");

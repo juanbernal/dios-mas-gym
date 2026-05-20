@@ -1,5 +1,6 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
+import { verifyCronOrAdmin } from './_auth';
 
 // VERSIÓN 2.1: Anti-Cache + Transformación Explícita
 export const config = {
@@ -61,6 +62,11 @@ function parseMusicCSV(csvText: string) {
 }
 
 export default async function handler(req: Request) {
+  // Security: only allow cron or admin calls
+  if (!verifyCronOrAdmin(req)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+
   try {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const CHAT_ID = process.env.TELEGRAM_CHAT_ID;

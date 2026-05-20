@@ -151,7 +151,10 @@ const MusicVideoPromptGenerator: React.FC = () => {
         try {
             const response = await fetch('/api/generate-video-prompt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({
                     title: formData.title,
                     artist: formData.artist,

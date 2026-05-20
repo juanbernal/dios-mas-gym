@@ -24,7 +24,10 @@ export const generateSocialCaption = async (
     try {
         const response = await fetch('/api/generate-post', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-password': localStorage.getItem('admin_password') || ''
+            },
             body: JSON.stringify({ content: payload })
         });
         const data = await response.json();
@@ -66,6 +69,7 @@ export const generateSocialPost = async (content: string) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-admin-password': localStorage.getItem('admin_password') || ''
             },
             body: JSON.stringify({ content })
         });
@@ -87,7 +91,10 @@ export const generateLyricStyle = async (lyrics: string) => {
     try {
         const response = await fetch('/api/generate-lyric-style', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-password': localStorage.getItem('admin_password') || ''
+            },
             body: JSON.stringify({ lyrics })
         });
         const data = await response.json();

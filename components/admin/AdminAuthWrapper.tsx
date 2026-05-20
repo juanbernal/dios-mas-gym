@@ -30,6 +30,7 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
 
       if (response.ok && data.success) {
         localStorage.setItem("admin_session", "true");
+        localStorage.setItem("admin_password", password.trim());
         setIsAuthenticated(true);
       } else {
         setError(true);

@@ -14,7 +14,9 @@ const PushNotificationsAdmin: React.FC = () => {
 
     useEffect(() => {
         // Fetch stats
-        fetch('/api/send-notification')
+        fetch('/api/send-notification', {
+            headers: { 'x-admin-password': localStorage.getItem('admin_password') || '' }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.subscribers !== undefined) setSubscribers(data.subscribers);
@@ -43,7 +45,10 @@ const PushNotificationsAdmin: React.FC = () => {
         try {
             const response = await fetch('/api/send-notification', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({ title, message, url, imageUrl, testPlayerId })
             });
 

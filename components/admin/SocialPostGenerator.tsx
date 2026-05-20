@@ -74,7 +74,10 @@ const SocialPostGenerator: React.FC = () => {
         try {
             const response = await fetch('/api/search-lyrics', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({ name: song.name, artist: song.artist })
             });
             const data = await response.json();
@@ -101,7 +104,10 @@ const SocialPostGenerator: React.FC = () => {
         try {
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({ content: JSON.stringify(cleanFormData) })
             });
 

@@ -122,7 +122,10 @@ export function useOneSignal(): OneSignalState {
         try {
             const res = await fetch('/api/check-releases', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
             });
             const data = await res.json();
             return data;

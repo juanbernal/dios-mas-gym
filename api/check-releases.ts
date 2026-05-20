@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyCronOrAdmin } from './_auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vercel Cron: runs daily at 9:00 AM (UTC-6 = 15:00 UTC)
@@ -119,18 +120,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Security: only allow cron (GET) or admin panel calls (POST)
-    const authHeader = req.headers.authorization;
-    const cronSecret = process.env.CRON_SECRET;
-
-    // We only enforce strict security on GET requests (automated cron)
-    if (req.method === 'GET' && cronSecret) {
-        if (authHeader !== `Bearer ${cronSecret}`) {
-            const vercelSig = req.headers['x-vercel-signature'];
-            if (!vercelSig) {
-                return res.status(401).json({ error: 'Unauthorized' });
-            }
-        }
+    // Security: only allow cron or admin panel calls
+    if (!verifyCronOrAdmin(req)) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
 

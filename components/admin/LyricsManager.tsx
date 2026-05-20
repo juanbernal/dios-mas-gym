@@ -511,7 +511,10 @@ ${cleanedLyrics}`;
 
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({ content: JSON.stringify({ input: prompt }) })
             });
             const data = await response.json();

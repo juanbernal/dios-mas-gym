@@ -31,7 +31,10 @@ const AIPressRelease: React.FC = () => {
             // Reutilizamos el endpoint existente pero le pasamos instrucciones para un Press Release
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
                 body: JSON.stringify({ 
                     content: `Actúa como un experto relacionista público (PR). Crea un Comunicado de Prensa Oficial / Historia de Blog basada en esta información: "${cleanInput}". Tono: ${formData.tone}. Debe incluir título, ciudad/fecha de lanzamiento, cuerpo de la noticia, citas del artista y contacto al final.` 
                 })
