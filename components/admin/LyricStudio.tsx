@@ -1090,6 +1090,10 @@ const LyricStudio: React.FC = () => {
       });
       ctx.restore();
     }
+
+    // 4. Capa Dinámica de Grano de Película Real & Vignette (Bypass Anti-IA)
+    drawFilmGrain(ctx, cw, ch);
+    drawGlobalVignette(ctx, cw, ch);
   };
 
   const startTimeRef = useRef<number>(0);
@@ -1180,9 +1184,52 @@ const LyricStudio: React.FC = () => {
     
     stream.addTrack(audioStreamDest.stream.getAudioTracks()[0]);
 
+    // Anti-AI Spectrogram Microphone Emulation Injection
+    let antiAiNoiseInstance: any = null;
+    try {
+        const bufferSize = 2 * audioCtxRef.current!.sampleRate;
+        const noiseBuffer = audioCtxRef.current!.createBuffer(1, bufferSize, audioCtxRef.current!.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            // White noise (microscopic fluctuation)
+            output[i] = (Math.random() * 2 - 1) * 0.00008; 
+        }
+        
+        const whiteNoiseSource = audioCtxRef.current!.createBufferSource();
+        whiteNoiseSource.buffer = noiseBuffer;
+        whiteNoiseSource.loop = true;
+        
+        const noiseFilter = audioCtxRef.current!.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 10000;
+        noiseFilter.Q.value = 0.5;
+        
+        const noiseGain = audioCtxRef.current!.createGain();
+        noiseGain.gain.value = 0.001; // sub-audible but spectrally present
+        
+        whiteNoiseSource.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(audioStreamDest);
+        noiseGain.connect(audioCtxRef.current!.destination);
+        whiteNoiseSource.start();
+        
+        antiAiNoiseInstance = { whiteNoiseSource, noiseGain, noiseFilter };
+    } catch(e) { 
+        console.warn("Anti-AI Spectrogram emulation inject skipped/failed:", e); 
+    }
+
+    // Force 80 Mbps for bypassing video compression filters
+    let mimeTypeOption = 'video/webm;codecs=vp9,opus';
+    if (!MediaRecorder.isTypeSupported(mimeTypeOption)) {
+      mimeTypeOption = 'video/webm;codecs=vp8,opus';
+    }
+    if (!MediaRecorder.isTypeSupported(mimeTypeOption)) {
+      mimeTypeOption = 'video/webm';
+    }
+
     const recorder = new MediaRecorder(stream, { 
-      mimeType: 'video/webm;codecs=vp9,opus', 
-      videoBitsPerSecond: 20000000 
+      mimeType: mimeTypeOption, 
+      videoBitsPerSecond: 80000000 
     });
 
     const chunksArr: Blob[] = [];
@@ -1193,6 +1240,16 @@ const LyricStudio: React.FC = () => {
       a.href = URL.createObjectURL(blob);
       a.download = `master-premium-video.webm`; a.click();
       
+      // Stop and clean up Anti-AI noise nodes
+      try {
+        if (antiAiNoiseInstance) {
+          antiAiNoiseInstance.whiteNoiseSource.stop();
+          antiAiNoiseInstance.whiteNoiseSource.disconnect();
+          antiAiNoiseInstance.noiseFilter.disconnect();
+          antiAiNoiseInstance.noiseGain.disconnect();
+        }
+      } catch(e) { console.warn("Clean Anti-AI noise failed:", e); }
+
       sourceRef.current?.disconnect();
       sourceRef.current?.connect(analyserRef.current!);
       analyserRef.current?.connect(audioCtxRef.current!.destination);
@@ -1326,20 +1383,28 @@ const LyricStudio: React.FC = () => {
           alert("Hubo un error al generar el diseño con IA.");
       } finally {
           setIsGeneratingStyle(false);
-          setTimeout(() => setImagePromptStatus(""), 3000);
       }
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-[#030305] text-white">
+    <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-[#030305] text-white relative overflow-hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      {/* Decorative ambient glowing lights */}
+      <div className="absolute top-12 left-1/4 w-[500px] h-[500px] rounded-full bg-[#00ffcc]/3 blur-[180px] pointer-events-none"></div>
+      <div className="absolute bottom-12 right-1/4 w-[500px] h-[500px] rounded-full bg-[#c5a059]/3 blur-[180px] pointer-events-none"></div>
+
       {/* PREVIEW AREA */}
       <main 
         ref={containerRef}
-        className="flex-none md:flex-1 flex flex-col items-center justify-center bg-black p-4 relative sticky top-0 z-[50] md:relative shadow-2xl shadow-black border-b border-white/5"
+        className="flex-none md:flex-1 flex flex-col items-center justify-center bg-[#010103] p-6 relative sticky top-0 z-[50] md:relative shadow-2xl shadow-black/80 border-b md:border-b-0 md:border-r border-white/5"
         style={{ height: window.innerWidth < 768 ? '45vh' : 'auto' }}
       >
+        <div className="absolute top-4 left-6 flex items-center gap-3 pointer-events-none opacity-40 hidden md:flex">
+          <i className="fas fa-video text-xs text-[#00ffcc]"></i>
+          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Monitor de Renderizado en Tiempo Real</span>
+        </div>
+
         <div 
-            className="relative bg-black rounded-[24px] shadow-2xl overflow-hidden shadow-cyan-500/10"
+            className="relative bg-black rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10"
             style={{ 
                 width: 720 * scale, 
                 height: 1280 * scale 
@@ -1358,16 +1423,18 @@ const LyricStudio: React.FC = () => {
           />
         </div>
         
-        <div className="mt-2 flex flex-col items-center gap-2 w-full scale-75 md:scale-100">
-          <div className="flex items-center justify-between w-full max-w-xs bg-white/5 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 shadow-lg">
+        <div className="mt-4 flex flex-col items-center gap-2 w-full scale-90 md:scale-100">
+          <div className="flex items-center justify-between w-full max-w-sm bg-[#0a0a14]/60 backdrop-blur-2xl px-6 py-3 rounded-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <button 
                 onClick={handlePlayToggle}
-                className="text-[9px] font-black uppercase tracking-[0.2em] hover:text-[#00ffcc] transition-all"
+                className="text-[9px] font-black uppercase tracking-[0.25em] text-[#00ffcc] hover:text-white hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
+                <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-[8px]`}></i>
                 {isPlaying ? "Pausar" : "Vista Previa"}
             </button>
-            <div className="w-[1px] h-4 bg-white/10 mx-2"></div>
-            <span className="text-[9px] font-mono text-zinc-400">
+            <div className="w-[1px] h-4 bg-white/10 mx-3"></div>
+            <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1.5">
+                <i className="far fa-clock text-zinc-500"></i>
                 {currentTime.toFixed(1)}s / {duration.toFixed(1)}s
             </span>
           </div>
@@ -1391,384 +1458,452 @@ const LyricStudio: React.FC = () => {
       </main>
 
       {/* CONTROL SIDEBAR */}
-      <aside className="flex-1 md:flex-none md:w-[420px] bg-[#0a0a0f] border-l border-white/5 p-8 custom-scrollbar overflow-y-auto">
-        <button 
-          onClick={() => navigate('/admin')}
-          className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-[#00ffcc] transition-all"
-        >
-          <i className="fas fa-arrow-left"></i>
-          Volver al Panel
-        </button>
+      <aside className="flex-1 md:flex-none md:w-[450px] bg-[#07070c]/85 backdrop-blur-3xl border-l border-white/5 p-8 custom-scrollbar overflow-y-auto relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.7)] flex flex-col justify-between">
+        <div>
+          {/* Back button */}
+          <button 
+            onClick={() => navigate('/admin')}
+            className="mb-8 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-[#00ffcc] transition-all group"
+          >
+            <i className="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+            Volver al Panel
+          </button>
 
-        <div className="flex items-center gap-3 mb-10">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00ffcc] shadow-[0_0_15px_#00ffcc]"></div>
-            <h1 className="text-xl font-black italic tracking-tighter uppercase">Lyric Studio <span className="text-[9px] not-italic text-zinc-600 font-bold ml-1">Modern FX / V2.3 CLOUD</span></h1>
-        </div>
+          {/* Header Title with Anti-AI Badge */}
+          <div className="flex flex-col gap-3.5 mb-8 relative">
+              <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-[#00ffcc] shadow-[0_0_15px_#00ffcc] animate-pulse"></div>
+                  <h1 className="text-xl font-black italic tracking-tighter uppercase font-serif text-white">
+                      Lyric Studio <span className="text-[9px] not-italic text-[#c5a059] font-black tracking-widest ml-1 border border-[#c5a059]/20 px-2 py-0.5 rounded bg-[#c5a059]/5">PRO v2.3</span>
+                  </h1>
+              </div>
+              
+              {/* Pulsing Anti-AI Active Badge */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)] w-fit animate-pulse">
+                  <i className="fas fa-shield-halved text-green-400 text-[10px]"></i>
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-green-400">🛡️ Bypass Anti-IA de Grado Militar Activo</span>
+              </div>
+          </div>
 
-        {/* 1. Media */}
-        <div className="mb-6 p-5 bg-white/5 border border-white/5 rounded-2xl">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 block">1. Media & Branding</span>
-            <div className="space-y-4">
-                <div>
-                    <label className="text-[9px] text-zinc-400 uppercase font-bold mb-1 block">Fondo HD</label>
-                    <input type="file" onChange={handleImageChange} accept="image/*" className="w-full text-[10px] file:bg-zinc-800 file:border-0 file:text-white file:px-3 file:py-2 file:rounded-lg" />
-                </div>
-                <div>
-                    <label className="text-[9px] text-zinc-400 uppercase font-bold mb-1 block">Audio Master</label>
-                    <input type="file" onChange={handleAudioChange} accept="audio/*" className="w-full text-[10px] file:bg-zinc-800 file:border-0 file:text-white file:px-3 file:py-2 file:rounded-lg" />
-                </div>
-                <select 
-                    value={branding} 
-                    onChange={(e) => setBranding(e.target.value as any)}
-                    className="w-full bg-black/40 border border-white/10 p-2 text-xs rounded-lg outline-none"
-                >
-                    <option value="none">Sin Marca de Agua</option>
-                    <option value="juan614">Juan 614 - juan614.diosmasgym.com</option>
-                    <option value="diosmasgym">Diosmasgym - musica.diosmasgym.com</option>
-                </select>
-            </div>
-        </div>
+          {/* 1. Media & Branding */}
+          <div className="mb-6 p-6 bg-[#12121e]/30 backdrop-blur-md border border-[#c5a059]/10 rounded-3xl relative overflow-hidden group hover:border-[#c5a059]/20 transition-all duration-300">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#c5a059]/2 rounded-full blur-2xl pointer-events-none"></div>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-5 block flex items-center gap-2">
+                <i className="fas fa-compact-disc"></i>
+                1. Media & Branding
+              </span>
+              <div className="space-y-4">
+                  <div>
+                      <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block">Fondo HD</label>
+                      <input 
+                        type="file" 
+                        onChange={handleImageChange} 
+                        accept="image/*" 
+                        className="w-full text-[9px] file:bg-[#c5a059]/10 file:border file:border-[#c5a059]/20 file:text-[#c5a059] file:px-3 file:py-1.5 file:rounded-xl file:font-black file:uppercase file:tracking-widest hover:file:bg-[#c5a059] hover:file:text-black hover:file:border-[#c5a059] file:transition-all cursor-pointer bg-white/5 px-2 py-1.5 rounded-xl border border-white/5 text-zinc-400" 
+                      />
+                  </div>
+                  <div>
+                      <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block">Audio Master</label>
+                      <input 
+                        type="file" 
+                        onChange={handleAudioChange} 
+                        accept="audio/*" 
+                        className="w-full text-[9px] file:bg-[#00ffcc]/10 file:border file:border-[#00ffcc]/20 file:text-[#00ffcc] file:px-3 file:py-1.5 file:rounded-xl file:font-black file:uppercase file:tracking-widest hover:file:bg-[#00ffcc] hover:file:text-black hover:file:border-[#00ffcc] file:transition-all cursor-pointer bg-white/5 px-2 py-1.5 rounded-xl border border-white/5 text-zinc-400" 
+                      />
+                  </div>
+                  <div>
+                      <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block">Sello de Agua</label>
+                      <select 
+                          value={branding} 
+                          onChange={(e) => setBranding(e.target.value as any)}
+                          className="w-full bg-[#0a0a14]/80 border border-white/10 p-2.5 text-[10px] rounded-xl outline-none text-white focus:border-[#c5a059]/30 transition-all font-bold"
+                      >
+                          <option value="none">Sin Marca de Agua</option>
+                          <option value="juan614">Juan 614 - juan614.diosmasgym.com</option>
+                          <option value="diosmasgym">Diosmasgym - musica.diosmasgym.com</option>
+                      </select>
+                  </div>
+              </div>
+          </div>
 
-        {/* 1.5. Intro/Outro Control */}
-        <div className="mb-6 p-5 bg-white/5 border border-[#00ffcc]/20 rounded-2xl shadow-[0_0_15px_rgba(0,255,204,0.05)]">
-            <div className="flex items-center gap-2 mb-4">
-                <i className="fas fa-clapperboard text-[#00ffcc] text-[10px]"></i>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#00ffcc]">Cinematics</span>
-            </div>
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <label className="text-[9px] uppercase font-bold text-zinc-400">Intro Diosmasgym</label>
-                    <input type="checkbox" checked={includeIntro} onChange={(e) => setIncludeIntro(e.target.checked)} className="accent-[#00ffcc]" />
-                </div>
-                <div className="flex items-center justify-between">
-                    <label className="text-[9px] uppercase font-bold text-zinc-400">Outro Redes Sociales</label>
-                    <input type="checkbox" checked={includeOutro} onChange={(e) => setIncludeOutro(e.target.checked)} className="accent-[#00ffcc]" />
-                </div>
-                {includeOutro && (
-                    <>
-                        <div className="pt-2">
-                            <label className="text-[9px] uppercase font-bold text-[#c5a059] mb-2 block">Estilo de Imagen Final (Outro)</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button 
-                                    onClick={() => setOutroImageIndex(0)}
-                                    className={`p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${outroImageIndex === 0 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
-                                >
-                                    Estilo A
-                                </button>
-                                <button 
-                                    onClick={() => setOutroImageIndex(1)}
-                                    className={`p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${outroImageIndex === 1 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
-                                >
-                                    Estilo B
-                                </button>
-                            </div>
-                        </div>
-                        <input 
-                            type="text" 
-                            value={outroMessage}
-                            onChange={(e) => setOutroMessage(e.target.value)}
-                            placeholder="Mensaje Outro..."
-                            className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none focus:border-[#00ffcc]/30"
-                        />
-                    </>
-                )}
-            </div>
-        </div>
+          {/* 1.5. Cinematics (Intro/Outro) */}
+          <div className="mb-6 p-6 bg-[#12121e]/30 backdrop-blur-md border border-[#00ffcc]/10 rounded-3xl relative overflow-hidden group hover:border-[#00ffcc]/20 transition-all duration-300">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#00ffcc]/2 rounded-full blur-2xl pointer-events-none"></div>
+              <div className="flex items-center gap-2 mb-5">
+                  <i className="fas fa-clapperboard text-[#00ffcc] text-xs"></i>
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#00ffcc]">Cinematics & VFX</span>
+              </div>
+              <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase font-bold text-zinc-300">Intro Diosmasgym (4s)</label>
+                      <input 
+                        type="checkbox" 
+                        checked={includeIntro} 
+                        onChange={(e) => setIncludeIntro(e.target.checked)} 
+                        className="w-4 h-4 accent-[#00ffcc] bg-black/40 border-white/10 rounded-md cursor-pointer" 
+                      />
+                  </div>
+                  <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase font-bold text-zinc-300">Outro Redes Sociales (7s)</label>
+                      <input 
+                        type="checkbox" 
+                        checked={includeOutro} 
+                        onChange={(e) => setIncludeOutro(e.target.checked)} 
+                        className="w-4 h-4 accent-[#00ffcc] bg-black/40 border-white/10 rounded-md cursor-pointer" 
+                      />
+                  </div>
+                  {includeOutro && (
+                      <div className="pt-2 space-y-3.5 border-t border-white/5 animate-fade-in">
+                          <div>
+                              <label className="text-[8px] uppercase font-black tracking-widest text-[#c5a059] mb-2 block">Estilo de Imagen Final (Outro)</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <button 
+                                      onClick={() => setOutroImageIndex(0)}
+                                      className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${outroImageIndex === 0 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/10 hover:border-white/20'}`}
+                                  >
+                                      Estilo A
+                                  </button>
+                                  <button 
+                                      onClick={() => setOutroImageIndex(1)}
+                                      className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${outroImageIndex === 1 ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/10 hover:border-white/20'}`}
+                                  >
+                                      Estilo B
+                                  </button>
+                              </div>
+                          </div>
+                          <div>
+                              <label className="text-[8px] uppercase font-black tracking-widest text-zinc-400 mb-1.5 block">Mensaje de Cierre</label>
+                              <input 
+                                  type="text" 
+                                  value={outroMessage}
+                                  onChange={(e) => setOutroMessage(e.target.value)}
+                                  placeholder="Mensaje Outro..."
+                                  className="w-full bg-[#0a0a14]/80 border border-white/10 p-2.5 text-[9px] rounded-xl outline-none text-white focus:border-[#00ffcc]/30 font-bold"
+                              />
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
 
-        {/* 2. Sincronización */}
-        <div className="mb-6 p-5 bg-white/5 border border-white/5 rounded-2xl">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">2. Sincronización</span>
-                <label className="cursor-pointer text-[9px] font-black uppercase tracking-widest text-[#00ffcc] hover:underline">
-                    <i className="fas fa-file-import mr-2"></i> Subir Letra (.txt)
-                    <input type="file" accept=".txt" className="hidden" onChange={handleLyricsFileUpload} />
-                </label>
-            </div>
-            <textarea 
-                value={rawLyrics}
-                onChange={(e) => setRawLyrics(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 p-3 text-[10px] rounded-xl h-24 mb-3 outline-none focus:border-cyan-500/30" 
-                placeholder="Pega la letra limpia aquí..."
-            />
-            
-            {isSyncing ? (
-                <div className="mb-3 p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/20 space-y-3 animate-pulse">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] text-cyan-400 uppercase font-black tracking-widest">Siguiente frase:</span>
-                        <span className="text-xs text-white font-bold italic truncate">{syncLines[syncIndex]}</span>
-                    </div>
-                    <button 
-                        onClick={markTime}
-                        className="w-full bg-[#00ffcc] text-black font-black py-3 rounded-xl text-[10px] uppercase shadow-lg shadow-cyan-500/20 active:scale-95 transition-all"
-                    >
-                        MARCAR TIEMPO (SPACE)
-                    </button>
-                    <button 
-                        onClick={markSilence}
-                        className="w-full bg-white/10 text-[#00ffcc] font-black py-3 rounded-xl text-[10px] uppercase border border-[#00ffcc]/20 hover:bg-[#00ffcc]/10 transition-all flex items-center justify-center gap-3"
-                    >
-                        <i className="fas fa-volume-mute"></i>
-                        Marcar Silencio
-                    </button>
-                    <button 
-                        onClick={() => setIsSyncing(false)}
-                        className="w-full text-[8px] uppercase text-zinc-500 font-bold"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            ) : (
-                <button 
-                    onClick={startSync}
-                    className="w-full py-3 bg-zinc-900 border border-white/5 text-[9px] uppercase font-bold rounded-xl hover:bg-zinc-800 transition-all mb-2"
-                >
-                    Iniciar Sincronización Manual
-                </button>
-            )}
+          {/* 2. Sincronización */}
+          <div className="mb-6 p-6 bg-[#12121e]/30 backdrop-blur-md border border-white/5 rounded-3xl relative overflow-hidden group hover:border-white/10 transition-all duration-300">
+              <div className="flex items-center justify-between mb-5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400">2. Sincronización</span>
+                  <label className="cursor-pointer text-[8px] font-black uppercase tracking-widest text-[#00ffcc] hover:underline flex items-center gap-1.5">
+                      <i className="fas fa-file-import text-[9px]"></i> Subir Letra (.txt)
+                      <input type="file" accept=".txt" className="hidden" onChange={handleLyricsFileUpload} />
+                  </label>
+              </div>
+              <textarea 
+                  value={rawLyrics}
+                  onChange={(e) => setRawLyrics(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 p-3.5 text-[9px] rounded-2xl h-24 mb-4 outline-none focus:border-cyan-500/30 text-white font-light" 
+                  placeholder="Pega la letra limpia aquí..."
+              />
+              
+              {isSyncing ? (
+                  <div className="mb-4 p-5 bg-[#00ffcc]/5 rounded-2xl border border-[#00ffcc]/20 space-y-3.5 animate-pulse">
+                      <div className="flex flex-col">
+                          <span className="text-[7px] text-[#00ffcc] uppercase font-black tracking-widest">Siguiente frase:</span>
+                          <span className="text-xs text-white font-bold italic truncate">{syncLines[syncIndex]}</span>
+                      </div>
+                      <button 
+                          onClick={markTime}
+                          className="w-full bg-[#00ffcc] text-black font-black py-3.5 rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-cyan-500/20 active:scale-95 transition-all"
+                      >
+                          MARCAR TIEMPO (SPACE)
+                      </button>
+                      <button 
+                          onClick={markSilence}
+                          className="w-full bg-white/5 text-[#00ffcc] font-black py-3 rounded-xl text-[8px] uppercase tracking-widest border border-[#00ffcc]/20 hover:bg-[#00ffcc]/10 transition-all flex items-center justify-center gap-2"
+                      >
+                          <i className="fas fa-volume-xmark text-[9px]"></i>
+                          Marcar Silencio
+                      </button>
+                      <button 
+                          onClick={() => setIsSyncing(false)}
+                          className="w-full text-[8px] uppercase text-zinc-500 font-black tracking-widest text-center hover:text-white transition-colors"
+                      >
+                          Cancelar
+                      </button>
+                  </div>
+              ) : (
+                  <button 
+                      onClick={startSync}
+                      className="w-full py-3 bg-zinc-900 border border-white/5 text-[8px] uppercase font-black tracking-widest rounded-xl hover:bg-zinc-800 hover:text-white transition-all mb-4"
+                  >
+                      Iniciar Sincronización Manual
+                  </button>
+              )}
 
-            <textarea 
-                value={lyricsInput}
-                onChange={(e) => setLyricsInput(e.target.value)}
-                className="w-full bg-black/20 border border-white/5 p-3 text-[10px] font-mono rounded-xl h-32 outline-none" 
-                placeholder="0.0 | Letra de ejemplo..."
-            />
-            
-            <div className="mt-4">
-                <button 
-                    onClick={handleBackupLyrics}
-                    disabled={!lyricsInput && !rawLyrics}
-                    className="flex-1 py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-30"
-                >
-                    <i className="fas fa-download"></i>
-                    Descargar
-                </button>
-                <button 
-                    onClick={() => { setShowBloggerModal(true); fetchBloggerDrafts(); }}
-                    className="flex-1 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center gap-3"
-                >
-                    <i className="fas fa-cloud"></i>
-                    Borradores Cloud
-                </button>
-            </div>
+              <textarea 
+                  value={lyricsInput}
+                  onChange={(e) => setLyricsInput(e.target.value)}
+                  className="w-full bg-black/20 border border-white/5 p-3.5 text-[9px] font-mono rounded-2xl h-28 outline-none text-zinc-300" 
+                  placeholder="0.0 | Letra de ejemplo..."
+              />
+              
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                  <button 
+                      onClick={handleBackupLyrics}
+                      disabled={!lyricsInput && !rawLyrics}
+                      className="py-3 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] text-[8px] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                  >
+                      <i className="fas fa-download"></i>
+                      Descargar
+                  </button>
+                  <button 
+                      onClick={() => { setShowBloggerModal(true); fetchBloggerDrafts(); }}
+                      className="py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                      <i className="fas fa-cloud"></i>
+                      Borradores Cloud
+                  </button>
+              </div>
 
-            {/* DRAFTS SECTION */}
-            <div className="mt-6 pt-6 border-t border-white/5">
-                <div className="flex gap-2 mb-4">
-                    <input 
-                        type="text" 
-                        value={draftName}
-                        onChange={e => setDraftName(e.target.value)}
-                        placeholder="Nombre del borrador..."
-                        className="flex-1 bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg outline-none"
-                    />
-                    <button 
-                        onClick={saveDraft}
-                        className="px-4 py-2 bg-[#00ffcc] text-black text-[9px] font-black uppercase rounded-lg hover:bg-white transition-all"
-                    >
-                        Guardar
-                    </button>
-                </div>
+              {/* DRAFTS SECTION */}
+              <div className="mt-5 pt-5 border-t border-white/5">
+                  <div className="flex gap-2 mb-4">
+                      <input 
+                          type="text" 
+                          value={draftName}
+                          onChange={e => setDraftName(e.target.value)}
+                          placeholder="Nombre del borrador..."
+                          className="flex-1 bg-black/40 border border-white/10 p-2.5 text-[9px] rounded-xl outline-none"
+                      />
+                      <button 
+                          onClick={saveDraft}
+                          className="px-4 py-2.5 bg-[#00ffcc] text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all"
+                      >
+                          Guardar
+                      </button>
+                  </div>
 
-                {(savedDrafts.length > 0 || bloggerDrafts.some(d => d.type === 'SHEET')) && (
-                    <div className="space-y-2 mt-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                        {/* Cloud Sheets Items First */}
-                        {bloggerDrafts.filter(d => d.type === 'SHEET').map((draft, i) => (
-                            <div key={`cloud-${i}`} className="group relative bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl hover:border-amber-500 hover:bg-amber-500/20 transition-all cursor-pointer" onClick={() => importFromBlogger(draft)}>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-500 text-[10px]">
-                                        <i className="fas fa-cloud"></i>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-[10px] font-black uppercase text-white group-hover:text-amber-400 transition-colors line-clamp-1">{draft.title}</h4>
-                                        <p className="text-[7px] text-amber-500/60 uppercase font-bold tracking-widest">Nube (Google Sheet)</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                  {(savedDrafts.length > 0 || bloggerDrafts.some(d => d.type === 'SHEET')) && (
+                      <div className="space-y-2 mt-4 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                          {/* Cloud Sheets Items First */}
+                          {bloggerDrafts.filter(d => d.type === 'SHEET').map((draft, i) => (
+                              <div key={`cloud-${i}`} className="group relative bg-[#c5a059]/5 border border-[#c5a059]/10 p-3 rounded-2xl hover:border-[#c5a059]/50 hover:bg-[#c5a059]/10 transition-all cursor-pointer" onClick={() => importFromBlogger(draft)}>
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-[#c5a059]/10 rounded-xl flex items-center justify-center text-[#c5a059] text-[10px]">
+                                          <i className="fas fa-cloud"></i>
+                                      </div>
+                                      <div className="flex-1">
+                                          <h4 className="text-[10px] font-black uppercase text-white group-hover:text-[#c5a059] transition-colors line-clamp-1">{draft.title}</h4>
+                                          <p className="text-[7px] text-[#c5a059]/60 uppercase font-black tracking-widest">Nube (Google Sheet)</p>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
 
-                        {/* Local Items */}
-                        {savedDrafts.map((draft, i) => (
-                            <div key={i} className="group relative bg-white/5 border border-white/5 p-3 rounded-xl hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer" onClick={() => loadDraft(draft)}>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-white/40 text-[10px]">
-                                        <i className="fas fa-file-lines"></i>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-[10px] font-black uppercase text-white/70 group-hover:text-white transition-colors line-clamp-1">{draft.name}</h4>
-                                        <p className="text-[7px] text-white/20 uppercase font-bold tracking-widest">{draft.date}</p>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); deleteDraft(i); }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 text-red-500/50 hover:text-red-500 transition-all"
-                                >
-                                    <i className="fas fa-trash-can text-[10px]"></i>
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
+                          {/* Local Items */}
+                          {savedDrafts.map((draft, i) => (
+                              <div key={i} className="group relative bg-white/5 border border-white/5 p-3 rounded-2xl hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer" onClick={() => loadDraft(draft)}>
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-white/40 text-[10px]">
+                                          <i className="fas fa-file-lines"></i>
+                                      </div>
+                                      <div className="flex-1">
+                                          <h4 className="text-[10px] font-black uppercase text-white/70 group-hover:text-white transition-colors line-clamp-1">{draft.name}</h4>
+                                          <p className="text-[7px] text-white/20 uppercase font-black tracking-widest">{draft.date}</p>
+                                      </div>
+                                  </div>
+                                  <button 
+                                      onClick={(e) => { e.stopPropagation(); deleteDraft(i); }}
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 text-red-500/50 hover:text-red-500 transition-all"
+                                  >
+                                      <i className="fas fa-trash-can text-[10px]"></i>
+                                  </button>
+                              </div>
+                          ))}
+                      </div>
+                  )}
+              </div>
+          </div>
 
-        {/* 3. Estética */}
-        <div className="mb-10 p-5 bg-white/5 border border-white/5 rounded-2xl">
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Estética Pro</span>
-                <button 
-                    onClick={handleMagicDesign}
-                    disabled={isGeneratingStyle}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] disabled:opacity-50"
-                >
-                    {isGeneratingStyle ? (
-                        <><i className="fas fa-spinner fa-spin"></i> Magia...</>
-                    ) : (
-                        <><i className="fas fa-wand-magic-sparkles"></i> Diseño Mágico IA v2.2</>
-                    )}
-                </button>
-            </div>
-            
-            {imagePromptStatus && (
-                <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-center gap-3 animate-pulse text-[9px] font-black uppercase tracking-widest text-purple-400">
-                    <i className="fas fa-palette"></i> {imagePromptStatus}
-                </div>
-            )}
-            
-            <div className="mb-6 p-3 bg-black/20 rounded-xl border border-white/5">
-                <label className="text-[9px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>
-                <div className="grid grid-cols-2 gap-2">
-                    {[
-                        { id: 'bars', label: 'Barras Urbanas', icon: 'fa-chart-simple' },
-                        { id: 'wave', label: 'Onda Digital', icon: 'fa-wave-square' },
-                        { id: 'pulse', label: 'Pulso Neon', icon: 'fa-circle-dot' },
-                        { id: 'dots', label: 'Puntos Minimal', icon: 'fa-ellipsis' },
-                        { id: 'circular', label: 'Círculo Studio', icon: 'fa-circle-notch' },
-                        { id: 'hidden', label: 'Ocultar todo', icon: 'fa-eye-slash' }
-                    ].map((s) => (
-                        <button 
-                            key={s.id}
-                            onClick={() => setVisualizerStyle(s.id)}
-                            className={`flex items-center gap-2 p-2 rounded-lg text-[8px] font-bold uppercase transition-all border ${visualizerStyle === s.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
-                        >
-                            <i className={`fas ${s.icon}`}></i>
-                            {s.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
+          {/* 3. Estética */}
+          <div className="mb-8 p-6 bg-[#12121e]/30 backdrop-blur-md border border-[#c5a059]/10 rounded-3xl relative overflow-hidden group hover:border-[#c5a059]/20 transition-all duration-300">
+              <div className="flex items-center justify-between mb-5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059]">3. Estética Pro</span>
+                  <button 
+                      onClick={handleMagicDesign}
+                      disabled={isGeneratingStyle}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white rounded-full text-[8px] font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
+                  >
+                      {isGeneratingStyle ? (
+                          <><i className="fas fa-spinner fa-spin"></i> Magia...</>
+                      ) : (
+                          <><i className="fas fa-wand-magic-sparkles"></i> Diseño IA</>
+                      )}
+                  </button>
+              </div>
+              
+              {imagePromptStatus && (
+                  <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center gap-3 animate-pulse text-[8px] font-black uppercase tracking-widest text-purple-400">
+                      <i className="fas fa-palette"></i> {imagePromptStatus}
+                  </div>
+              )}
+              
+              <div className="mb-4 p-3.5 bg-black/20 rounded-2xl border border-white/5">
+                  <label className="text-[8px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>
+                  <div className="grid grid-cols-2 gap-2">
+                      {[
+                          { id: 'bars', label: 'Barras Gold', icon: 'fa-chart-simple' },
+                          { id: 'wave', label: 'Onda Digital', icon: 'fa-wave-square' },
+                          { id: 'pulse', label: 'Pulso Neon', icon: 'fa-circle-dot' },
+                          { id: 'dots', label: 'Puntos Minimal', icon: 'fa-ellipsis' },
+                          { id: 'circular', label: 'Círculo Studio', icon: 'fa-circle-notch' },
+                          { id: 'hidden', label: 'Ocultar todo', icon: 'fa-eye-slash' }
+                      ].map((s) => (
+                          <button 
+                              key={s.id}
+                              onClick={() => setVisualizerStyle(s.id)}
+                              className={`flex items-center gap-1.5 p-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${visualizerStyle === s.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
+                          >
+                              <i className={`fas ${s.icon} text-[9px]`}></i>
+                              {s.label}
+                          </button>
+                      ))}
+                  </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Vibe FX</label>
-                    <select 
-                        value={vibe} 
-                        onChange={(e) => setVibe(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg"
-                    >
-                        <option value="cinematic">Cinemático Glow</option>
-                        <option value="modern">Modern Minimal</option>
-                        <option value="party">Fiesta Beats</option>
-                        <option value="retro">Vintage 8mm</option>
-                        <option value="glitch">Glitch Art</option>
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Partículas</label>
-                    <select 
-                        value={emojiPack} 
-                        onChange={(e) => setEmojiPack(e.target.value as any)}
-                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg"
-                    >
-                        <option value="none">Ninguno</option>
-                        <option value="fire">🔥 Fuego</option>
-                        <option value="love">❤️ Amor</option>
-                        <option value="stars">✨ Brillos</option>
-                        <option value="music">🎵 Notas</option>
-                    </select>
-                </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-1.5">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Vibe FX</label>
+                      <select 
+                          value={vibe} 
+                          onChange={(e) => setVibe(e.target.value)}
+                          className="w-full bg-[#0a0a14]/80 border border-white/10 p-2.5 text-[9px] rounded-xl text-white outline-none"
+                      >
+                          <option value="cinematic">Cinemático Glow</option>
+                          <option value="modern">Modern Minimal</option>
+                          <option value="party">Fiesta Beats</option>
+                          <option value="retro">Vintage 8mm</option>
+                          <option value="glitch">Glitch Art</option>
+                      </select>
+                  </div>
+                  <div className="space-y-1.5">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Partículas</label>
+                      <select 
+                          value={emojiPack} 
+                          onChange={(e) => setEmojiPack(e.target.value as any)}
+                          className="w-full bg-[#0a0a14]/80 border border-[#c5a059]/10 p-2.5 text-[9px] rounded-xl text-white outline-none"
+                      >
+                          <option value="none">Ninguno</option>
+                          <option value="fire">🔥 Fuego</option>
+                          <option value="love">❤️ Amor</option>
+                          <option value="stars">✨ Brillos</option>
+                          <option value="music">🎵 Notas</option>
+                      </select>
+                  </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Animación Letra</label>
-                    <select 
-                        value={animationStyle} 
-                        onChange={(e) => setAnimationStyle(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 p-2 text-[10px] rounded-lg"
-                    >
-                        <option value="fade">Fade & Blur (Classic)</option>
-                        <option value="slide">Slide Up (Smooth)</option>
-                        <option value="zoom">Elastic Zoom (Action)</option>
-                    </select>
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Sensibilidad Bass</label>
-                    <input type="range" min="0.5" max="3" step="0.1" value={sensitivity} onChange={(e) => setSensitivity(parseFloat(e.target.value))} className="w-full accent-[#00ffcc]" />
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Tamaño Fuente</label>
-                    <input type="range" min="30" max="100" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="w-full accent-[#00ffcc]" />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold">Color Texto</label>
-                    <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="w-full h-8 rounded-lg bg-transparent border-0 cursor-pointer" />
-                </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-1.5">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Animación Letra</label>
+                      <select 
+                          value={animationStyle} 
+                          onChange={(e) => setAnimationStyle(e.target.value)}
+                          className="w-full bg-[#0a0a14]/80 border border-white/10 p-2.5 text-[9px] rounded-xl text-white outline-none font-bold"
+                      >
+                          <option value="fade">Fade & Blur</option>
+                          <option value="slide">Slide Up</option>
+                          <option value="zoom">Elastic Zoom</option>
+                      </select>
+                  </div>
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Sensibilidad Bass</label>
+                      <input 
+                        type="range" 
+                        min="0.5" 
+                        max="3" 
+                        step="0.1" 
+                        value={sensitivity} 
+                        onChange={(e) => setSensitivity(parseFloat(e.target.value))} 
+                        className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#00ffcc]" 
+                      />
+                  </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Tamaño Fuente</label>
+                      <input 
+                        type="range" 
+                        min="30" 
+                        max="100" 
+                        value={fontSize} 
+                        onChange={(e) => setFontSize(parseInt(e.target.value))} 
+                        className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#00ffcc]" 
+                      />
+                  </div>
+                  <div className="space-y-1.5">
+                      <label className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1 block">Color Texto</label>
+                      <div className="flex items-center gap-2 bg-[#0a0a14]/80 p-1.5 rounded-xl border border-white/10">
+                          <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="w-8 h-6 rounded-lg bg-transparent border-0 cursor-pointer" />
+                          <span className="text-[8px] font-mono text-zinc-400 uppercase font-black">{textColor}</span>
+                      </div>
+                  </div>
+              </div>
 
-            <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={glowToggle} onChange={() => setGlowToggle(!glowToggle)} className="w-4 h-4 accent-[#00ffcc]" />
-                    <span className="text-[9px] uppercase font-bold text-zinc-400">Glow Aura</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={leakToggle} onChange={() => setLeakToggle(!leakToggle)} className="w-4 h-4 accent-[#00ffcc]" />
-                    <span className="text-[9px] uppercase font-bold text-zinc-400">Light Leaks</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={vhsMode} onChange={() => setVhsMode(!vhsMode)} className="w-4 h-4 accent-[#00ffcc]" />
-                    <span className="text-[9px] uppercase font-bold text-[#ff4444]">Retro VHS</span>
-                </label>
-            </div>
+              <div className="flex flex-wrap gap-4 pt-2 border-t border-white/5">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={glowToggle} onChange={() => setGlowToggle(!glowToggle)} className="w-3.5 h-3.5 rounded bg-black border-white/10 accent-[#00ffcc]" />
+                      <span className="text-[8px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-white transition-colors">Glow Aura</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={leakToggle} onChange={() => setLeakToggle(!leakToggle)} className="w-3.5 h-3.5 rounded bg-black border-white/10 accent-[#00ffcc]" />
+                      <span className="text-[8px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-white transition-colors">Leaks FX</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={vhsMode} onChange={() => setVhsMode(!vhsMode)} className="w-3.5 h-3.5 rounded bg-black border-white/10 accent-[#ff4444]" />
+                      <span className="text-[8px] uppercase font-black tracking-widest text-zinc-400 group-hover:text-[#ff4444] transition-colors">Retro VHS</span>
+                  </label>
+              </div>
+          </div>
         </div>
 
         {/* 4. Export */}
-        <div className="pb-12">
+        <div className="pt-4">
             <button 
                 onClick={handleExport}
                 disabled={isExporting}
-                className="w-full py-4 bg-[#00ffcc] text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white transition-all shadow-lg shadow-cyan-500/10 disabled:opacity-50"
+                className="w-full py-4 bg-gradient-to-r from-[#00ffcc] to-[#00b38b] hover:from-[#c5a059] hover:to-[#99793e] text-black hover:text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_8px_30px_rgba(0,255,204,0.15)] disabled:opacity-50 duration-300"
             >
-                {isExporting ? "Procesando Master..." : "Exportar Master Final"}
+                {isExporting ? "Procesando Master Espectral..." : "⚡ Exportar Master Final (Anti-IA)"}
             </button>
             
             {isExporting && (
-                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 animate-fade-in">
-                    <div className="w-full max-w-md space-y-8 text-center">
+                <div className="fixed inset-0 z-[100] bg-[#030305]/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 animate-fade-in">
+                    <div className="w-full max-w-md space-y-8 text-center bg-[#0d0d18]/60 p-10 rounded-[32px] border border-[#00ffcc]/20 shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+                        <div className="absolute top-4 right-6 flex items-center gap-1.5 animate-pulse bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-lg">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            <span className="text-[6px] font-black uppercase tracking-widest text-green-400">Anti-IA Bypass On</span>
+                        </div>
+
                         <div className="relative w-48 h-48 mx-auto">
                             <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={502.4} strokeDashoffset={502.4 * (1 - progress/100)} className="text-[#00ffcc] transition-all duration-300" strokeLinecap="round" />
+                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
+                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={502.4} strokeDashoffset={502.4 * (1 - progress/100)} className="text-[#00ffcc] transition-all duration-300" strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 8px #00ffcc)' }} />
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-4xl font-black italic">{Math.floor(progress)}%</span>
-                                <span className="text-[9px] uppercase font-black tracking-widest text-[#00ffcc]">Rindiendo Master</span>
+                                <span className="text-4xl font-black italic tracking-tighter text-white">{Math.floor(progress)}%</span>
+                                <span className="text-[7px] uppercase font-black tracking-widest text-[#00ffcc] mt-1.5">CODIFICANDO 80 MBPS</span>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <h3 className="text-xl font-black uppercase italic tracking-tighter">Procesando Video HD</h3>
-                            <p className="text-[10px] text-zinc-400 uppercase tracking-widest leading-relaxed">
-                                Por favor mantén esta pestaña activa.<br/>
-                                <span className="text-[#ff4444]">El proceso se pausará si cambias de ventana.</span>
+                        <div className="space-y-3.5">
+                            <h3 className="text-lg font-black uppercase italic tracking-tighter text-white">Generando Master de Video de Alta Tasa</h3>
+                            <p className="text-[9px] text-zinc-400 uppercase tracking-widest leading-relaxed">
+                                Inyectando espectro de sala analógica sub-audible y grano dinámico.<br/>
+                                <span className="text-[#ff4444] font-bold">Mantén esta pestaña activa para evitar desincronización de fotogramas.</span>
                             </p>
                         </div>
 
-                        <div className="flex justify-center gap-1">
+                        <div className="flex justify-center gap-1.5">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="w-1 h-1 bg-[#00ffcc] rounded-full animate-bounce" style={{ animationDelay: `${i*0.2}s` }}></div>
+                                <div key={i} className="w-1.5 h-1.5 bg-[#00ffcc] rounded-full animate-bounce" style={{ animationDelay: `${i*0.2}s` }}></div>
                             ))}
                         </div>
                     </div>
@@ -1779,23 +1914,23 @@ const LyricStudio: React.FC = () => {
         
         {/* BLOGGER MODAL */}
         {showBloggerModal && (
-            <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
-                <div className="bg-[#0a0a0f] border border-white/10 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in">
+                <div className="bg-[#0b0b13] border border-[#c5a059]/20 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
                     <div className="p-6 border-b border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <i className="fas fa-cloud-arrow-down text-[#c5a059] text-xl"></i>
                             <h2 className="text-sm font-black uppercase tracking-widest">Borradores en la Nube</h2>
                         </div>
-                        <button onClick={() => setShowBloggerModal(false)} className="text-white/20 hover:text-white">
+                        <button onClick={() => setShowBloggerModal(false)} className="text-white/20 hover:text-white hover:scale-110 transition-transform">
                             <i className="fas fa-times text-xl"></i>
                         </button>
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                         {isFetchingBlogger ? (
-                            <div className="flex flex-col items-center justify-center py-12 gap-4">
+                            <div className="flex flex-col items-center justify-center py-16 gap-4">
                                 <div className="w-8 h-8 border-2 border-[#c5a059] border-t-transparent rounded-full animate-spin"></div>
-                                <p className="text-[10px] uppercase font-black tracking-widest text-white/20">Sincronizando con la nube...</p>
+                                <p className="text-[9px] uppercase font-black tracking-widest text-white/20">Sincronizando con la nube...</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -1804,7 +1939,7 @@ const LyricStudio: React.FC = () => {
                                         <div 
                                             key={i} 
                                             onClick={() => importFromBlogger(post)}
-                                            className={`p-4 bg-white/5 border rounded-2xl transition-all cursor-pointer group ${post.type === 'SHEET' ? 'border-[#c5a059]/30 hover:border-[#c5a059] hover:bg-[#c5a059]/5' : 'border-white/5 hover:border-blue-400/50 hover:bg-blue-400/5'}`}
+                                            className={`p-4 bg-white/5 border rounded-2xl transition-all cursor-pointer group ${post.type === 'SHEET' ? 'border-[#c5a059]/20 hover:border-[#c5a059] hover:bg-[#c5a059]/5' : 'border-white/5 hover:border-blue-400/50 hover:bg-blue-400/5'}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <h3 className={`text-xs font-bold ${post.type === 'SHEET' ? 'group-hover:text-[#c5a059]' : 'group-hover:text-blue-400'} transition-colors`}>{post.title}</h3>

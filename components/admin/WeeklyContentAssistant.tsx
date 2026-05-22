@@ -15,6 +15,7 @@ interface Suggestion {
     caption: string;
     tiktokCaption: string;
     hashtags: string;
+    releaseName?: string;
 }
 
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycby5C_0B369l_t69r7x7o7y5K-C9X9xX9x/exec"; // Placeholder, real one is in the file
@@ -119,6 +120,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
                 hashtags: HASHTAG_SETS.new_release,
+                releaseName: releaseThisWeek.name,
             };
         }
 
@@ -212,6 +214,33 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setTimeout(() => setCopied(null), 2000);
     };
 
+    const handleNext = () => {
+        if (!suggestion) return;
+        let idsToMark: string[] = [];
+        if (suggestion.song) idsToMark.push(suggestion.song.id);
+        if (suggestion.releaseName) idsToMark.push(suggestion.releaseName);
+        
+        if (idsToMark.length > 0) {
+            const next = [...promotedIds, ...idsToMark];
+            setPromotedIds(next);
+            localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
+        } else if (suggestion.type === 'new_release' && releases.length > 0) {
+            // Fallback for releases
+            const activeRelease = releases.find(r => {
+                const now = new Date();
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay());
+                const d = new Date(r.releaseDate);
+                return d >= startOfWeek && d <= now;
+            });
+            if (activeRelease) {
+                const next = [...promotedIds, activeRelease.name];
+                setPromotedIds(next);
+                localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
+            }
+        }
+    };
+
     const handleAction = (route: string) => {
         if (suggestion?.song) {
             navigate(route, { state: { song: suggestion.song } });
@@ -271,7 +300,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
                             </button>
                             <button
-                                onClick={() => { if(suggestion?.song) markAsPromoted(suggestion.song.id); }}
+                                onClick={handleNext}
                                 className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-5 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
                             >
                                 <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Siguiente</span>

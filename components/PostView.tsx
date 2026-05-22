@@ -101,6 +101,17 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
       updateMeta('og:image', image);
       updateMeta('description', description);
 
+      // Dynamic Canonical Tag Injection
+      if (slug) {
+        let canonicalEl = document.querySelector('link[rel="canonical"]');
+        if (!canonicalEl) {
+          canonicalEl = document.createElement('link');
+          canonicalEl.setAttribute('rel', 'canonical');
+          document.head.appendChild(canonicalEl);
+        }
+        canonicalEl.setAttribute('href', `https://app.diosmasgym.com/post/${slug}`);
+      }
+
       trackEvent('post_view', { title, id: p.id });
     }
   }, [state.selectedPost]);

@@ -21,8 +21,18 @@
 
     <script>
         (function() {
-            // 1. Redireccionar rutas limpias del servidor a rutas con Hash (#) para compatibilidad con SPA/HashRouter
             var path = window.location.pathname;
+            
+            // 0. Redirección de URLs antiguas de Blogger (e.g., /2012/10/testimonio-de-funky.html)
+            var bloggerMatch = path.match(/^\/\d{4}\/\d{2}\/(.+)\.html$/);
+            if (bloggerMatch && bloggerMatch[1]) {
+                var search = window.location.search || '';
+                var hash = window.location.hash || '';
+                window.location.replace('/#/post/' + bloggerMatch[1] + search + hash);
+                return;
+            }
+
+            // 1. Redireccionar rutas limpias del servidor a rutas con Hash (#) para compatibilidad con SPA/HashRouter
             if (!path.startsWith('/api') && !path.includes('.') && path !== '/') {
                 if (path.startsWith('/post/') || path.startsWith('/link/') || path.startsWith('/bio') || path.startsWith('/admin')) {
                     var search = window.location.search || '';
@@ -45,6 +55,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dios Mas Gym - El Arsenal de Fe</title>
+    <link rel="canonical" href="https://app.diosmasgym.com/" />
     <meta name="theme-color" content="#05070a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

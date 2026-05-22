@@ -437,6 +437,7 @@ export default async function handler(
       html = html.replace('<meta property="og:title" content="Dios Mas Gym - El Arsenal de Fe">', `<meta property="og:title" content="${title}">`);
       html = html.replace('<meta property="og:description" content="Reflexiones de fe, valentía y disciplina en El Arsenal.">', `<meta property="og:description" content="${description}">`);
       html = html.replace('<meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">', `<meta property="og:image" content="${image}">`);
+      html = html.replace('<link rel="canonical" href="https://app.diosmasgym.com/" />', `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       html = html.replace('</head>', `<meta name="description" content="${description}">\n</head>`);
 
       res.setHeader('Content-Type', 'text/html');
