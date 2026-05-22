@@ -287,9 +287,9 @@ const AnalyticsDashboard: React.FC = () => {
                     {/* Gráfica de Distribución (Pastel) */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 relative flex flex-col lg:col-span-1 h-48">
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-adjust mr-2"></i> Intereses de Audiencia</p>
-                        <div className="flex-1 w-full h-full -mt-4">
+                        <div className="flex-1 w-full h-full -mt-4" style={{ minHeight: 0 }}>
                             {data?.distribution && data.distribution.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <PieChart>
                                         <Pie
                                             data={data.distribution}
@@ -321,9 +321,9 @@ const AnalyticsDashboard: React.FC = () => {
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4 relative z-10">
                             <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Tráfico en Tiempo Real de Hoy (Horas)' : timeframeFilter === 'month' ? 'Tráfico del Último Mes (Semanas)' : 'Tráfico de los últimos 7 días'}
                         </p>
-                        <div className="w-full h-32 relative z-10">
+                        <div className="w-full h-32 relative z-10" style={{ minHeight: 0 }}>
                             {data?.history && data.history.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <AreaChart data={data.history}>
                                         <defs>
                                             <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
