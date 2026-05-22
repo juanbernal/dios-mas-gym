@@ -32,6 +32,15 @@
                 return;
             }
 
+            // 0b. Redirección de páginas estáticas antiguas de Blogger (e.g., /p/testimonios.html)
+            var bloggerPageMatch = path.match(/^\/p\/(.+)\.html$/);
+            if (bloggerPageMatch && bloggerPageMatch[1]) {
+                var search = window.location.search || '';
+                var hash = window.location.hash || '';
+                window.location.replace('/#/post/' + bloggerPageMatch[1] + search + hash);
+                return;
+            }
+
             // 1. Redireccionar rutas limpias del servidor a rutas con Hash (#) para compatibilidad con SPA/HashRouter
             if (!path.startsWith('/api') && !path.includes('.') && path !== '/') {
                 if (path.startsWith('/post/') || path.startsWith('/link/') || path.startsWith('/bio') || path.startsWith('/admin')) {
