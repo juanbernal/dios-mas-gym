@@ -119,11 +119,17 @@ async function startServer() {
   // Sheet proxy (Google Apps Script)
   const GS_MAIN_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
   const GS_LYRICS_URL = 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+  const GS_ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec';
 
   app.all("/api/sheet-proxy", async (req, res) => {
     try {
       const script = (req.query.script as string) || 'main';
-      let url = script === 'lyrics' ? GS_LYRICS_URL : GS_MAIN_URL;
+      let url = GS_MAIN_URL;
+      if (script === 'lyrics') {
+        url = GS_LYRICS_URL;
+      } else if (script === 'analytics') {
+        url = GS_ANALYTICS_URL;
+      }
 
       if (req.method === 'GET') {
         const q = { ...req.query } as Record<string, string>;
