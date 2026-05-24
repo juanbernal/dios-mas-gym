@@ -15,6 +15,25 @@ const smoothNoise = (t: number) => {
     return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
 };
 
+const getHighResCoverUrl = (url: string): string => {
+    if (!url) return "";
+    
+    // Google User Content hostings (Drive, Photos, etc.)
+    // Often formatted as: https://lh3.googleusercontent.com/d/1abcxyz=w220-h220
+    // Replacing =w... or =s... with =s1200 will fetch the native high-res file!
+    if (url.includes('googleusercontent.com') || url.includes('lh3.google.com') || url.includes('lh3.googleusercontent.com')) {
+        const base = url.split('=')[0];
+        return `${base}=s1200`; // Fetch pristine 1200px master asset
+    }
+    
+    // Google Drive direct thumbnail URLs with sizing parameter
+    if (url.includes('drive.google.com') && url.includes('sz=')) {
+        return url.replace(/sz=\w+/g, 'sz=s1200');
+    }
+    
+    return url;
+};
+
 export const SMARTLINK_CREATOR_VERSION = '3.0';
 
 const SmartLinkVideoGenerator: React.FC = () => {
@@ -81,8 +100,10 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
     useEffect(() => { 
         const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
+        const highResUrl = getHighResCoverUrl(url);
+
         if (bgImageRef.current) {
-            if (url.startsWith('blob:') || url.startsWith('data:')) {
+            if (highResUrl.startsWith('blob:') || highResUrl.startsWith('data:')) {
                 bgImageRef.current.removeAttribute('crossOrigin');
             } else {
                 bgImageRef.current.crossOrigin = "anonymous";
@@ -109,8 +130,8 @@ const SmartLinkVideoGenerator: React.FC = () => {
                 handleBlurGeneration();
             }
 
-            if (bgImageRef.current.src !== url) {
-                bgImageRef.current.src = url;
+            if (bgImageRef.current.src !== highResUrl) {
+                bgImageRef.current.src = highResUrl;
             }
         }
         promoImgRef.current = promoImageUrl; 
@@ -147,7 +168,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
     const drawRef = useRef<() => void>(() => {});
 
-    const renderCanvas = (timeOverride?: number) => {
+    const renderCanvas = (timeOverride?: number, isStatic = false) => {
         if (!canvasRef.current || !selectedSong) return;
         const ctx = canvasRef.current.getContext('2d', { alpha: false });
         if (!ctx) return;
@@ -165,10 +186,10 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const isJuan = (artistRef.current || selectedSong.artist || '').toLowerCase().includes('juan');
         const accentColor = isJuan ? '#c89d53' : '#c5a059';
 
-        // Symmetrical float drifts (Anti-AI camera movements)
-        const nX = smoothNoise(time * 0.12) - 0.5;
-        const nY = smoothNoise(time * 0.18 + 50) - 0.5;
-        const floatZoom = 6 + (smoothNoise(time * 0.08) * 8);
+        // Symmetrical float drifts (Anti-AI camera movements - disabled for pixel-perfect static downloads)
+        const driftX = isStatic ? 0 : (smoothNoise(time * 0.12) - 0.5);
+        const driftY = isStatic ? 0 : (smoothNoise(time * 0.18 + 50) - 0.5);
+        const floatZoom = isStatic ? 0 : (6 + (smoothNoise(time * 0.08) * 8));
 
         // 1. Base dark background
         ctx.fillStyle = isJuan ? '#1a1412' : '#05070a';
@@ -181,7 +202,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
         if (isImgReady) {
             ctx.save();
             ctx.globalAlpha = isJuan ? 0.22 : 0.30;
-            const bgZoom = 1.30 + smoothNoise(time * 0.05) * 0.05;
+            const bgZoom = 1.30 + (isStatic ? 0.025 : smoothNoise(time * 0.05) * 0.05);
             
             // Ultra-smooth native canvas blur (prevents low-res pixelation)
             if ('filter' in ctx) {
@@ -189,7 +210,13 @@ const SmartLinkVideoGenerator: React.FC = () => {
             }
             
             try {
-                ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 15), (h - h*bgZoom)/2 + (nY * 15), w*bgZoom, h*bgZoom);
+                // Round all coordinates to avoid blurry fractional pixel rendering
+                const targetW = Math.round(w * bgZoom);
+                const targetH = Math.round(h * bgZoom);
+                const targetX = Math.round((w - targetW) / 2 + (driftX * 15));
+                const targetY = Math.round((h - targetH) / 2 + (driftY * 15));
+                
+                ctx.drawImage(img, targetX, targetY, targetW, targetH);
             } catch (e) {
                 console.warn("Background drawing failed", e);
             }
@@ -244,7 +271,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
         // 3. Ambient lighting & vignette edges
         const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, `rgba(0,0,0,${0.25 + smoothNoise(time * 0.5) * 0.05})`);
+        grad.addColorStop(0, `rgba(0,0,0,${0.25 + (isStatic ? 0.025 : smoothNoise(time * 0.5) * 0.05)})`);
         grad.addColorStop(0.5, 'rgba(0,0,0,0)');
         grad.addColorStop(1, isJuan ? 'rgba(26,20,18,0.96)' : 'rgba(5,7,10,0.96)');
         ctx.fillStyle = grad;
@@ -253,14 +280,14 @@ const SmartLinkVideoGenerator: React.FC = () => {
         // Subtle gold / light floating particles
         ctx.fillStyle = isJuan ? 'rgba(200, 157, 83, 0.35)' : 'rgba(197, 160, 89, 0.38)';
         for(let i=0; i<15; i++) {
-            const seedX = smoothNoise(time * 0.04 + i * 4);
-            const seedY = smoothNoise(time * 0.07 + i * 8);
+            const seedX = isStatic ? 0.35 : smoothNoise(time * 0.04 + i * 4);
+            const seedY = isStatic ? 0.65 : smoothNoise(time * 0.07 + i * 8);
             
             const px = (seedX * 1.4) * w;
             const py = ((seedY * 1.1) % 1) * h;
             
             ctx.save();
-            ctx.globalAlpha = 0.08 + smoothNoise(time * 1.2 + i) * 0.18;
+            ctx.globalAlpha = isStatic ? 0.15 : (0.08 + smoothNoise(time * 1.2 + i) * 0.18);
             ctx.beginPath();
             ctx.ellipse(px, py, 2.5 + seedX * 2.5, 2 + seedY * 2, seedX * Math.PI, 0, Math.PI * 2);
             ctx.fill();
@@ -280,26 +307,26 @@ const SmartLinkVideoGenerator: React.FC = () => {
         
         // Cover art size 420x420, centered on X = 500. Top Y = 130
         const coverSize = 420;
-        const coverX = colCenterX - (coverSize / 2) + (nX * 3);
-        const coverY = 130 + (nY * 3);
+        const coverX = Math.round(colCenterX - (coverSize / 2) + (driftX * 3));
+        const coverY = Math.round(130 + (driftY * 3));
         const coverRadius = 20;
 
         if (isImgReady) {
             // Draw Dios Mas Gym golden pulsing blur halo behind cover
             if (!isJuan) {
                 ctx.save();
-                ctx.shadowBlur = 60 + smoothNoise(time) * 20;
+                ctx.shadowBlur = isStatic ? 65 : (60 + smoothNoise(time) * 20);
                 ctx.shadowColor = accentColor;
                 
                 // Subtle pulse glow
-                const glowScale = 1.01 + smoothNoise(time * 0.5) * 0.015;
+                const glowScale = isStatic ? 1.02 : (1.01 + smoothNoise(time * 0.5) * 0.015);
                 ctx.fillStyle = 'rgba(197, 160, 89, 0.22)';
                 ctx.beginPath();
                 ctx.roundRect(
-                    colCenterX - (coverSize * glowScale)/2, 
-                    coverY - (coverSize * (glowScale - 1))/2, 
-                    coverSize * glowScale, 
-                    coverSize * glowScale, 
+                    Math.round(colCenterX - (coverSize * glowScale)/2), 
+                    Math.round(coverY - (coverSize * (glowScale - 1))/2), 
+                    Math.round(coverSize * glowScale), 
+                    Math.round(coverSize * glowScale), 
                     coverRadius + 4
                 );
                 ctx.fill();
@@ -328,7 +355,10 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.closePath();
             ctx.clip();
             try {
-                ctx.drawImage(img, coverX - floatZoom, coverY - floatZoom, coverSize + floatZoom*2, coverSize + floatZoom*2);
+                const drawSize = Math.round(coverSize + floatZoom*2);
+                const drawX = Math.round(coverX - floatZoom);
+                const drawY = Math.round(coverY - floatZoom);
+                ctx.drawImage(img, drawX, drawY, drawSize, drawSize);
             } catch (e) {
                 console.warn("Cover drawing failed", e);
             }
@@ -346,7 +376,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
         // Title - Centered Georgia or Playfair display, elegant Mixed-Case!
         ctx.save();
-        ctx.translate(nX * 2, nY * 2);
+        ctx.translate(Math.round(driftX * 2), Math.round(driftY * 2));
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
@@ -756,7 +786,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
     const downloadImage = () => {
         if (!canvasRef.current || !selectedSong) return;
         try {
-            renderCanvas();
+            renderCanvas(undefined, true); // Force pixel-perfect static rendering for downloads
             const dataUrl = canvasRef.current.toDataURL("image/png");
             const a = document.createElement('a');
             const songName = (customTitle || selectedSong.name || 'smartlink').replace(/\s+/g, '_');
