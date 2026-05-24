@@ -18,41 +18,47 @@ const smoothNoise = (t: number) => {
 const getHighResCoverUrl = (url: string): string => {
     if (!url) return "";
     
-    // 1. Google User Content hostings (Drive, Photos, Blogger, etc.)
-    // Often formatted as: https://lh3.googleusercontent.com/d/1abcxyz=w220-h220
-    // Replacing =w... or =s... with =s1200 will fetch the native high-res file!
-    if (url.includes('googleusercontent.com') || url.includes('lh3.google.com') || url.includes('lh3.googleusercontent.com')) {
-        const base = url.split('=')[0];
-        return `${base}=s1200`; // Fetch pristine 1200px master asset
+    // 1. YouTube Video Thumbnails
+    // Low-res: default.jpg, mqdefault.jpg, hqdefault.jpg
+    // High-res master: maxresdefault.jpg (1280x720). Upgrades automatically!
+    if (url.includes('img.youtube.com/vi/') || url.includes('i.ytimg.com/vi/')) {
+        return url.replace(/\/(default|hqdefault|mqdefault|sddefault)\.jpg/g, '/maxresdefault.jpg');
     }
-    
-    // 2. Google Drive direct thumbnail URLs with sizing parameter
-    if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
-        if (url.includes('sz=')) {
-            return url.replace(/sz=\w+/g, 'sz=s1200');
-        } else {
-            return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
-        }
-    }
-    
-    // 3. Spotify Album Art covers
+
+    // 2. Spotify Album Art covers
     // Low-res: ab67616d00004851 (150x150), Mid-res: ab67616d00001e02 (300x300)
     // High-res master: ab67616d0000b273 (640x640). Upgrades automatically!
     if (url.includes('i.scdn.co/image/')) {
         return url.replace(/ab67616d0000[0-9a-fA-F]+/g, 'ab67616d0000b273');
     }
 
-    // 4. YouTube Video Thumbnails
-    // Low-res: default.jpg, mqdefault.jpg, hqdefault.jpg
-    // High-res master: maxresdefault.jpg (1280x720). Upgrades automatically!
-    if (url.includes('img.youtube.com/vi/') || url.includes('i.ytimg.com/vi/')) {
-        return url.replace(/\/(default|hqdefault|mqdefault|sddefault)\.jpg/g, '/maxresdefault.jpg');
+    // 3. Blogger, Blogspot, Google Photos, and Picasa Web Albums path resizing (e.g. /s320/, /s220-c/, /w200-h200/)
+    // Replaces the path sizing segment directly with /s1200/ to request the original high-resolution master asset
+    if (url.includes('googleusercontent.com') || url.includes('blogspot.com') || url.includes('google.com') || url.includes('bp.blogspot.com')) {
+        if (/\/s[0-9]+(-c)?\//.test(url) || /\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//.test(url)) {
+            return url.replace(/\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//g, '/s1200/');
+        }
+        
+        // If it has query parameter resizing like =w220 or =s220 at the end
+        if (url.includes('=')) {
+            const base = url.split('=')[0];
+            return `${base}=s1200`; // Fetch pristine 1200px master asset
+        }
+        
+        // If it is a Google Drive direct thumbnail URL
+        if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
+            if (url.includes('sz=')) {
+                return url.replace(/sz=\w+/g, 'sz=s1200');
+            } else {
+                return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
+            }
+        }
     }
     
     return url;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '4.0 (Ultra HD 4K)';
+export const SMARTLINK_CREATOR_VERSION = '5.0 (4K UHD - Super Crisp Master)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -197,13 +203,13 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const ctx = canvasRef.current.getContext('2d', { alpha: false });
         if (!ctx) return;
 
-        // Force Crisp Bilinear Rendering Settings
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
         // Double internal scaling factor to support 3840x2160 UHD output on 1920x1080 coordinate system
         ctx.save();
         ctx.scale(2, 2);
+
+        // Force Crisp Bilinear Rendering Settings *after* scaling to prevent browser defaults from resetting
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // 1920x1080 Desktop HD Resolution
         const w = 1920;
