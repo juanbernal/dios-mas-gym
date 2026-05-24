@@ -15,7 +15,7 @@ const smoothNoise = (t: number) => {
     return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '2.0';
+export const SMARTLINK_CREATOR_VERSION = '2.1';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -134,6 +134,17 @@ const SmartLinkVideoGenerator: React.FC = () => {
         });
     }, [location.state]);
 
+    const getRelatedTracks = () => {
+        if (!selectedSong) return [];
+        // Find other songs by the same artist first
+        const sameArtist = catalog.filter(
+            s => s.artist.toLowerCase().includes(selectedSong.artist.toLowerCase()) && s.id !== selectedSong.id
+        );
+        if (sameArtist.length > 0) return sameArtist.slice(0, 3);
+        // Fallback to general catalog if no other same-artist tracks are found
+        return catalog.filter(s => s.id !== selectedSong.id).slice(0, 3);
+    };
+
     const drawRef = useRef<() => void>(() => {});
 
     const renderCanvas = (timeOverride?: number) => {
@@ -150,9 +161,9 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const accentColor = isJuan ? '#c89d53' : '#c5a059';
 
         // Organic camera drift (for aesthetic premium feel)
-        const nX = smoothNoise(time * 0.15) - 0.5;
-        const nY = smoothNoise(time * 0.22 + 50) - 0.5;
-        const floatZoom = 8 + (smoothNoise(time * 0.1) * 10);
+        const nX = smoothNoise(time * 0.12) - 0.5;
+        const nY = smoothNoise(time * 0.18 + 50) - 0.5;
+        const floatZoom = 5 + (smoothNoise(time * 0.08) * 8);
 
         // 1. Base background
         ctx.fillStyle = isJuan ? '#1a1412' : '#05070a';
@@ -165,15 +176,15 @@ const SmartLinkVideoGenerator: React.FC = () => {
         if (isImgReady) {
             ctx.save();
             ctx.globalAlpha = isJuan ? 0.35 : 0.45;
-            const bgZoom = 1.38 + smoothNoise(time * 0.05) * 0.05;
+            const bgZoom = 1.35 + smoothNoise(time * 0.05) * 0.05;
             const blurredCanvas = blurredBgCanvasRef.current;
             try {
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 if (blurredCanvas) {
-                    ctx.drawImage(blurredCanvas, (w - w*bgZoom)/2 + (nX * 15), (h - h*bgZoom)/2 + (nY * 15), w*bgZoom, h*bgZoom);
+                    ctx.drawImage(blurredCanvas, (w - w*bgZoom)/2 + (nX * 12), (h - h*bgZoom)/2 + (nY * 12), w*bgZoom, h*bgZoom);
                 } else {
-                    ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 15), (h - h*bgZoom)/2 + (nY * 15), w*bgZoom, h*bgZoom);
+                    ctx.drawImage(img, (w - w*bgZoom)/2 + (nX * 12), (h - h*bgZoom)/2 + (nY * 12), w*bgZoom, h*bgZoom);
                 }
             } catch (e) {
                 console.warn("Background drawing failed", e);
@@ -221,15 +232,15 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
         // 4. Subtle gold / light floating particles
         ctx.fillStyle = isJuan ? 'rgba(200, 157, 83, 0.35)' : 'rgba(197, 160, 89, 0.38)';
-        for(let i=0; i<20; i++) {
-            const seedX = smoothNoise(time * 0.06 + i * 4);
-            const seedY = smoothNoise(time * 0.1 + i * 8);
+        for(let i=0; i<15; i++) {
+            const seedX = smoothNoise(time * 0.05 + i * 4);
+            const seedY = smoothNoise(time * 0.08 + i * 8);
             
             const px = (seedX * 1.4) * w;
             const py = ((seedY * 1.1) % 1) * h;
             
             ctx.save();
-            ctx.globalAlpha = 0.15 + smoothNoise(time * 1.2 + i) * 0.3;
+            ctx.globalAlpha = 0.12 + smoothNoise(time * 1.2 + i) * 0.25;
             ctx.beginPath();
             ctx.ellipse(px, py, 2.5 + seedX * 2.5, 2 + seedY * 2, seedX * Math.PI, 0, Math.PI * 2);
             ctx.fill();
@@ -262,36 +273,35 @@ const SmartLinkVideoGenerator: React.FC = () => {
         ctx.fillText('APP.DIOSMASGYM.COM/LINK', 560, 120);
         ctx.restore();
 
-        // 6. Cover Art with premium gold ambient glow
+        // 6. Cover Art with premium gold ambient glow (with realistic slightly rounded corners: e.g. 18px)
         const coverSize = 580;
-        const coverX = (w - coverSize) / 2 + (nX * 6);
-        const coverY = 220 + (nY * 6);
-        const coverRadius = 36;
+        const coverX = (w - coverSize) / 2 + (nX * 4);
+        const coverY = 200 + (nY * 4);
+        const coverRadius = 18; // Sleek modern corners matching your design!
 
         if (isImgReady) {
             ctx.save();
-            ctx.shadowBlur = 80 + smoothNoise(time) * 30;
-            ctx.shadowColor = accentColor;
+            ctx.shadowBlur = 50 + smoothNoise(time) * 15;
+            ctx.shadowColor = 'rgba(197, 160, 89, 0.4)';
             
             ctx.beginPath();
             ctx.roundRect(coverX, coverY, coverSize, coverSize, coverRadius);
             ctx.closePath();
             ctx.clip();
             try {
-                // Subtle camera float zoom
                 ctx.drawImage(img, coverX - floatZoom, coverY - floatZoom, coverSize + floatZoom*2, coverSize + floatZoom*2);
             } catch (e) {
                 console.warn("Cover drawing failed", e);
             }
             ctx.restore();
 
-            // Symmetrical border lines behind the cover for Juan style
+            // Symmetrical border line behind the cover for Juan style
             if (isJuan) {
                 ctx.save();
                 ctx.strokeStyle = 'rgba(139, 90, 43, 0.25)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.roundRect(coverX - 12, coverY - 12, coverSize + 24, coverSize + 24, coverRadius + 6);
+                ctx.roundRect(coverX - 10, coverY - 10, coverSize + 20, coverSize + 20, coverRadius + 4);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -307,53 +317,47 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.restore();
         }
 
-        // 7. Typography (Song Name & Artist)
+        // 7. Premium Mixed-Case Serif Typography (Song Name & Artist)
         ctx.textAlign = 'center';
         
         ctx.save();
-        ctx.translate(nX * 5, nY * 5);
+        ctx.translate(nX * 3, nY * 3);
 
-        // Song Title
+        // Elegant mixed-case serif title matching the landing page design!
         ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
-        if (isJuan) {
-            ctx.font = 'italic 700 62px "Playfair Display", serif';
-        } else {
-            ctx.font = '900 64px Poppins, sans-serif';
-        }
+        ctx.font = 'italic 700 52px Georgia, "Playfair Display", "Times New Roman", serif';
         ctx.shadowBlur = 15;
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         
-        const titleText = (titleRef.current || selectedSong.name || "S/N").toUpperCase();
+        const titleText = customTitle || selectedSong.name || "S/N";
         
-        // Auto-scale font size if title is too long
-        let titleFontSize = 64;
-        if (titleText.length > 15) {
-            titleFontSize = Math.max(38, Math.floor(64 * (15 / titleText.length)));
-            ctx.font = isJuan 
-                ? `italic 700 ${titleFontSize}px "Playfair Display", serif`
-                : `900 ${titleFontSize}px Poppins, sans-serif`;
+        // Auto-scale font size if title is too long to prevent overflowing
+        let titleFontSize = 52;
+        if (titleText.length > 25) {
+            titleFontSize = Math.max(34, Math.floor(52 * (25 / titleText.length)));
+            ctx.font = `italic 700 ${titleFontSize}px Georgia, "Playfair Display", "Times New Roman", serif`;
         }
         
-        ctx.fillText(titleText, 540, 875, 900);
+        ctx.fillText(titleText, 540, 855, 900);
 
-        // Artist Name
+        // Artist Name - Gold uppercase, expanded tracking
         ctx.fillStyle = accentColor;
-        ctx.font = '700 26px Poppins, sans-serif';
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '10px';
+        ctx.font = '700 24px Poppins, sans-serif';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '8px';
         ctx.shadowBlur = 10;
-        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 940, 900);
+        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 920, 900);
         
         ctx.restore();
 
-        // 8. Semi-transparent Glassmorphic Player Card (Default/Ready State for Image)
+        // 8. Semi-transparent Glassmorphic Player Card
         const playerW = 800;
-        const playerH = 190;
+        const playerH = 150;
         const playerX = 140;
-        const playerY = 990;
-        const playerRadius = 30;
+        const playerY = 965;
+        const playerRadius = 24;
 
         ctx.save();
-        ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.72)' : 'rgba(5, 7, 10, 0.58)';
+        ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.72)' : 'rgba(15, 11, 8, 0.65)';
         ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.22)' : 'rgba(255, 255, 255, 0.08)';
         ctx.lineWidth = 2;
         
@@ -365,34 +369,34 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
         // Player Tag: Previa & Dot
         ctx.save();
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'; // Fixed nice red dot for image
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'; // Fixed nice red dot
         ctx.beginPath();
-        ctx.arc(185, 1030, 8, 0, Math.PI * 2);
+        ctx.arc(180, 1000, 7, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = accentColor;
-        ctx.font = '900 18px Poppins';
+        ctx.font = '900 16px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText('PREVIA (60 SEGUNDOS)', 205, 1031);
+        ctx.fillText('PREVIA (60 SEGUNDOS)', 198, 1001);
 
         ctx.textAlign = 'right';
         ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
         ctx.globalAlpha = 0.4;
-        ctx.font = '700 16px Poppins';
+        ctx.font = '700 14px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '0px';
-        ctx.fillText('Escucha un fragmento', 900, 1031);
+        ctx.fillText('Escucha un fragmento', 900, 1001);
         ctx.restore();
 
         // Play circular button
-        const playBtnX = 210;
-        const playBtnY = 1115;
-        const playBtnR = 40;
+        const playBtnX = 205;
+        const playBtnY = 1067;
+        const playBtnR = 30;
 
         ctx.save();
         ctx.fillStyle = accentColor;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = accentColor;
         ctx.beginPath();
         ctx.arc(playBtnX, playBtnY, playBtnR, 0, Math.PI * 2);
@@ -402,7 +406,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
         // Draw Play icon inside Play button
         ctx.save();
         ctx.fillStyle = isJuan ? '#1a1412' : '#05070a';
-        ctx.font = '900 24px "Font Awesome 6 Free"';
+        ctx.font = '900 18px "Font Awesome 6 Free"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('\uf04b', playBtnX + 2, playBtnY); // Play icon (\uf04b)
@@ -413,58 +417,82 @@ const SmartLinkVideoGenerator: React.FC = () => {
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
         ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
-        ctx.font = '900 18px Poppins';
+        ctx.font = '900 16px Poppins';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText('LISTO PARA ESCUCHAR', 280, 1095);
+        ctx.fillText('LISTO PARA ESCUCHAR', 260, 1052);
 
         ctx.textAlign = 'right';
-        ctx.font = '700 18px Courier, monospace';
+        ctx.font = '700 16px Courier, monospace';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '0px';
-        ctx.fillText('05s / 60s', 900, 1095);
+        ctx.fillText('05s / 60s', 900, 1052);
         ctx.restore();
 
         // Player Progress Track
-        const trackX = 280;
-        const trackY = 1125;
-        const trackW = 620;
-        const trackH = 10;
+        const trackX = 260;
+        const trackY = 1075;
+        const trackW = 640;
+        const trackH = 6;
 
         ctx.save();
         ctx.fillStyle = isJuan ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.1)';
         ctx.beginPath();
-        ctx.roundRect(trackX, trackY, trackW, trackH, 5);
+        ctx.roundRect(trackX, trackY, trackW, trackH, 3);
         ctx.fill();
 
-        // Elegant default progress fill (about 10% completed)
+        // Elegant default progress fill (8% completed)
         ctx.fillStyle = accentColor;
         ctx.beginPath();
-        ctx.roundRect(trackX, trackY, trackW * 0.08, trackH, 5);
+        ctx.roundRect(trackX, trackY, trackW * 0.08, trackH, 3);
         ctx.fill();
         ctx.restore();
 
-        // 9. Platform Buttons Grid (6 buttons, 2 columns, Y: 1210 to 1660)
+        // 9. "¡CANCIÓN COMPLETA AQUÍ! ⬇" Gold Pill Button
+        const pillW = 480;
+        const pillH = 50;
+        const pillX = (w - pillW) / 2;
+        const pillY = 1145;
+
+        ctx.save();
+        ctx.fillStyle = accentColor;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(197, 160, 89, 0.3)';
+        ctx.beginPath();
+        ctx.roundRect(pillX, pillY, pillW, pillH, 25);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = isJuan ? '#1a1412' : '#05070a';
+        ctx.font = '900 15px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('¡CANCIÓN COMPLETA AQUÍ! ⬇', 540, pillY + pillH / 2);
+        ctx.restore();
+
+        // 10. Platform Buttons Grid (6 buttons, Y: 1220 to 1420)
         const btnW = 380;
-        const btnH = 135;
+        const btnH = 90; // Sleek, low-height buttons matching landing page
         const gridX1 = 140;
         const gridX2 = 560;
-        const rowGap = 35;
-        const btnRadius = 24;
+        const rowGap = 20;
+        const btnRadius = 16;
 
         const platforms = [
-            { name: 'Spotify', color: '#1DB954', iconChar: '\uf1bc', x: gridX1, y: 1210 },
-            { name: 'Apple Music', color: '#FA243C', iconChar: '\uf179', x: gridX2, y: 1210 },
-            { name: 'YouTube', color: '#FF0000', iconChar: '\uf167', x: gridX1, y: 1210 + btnH + rowGap },
-            { name: 'Amazon Music', color: '#00A8E1', iconChar: '\uf270', x: gridX2, y: 1210 + btnH + rowGap },
-            { name: 'Tidal', color: '#ffffff', iconChar: '\uf001', x: gridX1, y: 1210 + (btnH + rowGap) * 2 },
-            { name: 'Deezer', color: '#FEAA2D', iconChar: '\uf001', x: gridX2, y: 1210 + (btnH + rowGap) * 2 }
+            { name: 'Spotify', color: '#1DB954', iconChar: '\uf1bc', x: gridX1, y: 1220 },
+            { name: 'Apple Music', color: '#FA243C', iconChar: '\uf179', x: gridX2, y: 1220 },
+            { name: 'YouTube', color: '#FF0000', iconChar: '\uf167', x: gridX1, y: 1220 + btnH + rowGap },
+            { name: 'Amazon Music', color: '#00A8E1', iconChar: '\uf270', x: gridX2, y: 1220 + btnH + rowGap },
+            { name: 'Tidal', color: '#ffffff', iconChar: '\uf001', x: gridX1, y: 1220 + (btnH + rowGap) * 2 },
+            { name: 'Deezer', color: '#FEAA2D', iconChar: '\uf001', x: gridX2, y: 1220 + (btnH + rowGap) * 2 }
         ];
 
         platforms.forEach(p => {
             // Draw glassmorphic button outline
             ctx.save();
-            ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.55)' : 'rgba(255, 255, 255, 0.04)';
-            ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.12)' : 'rgba(255, 255, 255, 0.08)';
-            ctx.lineWidth = 2;
+            ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.55)' : 'rgba(255, 255, 255, 0.03)';
+            ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.12)' : 'rgba(255, 255, 255, 0.06)';
+            ctx.lineWidth = 1.5;
 
             ctx.beginPath();
             ctx.roundRect(p.x, p.y, btnW, btnH, btnRadius);
@@ -472,51 +500,102 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.stroke();
             ctx.restore();
 
-            // Floating icon circle inside the button
-            const icX = p.x + btnW / 2;
-            const icY = p.y + 45;
+            // Brand icon drawn beautifully to the left of the button
+            const icX = p.x + 45;
+            const icY = p.y + btnH / 2;
 
             ctx.save();
-            ctx.fillStyle = isJuan ? 'rgba(0,0,0,0.18)' : 'rgba(0, 0, 0, 0.2)';
-            ctx.beginPath();
-            ctx.arc(icX, icY, 28, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Paint brand icon
             ctx.fillStyle = p.color;
-            ctx.font = '900 28px "Font Awesome 6 Brands"';
+            ctx.font = '900 24px "Font Awesome 6 Brands"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // Fallback to Free Music Note for Tidal/Deezer if brand glyphs missing
+            // Fallback for Tidal/Deezer
             if (p.name === 'Tidal' || p.name === 'Deezer') {
-                ctx.font = '900 26px "Font Awesome 6 Free"';
+                ctx.font = '900 22px "Font Awesome 6 Free"';
             }
             ctx.fillText(p.iconChar, icX, icY);
             ctx.restore();
 
             // Platform text label
             ctx.save();
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
-            ctx.font = '700 16px Poppins';
-            if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '1px';
-            ctx.fillText(p.name.toUpperCase(), p.x + btnW / 2, p.y + 98);
+            ctx.font = '900 13px Poppins';
+            if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+            ctx.fillText(p.name.toUpperCase(), p.x + 95, p.y + btnH / 2);
             ctx.restore();
         });
 
-        // 10. Bell Capsule Notification
+        // 11. Dynamic "LISTA DE CANCIONES / TRACKS" Tracklist
+        const relatedTracks = getRelatedTracks();
+        if (relatedTracks.length > 0) {
+            const tracklistStartY = 1565;
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = accentColor;
+            
+            // Draw list icon (\uf0ca)
+            ctx.font = '900 16px "Font Awesome 6 Free"';
+            ctx.fillText('\uf0ca', 140, tracklistStartY);
+            
+            ctx.font = '900 14px Poppins';
+            if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+            ctx.fillText('LISTA DE CANCIONES / TRACKS', 170, tracklistStartY + 1);
+            ctx.restore();
+
+            relatedTracks.forEach((track, idx) => {
+                const trackY = tracklistStartY + 35 + (idx * 52);
+                
+                // Fine divider line
+                ctx.save();
+                ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(140, trackY - 12);
+                ctx.lineTo(940, trackY - 12);
+                ctx.stroke();
+                ctx.restore();
+
+                // Track Number
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.font = '700 13px monospace';
+                ctx.fillText(`0${idx + 1}`, 140, trackY + 12);
+                ctx.restore();
+
+                // Track Name (Elegantly left-aligned mixed-case!)
+                ctx.save();
+                ctx.fillStyle = isJuan ? 'rgba(232, 220, 197, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+                ctx.font = '700 15px Poppins';
+                const maxLen = 42;
+                const displayName = track.name.length > maxLen ? track.name.substring(0, maxLen) + '...' : track.name;
+                ctx.fillText(displayName, 190, trackY + 12);
+                ctx.restore();
+
+                // Chevron icon right (\uf054)
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.font = '900 12px "Font Awesome 6 Free"';
+                ctx.textAlign = 'right';
+                ctx.fillText('\uf054', 940, trackY + 12);
+                ctx.restore();
+            });
+        }
+
+        // 12. Bell Capsule Notification (Very sleek and low at Y = 1785)
         const bellW = 800;
-        const bellH = 75;
+        const bellH = 50;
         const bellX = 140;
-        const bellY = 1735;
-        const bellRadius = 37;
+        const bellY = 1785;
+        const bellRadius = 25;
 
         ctx.save();
-        ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.72)' : 'rgba(255, 255, 255, 0.04)';
+        ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.72)' : 'rgba(255, 255, 255, 0.03)';
         ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.22)' : 'rgba(255, 255, 255, 0.08)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
 
         ctx.beginPath();
         ctx.roundRect(bellX, bellY, bellW, bellH, bellRadius);
@@ -524,44 +603,44 @@ const SmartLinkVideoGenerator: React.FC = () => {
         ctx.stroke();
         ctx.restore();
 
-        // Bell content (bell icon + subscription text)
+        // Bell icon and label
         ctx.save();
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
         
         ctx.fillStyle = accentColor;
-        ctx.font = '900 20px "Font Awesome 6 Free"';
+        ctx.font = '900 16px "Font Awesome 6 Free"';
         ctx.fillText('\uf0f3', 270, bellY + bellH/2);
 
         ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
-        ctx.font = '900 16px Poppins';
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2.5px';
+        ctx.font = '900 13px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
         ctx.fillText('AVÍSAME DE NUEVOS ESTRENOS', 550, bellY + bellH/2);
         ctx.restore();
 
-        // 11. Community Social Icons
-        const socY = 1855;
-        const socR = 25;
+        // 13. Symmetrical Social circles at Y = 1860
+        const socY = 1860;
+        const socR = 20;
         const socials = [
-            { x: 450, icon: '\uf16d', color: '#ffffff' }, // Instagram (\uf16d)
-            { x: 540, icon: '\uf001', color: '#ffffff' }, // TikTok (\uf001 - fallback)
-            { x: 630, icon: '\uf167', color: '#ffffff' }  // YouTube (\uf167)
+            { x: 460, icon: '\uf16d', color: '#ffffff' }, // Instagram (\uf16d)
+            { x: 540, icon: '\uf001', color: '#ffffff' }, // TikTok (\uf001 - note fallback)
+            { x: 620, icon: '\uf167', color: '#ffffff' }  // YouTube (\uf167)
         ];
 
         socials.forEach(s => {
             ctx.save();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
             ctx.beginPath();
             ctx.arc(s.x, socY, socR, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = s.color;
-            ctx.font = '900 20px "Font Awesome 6 Brands"';
+            ctx.font = '900 16px "Font Awesome 6 Brands"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
             if (s.x === 540) {
-                ctx.font = '900 18px "Font Awesome 6 Free"';
+                ctx.font = '900 14px "Font Awesome 6 Free"';
             }
             ctx.fillText(s.icon, s.x, socY);
             ctx.restore();
@@ -677,8 +756,8 @@ const SmartLinkVideoGenerator: React.FC = () => {
                                         type="text" 
                                         value={customTitle} 
                                         onChange={e => setCustomTitle(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all font-bold"
-                                        placeholder="Ej: TITULO DE CANCIÓN"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all font-bold font-serif"
+                                        placeholder="Ej: Titulo de la Canción"
                                     />
                                 </div>
                                 <div className="space-y-1">
