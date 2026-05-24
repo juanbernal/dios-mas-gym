@@ -1228,7 +1228,7 @@ ${cleanedLyrics}`;
                                         </button>
                                     )}
                                     <p className="mt-2 text-[8px] text-white/20">
-                                        Usa Studio PRO Generator v4.3.1 para crear una imagen y automáticamente aparecerá aquí.
+                                        Usa Studio PRO Generator v4.5.0 para crear una imagen y automáticamente aparecerá aquí.
                                     </p>
                                 </div>
                             </div>

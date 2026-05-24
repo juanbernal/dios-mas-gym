@@ -73,10 +73,10 @@ const PromoImageApp: React.FC = () => {
   
   // NEW AESTHETICS 2026
   const [template, setTemplate] = useState("original-v1");
-  const [grit, setGrit] = useState(0.85); // 85% por defecto
-  const [noise, setNoise] = useState(true);
-  const [scanlines, setScanlines] = useState(0.08);
-  const [vignette, setVignette] = useState(0.6);
+  const [grit, setGrit] = useState(0.0); // Clean background by default (0% grit)
+  const [noise, setNoise] = useState(false); // No grain by default
+  const [scanlines, setScanlines] = useState(0.0); // No scanlines by default
+  const [vignette, setVignette] = useState(0.0); // No vignette by default
   const [industrial, setIndustrial] = useState(false);
   const [autoColor, setAutoColor] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false); // Progress feedback state
@@ -319,8 +319,7 @@ const PromoImageApp: React.FC = () => {
           const h = el as HTMLElement;
           h.style.backdropFilter = 'none';
           (h.style as any).webkitBackdropFilter = 'none';
-          // Use original background alpha but slightly darker to ensure text pop in master
-          h.style.backgroundColor = 'rgba(0,0,0,0.7)'; 
+          // Keep the transparent-to-dark radial gradient rather than overlaying a solid dark layer
         });
 
         // 5. No Global Sharpening (Matches Preview exactly)
@@ -663,7 +662,7 @@ const PromoImageApp: React.FC = () => {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.4.0</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.5.0</h1>
         </div>
         <div className="w-20"></div> {/* Spacer */}
       </div>
