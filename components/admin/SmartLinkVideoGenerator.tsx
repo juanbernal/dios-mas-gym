@@ -46,6 +46,22 @@ const SmartLinkVideoGenerator: React.FC = () => {
     const isRecordingRef = useRef(false);
     const exportFrameRef = useRef<number>(0);
 
+    const downloadImage = () => {
+        if (!canvasRef.current || !selectedSong) return;
+        try {
+            renderCanvas();
+            const dataUrl = canvasRef.current.toDataURL("image/png");
+            const a = document.createElement('a');
+            const songName = (customTitle || selectedSong.name || 'smartlink').replace(/\s+/g, '_');
+            a.href = dataUrl;
+            a.download = `SmartLink_${songName}.png`;
+            a.click();
+        } catch (e) {
+            console.error("Error al descargar la imagen:", e);
+            alert("No se pudo generar la imagen para descargar. Si cargaste una portada personalizada remota, verifica que admita CORS.");
+        }
+    };
+
     const grainCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const getGrainCanvas = () => {
         if (grainCanvasRef.current) return grainCanvasRef.current;
@@ -1018,48 +1034,71 @@ const SmartLinkVideoGenerator: React.FC = () => {
                             </div>
                         )}
 
+                        {/* OPCIONES DE DESCARGA */}
                         <div className="mt-6 pt-6 border-t border-white/5 space-y-6">
                             <div>
-                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 2: Subir MP3 de la Canción</h3>
-                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <i className="fas fa-music text-xl text-[#c5a059] mb-2"></i>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localFileUrl ? "Archivo MP3 Cargado" : "Seleccionar MP3"}</p>
-                                    </div>
-                                    <input type="file" className="hidden" accept="audio/*" onChange={handleFileUpload} />
-                                </label>
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-2">Opción A: Descargar como Imagen (Stories)</h3>
+                                <p className="text-[9.5px] text-white/40 leading-relaxed mb-4">
+                                    Exporta el diseño de tu SmartLink como una imagen vertical de alta calidad. Súbela a tus Historias de Instagram/TikTok y añade tu música usando el sticker oficial. ¡Esto incrementa notablemente tus reproducciones!
+                                </p>
+                                <button 
+                                    onClick={downloadImage}
+                                    className="w-full py-4 bg-[#c5a059] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 font-bold shadow-lg"
+                                >
+                                    <i className="fas fa-download text-xs"></i> Descargar Imagen (9:16)
+                                </button>
                             </div>
 
-                            <div>
-                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Paso 3: Imagen Personalizada (Opcional)</h3>
-                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{promoImageUrl ? "Imagen Cargada" : "Seleccionar Imagen"}</p>
+                            <div className="pt-6 border-t border-white/5">
+                                <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-4">Opción B: Generar como Video (Opcional)</h3>
+                                <p className="text-[9.5px] text-white/40 leading-relaxed mb-4">
+                                    Si prefieres exportar un video animado de 1 minuto con la música ya integrada de fondo, realiza los siguientes pasos:
+                                </p>
+                                
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] uppercase font-black tracking-widest text-white/30 block mb-1">1. Subir archivo MP3 local</label>
+                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <i className="fas fa-music text-xl text-[#c5a059] mb-2"></i>
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{localFileUrl ? "Archivo MP3 Cargado" : "Seleccionar MP3"}</p>
+                                            </div>
+                                            <input type="file" className="hidden" accept="audio/*" onChange={handleFileUpload} />
+                                        </label>
                                     </div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) setPromoImageUrl(URL.createObjectURL(file));
-                                    }} />
-                                </label>
-                                {promoImageUrl && (
-                                    <button 
-                                        onClick={() => {
-                                            setPromoImageUrl(null);
-                                            setLocalCoverUrl(null);
-                                        }}
-                                        className="w-full mt-2 text-[8px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all"
-                                    >
-                                        Quitar Imagen
-                                    </button>
-                                )}
+
+                                    <div className="space-y-1 pt-2">
+                                        <label className="text-[8px] uppercase font-black tracking-widest text-white/30 block mb-1">2. Imagen de fondo personalizada (Opcional)</label>
+                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-[#c5a059]/40 hover:bg-white/5 transition-all">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <i className="fas fa-image text-xl text-[#c5a059] mb-2"></i>
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/40">{promoImageUrl ? "Imagen Cargada" : "Seleccionar Imagen"}</p>
+                                            </div>
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) setPromoImageUrl(URL.createObjectURL(file));
+                                            }} />
+                                        </label>
+                                        {promoImageUrl && (
+                                            <button 
+                                                onClick={() => {
+                                                    setPromoImageUrl(null);
+                                                    setLocalCoverUrl(null);
+                                                }}
+                                                className="w-full mt-2 text-[8px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all"
+                                            >
+                                                Quitar Imagen
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {selectedSong && (
+                    {selectedSong && localFileUrl && (
                         <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-2xl animate-in fade-in slide-in-from-left-4">
-                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-6">2. Ajustar Fragmento (1 Minuto)</h3>
+                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest mb-6">Configurar Fragmento de Video</h3>
                             <div className="space-y-6">
                                 <div>
                                     <div className="flex justify-between text-[10px] uppercase font-black tracking-widest mb-4">
