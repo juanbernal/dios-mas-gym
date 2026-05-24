@@ -103,6 +103,9 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
 
+        // Dynamic alternation flag: swaps priority every time a song is promoted (clicking Siguiente)
+        const alternateFlag = (dayOfYear + promotedIds.length) % 2 === 0;
+
         // 1. New release this week (de ambos artistas, con alternancia y prioridad)
         let newReleasesDM: ReleaseData[] = [];
         let newReleasesJ6: ReleaseData[] = [];
@@ -127,8 +130,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         let activeRelease: ReleaseData | null = null;
         if (releaseDM && releaseJ6) {
-            // Ambos tienen nuevos lanzamientos, alternamos según el día
-            activeRelease = dayOfYear % 2 === 0 ? releaseDM : releaseJ6;
+            // Ambos tienen nuevos lanzamientos, alternamos según el toggle dinámico
+            activeRelease = alternateFlag ? releaseDM : releaseJ6;
         } else {
             // Si solo uno tiene, mostramos el que tiene
             activeRelease = releaseDM || releaseJ6;
@@ -160,7 +163,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const newestJ6 = [...j6Pool]
             .filter(s => s.date)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-        const recentSong = dayOfYear % 2 === 0 ? (newestDM || newestJ6) : (newestJ6 || newestDM);
+        const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
         
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
@@ -175,9 +178,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // 3. Rotación uno de cada artista (alterna)
-        const picked = dayOfYear % 2 === 0
-            ? (dmPool[dayOfYear % dmPool.length] || j6Pool[dayOfYear % j6Pool.length])
-            : (j6Pool[dayOfYear % j6Pool.length] || dmPool[dayOfYear % dmPool.length]);
+        const rotationIdx = dayOfYear + promotedIds.length;
+        const picked = alternateFlag
+            ? (dmPool[rotationIdx % dmPool.length] || j6Pool[rotationIdx % j6Pool.length])
+            : (j6Pool[rotationIdx % j6Pool.length] || dmPool[rotationIdx % dmPool.length]);
         if (picked) {
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
             return {
@@ -191,9 +195,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // 4. Joya del archivo (alterna uno de cada artista)
-        const gemDM = dmPool[(dayOfYear + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
-        const gemJ6 = j6Pool[(dayOfYear + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
-        const gem = dayOfYear % 2 === 0 ? (gemDM || gemJ6) : (gemJ6 || gemDM);
+        const gemIdx = dayOfYear + promotedIds.length;
+        const gemDM = dmPool[(gemIdx + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
+        const gemJ6 = j6Pool[(gemIdx + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
+        const gem = alternateFlag ? (gemDM || gemJ6) : (gemJ6 || gemDM);
         
         if (gem) {
             const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
