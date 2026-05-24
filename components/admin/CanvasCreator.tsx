@@ -239,7 +239,7 @@ const CanvasCreator: React.FC = () => {
                                     <div 
                                         className="absolute inset-0 opacity-30"
                                         style={{ 
-                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
+                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)}${isExporting ? '&export_cb=' + Date.now() : ''})`,
                                             backgroundSize: 'cover',
                                             backgroundPosition: 'center',
                                             filter: getFilterStyle(),
@@ -262,7 +262,7 @@ const CanvasCreator: React.FC = () => {
                                         <div 
                                             className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
                                             style={{ 
-                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
+                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)}${isExporting ? '&export_cb=' + Date.now() : ''})`,
                                                 backgroundSize: 'cover',
                                                 backgroundPosition: 'center',
                                                 filter: getFilterStyle()

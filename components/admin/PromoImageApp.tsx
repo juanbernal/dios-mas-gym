@@ -1436,7 +1436,7 @@ const PromoTemplate: React.FC<any> = ({
               style={{ 
                 position: "absolute", 
                 inset: "-2%", // Ligero margen negativo para evitar bordes blancos
-                backgroundImage: `url("${getHighResUrl(bg)}")`, 
+                backgroundImage: `url("${getHighResUrl(bg)}${isExport ? '&export_cb=' + Date.now() : ''}")`, 
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
@@ -1551,7 +1551,7 @@ const PromoTemplate: React.FC<any> = ({
                             style={{ 
                               width: '100%', 
                               height: '100%', 
-                              backgroundImage: `url("${getHighResUrl(bg)}")`,
+                              backgroundImage: `url("${getHighResUrl(bg)}${isExport ? '&export_cb=' + Date.now() : ''}")`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 

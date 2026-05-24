@@ -445,7 +445,7 @@ const CustomPromoCreator: React.FC = () => {
       {/* Hidden master render for export */}
       <div ref={masterRef} style={{ position:"fixed", left:-99999, top:0, pointerEvents:"none", zIndex:-1 }}>
         <div className="cp-master" style={{ width:MASTER_W, height:Math.round(MASTER_W*(sizes[size].h/sizes[size].w)), position:"relative", overflow:"hidden" }}>
-          {bg && <img src={getCorsFriendlyUrl(bg)} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} crossOrigin="anonymous" />}
+          {bg && <img src={getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} crossOrigin="anonymous" />}
           <div style={{ position:"absolute", inset:0, background:`rgba(0,0,0,${overlay})` }} />
           <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:MASTER_W*0.06 }}>
             <div style={{ fontSize:MASTER_W*0.018, fontWeight:900, letterSpacing:"0.4em", color:accentColor, marginBottom:MASTER_W*0.015 }}>{artist.toUpperCase()} RECORDS</div>

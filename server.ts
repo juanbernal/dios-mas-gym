@@ -167,40 +167,32 @@ async function startServer() {
     }
 
     try {
-      const parsedUrl = new URL(imageUrl);
-      const client = parsedUrl.protocol === 'https:' ? https : http;
-
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cache-Control', 'public, max-age=86400');
 
-      client.get(imageUrl, {
+      // Native fetch follows redirects internally server-side on Node 18+
+      const response = await fetch(imageUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
         }
-      }, (proxyRes) => {
-        const statusCode = proxyRes.statusCode || 0;
-        
-        if (statusCode >= 300 && statusCode < 400 && proxyRes.headers.location) {
-          const redirectUrl = new URL(proxyRes.headers.location, imageUrl).toString();
-          return res.redirect(`/api/image-proxy?url=${encodeURIComponent(redirectUrl)}`);
-        }
-
-        if (statusCode < 200 || statusCode >= 300) {
-          return res.status(statusCode).send(`Failed to fetch image: HTTP ${statusCode}`);
-        }
-
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType) {
-          res.setHeader('Content-Type', contentType);
-        }
-        proxyRes.pipe(res);
-      }).on('error', (err) => {
-        console.error('[image-proxy] Fetch error:', err);
-        res.status(500).json({ error: 'Failed to fetch image', details: err.message });
       });
+
+      if (!response.ok) {
+        return res.status(response.status).send(`Failed to fetch image: HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        res.setHeader('Content-Type', contentType);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      return res.status(200).send(buffer);
     } catch (error: any) {
-      console.error('[image-proxy] Invalid URL:', error);
-      res.status(400).json({ error: 'Invalid URL provided', details: error.message });
+      console.error('[image-proxy] Fetch error:', error);
+      return res.status(500).json({ error: 'Failed to proxy image', details: error.message });
     }
   });
 
