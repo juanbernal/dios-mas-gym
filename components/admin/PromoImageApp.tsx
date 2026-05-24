@@ -32,6 +32,15 @@ const countryOptions = [
   { name: 'El Salvador', flag: '🇸🇻', iso: 'sv' }
 ];
 
+// UTILITY TO CONVERT RGB TO HEX
+const rgbToHex = (r: number, g: number, b: number): string => {
+  const clamp = (val: number) => Math.max(0, Math.min(255, val));
+  return "#" + [clamp(r), clamp(g), clamp(b)].map(x => {
+    const hex = x.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("");
+};
+
 // UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION AND PROXY THEM FOR CORS SAFETY
 const getHighResUrl = (url: string | null): string | null => {
   if (!url) return null;
@@ -208,9 +217,9 @@ const PromoImageApp: React.FC = () => {
            
            // SMART TEXT MASTERY: Color de texto armonizado (no solo B/W)
            if (brightness > 160) {
-             setTextColor(`rgba(${Math.max(0, r-150)}, ${Math.max(0, g-150)}, ${Math.max(0, b-150)}, 1)`); // Versión muy oscura del dominante
+             setTextColor(rgbToHex(Math.max(0, r-150), Math.max(0, g-150), Math.max(0, b-150))); // Versión muy oscura del dominante
            } else {
-             setTextColor(`rgba(${Math.min(255, r+200)}, ${Math.min(255, g+200)}, ${Math.min(255, b+200)}, 1)`); // Versión muy clara del dominante
+             setTextColor(rgbToHex(Math.min(255, r+200), Math.min(255, g+200), Math.min(255, b+200))); // Versión muy clara del dominante
            }
            
            setGlow(true);
@@ -808,7 +817,7 @@ const PromoImageApp: React.FC = () => {
                 <input 
                   type={mode === 'proximamente' ? "date" : "datetime-local"}
                   className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059]"
-                  value={date}
+                  value={mode === 'proximamente' ? (date.includes('T') ? date.split('T')[0] : date) : date}
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>
@@ -1436,7 +1445,7 @@ const PromoTemplate: React.FC<any> = ({
               style={{ 
                 position: "absolute", 
                 inset: "-2%", // Ligero margen negativo para evitar bordes blancos
-                backgroundImage: `url("${getHighResUrl(bg)}${isExport ? '&export_cb=' + Date.now() : ''}")`, 
+                backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`, 
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
@@ -1551,7 +1560,7 @@ const PromoTemplate: React.FC<any> = ({
                             style={{ 
                               width: '100%', 
                               height: '100%', 
-                              backgroundImage: `url("${getHighResUrl(bg)}${isExport ? '&export_cb=' + Date.now() : ''}")`,
+                              backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
                               display: 'block', 
