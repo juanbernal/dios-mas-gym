@@ -87,49 +87,78 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const suggestion = useMemo<Suggestion | null>(() => {
         if (!catalog || catalog.length === 0) return null;
 
-        const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
-        const pool = freshCatalog.length > 0 ? freshCatalog : catalog;
+        const isDM = (s: MusicItem) => (s as any).artistGroup === 'diosmasgym' || s.artist.toLowerCase().includes('dios');
+        const isJ6 = (s: MusicItem) => (s as any).artistGroup === 'juan614' || s.artist.toLowerCase().includes('juan');
+
+        const dmCatalog = catalog.filter(isDM);
+        const j6Catalog = catalog.filter(isJ6);
+
+        const dmFresh = dmCatalog.filter(s => !promotedIds.includes(s.id));
+        const j6Fresh = j6Catalog.filter(s => !promotedIds.includes(s.id));
+
+        const dmPool = dmFresh.length > 0 ? dmFresh : dmCatalog;
+        const j6Pool = j6Fresh.length > 0 ? j6Fresh : j6Catalog;
 
         const now = new Date();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(now.getDate() - 7);
 
-        // 1. New release this week (de ambos artistas)
-        let releaseThisWeek = null;
+        // 1. New release this week (de ambos artistas, con alternancia y prioridad)
+        let newReleasesDM: ReleaseData[] = [];
+        let newReleasesJ6: ReleaseData[] = [];
+        
         try {
-            releaseThisWeek = (releases || []).find(r => {
+            (releases || []).forEach(r => {
                 const d = new Date(r.releaseDate);
-                return d >= startOfWeek && d <= now;
+                if (d >= startOfWeek && d <= now) {
+                    const artistLower = r.Artista.toLowerCase();
+                    if (artistLower.includes('dios')) newReleasesDM.push(r);
+                    if (artistLower.includes('juan')) newReleasesJ6.push(r);
+                }
             });
         } catch(e) {}
 
-        if (releaseThisWeek && !promotedIds.includes(releaseThisWeek.name)) {
-            const cleanReleaseName = releaseThisWeek.name.replace(/^(Álbum:|Single:|EP:)\s*/i, '').trim().toLowerCase();
+        const findUnpromotedRelease = (list: ReleaseData[]) => {
+            return list.find(r => !promotedIds.includes(r.name));
+        };
+
+        const releaseDM = findUnpromotedRelease(newReleasesDM);
+        const releaseJ6 = findUnpromotedRelease(newReleasesJ6);
+
+        let activeRelease: ReleaseData | null = null;
+        if (releaseDM && releaseJ6) {
+            // Ambos tienen nuevos lanzamientos, alternamos según el día
+            activeRelease = dayOfYear % 2 === 0 ? releaseDM : releaseJ6;
+        } else {
+            // Si solo uno tiene, mostramos el que tiene
+            activeRelease = releaseDM || releaseJ6;
+        }
+
+        if (activeRelease) {
+            const cleanReleaseName = activeRelease.name.replace(/^(Álbum:|Single:|EP:)\s*/i, '').trim().toLowerCase();
             const matchedSong = catalog.find(s => {
                 const cleanSongName = s.name.toLowerCase();
                 return cleanSongName.includes(cleanReleaseName) || cleanReleaseName.includes(cleanSongName);
             });
             
-            const caps = CAPTIONS_BY_TYPE.new_release(releaseThisWeek.name, releaseThisWeek.Artista);
+            const caps = CAPTIONS_BY_TYPE.new_release(activeRelease.name, activeRelease.Artista);
             return {
                 song: matchedSong || null,
-                reason: `¡Estreno reciente! "${releaseThisWeek.name}" acaba de salir — es el momento ideal para darle fuego.`,
+                reason: `¡Estreno reciente! "${activeRelease.name}" acaba de salir — es el momento ideal para darle fuego.`,
                 type: 'new_release',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
                 hashtags: HASHTAG_SETS.new_release,
-                releaseName: releaseThisWeek.name,
+                releaseName: activeRelease.name,
             };
         }
 
         // 2. Canción más nueva de cada artista (alterna uno y uno)
-        const newestDM = [...pool]
-            .filter(s => (s as any).artistGroup === 'diosmasgym' && s.date)
+        const newestDM = [...dmPool]
+            .filter(s => s.date)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-        const newestJ6 = [...pool]
-            .filter(s => (s as any).artistGroup === 'juan614' && s.date)
+        const newestJ6 = [...j6Pool]
+            .filter(s => s.date)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         const recentSong = dayOfYear % 2 === 0 ? (newestDM || newestJ6) : (newestJ6 || newestDM);
         
@@ -146,8 +175,6 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // 3. Rotación uno de cada artista (alterna)
-        const dmPool = pool.filter(s => (s as any).artistGroup === 'diosmasgym');
-        const j6Pool = pool.filter(s => (s as any).artistGroup === 'juan614');
         const picked = dayOfYear % 2 === 0
             ? (dmPool[dayOfYear % dmPool.length] || j6Pool[dayOfYear % j6Pool.length])
             : (j6Pool[dayOfYear % j6Pool.length] || dmPool[dayOfYear % dmPool.length]);
@@ -164,18 +191,23 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // 4. Joya del archivo (alterna uno de cada artista)
-        const gemDM = dmPool[(dayOfYear + 10) % (dmPool.length || 1)] || pool[0];
-        const gemJ6 = j6Pool[(dayOfYear + 10) % (j6Pool.length || 1)] || pool[0];
+        const gemDM = dmPool[(dayOfYear + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
+        const gemJ6 = j6Pool[(dayOfYear + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
         const gem = dayOfYear % 2 === 0 ? (gemDM || gemJ6) : (gemJ6 || gemDM);
-        const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
-        return {
-            song: gem,
-            reason: `Recomendación diaria: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
-            type: 'old_gem',
-            caption: caps.ig,
-            tiktokCaption: caps.tt,
-            hashtags: HASHTAG_SETS.old_gem,
-        };
+        
+        if (gem) {
+            const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
+            return {
+                song: gem,
+                reason: `Recomendación diaria: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
+                type: 'old_gem',
+                caption: caps.ig,
+                tiktokCaption: caps.tt,
+                hashtags: HASHTAG_SETS.old_gem,
+            };
+        }
+
+        return null;
     }, [catalog, releases, dayOfYear, promotedIds]);
 
     const handleAiGenerate = async () => {

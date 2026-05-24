@@ -257,11 +257,24 @@ const SmartLinkView: React.FC = () => {
                     
                     // Buscar canciones del mismo álbum
                     let related = fullCatalog.filter(s => {
-                        // Tiene que ser el mismo artista, distinta canción, y misma FECHA
-                        // Esta es la lógica original que agrupaba bien los LP y Álbumes
-                        return s.artist.toLowerCase() === found.artist.toLowerCase() && 
-                               s.date === found.date && 
-                               s.id !== found.id;
+                        if (s.artist.toLowerCase() !== found.artist.toLowerCase()) return false;
+                        if (s.id === found.id) return false;
+                        
+                        // 1. Misma portada
+                        if (s.cover && found.cover && s.cover === found.cover) return true;
+                        
+                        // 2. Misma fecha exacta
+                        if (s.date && found.date && s.date === found.date) return true;
+                        
+                        // 3. Fechas muy cercanas (dentro de 10 minutos, para tolerar pequeñas variaciones en el auto-sync)
+                        if (s.date && found.date) {
+                            try {
+                                const diff = Math.abs(new Date(s.date).getTime() - new Date(found.date).getTime());
+                                if (diff <= 10 * 60 * 1000) return true;
+                            } catch (e) {}
+                        }
+                        
+                        return false;
                     });
                     
                     // Protección para Juan 614 (si sube más de 15 temas el mismo día que no son un álbum)
