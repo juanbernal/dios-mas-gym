@@ -39,6 +39,7 @@ const AIPressRelease = React.lazy(() => import('./components/admin/AIPressReleas
 const MetadataTagger = React.lazy(() => import('./components/admin/MetadataTagger'));
 const LinkBioAdmin = React.lazy(() => import('./components/admin/LinkBioAdmin'));
 const VideoSnippetCreator = React.lazy(() => import('./components/admin/VideoSnippetCreator'));
+const SmartLinkVideoGenerator = React.lazy(() => import('./components/admin/SmartLinkVideoGenerator'));
 const LyricsManager = React.lazy(() => import('./components/admin/LyricsManager'));
 const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalendar'));
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
@@ -611,6 +612,7 @@ const App: React.FC = () => {
                 <Route path="metadata-tagger" element={<AdminAuthWrapper><MetadataTagger/></AdminAuthWrapper>} />
                 <Route path="links" element={<AdminAuthWrapper><LinkBioAdmin/></AdminAuthWrapper>} />
                 <Route path="video-snippet" element={<AdminAuthWrapper><VideoSnippetCreator/></AdminAuthWrapper>} />
+                <Route path="smartlink-video" element={<AdminAuthWrapper><SmartLinkVideoGenerator/></AdminAuthWrapper>} />
                 <Route path="lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
                 <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />

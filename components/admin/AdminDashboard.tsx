@@ -249,6 +249,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Contenido Audiovisual'
         },
         {
+            id: 'smartlink-video',
+            title: 'SmartLink Video Creator',
+            description: 'Genera clips de 60 segundos con el diseño real de tu SmartLink y la música de fondo, listo para tus historias y redes sociales.',
+            icon: 'fa-mobile-screen',
+            color: '#c5a059',
+            route: '/admin/smartlink-video',
+            category: 'Contenido Audiovisual'
+        },
+        {
             id: 'lyrics-manager',
             title: 'Gestor de Letras',
             description: 'Centraliza todas tus letras de Blogger (Publicadas y Borradores) en un solo gestor inteligente.',
