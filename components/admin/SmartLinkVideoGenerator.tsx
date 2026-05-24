@@ -18,7 +18,7 @@ const smoothNoise = (t: number) => {
 const getHighResCoverUrl = (url: string): string => {
     if (!url) return "";
     
-    // Google User Content hostings (Drive, Photos, etc.)
+    // 1. Google User Content hostings (Drive, Photos, Blogger, etc.)
     // Often formatted as: https://lh3.googleusercontent.com/d/1abcxyz=w220-h220
     // Replacing =w... or =s... with =s1200 will fetch the native high-res file!
     if (url.includes('googleusercontent.com') || url.includes('lh3.google.com') || url.includes('lh3.googleusercontent.com')) {
@@ -26,9 +26,27 @@ const getHighResCoverUrl = (url: string): string => {
         return `${base}=s1200`; // Fetch pristine 1200px master asset
     }
     
-    // Google Drive direct thumbnail URLs with sizing parameter
-    if (url.includes('drive.google.com') && url.includes('sz=')) {
-        return url.replace(/sz=\w+/g, 'sz=s1200');
+    // 2. Google Drive direct thumbnail URLs with sizing parameter
+    if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
+        if (url.includes('sz=')) {
+            return url.replace(/sz=\w+/g, 'sz=s1200');
+        } else {
+            return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
+        }
+    }
+    
+    // 3. Spotify Album Art covers
+    // Low-res: ab67616d00004851 (150x150), Mid-res: ab67616d00001e02 (300x300)
+    // High-res master: ab67616d0000b273 (640x640). Upgrades automatically!
+    if (url.includes('i.scdn.co/image/')) {
+        return url.replace(/ab67616d0000[0-9a-fA-F]+/g, 'ab67616d0000b273');
+    }
+
+    // 4. YouTube Video Thumbnails
+    // Low-res: default.jpg, mqdefault.jpg, hqdefault.jpg
+    // High-res master: maxresdefault.jpg (1280x720). Upgrades automatically!
+    if (url.includes('img.youtube.com/vi/') || url.includes('i.ytimg.com/vi/')) {
+        return url.replace(/\/(default|hqdefault|mqdefault|sddefault)\.jpg/g, '/maxresdefault.jpg');
     }
     
     return url;
