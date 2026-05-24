@@ -229,9 +229,7 @@ const EPKGenerator: React.FC = () => {
                                         backgroundImage: `url(${getCorsFriendlyUrl(randomCover || (isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"))})`,
                                         backgroundSize: 'cover',
                                         backgroundPosition: 'center',
-                                        backgroundRepeat: 'no-repeat',
-                                        transform: 'scale(1.1)',
-                                        filter: `blur(8px) ${isJuan ? 'sepia(30%) brightness(0.8)' : 'grayscale(100%) brightness(0.6)'}`
+                                        backgroundRepeat: 'no-repeat'
                                     }} 
                                 />
                                 

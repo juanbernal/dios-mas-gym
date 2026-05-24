@@ -220,9 +220,9 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.globalAlpha = isJuan ? 0.22 : 0.30;
             const bgZoom = 1.30 + (isStatic ? 0.025 : smoothNoise(time * 0.05) * 0.05);
             
-            // Ultra-smooth native canvas blur (prevents low-res pixelation)
+            // Keep background perfectly sharp and high quality matching original cover art
             if ('filter' in ctx) {
-                ctx.filter = 'blur(45px) saturate(1.3)';
+                ctx.filter = 'none';
             }
             
             try {
