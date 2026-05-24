@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 
 type FilterType = 'none' | 'vhs' | 'gold-dust' | 'dark-vignette' | 'neon-glow';
 
@@ -238,7 +239,7 @@ const CanvasCreator: React.FC = () => {
                                     <div 
                                         className="absolute inset-0 opacity-30"
                                         style={{ 
-                                            backgroundImage: `url(${coverImage})`,
+                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
                                             backgroundSize: 'cover',
                                             backgroundPosition: 'center',
                                             filter: getFilterStyle(),
@@ -261,7 +262,7 @@ const CanvasCreator: React.FC = () => {
                                         <div 
                                             className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
                                             style={{ 
-                                                backgroundImage: `url(${coverImage})`,
+                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
                                                 backgroundSize: 'cover',
                                                 backgroundPosition: 'center',
                                                 filter: getFilterStyle()

@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { generateSocialCaption, SocialCaptionResult } from "../../services/geminiService";
 import { MusicItem } from "../../types";
+import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const sizes = {
   instagram: { w: 500, h: 650, title: 32 },
@@ -31,39 +32,10 @@ const countryOptions = [
   { name: 'El Salvador', flag: '🇸🇻', iso: 'sv' }
 ];
 
-// UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION
+// UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION AND PROXY THEM FOR CORS SAFETY
 const getHighResUrl = (url: string | null): string | null => {
   if (!url) return null;
-  if (url.startsWith('data:')) return url;
-  
-  try {
-    // 1. Handle Blogger/Google User Content URLs (Absolute coverage)
-    if (url.includes('googleusercontent.com') || url.includes('blogger.com') || url.includes('bp.blogspot.com') || url.includes('ggpht.com')) {
-       // s0 is the absolute master original in Google's ecosystem
-       return url.replace(/=s\d+([-c])?/, '=s0')
-                 .replace(/=w\d+(-h\d+)?([-c])?/, '=s0')
-                 .replace(/\/s\d+(-c)?\//, '/s0/')
-                 .replace(/-rw$/, ''); // Strip WebP compression if present
-    }
-    
-    // 2. Handle YouTube Thumbnails (Force maxresdefault)
-    if (url.includes('ytimg.com')) {
-       return url.replace(/\/(hq|mq|sd|default)default\.jpg/, '/maxresdefault.jpg');
-    }
-
-    // 3. Handle Google Drive (Force Direct Download mode)
-    if (url.includes('drive.google.com')) {
-       if (url.includes('/thumbnail')) return url.replace('/thumbnail', '/uc') + '&export=download';
-       if (url.includes('/file/d/')) {
-         const fileId = url.split('/file/d/')[1]?.split('/')[0];
-         if (fileId) return `https://drive.google.com/uc?id=${fileId}&export=download`;
-       }
-    }
-  } catch (e) {
-    console.warn("URL Upgrade failed, using fallback:", url);
-  }
-  
-  return url;
+  return getCorsFriendlyUrl(url);
 };
 
 const PromoImageApp: React.FC = () => {

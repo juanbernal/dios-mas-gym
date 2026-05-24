@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import { generateSocialCaption } from "../../services/geminiService";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
+import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const sizes = {
   instagram: { w: 500, h: 650, label: "Instagram Post" },
@@ -428,7 +429,7 @@ const CustomPromoCreator: React.FC = () => {
         <div className="flex flex-col items-center gap-4">
           <div className="text-[9px] uppercase font-black tracking-widest text-white/30">Vista Previa</div>
           <div style={{ width: previewW, height: previewH, position: "relative", overflow: "hidden", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)" }}>
-            {bg && <img src={bg} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
+            {bg && <img src={getCorsFriendlyUrl(bg)} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
             <div style={{ position:"absolute", inset:0, background:`rgba(0,0,0,${overlay})` }} />
             <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:20 }}>
               <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.4em", color:accentColor, marginBottom:8 }}>{artist.toUpperCase()} RECORDS</div>
@@ -444,7 +445,7 @@ const CustomPromoCreator: React.FC = () => {
       {/* Hidden master render for export */}
       <div ref={masterRef} style={{ position:"fixed", left:-99999, top:0, pointerEvents:"none", zIndex:-1 }}>
         <div className="cp-master" style={{ width:MASTER_W, height:Math.round(MASTER_W*(sizes[size].h/sizes[size].w)), position:"relative", overflow:"hidden" }}>
-          {bg && <img src={bg} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} crossOrigin="anonymous" />}
+          {bg && <img src={getCorsFriendlyUrl(bg)} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} crossOrigin="anonymous" />}
           <div style={{ position:"absolute", inset:0, background:`rgba(0,0,0,${overlay})` }} />
           <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:MASTER_W*0.06 }}>
             <div style={{ fontSize:MASTER_W*0.018, fontWeight:900, letterSpacing:"0.4em", color:accentColor, marginBottom:MASTER_W*0.015 }}>{artist.toUpperCase()} RECORDS</div>

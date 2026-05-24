@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import ysFixWebmDuration from 'fix-webm-duration';
+import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 
 const noise = (x: number, y: number) => {
     return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
@@ -99,9 +100,10 @@ const VideoSnippetCreator: React.FC = () => {
 
     useEffect(() => { 
         const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
+        const corsUrl = getCorsFriendlyUrl(url);
         if (bgImageRef.current) {
             // Dynamic CORS setup: only use anonymous for remote HTTP(S) links to prevent local blob/data issues
-            if (url.startsWith('blob:') || url.startsWith('data:')) {
+            if (corsUrl.startsWith('blob:') || corsUrl.startsWith('data:')) {
                 bgImageRef.current.removeAttribute('crossOrigin');
             } else {
                 bgImageRef.current.crossOrigin = "anonymous";
@@ -129,8 +131,8 @@ const VideoSnippetCreator: React.FC = () => {
                 handleBlurGeneration();
             }
 
-            if (bgImageRef.current.src !== url) {
-                bgImageRef.current.src = url;
+            if (bgImageRef.current.src !== corsUrl) {
+                bgImageRef.current.src = corsUrl;
             }
         }
         promoImgRef.current = promoImageUrl; 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 
 const noise = (x: number, y: number) => {
     return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
@@ -15,57 +16,7 @@ const smoothNoise = (t: number) => {
     return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
 };
 
-const getHighResCoverUrl = (url: string): string => {
-    if (!url) return "";
-    
-    // 1. YouTube Video Thumbnails
-    // Low-res: default.jpg, mqdefault.jpg, hqdefault.jpg
-    // High-res master: maxresdefault.jpg (1280x720). Upgrades automatically!
-    if (url.includes('img.youtube.com/vi/') || url.includes('i.ytimg.com/vi/')) {
-        return url.replace(/\/(default|hqdefault|mqdefault|sddefault)\.jpg/g, '/maxresdefault.jpg');
-    }
-
-    // 2. Spotify CDN covers (Album art, Artist profiles, Playlists)
-    // Handles i.scdn.co/image/ and *.spotifycdn.com
-    // Supports ab67616d0000 (Album covers -> b273) and ab6761610000 (Avatars -> e5eb) without truncating the unique ID!
-    if (url.includes('i.scdn.co/image/') || url.includes('spotifycdn.com')) {
-        let newUrl = url;
-        if (newUrl.includes('ab67616d0000')) {
-            newUrl = newUrl.replace(/ab67616d0000[0-9a-fA-F]{4}/g, 'ab67616d0000b273');
-        } else if (newUrl.includes('ab6761610000')) {
-            newUrl = newUrl.replace(/ab6761610000[0-9a-fA-F]{4}/g, 'ab6761610000e5eb');
-        }
-        return newUrl;
-    }
-
-    // 3. Blogger, Blogspot, Google Photos, and Picasa Web Albums path resizing (e.g. /s320/, /s220-c/, /w200-h200/)
-    // Replaces the path sizing segment directly with /s0/ to request the original high-resolution master asset
-    if (url.includes('googleusercontent.com') || url.includes('blogspot.com') || url.includes('bp.blogspot.com')) {
-        if (/\/s[0-9]+(-c)?\//.test(url) || /\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//.test(url)) {
-            return url.replace(/\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//g, '/s0/');
-        }
-    }
-
-    // 4. Google User Content query parameters resizing (e.g. =w220, =s220 at the end)
-    // Only applied to googleusercontent.com domains to avoid mangling drive.google.com direct file ID parameters!
-    if (url.includes('googleusercontent.com') && url.includes('=')) {
-        const base = url.split('=')[0];
-        return `${base}=s0`; // Fetch pristine uncompressed original master asset
-    }
-
-    // 5. Google Drive direct thumbnail URLs
-    if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
-        if (url.includes('sz=')) {
-            return url.replace(/sz=\w+/g, 'sz=s2000');
-        } else {
-            return `${url}${url.includes('?') ? '&' : '?'}sz=s2000`;
-        }
-    }
-    
-    return url;
-};
-
-export const SMARTLINK_CREATOR_VERSION = '7.0 (4K UHD - Ultra Sharp Master - Fixed Sizing & Fallbacks)';
+export const SMARTLINK_CREATOR_VERSION = '8.0 (4K UHD - Ultra Sharp Master - Proxy CORS-Safe)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -132,12 +83,12 @@ const SmartLinkVideoGenerator: React.FC = () => {
 
     useEffect(() => { 
         const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
-        const highResUrl = getHighResCoverUrl(url);
+        const corsUrl = getCorsFriendlyUrl(url);
 
         setIsImageLoaded(false); // Reset load state for new image loading
 
         if (bgImageRef.current) {
-            if (highResUrl.startsWith('blob:') || highResUrl.startsWith('data:')) {
+            if (corsUrl.startsWith('blob:') || corsUrl.startsWith('data:')) {
                 bgImageRef.current.removeAttribute('crossOrigin');
             } else {
                 bgImageRef.current.crossOrigin = "anonymous";
@@ -167,18 +118,18 @@ const SmartLinkVideoGenerator: React.FC = () => {
                 const currentSrc = bgImageRef.current?.src || "";
                 if (currentSrc.includes('maxresdefault.jpg')) {
                     console.warn("YouTube maxresdefault.jpg failed, falling back to sddefault.jpg");
-                    bgImageRef.current!.src = currentSrc.replace('maxresdefault.jpg', 'sddefault.jpg');
+                    bgImageRef.current!.src = getCorsFriendlyUrl(url.replace('maxresdefault.jpg', 'sddefault.jpg'));
                 } else if (currentSrc.includes('sddefault.jpg')) {
                     console.warn("YouTube sddefault.jpg failed, falling back to hqdefault.jpg");
-                    bgImageRef.current!.src = currentSrc.replace('sddefault.jpg', 'hqdefault.jpg');
+                    bgImageRef.current!.src = getCorsFriendlyUrl(url.replace('sddefault.jpg', 'hqdefault.jpg'));
                 } else if (currentSrc.includes('hqdefault.jpg')) {
                     console.warn("YouTube hqdefault.jpg failed, falling back to mqdefault.jpg");
-                    bgImageRef.current!.src = currentSrc.replace('hqdefault.jpg', 'mqdefault.jpg');
+                    bgImageRef.current!.src = getCorsFriendlyUrl(url.replace('hqdefault.jpg', 'mqdefault.jpg'));
                 } else {
                     console.error("Failed to load image:", currentSrc);
                     const fallbackUrl = selectedSong?.cover || "";
                     if (fallbackUrl && currentSrc !== fallbackUrl) {
-                        bgImageRef.current!.src = fallbackUrl;
+                        bgImageRef.current!.src = getCorsFriendlyUrl(fallbackUrl);
                     } else {
                         setIsImageLoaded(true); // Allow download with fallback / spinner off
                     }
@@ -191,8 +142,8 @@ const SmartLinkVideoGenerator: React.FC = () => {
                 setIsImageLoaded(false);
             }
 
-            if (bgImageRef.current.src !== highResUrl) {
-                bgImageRef.current.src = highResUrl;
+            if (bgImageRef.current.src !== corsUrl) {
+                bgImageRef.current.src = corsUrl;
             }
         }
         promoImgRef.current = promoImageUrl; 
