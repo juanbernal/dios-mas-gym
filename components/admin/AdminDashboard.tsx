@@ -250,8 +250,8 @@ const AdminDashboard: React.FC = () => {
         },
         {
             id: 'smartlink-video',
-            title: 'SmartLink Video Creator',
-            description: 'Genera clips de 60 segundos con el diseño real de tu SmartLink y la música de fondo, listo para tus historias y redes sociales.',
+            title: 'SmartLink Image Creator',
+            description: 'Genera imágenes verticales (9:16) en alta resolución con el diseño real de tu SmartLink, listas para compartir en tus Stories y Estados.',
             icon: 'fa-mobile-screen',
             color: '#c5a059',
             route: '/admin/smartlink-video',
