@@ -34,7 +34,7 @@ const getHighResCoverUrl = (url: string): string => {
     return url;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '3.0';
+export const SMARTLINK_CREATOR_VERSION = '4.0 (Ultra HD 4K)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -42,6 +42,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [customTitle, setCustomTitle] = useState("");
     const [customArtist, setCustomArtist] = useState("");
@@ -102,6 +103,8 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const url = promoImageUrl || localCoverUrl || selectedSong?.cover || "";
         const highResUrl = getHighResCoverUrl(url);
 
+        setIsImageLoaded(false); // Reset load state for new image loading
+
         if (bgImageRef.current) {
             if (highResUrl.startsWith('blob:') || highResUrl.startsWith('data:')) {
                 bgImageRef.current.removeAttribute('crossOrigin');
@@ -123,11 +126,14 @@ const SmartLinkVideoGenerator: React.FC = () => {
                     ctx.drawImage(img, 0, 0, 960, 540);
                     blurredBgCanvasRef.current = canvas;
                 }
+                setIsImageLoaded(true); // High-res image fully loaded and processed!
             };
 
             bgImageRef.current.onload = handleBlurGeneration;
             if (bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
                 handleBlurGeneration();
+            } else {
+                setIsImageLoaded(false);
             }
 
             if (bgImageRef.current.src !== highResUrl) {
@@ -176,6 +182,10 @@ const SmartLinkVideoGenerator: React.FC = () => {
         // Force Crisp Bilinear Rendering Settings
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
+
+        // Double internal scaling factor to support 3840x2160 UHD output on 1920x1080 coordinate system
+        ctx.save();
+        ctx.scale(2, 2);
 
         // 1920x1080 Desktop HD Resolution
         const w = 1920;
@@ -763,6 +773,9 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.fillText(s.icon, s.x, socY);
             ctx.restore();
         });
+
+        // Restore the 2x UHD scaling context save scope
+        ctx.restore();
     };
 
     const draw = () => renderCanvas();
@@ -928,13 +941,22 @@ const SmartLinkVideoGenerator: React.FC = () => {
                         <div className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-2xl animate-in fade-in slide-in-from-left-4 space-y-4">
                             <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest">3. Descargar Promocional</h3>
                             <p className="text-[9.5px] text-white/40 leading-relaxed">
-                                Genera una captura Full HD (1920x1080) idéntica a la versión de escritorio de tu SmartLink. Ideal para promociones y banners de redes.
+                                Genera una captura en Ultra HD 4K (3840x2160) idéntica a la versión de escritorio de tu SmartLink. Ideal para promociones, banners y redes.
                             </p>
                             <button 
                                 onClick={downloadImage}
-                                className="w-full py-5 bg-[#c5a059] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 font-bold shadow-lg"
+                                disabled={!isImageLoaded}
+                                className={`w-full py-5 text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 font-bold shadow-lg ${!isImageLoaded ? 'bg-[#c5a059]/40 cursor-not-allowed opacity-50' : 'bg-[#c5a059] hover:bg-white'}`}
                             >
-                                <i className="fas fa-download text-xs"></i> Descargar Imagen Desktop (HD)
+                                {!isImageLoaded ? (
+                                    <>
+                                        <i className="fas fa-spinner animate-spin text-xs"></i> Cargando Portada HD...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-download text-xs"></i> Descargar Imagen Desktop (4K UHD)
+                                    </>
+                                )}
                             </button>
                         </div>
                     )}
@@ -951,12 +973,12 @@ const SmartLinkVideoGenerator: React.FC = () => {
                         <div className="relative group p-4 flex items-center justify-center w-full">
                             <canvas 
                                 ref={canvasRef}
-                                width={1920}
-                                height={1080}
+                                width={3840}
+                                height={2160}
                                 className="w-[533px] h-[300px] md:w-[640px] md:h-[360px] lg:w-[711px] lg:h-[400px] bg-black rounded-3xl shadow-[0_50px_100px_rgba(0,0,0,0.8)] border border-white/10"
                             />
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-3xl pointer-events-none">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Diseño Escritorio SmartLink (16:9 HD)</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Diseño Escritorio SmartLink (4K UHD)</span>
                             </div>
                         </div>
                     )}
