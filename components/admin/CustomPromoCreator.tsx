@@ -157,8 +157,37 @@ const CustomPromoCreator: React.FC = () => {
   const capture = async (targetW: number): Promise<HTMLCanvasElement> => {
     const el = masterRef.current?.querySelector(".cp-master") as HTMLElement;
     if (!el) throw new Error("No master element");
+    
+    // 1. Force Load ALL Images in the Master Render
+    const images = Array.from(el.querySelectorAll('img, [style*="background-image"]'));
+    await Promise.all(images.map(img => {
+      let src = "";
+      if (img instanceof HTMLImageElement) {
+        src = img.src;
+      } else {
+        const bgStyle = (img as HTMLElement).style.backgroundImage;
+        const match = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
+        src = match ? match[1] : "";
+      }
+      
+      if (!src || src === 'none' || src === '""') return Promise.resolve();
+      
+      return new Promise(resolve => {
+        const testImg = new Image();
+        testImg.crossOrigin = "anonymous";
+        const t = setTimeout(() => resolve(false), 20000); 
+        testImg.onload = () => { clearTimeout(t); resolve(true); };
+        testImg.onerror = () => { clearTimeout(t); resolve(false); };
+        testImg.src = src;
+      });
+    }));
+
+    // 1.5 Stabilization Wait (Browser rasterization at high-res)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 2. Wait for fonts
     await document.fonts.ready;
-    await new Promise(r => setTimeout(r, 600));
+    
     return html2canvas(el, {
       scale: targetW / MASTER_W,
       useCORS: true, allowTaint: false, backgroundColor: null,
@@ -445,7 +474,7 @@ const CustomPromoCreator: React.FC = () => {
                   inset: 0, 
                   width: "100%", 
                   height: "100%", 
-                  backgroundImage: `url(${getCorsFriendlyUrl(bg)})`,
+                  backgroundImage: `url("${getCorsFriendlyUrl(bg)}")`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
@@ -489,7 +518,7 @@ const CustomPromoCreator: React.FC = () => {
                 inset: 0, 
                 width: "100%", 
                 height: "100%", 
-                backgroundImage: `url(${bg.startsWith('data:') || bg.startsWith('blob:') ? bg : getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()})`,
+                backgroundImage: `url("${bg.startsWith('data:') || bg.startsWith('blob:') ? bg : getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()}")`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',

@@ -71,15 +71,45 @@ const CanvasCreator: React.FC = () => {
         try {
             setIsExporting(true);
             
+            // 1. Force Load ALL Images in the Canvas
+            const images = Array.from(canvasRef.current.querySelectorAll('img, [style*="background-image"]'));
+            await Promise.all(images.map(img => {
+              let src = "";
+              if (img instanceof HTMLImageElement) {
+                src = img.src;
+              } else {
+                const bgStyle = (img as HTMLElement).style.backgroundImage;
+                const match = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/);
+                src = match ? match[1] : "";
+              }
+              
+              if (!src || src === 'none' || src === '""') return Promise.resolve();
+              
+              return new Promise(resolve => {
+                const testImg = new Image();
+                testImg.crossOrigin = "anonymous";
+                const t = setTimeout(() => resolve(false), 20000); 
+                testImg.onload = () => { clearTimeout(t); resolve(true); };
+                testImg.onerror = () => { clearTimeout(t); resolve(false); };
+                testImg.src = src;
+              });
+            }));
+
+            // 1.5 Stabilization Wait
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 2. Wait for fonts
+            await document.fonts.ready;
+            
             const canvas = await html2canvas(canvasRef.current, {
-            scale: 5, // Resolución masiva (5x) para máxima nitidez
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#0a0f1d',
-            logging: false,
-            width: 360,
-            height: 640
-        });
+                scale: 5, // Resolución masiva (5x) para máxima nitidez
+                useCORS: true,
+                allowTaint: false,
+                backgroundColor: '#0a0f1d',
+                logging: false,
+                width: 360,
+                height: 640
+            });
 
             // Descargar imagen
             const link = document.createElement('a');
