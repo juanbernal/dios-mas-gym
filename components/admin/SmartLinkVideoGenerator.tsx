@@ -25,18 +25,24 @@ const getHighResCoverUrl = (url: string): string => {
         return url.replace(/\/(default|hqdefault|mqdefault|sddefault)\.jpg/g, '/maxresdefault.jpg');
     }
 
-    // 2. Spotify Album Art covers
-    // Low-res: ab67616d00004851 (150x150), Mid-res: ab67616d00001e02 (300x300)
-    // High-res master: ab67616d0000b273 (640x640). Upgrades automatically!
-    if (url.includes('i.scdn.co/image/')) {
-        return url.replace(/ab67616d0000[0-9a-fA-F]+/g, 'ab67616d0000b273');
+    // 2. Spotify CDN covers (Album art, Artist profiles, Playlists)
+    // Handles i.scdn.co/image/ and *.spotifycdn.com
+    // Supports ab67616d0000 (Album covers -> b273) and ab6761610000 (Avatars -> e5eb) without truncating the unique ID!
+    if (url.includes('i.scdn.co/image/') || url.includes('spotifycdn.com')) {
+        let newUrl = url;
+        if (newUrl.includes('ab67616d0000')) {
+            newUrl = newUrl.replace(/ab67616d0000[0-9a-fA-F]{4}/g, 'ab67616d0000b273');
+        } else if (newUrl.includes('ab6761610000')) {
+            newUrl = newUrl.replace(/ab6761610000[0-9a-fA-F]{4}/g, 'ab6761610000e5eb');
+        }
+        return newUrl;
     }
 
     // 3. Blogger, Blogspot, Google Photos, and Picasa Web Albums path resizing (e.g. /s320/, /s220-c/, /w200-h200/)
-    // Replaces the path sizing segment directly with /s1200/ to request the original high-resolution master asset
+    // Replaces the path sizing segment directly with /s0/ to request the original high-resolution master asset
     if (url.includes('googleusercontent.com') || url.includes('blogspot.com') || url.includes('bp.blogspot.com')) {
         if (/\/s[0-9]+(-c)?\//.test(url) || /\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//.test(url)) {
-            return url.replace(/\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//g, '/s1200/');
+            return url.replace(/\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//g, '/s0/');
         }
     }
 
@@ -44,22 +50,22 @@ const getHighResCoverUrl = (url: string): string => {
     // Only applied to googleusercontent.com domains to avoid mangling drive.google.com direct file ID parameters!
     if (url.includes('googleusercontent.com') && url.includes('=')) {
         const base = url.split('=')[0];
-        return `${base}=s1200`; // Fetch pristine 1200px master asset
+        return `${base}=s0`; // Fetch pristine uncompressed original master asset
     }
 
     // 5. Google Drive direct thumbnail URLs
     if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
         if (url.includes('sz=')) {
-            return url.replace(/sz=\w+/g, 'sz=s1200');
+            return url.replace(/sz=\w+/g, 'sz=s2000');
         } else {
-            return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
+            return `${url}${url.includes('?') ? '&' : '?'}sz=s2000`;
         }
     }
     
     return url;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '6.0 (4K UHD - Ultra Sharp Master)';
+export const SMARTLINK_CREATOR_VERSION = '7.0 (4K UHD - Ultra Sharp Master - Fixed Sizing & Fallbacks)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -155,6 +161,30 @@ const SmartLinkVideoGenerator: React.FC = () => {
             };
 
             bgImageRef.current.onload = handleBlurGeneration;
+            
+            // Graceful fallback system for image load errors (e.g. YouTube maxresdefault.jpg returning 404)
+            bgImageRef.current.onerror = () => {
+                const currentSrc = bgImageRef.current?.src || "";
+                if (currentSrc.includes('maxresdefault.jpg')) {
+                    console.warn("YouTube maxresdefault.jpg failed, falling back to sddefault.jpg");
+                    bgImageRef.current!.src = currentSrc.replace('maxresdefault.jpg', 'sddefault.jpg');
+                } else if (currentSrc.includes('sddefault.jpg')) {
+                    console.warn("YouTube sddefault.jpg failed, falling back to hqdefault.jpg");
+                    bgImageRef.current!.src = currentSrc.replace('sddefault.jpg', 'hqdefault.jpg');
+                } else if (currentSrc.includes('hqdefault.jpg')) {
+                    console.warn("YouTube hqdefault.jpg failed, falling back to mqdefault.jpg");
+                    bgImageRef.current!.src = currentSrc.replace('hqdefault.jpg', 'mqdefault.jpg');
+                } else {
+                    console.error("Failed to load image:", currentSrc);
+                    const fallbackUrl = selectedSong?.cover || "";
+                    if (fallbackUrl && currentSrc !== fallbackUrl) {
+                        bgImageRef.current!.src = fallbackUrl;
+                    } else {
+                        setIsImageLoaded(true); // Allow download with fallback / spinner off
+                    }
+                }
+            };
+
             if (bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
                 handleBlurGeneration();
             } else {
@@ -393,7 +423,15 @@ const SmartLinkVideoGenerator: React.FC = () => {
                 const drawSize = Math.round(coverSize + floatZoom*2);
                 const drawX = Math.round(coverX - floatZoom);
                 const drawY = Math.round(coverY - floatZoom);
-                ctx.drawImage(img, drawX, drawY, drawSize, drawSize);
+                
+                // Universal center-cropping to maintain 1:1 aspect ratio without stretching/distortion or pixelation
+                const imgW = img.naturalWidth;
+                const imgH = img.naturalHeight;
+                const srcSize = Math.min(imgW, imgH);
+                const sx = Math.round((imgW - srcSize) / 2);
+                const sy = Math.round((imgH - srcSize) / 2);
+                
+                ctx.drawImage(img, sx, sy, srcSize, srcSize, drawX, drawY, drawSize, drawSize);
             } catch (e) {
                 console.warn("Cover drawing failed", e);
             }
