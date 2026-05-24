@@ -183,7 +183,7 @@ const CustomPromoCreator: React.FC = () => {
   const handleDownload = async () => {
     setIsExporting(true);
     try {
-      const canvas = await capture(2160);
+      const canvas = await capture(MASTER_W);
       const url = URL.createObjectURL(await new Promise<Blob>(r => canvas.toBlob(b => r(b!), "image/png", 1)));
       const a = document.createElement("a"); a.download = `CUSTOM-${title.replace(/\s+/g,"-")}.png`; a.href = url; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -448,7 +448,8 @@ const CustomPromoCreator: React.FC = () => {
                   backgroundImage: `url(${getCorsFriendlyUrl(bg)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat'
+                  backgroundRepeat: 'no-repeat',
+                  imageRendering: 'high-quality'
                 }} 
               />
             )}
@@ -491,7 +492,8 @@ const CustomPromoCreator: React.FC = () => {
                 backgroundImage: `url(${bg.startsWith('data:') || bg.startsWith('blob:') ? bg : getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
+                backgroundRepeat: 'no-repeat',
+                imageRendering: 'high-quality'
               }} 
             />
           )}
