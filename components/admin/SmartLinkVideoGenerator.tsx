@@ -34,31 +34,32 @@ const getHighResCoverUrl = (url: string): string => {
 
     // 3. Blogger, Blogspot, Google Photos, and Picasa Web Albums path resizing (e.g. /s320/, /s220-c/, /w200-h200/)
     // Replaces the path sizing segment directly with /s1200/ to request the original high-resolution master asset
-    if (url.includes('googleusercontent.com') || url.includes('blogspot.com') || url.includes('google.com') || url.includes('bp.blogspot.com')) {
+    if (url.includes('googleusercontent.com') || url.includes('blogspot.com') || url.includes('bp.blogspot.com')) {
         if (/\/s[0-9]+(-c)?\//.test(url) || /\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//.test(url)) {
             return url.replace(/\/[sw][0-9]+(-[sw][0-9]+)?(-c)?\//g, '/s1200/');
         }
-        
-        // If it has query parameter resizing like =w220 or =s220 at the end
-        if (url.includes('=')) {
-            const base = url.split('=')[0];
-            return `${base}=s1200`; // Fetch pristine 1200px master asset
-        }
-        
-        // If it is a Google Drive direct thumbnail URL
-        if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
-            if (url.includes('sz=')) {
-                return url.replace(/sz=\w+/g, 'sz=s1200');
-            } else {
-                return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
-            }
+    }
+
+    // 4. Google User Content query parameters resizing (e.g. =w220, =s220 at the end)
+    // Only applied to googleusercontent.com domains to avoid mangling drive.google.com direct file ID parameters!
+    if (url.includes('googleusercontent.com') && url.includes('=')) {
+        const base = url.split('=')[0];
+        return `${base}=s1200`; // Fetch pristine 1200px master asset
+    }
+
+    // 5. Google Drive direct thumbnail URLs
+    if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/depot')) {
+        if (url.includes('sz=')) {
+            return url.replace(/sz=\w+/g, 'sz=s1200');
+        } else {
+            return `${url}${url.includes('?') ? '&' : '?'}sz=s1200`;
         }
     }
     
     return url;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '5.0 (4K UHD - Super Crisp Master)';
+export const SMARTLINK_CREATOR_VERSION = '6.0 (4K UHD - Ultra Sharp Master)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
