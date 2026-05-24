@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 
 const EPKGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -112,7 +113,7 @@ const EPKGenerator: React.FC = () => {
             const canvas = await html2canvas(element, {
                 scale: 2, // Alta resolución
                 useCORS: true,
-                allowTaint: true,
+                allowTaint: false,
                 backgroundColor: artist === 'juan614' ? '#FAF9F6' : '#05070a'
             });
 
@@ -219,12 +220,19 @@ const EPKGenerator: React.FC = () => {
                             {/* Cabecera / Portada */}
                             <div className="h-[400px] relative flex items-center justify-center overflow-hidden">
                                 <div className="absolute inset-0 bg-black/50 z-10"></div>
-                                <img 
-                                    src={randomCover || (isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600")} 
-                                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm" 
-                                    style={{ filter: isJuan ? 'sepia(30%) brightness(0.8)' : 'grayscale(100%) brightness(0.6)' }} 
-                                    crossOrigin="anonymous"
-                                    alt="Hero" 
+                                <div 
+                                    style={{ 
+                                        position: 'absolute',
+                                        inset: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        backgroundImage: `url(${getCorsFriendlyUrl(randomCover || (isJuan ? "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" : "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"))})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        backgroundRepeat: 'no-repeat',
+                                        transform: 'scale(1.1)',
+                                        filter: `blur(8px) ${isJuan ? 'sepia(30%) brightness(0.8)' : 'grayscale(100%) brightness(0.6)'}`
+                                    }} 
                                 />
                                 
                                 <div className="relative z-20 text-center px-12">

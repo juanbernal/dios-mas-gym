@@ -167,6 +167,15 @@ const CustomPromoCreator: React.FC = () => {
         link.rel = "stylesheet";
         link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@700;900&display=swap";
         doc.head.appendChild(link);
+
+        const clonedWrapper = doc.querySelector('.cp-master') as HTMLElement;
+        if (clonedWrapper) {
+          clonedWrapper.style.transform = 'none';
+          clonedWrapper.style.boxShadow = 'none';
+          clonedWrapper.style.width = `${MASTER_W}px`;
+          clonedWrapper.style.height = `${Math.round(MASTER_W * (sizes[size].h / sizes[size].w))}px`;
+          clonedWrapper.style.display = 'block';
+        }
       }
     });
   };
@@ -429,7 +438,20 @@ const CustomPromoCreator: React.FC = () => {
         <div className="flex flex-col items-center gap-4">
           <div className="text-[9px] uppercase font-black tracking-widest text-white/30">Vista Previa</div>
           <div style={{ width: previewW, height: previewH, position: "relative", overflow: "hidden", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)" }}>
-            {bg && <img src={getCorsFriendlyUrl(bg)} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
+            {bg && (
+              <div 
+                style={{ 
+                  position: "absolute", 
+                  inset: 0, 
+                  width: "100%", 
+                  height: "100%", 
+                  backgroundImage: `url(${getCorsFriendlyUrl(bg)})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }} 
+              />
+            )}
             <div style={{ position:"absolute", inset:0, background:`rgba(0,0,0,${overlay})` }} />
             <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:20 }}>
               <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.4em", color:accentColor, marginBottom:8 }}>{artist.toUpperCase()} RECORDS</div>
@@ -443,9 +465,36 @@ const CustomPromoCreator: React.FC = () => {
       </div>
 
       {/* Hidden master render for export */}
-      <div ref={masterRef} style={{ position:"fixed", left:-99999, top:0, pointerEvents:"none", zIndex:-1 }}>
+      <div 
+        ref={masterRef} 
+        style={{ 
+          position: "fixed", 
+          left: -4000, 
+          top: -4000, 
+          width: MASTER_W,
+          pointerEvents: "none", 
+          zIndex: -1000,
+          opacity: 1,
+          visibility: "visible",
+          overflow: "hidden",
+          background: "#000"
+        }}
+      >
         <div className="cp-master" style={{ width:MASTER_W, height:Math.round(MASTER_W*(sizes[size].h/sizes[size].w)), position:"relative", overflow:"hidden" }}>
-          {bg && <img src={bg.startsWith('data:') || bg.startsWith('blob:') ? bg : getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} crossOrigin="anonymous" />}
+          {bg && (
+            <div 
+              style={{ 
+                position: "absolute", 
+                inset: 0, 
+                width: "100%", 
+                height: "100%", 
+                backgroundImage: `url(${bg.startsWith('data:') || bg.startsWith('blob:') ? bg : getCorsFriendlyUrl(bg) + '&export_cb=' + Date.now()})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }} 
+            />
+          )}
           <div style={{ position:"absolute", inset:0, background:`rgba(0,0,0,${overlay})` }} />
           <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", padding:MASTER_W*0.06 }}>
             <div style={{ fontSize:MASTER_W*0.018, fontWeight:900, letterSpacing:"0.4em", color:accentColor, marginBottom:MASTER_W*0.015 }}>{artist.toUpperCase()} RECORDS</div>
