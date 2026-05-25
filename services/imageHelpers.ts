@@ -78,11 +78,9 @@ export const getCorsFriendlyUrl = (url: string | null): string => {
   
   const upgradedUrl = getHighResUrl(url);
   
-  // Clean trailing hash or params if needed, then append cache-buster to bypass browser cache poison
-  // (Prevents browser from reusing cached responses loaded without CORS headers)
-  const cacheBuster = `t_cors=${new Date().getTime()}`;
-  const separator = upgradedUrl.includes('?') ? '&' : '?';
-  const finalUrl = `${upgradedUrl}${separator}${cacheBuster}`;
-  
-  return `/api/image-proxy?url=${encodeURIComponent(finalUrl)}`;
+  // Previously we used `new Date().getTime()` which generated a new URL on every render,
+  // completely bypassing browser & CDN caches and causing massive Vercel bandwidth consumption.
+  // Since the URL is proxied exclusively through /api/image-proxy, there is no risk of browser
+  // cache conflicts, so we don't need a dynamic cache buster here.
+  return `/api/image-proxy?url=${encodeURIComponent(upgradedUrl)}`;
 };
