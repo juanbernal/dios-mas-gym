@@ -170,6 +170,7 @@ const SocialPostGenerator: React.FC = () => {
     </div>
 </div>`;
 
+            const autoLabels = [song.artist, "Reflexiones", "Música"].filter(Boolean);
             const res = await fetch(sheetsSyncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -179,7 +180,10 @@ const SocialPostGenerator: React.FC = () => {
                     title: `Reflexión: ${song.name}`,
                     artist: song.artist,
                     content: fullHtml,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    labels: autoLabels,
+                    tags: autoLabels,
+                    labelsString: autoLabels.join(', ')
                 })
             });
 

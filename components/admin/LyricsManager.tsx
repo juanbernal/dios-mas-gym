@@ -349,6 +349,7 @@ const LyricsManager: React.FC = () => {
                 artist: selectedLyric.artist,
                 date: new Date().toISOString()
             }).toString();
+            const autoLabels = [selectedLyric.artist, "Letras", "Música"].filter(Boolean);
             await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -358,7 +359,10 @@ const LyricsManager: React.FC = () => {
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    labels: autoLabels,
+                    tags: autoLabels,
+                    labelsString: autoLabels.join(', ')
                 })
             });
             showNotification("🚀 [V3.7] ¡CONECTADO A LA NUBE!\nBorrador enviado a Blogger.");
@@ -397,6 +401,7 @@ const LyricsManager: React.FC = () => {
                     artist: lyric.artist,
                     date: lyric.date || new Date().toISOString()
                 }).toString();
+                const autoLabels = [lyric.artist, "Letras", "Música"].filter(Boolean);
                 const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -406,7 +411,10 @@ const LyricsManager: React.FC = () => {
                         title: lyric.title,
                         artist: lyric.artist,
                         content: lyric.content,
-                        date: lyric.date || new Date().toISOString()
+                        date: lyric.date || new Date().toISOString(),
+                        labels: autoLabels,
+                        tags: autoLabels,
+                        labelsString: autoLabels.join(', ')
                     })
                 });
                 successCount++;
@@ -593,6 +601,7 @@ ${cleanedLyrics}`;
         }
         setIsSaving(true);
         try {
+            const autoLabels = [selectedLyric.artist, "Reflexiones", "Música"].filter(Boolean);
             await fetch(sheetsSyncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -602,7 +611,10 @@ ${cleanedLyrics}`;
                     title: storyTitle,
                     artist: selectedLyric.artist,
                     content: storyPostHtml,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    labels: autoLabels,
+                    tags: autoLabels,
+                    labelsString: autoLabels.join(', ')
                 })
             });
             showNotification('Historia guardada como borrador en Blogger Cloud.');
