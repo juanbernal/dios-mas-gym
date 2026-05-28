@@ -10,14 +10,17 @@ const SocialPostGenerator: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState('');
     const [error, setError] = useState<any>(null);
-    const [copied, setCopied] = useState(false);
+    const [copiedBlog, setCopiedBlog] = useState(false);
+    const [copiedSocial, setCopiedSocial] = useState(false);
+    const [isSavingBlogger, setIsSavingBlogger] = useState(false);
+    const [bloggerStatus, setBloggerStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [selectedSongId, setSelectedSongId] = useState('');
     const [searchingLyrics, setSearchingLyrics] = useState(false);
     const [songSearch, setSongSearch] = useState('');
 
-    const VERSION = "v1.4.0 Gemini-Flash";
+    const VERSION = "v1.5.0 Gemini-Flash (Cloud Integrated)";
 
     const [formData, setFormData] = useState({
         input: '',
@@ -91,16 +94,131 @@ const SocialPostGenerator: React.FC = () => {
         }
     };
 
+    const parseResult = (text: string) => {
+        let blog = '';
+        let social = '';
+        let hashtags = '';
+
+        const blogMatch = text.match(/🌟?\s*ARTÍCULO DE BLOG[\s\S]*?(?=📱?\s*PUBLICACIÓN|$)/i);
+        const socialMatch = text.match(/📱?\s*PUBLICACIÓN[\s\S]*?(?=🏷️?\s*ESTRATEGIA|🏷️?\s*HASHTAGS|$)/i);
+        const hashtagsMatch = text.match(/(?:🏷️?\s*ESTRATEGIA DE HASHTAGS|🏷️?\s*HASHTAGS)[\s\S]*/i);
+
+        if (blogMatch) {
+            blog = blogMatch[0]
+                .replace(/🌟?\s*ARTÍCULO DE BLOG.*?\n/, '')
+                .trim();
+        }
+        if (socialMatch) {
+            social = socialMatch[0]
+                .replace(/📱?\s*PUBLICACIÓN.*?\n/, '')
+                .trim();
+        }
+        if (hashtagsMatch) {
+            hashtags = hashtagsMatch[0]
+                .replace(/(?:🏷️?\s*ESTRATEGIA DE HASHTAGS|🏷️?\s*HASHTAGS).*?\n/, '')
+                .trim();
+        }
+
+        if (!blog && !social) {
+            return { blog: text, social: '', hashtags: '' };
+        }
+
+        return { blog, social, hashtags };
+    };
+
+    const handleUploadToBlogger = async (blogText: string) => {
+        const song = catalog.find(item => item.id === selectedSongId);
+        if (!song) return;
+
+        setIsSavingBlogger(true);
+        setBloggerStatus('idle');
+
+        try {
+            const sheetsSyncUrl = localStorage.getItem('lyrics_sheets_sync_url') || "/api/sheet-proxy?script=lyrics";
+            const SYNC_SECRET = "DMG_SYNC_2026";
+            const smartLink = `${window.location.origin}/#/link/${song.id}`;
+
+            const paragraphs = blogText
+                .split(/\n\n+/)
+                .map(p => `<p style="margin:0 0 1.5em 0; font-size:19px; line-height:1.8; color:#333; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${p.replace(/\n/g, '<br/>')}</p>`)
+                .join('\n');
+            
+            const thumbHtml = song.cover
+                ? `<div style="text-align:center; margin:0 0 40px 0; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.15);"><img src="${song.cover}" alt="${song.name}" style="max-width:100%; height:auto; display:block; margin:0 auto;" /></div>`
+                : '';
+            
+            const smartLinkHtml = `<div style="text-align:center; margin:45px 0;">
+                <a href="${smartLink}" style="display:inline-block; background:linear-gradient(135deg, #c5a059 0%, #a68545 100%); color:#fff; padding:18px 45px; font-size:17px; font-weight:900; text-decoration:none; text-transform:uppercase; border-radius:50px; box-shadow:0 8px 20px rgba(197, 160, 89, 0.3); letter-spacing:1px; transition:all 0.3s ease;">
+                    <span style="margin-right:10px;">▶</span> Escuchar "${song.name}"
+                </a>
+               </div>`;
+
+            const fullHtml = `
+<div style="max-width:800px; margin:0 auto; padding:20px; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:#222; background:#fff;">
+    <h1 style="font-size:36px; font-weight:900; margin:0 0 30px 0; text-align:center; color:#111; letter-spacing:-1px; line-height:1.1; text-transform:uppercase; font-style:italic;">${song.name} - ${song.artist}</h1>
+    
+    ${thumbHtml}
+    
+    <div style="margin-bottom:40px;">
+        ${paragraphs}
+    </div>
+
+    ${smartLinkHtml}
+    
+    <div style="margin-top:40px; text-align:center; font-size:12px; color:#aaa; text-transform:uppercase; letter-spacing:3px;">
+        &copy; ${new Date().getFullYear()} Dios Mas Gym Records
+    </div>
+</div>`;
+
+            const res = await fetch(sheetsSyncUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'blogger',
+                    secret: SYNC_SECRET,
+                    title: `Reflexión: ${song.name}`,
+                    artist: song.artist,
+                    content: fullHtml,
+                    date: new Date().toISOString()
+                })
+            });
+
+            if (res.ok) {
+                setBloggerStatus('success');
+                alert("🚀 ¡Borrador enviado a Blogger Cloud con éxito!");
+            } else {
+                setBloggerStatus('error');
+                alert("❌ Error al subir borrador a Blogger Cloud.");
+            }
+        } catch (e: any) {
+            console.error(e);
+            setBloggerStatus('error');
+            alert("❌ Error: " + e.message);
+        } finally {
+            setIsSavingBlogger(false);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!formData.input.trim()) return;
 
         // Limpiar etiquetas de Suno/IA [Verse], [Chorus], etc.
         const cleanInput = formData.input.replace(/\[[^[\]]*\]/g, "").trim();
-        const cleanFormData = { ...formData, input: cleanInput };
+        
+        // Auto-construir SmartLink si hay canción
+        const song = catalog.find(item => item.id === selectedSongId);
+        const smartLink = song ? `${window.location.origin}/#/link/${song.id}` : '';
+        
+        let finalInput = cleanInput;
+        if (smartLink) {
+            finalInput += `\n\n[INSTRUCCIÓN CRÍTICA DE FORMATO]: Debes incluir el enlace exacto de SmartLink de la canción: ${smartLink} tanto de forma natural al final del ARTÍCULO DE BLOG como de forma directa y atractiva al final de la PUBLICACIÓN PARA REDES SOCIALES.`;
+        }
+
+        const cleanFormData = { ...formData, input: finalInput };
 
         setLoading(true);
         setError(null);
-        setCopied(false);
+        setBloggerStatus('idle');
         try {
             const response = await fetch('/api/generate-post', {
                 method: 'POST',
@@ -128,21 +246,16 @@ const SocialPostGenerator: React.FC = () => {
         }
     };
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(result);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
     const reset = () => {
         setStep(1);
         setResult('');
         setError(null);
+        setBloggerStatus('idle');
     };
 
     return (
         <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-8 font-['Poppins']">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-12">
                     <div className="flex justify-between items-start">
@@ -157,7 +270,7 @@ const SocialPostGenerator: React.FC = () => {
                 </div>
 
                 {step === 1 ? (
-                    <div className="bg-[#0f111a] border border-white/5 p-10 rounded-2xl shadow-2xl relative overflow-hidden">
+                    <div className="bg-[#0f111a] border border-white/5 p-10 rounded-2xl shadow-2xl relative overflow-hidden max-w-4xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                             <div className="col-span-2 bg-[#05070a] border border-[#c5a059]/20 rounded-2xl p-6">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
@@ -264,19 +377,94 @@ const SocialPostGenerator: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="bg-[#0f111a] border border-[#c5a059]/20 p-10 rounded-2xl shadow-2xl animate-fade-in-up relative overflow-hidden">
-                        <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]">ESTRATEGIA GENERADA</span>
-                            <div className="flex gap-8">
-                                <button onClick={copyToClipboard} className={`flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${copied ? 'text-green-500' : 'text-[#c5a059] hover:text-white'}`}>
-                                    <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`}></i> {copied ? 'COPIADO' : 'COPIAR'}
-                                </button>
-                                <button onClick={reset} className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all">
-                                    <i className="fas fa-redo"></i> NUEVO
-                                </button>
-                            </div>
+                    <div className="space-y-12">
+                        {/* Control Bar */}
+                        <div className="flex justify-between items-center bg-[#0f111a] border border-white/5 p-6 rounded-2xl">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]">Resultado del Análisis</span>
+                            <button onClick={reset} className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all bg-white/5 px-6 py-3 rounded-xl border border-white/10">
+                                <i className="fas fa-redo"></i> Generar Nuevo
+                            </button>
                         </div>
-                        <div className="text-white/90 leading-relaxed whitespace-pre-wrap text-lg min-h-[300px]">{result}</div>
+
+                        {(() => {
+                            const parsed = parseResult(result);
+                            return (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up">
+                                    {/* 1. BLOG ARTICLE CARD */}
+                                    <div className="bg-[#0f111a] border border-white/5 p-8 rounded-2xl shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                                        <div className="absolute top-0 right-0 w-40 h-40 bg-[#c5a059]/5 rounded-full blur-3xl pointer-events-none"></div>
+                                        <div>
+                                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
+                                                <h3 className="text-sm font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2">
+                                                    <i className="fas fa-newspaper"></i> 🌟 Artículo para Blog
+                                                </h3>
+                                                <div className="flex gap-4">
+                                                    <button 
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(parsed.blog);
+                                                            setCopiedBlog(true);
+                                                            setTimeout(() => setCopiedBlog(false), 2000);
+                                                        }} 
+                                                        className={`text-[9px] font-black uppercase tracking-widest transition-all ${copiedBlog ? 'text-green-500' : 'text-[#c5a059] hover:text-white'}`}
+                                                    >
+                                                        <i className={`fas ${copiedBlog ? 'fa-check' : 'fa-copy'} mr-1`}></i> {copiedBlog ? 'Copiado' : 'Copiar'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="text-white/80 leading-relaxed whitespace-pre-wrap text-sm min-h-[250px] font-light max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">{parsed.blog}</div>
+                                        </div>
+                                        {selectedSongId && (
+                                            <div className="mt-8 pt-6 border-t border-white/5">
+                                                <button 
+                                                    onClick={() => handleUploadToBlogger(parsed.blog)}
+                                                    disabled={isSavingBlogger}
+                                                    className={`w-full py-4 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                                                        bloggerStatus === 'success' ? 'bg-green-500/20 border border-green-500/40 text-green-400' :
+                                                        bloggerStatus === 'error' ? 'bg-red-500/20 border border-red-500/40 text-red-400' :
+                                                        'bg-[#c5a059] hover:bg-white text-black'
+                                                    }`}
+                                                >
+                                                    <i className={`fas ${isSavingBlogger ? 'fa-spinner fa-spin' : bloggerStatus === 'success' ? 'fa-check' : 'fa-cloud-arrow-up'}`}></i>
+                                                    {isSavingBlogger ? 'Enviando a la Nube...' : bloggerStatus === 'success' ? '¡Enviado a Blogger Cloud!' : bloggerStatus === 'error' ? 'Reintentar Subida' : 'Subir Borrador a Blogger Cloud'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 2. SOCIAL MEDIA CARD */}
+                                    <div className="bg-[#0f111a] border border-white/5 p-8 rounded-2xl shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                                        <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                                        <div>
+                                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
+                                                <h3 className="text-sm font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2">
+                                                    <i className="fab fa-instagram"></i> 📱 Redes (IG/TikTok)
+                                                </h3>
+                                                <button 
+                                                    onClick={() => {
+                                                        const fullSocialText = `${parsed.social}\n\n${parsed.hashtags}`;
+                                                        navigator.clipboard.writeText(fullSocialText);
+                                                        setCopiedSocial(true);
+                                                        setTimeout(() => setCopiedSocial(false), 2000);
+                                                    }} 
+                                                    className={`text-[9px] font-black uppercase tracking-widest transition-all ${copiedSocial ? 'text-green-500' : 'text-[#c5a059] hover:text-white'}`}
+                                                >
+                                                    <i className={`fas ${copiedSocial ? 'fa-check' : 'fa-copy'} mr-1`}></i> {copiedSocial ? 'Copiado' : 'Copiar Copy'}
+                                                </button>
+                                            </div>
+                                            <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div className="text-white/80 leading-relaxed whitespace-pre-wrap text-sm font-light">{parsed.social}</div>
+                                                {parsed.hashtags && (
+                                                    <div className="pt-4 border-t border-white/5">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-2">Hashtags Estratégicos</p>
+                                                        <p className="text-[#c5a059] text-xs leading-relaxed font-mono">{parsed.hashtags}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </div>
