@@ -168,6 +168,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'split-sheet',
+            title: 'Split Sheet Generator',
+            description: 'Genera contratos oficiales de división de derechos de autor (Split Sheets) en PDF listos para firmar con colaboradores.',
+            icon: 'fa-file-signature',
+            color: '#c5a059',
+            route: '/admin/split-sheet',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'content-calendar',
             title: 'Calendario de Contenido',
             description: 'Planifica posts, reels, historias, campañas y lanzamientos en una vista mensual ejecutiva.',

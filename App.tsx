@@ -47,6 +47,7 @@ const PushNotificationsAdmin = React.lazy(() => import('./components/admin/PushN
 const AnalyticsDashboard = React.lazy(() => import('./components/admin/AnalyticsDashboard'));
 const MusicVideoPromptGenerator = React.lazy(() => import('./components/admin/MusicVideoPromptGenerator'));
 const CustomPromoCreator = React.lazy(() => import('./components/admin/CustomPromoCreator'));
+const SplitSheetGenerator = React.lazy(() => import('./components/admin/SplitSheetGenerator'));
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
@@ -620,6 +621,7 @@ const App: React.FC = () => {
                 <Route path="analytics" element={<AdminAuthWrapper><AnalyticsDashboard/></AdminAuthWrapper>} />
                 <Route path="music-video-prompt" element={<AdminAuthWrapper><MusicVideoPromptGenerator/></AdminAuthWrapper>} />
                 <Route path="custom-promo" element={<AdminAuthWrapper><CustomPromoCreator/></AdminAuthWrapper>} />
+                <Route path="split-sheet" element={<AdminAuthWrapper><SplitSheetGenerator/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
