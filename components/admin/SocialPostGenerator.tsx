@@ -129,11 +129,35 @@ const SocialPostGenerator: React.FC = () => {
 
     const cleanHashtagsForBlogger = (hashtagsText: string) => {
         if (!hashtagsText) return '';
-        return hashtagsText
+        
+        // Limpiar asteriscos y separar por espacios o comas
+        const rawTags = hashtagsText
+            .replace(/\*/g, '') // Eliminar todos los asteriscos
             .split(/[\s,]+/)
-            .map(tag => tag.replace(/#/g, '').trim())
-            .filter(tag => tag.length > 0)
-            .join(', ');
+            .map(tag => tag.replace(/#/g, '').trim()) // Quitar el símbolo #
+            .filter(tag => {
+                // Filtrar elementos vacíos o que sean símbolos sueltos como *, -, etc.
+                return tag.length > 0 && tag !== '*' && tag !== '-' && tag !== '_';
+            });
+            
+        // Asegurar que sean únicas y limitar a un máximo de 200 caracteres sin cortar palabras
+        const uniqueTags = Array.from(new Set(rawTags));
+        const acceptedTags: string[] = [];
+        let currentLength = 0;
+
+        for (const tag of uniqueTags) {
+            const tagLength = tag.length;
+            const additionalLength = acceptedTags.length > 0 ? tagLength + 2 : tagLength; // +2 por la coma y espacio
+            
+            if (currentLength + additionalLength <= 200) {
+                acceptedTags.push(tag);
+                currentLength += additionalLength;
+            } else {
+                break; // Detener si supera el límite de 200 caracteres
+            }
+        }
+
+        return acceptedTags.join(', ');
     };
 
     const handleUploadToBlogger = async (blogText: string, hashtagsText = '') => {
@@ -180,11 +204,26 @@ const SocialPostGenerator: React.FC = () => {
     </div>
 </div>`;
 
-            const aiLabels = hashtagsText
-                ? hashtagsText.split(/[\s,]+/).map(tag => tag.replace(/#/g, '').trim()).filter(Boolean)
+            const cleanedTagsString = cleanHashtagsForBlogger(hashtagsText);
+            const aiLabels = cleanedTagsString
+                ? cleanedTagsString.split(/,\s*/).filter(Boolean)
                 : [];
-            const autoLabels = [song.artist, "Reflexiones", "Música", ...aiLabels]
+            
+            const rawAutoLabels = [song.artist, "Reflexiones", "Música", ...aiLabels]
                 .filter((v, i, a) => v && a.indexOf(v) === i); // Unique labels
+
+            const autoLabels: string[] = [];
+            let currentLen = 0;
+            for (const label of rawAutoLabels) {
+                const labelLen = label.length;
+                const addLen = autoLabels.length > 0 ? labelLen + 2 : labelLen;
+                if (currentLen + addLen <= 200) {
+                    autoLabels.push(label);
+                    currentLen += addLen;
+                } else {
+                    break;
+                }
+            }
 
             const res = await fetch(sheetsSyncUrl, {
                 method: 'POST',
