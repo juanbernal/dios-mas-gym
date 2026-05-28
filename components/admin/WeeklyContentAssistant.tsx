@@ -156,12 +156,15 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 2. Canción más nueva de cada artista (alterna uno y uno)
+        // 2. Canción más nueva de cada artista (alterna uno y uno) - Limitar a los últimos 30 días
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
         const newestDM = [...dmPool]
-            .filter(s => s.date)
+            .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         const newestJ6 = [...j6Pool]
-            .filter(s => s.date)
+            .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
         
