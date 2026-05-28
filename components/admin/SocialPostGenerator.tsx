@@ -12,6 +12,7 @@ const SocialPostGenerator: React.FC = () => {
     const [error, setError] = useState<any>(null);
     const [copiedBlog, setCopiedBlog] = useState(false);
     const [copiedSocial, setCopiedSocial] = useState(false);
+    const [copiedTags, setCopiedTags] = useState(false);
     const [isSavingBlogger, setIsSavingBlogger] = useState(false);
     const [bloggerStatus, setBloggerStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -126,7 +127,16 @@ const SocialPostGenerator: React.FC = () => {
         return { blog, social, hashtags };
     };
 
-    const handleUploadToBlogger = async (blogText: string) => {
+    const cleanHashtagsForBlogger = (hashtagsText: string) => {
+        if (!hashtagsText) return '';
+        return hashtagsText
+            .split(/[\s,]+/)
+            .map(tag => tag.replace(/#/g, '').trim())
+            .filter(tag => tag.length > 0)
+            .join(', ');
+    };
+
+    const handleUploadToBlogger = async (blogText: string, hashtagsText = '') => {
         const song = catalog.find(item => item.id === selectedSongId);
         if (!song) return;
 
@@ -170,7 +180,12 @@ const SocialPostGenerator: React.FC = () => {
     </div>
 </div>`;
 
-            const autoLabels = [song.artist, "Reflexiones", "Música"].filter(Boolean);
+            const aiLabels = hashtagsText
+                ? hashtagsText.split(/[\s,]+/).map(tag => tag.replace(/#/g, '').trim()).filter(Boolean)
+                : [];
+            const autoLabels = [song.artist, "Reflexiones", "Música", ...aiLabels]
+                .filter((v, i, a) => v && a.indexOf(v) === i); // Unique labels
+
             const res = await fetch(sheetsSyncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -415,12 +430,32 @@ const SocialPostGenerator: React.FC = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div className="text-white/80 leading-relaxed whitespace-pre-wrap text-sm min-h-[250px] font-light max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">{parsed.blog}</div>
+                                            <div className="text-white/80 leading-relaxed whitespace-pre-wrap text-sm min-h-[250px] font-light max-h-[350px] overflow-y-auto pr-2 custom-scrollbar mb-6">{parsed.blog}</div>
+                                            {parsed.hashtags && (
+                                                <div className="mt-6 pt-4 border-t border-white/5 bg-black/20 p-4 rounded-xl border border-white/5">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2">
+                                                            <i className="fas fa-tags text-[#c5a059]"></i> Etiquetas Blogger (Sin # y con comas)
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(cleanHashtagsForBlogger(parsed.hashtags));
+                                                                setCopiedTags(true);
+                                                                setTimeout(() => setCopiedTags(false), 2000);
+                                                            }} 
+                                                            className={`text-[8px] font-black uppercase tracking-widest transition-all ${copiedTags ? 'text-green-500' : 'text-[#c5a059] hover:text-white'}`}
+                                                        >
+                                                            <i className={`fas ${copiedTags ? 'fa-check' : 'fa-copy'} mr-1`}></i> {copiedTags ? 'Copiado' : 'Copiar'}
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-white/60 text-xs font-mono select-all truncate">{cleanHashtagsForBlogger(parsed.hashtags)}</p>
+                                                </div>
+                                            )}
                                         </div>
                                         {selectedSongId && (
                                             <div className="mt-8 pt-6 border-t border-white/5">
                                                 <button 
-                                                    onClick={() => handleUploadToBlogger(parsed.blog)}
+                                                    onClick={() => handleUploadToBlogger(parsed.blog, parsed.hashtags)}
                                                     disabled={isSavingBlogger}
                                                     className={`w-full py-4 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
                                                         bloggerStatus === 'success' ? 'bg-green-500/20 border border-green-500/40 text-green-400' :
