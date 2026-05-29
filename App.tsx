@@ -668,38 +668,44 @@ const App: React.FC = () => {
               className="w-full bg-transparent border-b-2 border-[#c5a059] py-8 md:py-12 text-3xl md:text-7xl font-serif italic text-white focus:outline-none placeholder-white/5 uppercase" 
             />
             
-            {/* Live Search Suggestions Grid */}
+            {/* Live Search Results Grid (Real-time cards with images) */}
             {state.searchTerm.trim().length >= 2 && (
               <div className="mt-12 text-left w-full animate-fade-in">
                 <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-3">
                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059]">
-                    Sugerencias de Combate ({filteredPosts.length})
+                    Objetivos Localizados ({filteredPosts.length})
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-widest text-white/30 font-mono">
-                    Presione Enter para ver todo el archivo
+                    Haga clic para entrenar / Presione Enter para ver todo
                   </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[45vh] overflow-y-auto pr-2">
-                  {filteredPosts.slice(0, 4).map(p => (
-                    <div 
-                      key={p.id} 
-                      onClick={() => {
-                        navigate(`/post/${getSlugFromUrl(p.url)}`);
-                        setIsSearchOpen(false);
-                      }}
-                      className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-[#c5a059]/40 hover:bg-white/10 transition-all cursor-pointer group flex flex-col justify-between"
-                    >
-                      <h4 className="font-serif italic text-base text-white group-hover:text-[#c5a059] transition-colors line-clamp-1 mb-2">
-                        {p.title}
-                      </h4>
-                      <p className="text-[10px] text-white/40 line-clamp-2 leading-relaxed">
-                        {(p.content || "").replace(/<[^>]*>/g, '').slice(0, 120)}...
-                      </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[55vh] overflow-y-auto pr-2 py-2">
+                  {filteredPosts.slice(0, 6).map(p => (
+                    <div key={p.id} className="transition-all duration-300 hover:scale-[1.01]">
+                      <PostCard 
+                        post={p} 
+                        onClick={() => {
+                          navigate(`/post/${getSlugFromUrl(p.url)}`);
+                          setIsSearchOpen(false);
+                        }} 
+                        isFav={state.favorites.includes(p.id)} 
+                        isRead={readingHistory.includes(p.id)} 
+                        onFav={(e) => { 
+                          e.stopPropagation(); 
+                          setState((prev: any) => ({ 
+                            ...prev, 
+                            favorites: prev.favorites.includes(p.id) 
+                              ? prev.favorites.filter((id: string) => id !== p.id) 
+                              : [...prev.favorites, p.id] 
+                          })); 
+                        }} 
+                        size="sm" 
+                      />
                     </div>
                   ))}
                   {filteredPosts.length === 0 && (
-                    <p className="text-center py-10 col-span-2 text-white/30 font-serif italic text-base">
-                      No se localizaron objetivos en el archivo.
+                    <p className="text-center py-20 col-span-1 md:col-span-2 lg:col-span-3 text-white/30 font-serif italic text-base">
+                      No se localizaron objetivos en el archivo para esta búsqueda.
                     </p>
                   )}
                 </div>
