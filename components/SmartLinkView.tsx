@@ -396,27 +396,31 @@ const SmartLinkView: React.FC = () => {
     if (!isJuan) {
         return (
             <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] flex flex-col relative overflow-hidden">
+                {/* Dynamic Gold Glowing Orbs (Premium background effect) */}
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c5a059]/10 rounded-full blur-[130px] animate-pulse pointer-events-none"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8c6b32]/10 rounded-full blur-[130px] animate-pulse pointer-events-none" style={{ animationDelay: '2.5s' }}></div>
+
                 {/* Background Blur */}
                 <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-30 scale-110 blur-xl"
+                    className="absolute inset-0 bg-cover bg-center opacity-25 scale-110 blur-2xl saturate-150"
                     style={{ backgroundImage: `url(${song.cover})` }}
                 ></div>
-                <div className="absolute inset-0 bg-gradient-to-b from-[#05070a]/50 via-[#05070a] to-[#05070a]"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#05070a]/60 via-[#05070a] to-[#05070a]"></div>
 
-                <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto">
+                <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto animate-fade-in">
                     
                     {/* LEFT COLUMN: Art & Player */}
-                    <div className="flex flex-col items-center w-full max-w-sm shrink-0">
+                    <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
                         <div className="relative group mb-4 md:mb-8">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                            <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-3xl blur opacity-35 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
                             <img 
                                 src={song.cover} 
                                 alt={song.name} 
-                                className="relative w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl border border-white/10"
+                                className="relative w-40 h-40 md:w-80 md:h-80 object-cover rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#c5a059]/20 transition-transform duration-500 group-hover:scale-[1.03]"
                             />
                         </div>
                         
-                        <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-xl font-bold px-2">{song.name}</h1>
+                        <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] font-bold px-2 tracking-wide">{song.name}</h1>
                         <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                         {embedData?.type === 'youtube' && (
@@ -424,7 +428,7 @@ const SmartLinkView: React.FC = () => {
                         )}
                         
                         {embedData?.type === 'spotify' && (
-                            <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/10 bg-black/40 p-2 backdrop-blur-md">
+                            <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#c5a059]/20 bg-black/40 p-2 backdrop-blur-md">
                                 <div className="flex items-center justify-between mb-3 px-2 pt-2">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
@@ -447,9 +451,9 @@ const SmartLinkView: React.FC = () => {
 
                     {/* RIGHT COLUMN: Links & Social */}
                     <div className="flex flex-col items-center w-full max-w-md">
-                        <div className="w-full relative z-20 backdrop-blur-xl bg-white/5 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
+                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(197,160,89,0.15)] transition-all hover:border-[#c5a059]/30 duration-500">
                             <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
-                                <div className="bg-[#c5a059] text-black text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(197,160,89,0.4)] flex items-center gap-2">
+                                <div className="bg-[#c5a059] text-black text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(197,160,89,0.5)] flex items-center gap-2 font-bold">
                                     ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                                 </div>
                             </div>
@@ -575,6 +579,53 @@ const SmartLinkView: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* QR CODE MODAL OVERLAY (DGM) */}
+                {showQrModal && (
+                    <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-all" onClick={() => setShowQrModal(false)}>
+                        <div 
+                            className={`w-full max-w-sm rounded-3xl p-6 border shadow-2xl flex flex-col items-center gap-6 relative ${isJuan ? 'bg-[#2a221f] border-[#8B5A2B]/30 text-[#e8dcc5]' : 'bg-[#0a0c14] border-white/10 text-white'}`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Close button */}
+                            <button 
+                                onClick={() => setShowQrModal(false)}
+                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all text-xs"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                            
+                            <div className="text-center mt-2">
+                                <h3 className="font-serif italic text-xl font-bold mb-1">Escanear Código QR</h3>
+                                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Escucha en tu dispositivo móvil</p>
+                            </div>
+
+                            {/* QR Image */}
+                            <div className="p-4 bg-white rounded-2xl shadow-inner">
+                                <img 
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getShareUrl())}&color=${isJuan ? '8B5A2B' : 'c5a059'}&bgcolor=ffffff`}
+                                    alt="Código QR del smartlink"
+                                    className="w-48 h-48 object-contain rounded-lg"
+                                    loading="lazy"
+                                />
+                            </div>
+
+                            <div className="text-center w-full">
+                                <span className="text-[10px] font-bold text-white/40 block mb-3 font-mono break-all px-4">{getShareUrl()}</span>
+                                <button 
+                                    onClick={() => {
+                                        copyToClipboard();
+                                        setShowQrModal(false);
+                                    }}
+                                    className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md font-bold"
+                                    style={{ backgroundColor: isJuan ? '#c89d53' : '#c5a059', color: '#000' }}
+                                >
+                                    <i className="fas fa-link mr-2"></i> Copiar enlace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -582,29 +633,33 @@ const SmartLinkView: React.FC = () => {
     // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
     return (
         <div className="min-h-screen bg-[#1a1412] text-[#e8dcc5] font-['Poppins'] flex flex-col relative overflow-hidden">
+            {/* Dynamic Earthy/Bronze Glowing Orbs (Acoustic feel) */}
+            <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-[#c89d53]/5 rounded-full blur-[140px] animate-pulse pointer-events-none"></div>
+            <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-[#8B5A2B]/5 rounded-full blur-[140px] animate-pulse pointer-events-none" style={{ animationDelay: '3s' }}></div>
+
             {/* Background Blur basado en portada */}
             <div 
-                className="absolute inset-0 bg-cover bg-center opacity-10 scale-110 blur-2xl saturate-50"
+                className="absolute inset-0 bg-cover bg-center opacity-15 scale-110 blur-2xl saturate-75"
                 style={{ backgroundImage: `url(${song.cover})` }}
             ></div>
             {/* Background Texture (Papel/Madera/Ruido) en oscuro */}
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#d3c19e 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+            <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(#d3c19e 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
             
-            <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto">
+            <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto animate-fade-in">
                 
                 {/* LEFT COLUMN: Art & Player */}
-                <div className="flex flex-col items-center w-full max-w-sm shrink-0">
+                <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
                     <div className="relative mb-4 md:mb-8 group">
                         <img 
                             src={song.cover} 
                             alt={song.name} 
-                            className="w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-2xl z-10 relative group-hover:scale-105 transition-transform duration-500"
+                            className="w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-10 relative group-hover:scale-105 transition-transform duration-500 border border-[#c89d53]/15"
                         />
                         {/* Elemento de diseño de fondo */}
-                        <div className="absolute -inset-4 border-2 border-[#8B5A2B] opacity-20 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500"></div>
+                        <div className="absolute -inset-4 border-2 border-[#8B5A2B] opacity-30 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500"></div>
                     </div>
                     
-                    <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2">{song.name}</h1>
+                    <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2 drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)]">{song.name}</h1>
                     <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-8 text-center">{song.artist}</p>
 
                     {embedData?.type === 'youtube' && (
@@ -612,7 +667,7 @@ const SmartLinkView: React.FC = () => {
                     )}
                     
                     {embedData?.type === 'spotify' && (
-                        <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-xl border border-[#8B5A2B]/20 bg-[#2a221f] p-2 backdrop-blur-md">
+                        <div className="w-full mb-4 md:mb-8 rounded-xl overflow-hidden shadow-2xl border border-[#c89d53]/20 bg-[#2a221f] p-2 backdrop-blur-md">
                             <div className="flex items-center justify-between mb-3 px-2 pt-2">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-[#1DB954] flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
@@ -635,9 +690,9 @@ const SmartLinkView: React.FC = () => {
 
                 {/* RIGHT COLUMN: Links & Social */}
                 <div className="flex flex-col items-center w-full max-w-md">
-                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/80 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#8B5A2B]/20 shadow-2xl">
+                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c89d53]/25 shadow-[0_30px_70px_rgba(139,90,43,0.18)] transition-all hover:border-[#c89d53]/40 duration-500">
                         <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
-                            <div className="bg-[#c89d53] text-[#1a1412] text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_15px_rgba(200,157,83,0.4)] flex items-center gap-2">
+                            <div className="bg-[#c89d53] text-[#1a1412] text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(200,157,83,0.4)] flex items-center gap-2 font-bold">
                                 ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                             </div>
                         </div>
