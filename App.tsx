@@ -648,7 +648,73 @@ const App: React.FC = () => {
       )}
       {location.pathname.startsWith('/admin') && <PWAInstallPrompt />}
       {!hideGlobalUI && <Footer />}
-      {isSearchOpen && !hideGlobalUI && ( <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex items-center justify-center p-10 animate-fade-in"><div className="w-full max-w-5xl text-center"><input autoFocus type="text" value={state.searchTerm} onChange={e => { setState(p => ({ ...p, searchTerm: e.target.value })); navigate('/reflexiones'); }} placeholder="IDENTIFIQUE OBJETIVO..." className="w-full bg-transparent border-b-2 border-[#c5a059] py-12 text-6xl md:text-8xl font-serif italic text-white focus:outline-none placeholder-white/5" /><button onClick={() => setIsSearchOpen(false)} className="mt-20 text-[10px] font-black uppercase tracking-[0.8em] text-[#c5a059] hover:text-white transition-all active:scale-95">[ DESACTIVAR RASTREO ]</button></div></div> )}
+      {isSearchOpen && !hideGlobalUI && (
+        <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex flex-col items-center justify-start p-6 md:p-24 overflow-y-auto animate-fade-in">
+          <div className="w-full max-w-5xl text-center mt-12 md:mt-20">
+            <input 
+              autoFocus 
+              type="text" 
+              value={state.searchTerm} 
+              onChange={e => { 
+                setState(p => ({ ...p, searchTerm: e.target.value })); 
+                navigate('/reflexiones'); 
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  setIsSearchOpen(false);
+                }
+              }}
+              placeholder="IDENTIFIQUE OBJETIVO..." 
+              className="w-full bg-transparent border-b-2 border-[#c5a059] py-8 md:py-12 text-3xl md:text-7xl font-serif italic text-white focus:outline-none placeholder-white/5 uppercase" 
+            />
+            
+            {/* Live Search Suggestions Grid */}
+            {state.searchTerm.trim().length >= 2 && (
+              <div className="mt-12 text-left w-full animate-fade-in">
+                <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-3">
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059]">
+                    Sugerencias de Combate ({filteredPosts.length})
+                  </span>
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-white/30 font-mono">
+                    Presione Enter para ver todo el archivo
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[45vh] overflow-y-auto pr-2">
+                  {filteredPosts.slice(0, 4).map(p => (
+                    <div 
+                      key={p.id} 
+                      onClick={() => {
+                        navigate(`/post/${getSlugFromUrl(p.url)}`);
+                        setIsSearchOpen(false);
+                      }}
+                      className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-[#c5a059]/40 hover:bg-white/10 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                      <h4 className="font-serif italic text-base text-white group-hover:text-[#c5a059] transition-colors line-clamp-1 mb-2">
+                        {p.title}
+                      </h4>
+                      <p className="text-[10px] text-white/40 line-clamp-2 leading-relaxed">
+                        {(p.content || "").replace(/<[^>]*>/g, '').slice(0, 120)}...
+                      </p>
+                    </div>
+                  ))}
+                  {filteredPosts.length === 0 && (
+                    <p className="text-center py-10 col-span-2 text-white/30 font-serif italic text-base">
+                      No se localizaron objetivos en el archivo.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => setIsSearchOpen(false)} 
+              className="mt-16 px-8 py-3.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:bg-[#c5a059] hover:text-black hover:border-transparent transition-all active:scale-95"
+            >
+              [ CERRAR BUSCADOR ]
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
