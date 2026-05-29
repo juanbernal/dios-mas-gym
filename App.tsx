@@ -290,9 +290,56 @@ const App: React.FC = () => {
             seenIds.add(p.id);
          }
       });
-      
-      // Ordenar por fecha descending
-      return combined.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+      // Función para calcular relevancia
+      const getRelevanceScore = (post: typeof state.allPosts[0], query: string) => {
+         const titleNormalized = normalizeText(post.title);
+         const queryNormalized = normalizeText(query);
+         let score = 0;
+
+         // 1. Coincidencia en el Título
+         if (titleNormalized === queryNormalized) {
+            score += 200; // Coincidencia exacta
+         } else if (titleNormalized.startsWith(queryNormalized)) {
+            score += 150; // Empieza con el término
+         } else if (titleNormalized.includes(queryNormalized)) {
+            score += 100; // Contiene el término
+         }
+
+         // 2. Coincidencia en Etiquetas/Categorías
+         if (post.labels) {
+            const hasExactLabel = post.labels.some(l => normalizeText(l) === queryNormalized);
+            if (hasExactLabel) {
+               score += 80;
+            } else {
+               const hasPartialLabel = post.labels.some(l => normalizeText(l).includes(queryNormalized));
+               if (hasPartialLabel) {
+                  score += 40;
+               }
+            }
+         }
+
+         // 3. Coincidencia en el Cuerpo del Artículo
+         if (post.content) {
+            const contentNormalized = normalizeText(post.content);
+            if (contentNormalized.includes(queryNormalized)) {
+               score += 10; // Coincidencia básica
+               const occurrences = contentNormalized.split(queryNormalized).length - 1;
+               score += Math.min(occurrences * 5, 30); // Frecuencia de aparición (max 30)
+            }
+         }
+
+         return score;
+      };
+
+      // Ordenar por relevancia descendente, usando la fecha de publicación como desempate
+      return combined.sort((a, b) => {
+         const scoreA = getRelevanceScore(a, state.searchTerm);
+         const scoreB = getRelevanceScore(b, state.searchTerm);
+         if (scoreB !== scoreA) {
+            return scoreB - scoreA;
+         }
+         return new Date(b.published).getTime() - new Date(a.published).getTime();
+      });
     }
 
     if (state.currentView === 'favoritos') posts = posts.filter(p => state.favorites.includes(p.id));
