@@ -28,8 +28,16 @@
       "destination": "/api/common?action=sitemap"
     },
     {
+      "source": "/feed.xml",
+      "destination": "/api/common?action=rss"
+    },
+    {
       "source": "/post/:slug",
       "destination": "/api/common?action=post-ssr&slug=:slug"
+    },
+    {
+      "source": "/link/:id",
+      "destination": "/api/common?action=smartlink-ssr&id=:id"
     },
     {
       "source": "/api/(.*)",
