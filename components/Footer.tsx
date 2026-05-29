@@ -57,13 +57,6 @@ const Footer: React.FC = () => {
           <div className="text-[8px] font-bold tracking-[0.3em] text-white/10 uppercase mb-8">
              Armando guerreros de luz
           </div>
-          
-          <button 
-            onClick={() => navigate('/admin')} 
-            className="text-[8px] font-black uppercase tracking-[0.5em] text-white/[0.05] hover:text-[#c5a059]/60 transition-all py-2 px-4 border border-white/[0.03] hover:border-[#c5a059]/20 rounded-sm"
-          >
-            [ MODO OPERADOR ]
-          </button>
         </div>
       </div>
     </footer>
