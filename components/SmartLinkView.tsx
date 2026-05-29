@@ -172,6 +172,22 @@ const SmartLinkView: React.FC = () => {
     const { isSubscribed, subscribe, unsubscribe } = useOneSignal();
     const { trackEvent } = useAnalytics();
 
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const getShareUrl = () => {
+        if (typeof window !== 'undefined') {
+            return window.location.href;
+        }
+        return `https://app.diosmasgym.com/link/${id}`;
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(getShareUrl());
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     useEffect(() => {
         if (song) {
             trackEvent('smart_link_view', {
@@ -449,6 +465,58 @@ const SmartLinkView: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* SECCIÓN COMPARTIR (DGM) */}
+                            <div className="mt-8 border-t border-white/5 pt-8 w-full">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4 flex items-center gap-2">
+                                    <i className="fas fa-share-alt"></i> Compartir lanzamiento
+                                </h3>
+                                <div className="flex gap-3 justify-center">
+                                    <a 
+                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
+                                        target="_blank" rel="noreferrer"
+                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
+                                        title="Compartir por WhatsApp"
+                                    >
+                                        <i className="fab fa-whatsapp"></i>
+                                    </a>
+                                    <a 
+                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
+                                        target="_blank" rel="noreferrer"
+                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
+                                        title="Compartir en X (Twitter)"
+                                    >
+                                        <i className="fab fa-x-twitter"></i>
+                                    </a>
+                                    <a 
+                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
+                                        target="_blank" rel="noreferrer"
+                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
+                                        title="Compartir en Facebook"
+                                    >
+                                        <i className="fab fa-facebook-f"></i>
+                                    </a>
+                                    <button 
+                                        onClick={() => setShowQrModal(true)}
+                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all text-xs"
+                                        title="Código QR"
+                                    >
+                                        <i className="fas fa-qrcode"></i>
+                                    </button>
+                                    <button 
+                                        onClick={copyToClipboard}
+                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all relative text-xs"
+                                        title="Copiar enlace"
+                                    >
+                                        <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
+                                        {copied && (
+                                            <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-white/10 animate-bounce whitespace-nowrap z-50">
+                                                ¡Copiado!
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
                             {relatedSongs.length > 0 && (
                                 <div className="mt-10 border-t border-white/5 pt-8">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-3">
@@ -585,6 +653,58 @@ const SmartLinkView: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* SECCIÓN COMPARTIR (JUAN 614) */}
+                        <div className="mt-8 border-t border-[#8B5A2B]/20 pt-8 w-full">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-4 flex items-center gap-2">
+                                <i className="fas fa-share-alt"></i> Compartir lanzamiento
+                            </h3>
+                            <div className="flex gap-3 justify-center">
+                                <a 
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
+                                    title="Compartir por WhatsApp"
+                                >
+                                    <i className="fab fa-whatsapp"></i>
+                                </a>
+                                <a 
+                                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
+                                    title="Compartir en X (Twitter)"
+                                >
+                                    <i className="fab fa-x-twitter"></i>
+                                </a>
+                                <a 
+                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
+                                    title="Compartir en Facebook"
+                                >
+                                    <i className="fab fa-facebook-f"></i>
+                                </a>
+                                <button 
+                                    onClick={() => setShowQrModal(true)}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c89d53] hover:text-black transition-all text-xs"
+                                    title="Código QR"
+                                >
+                                    <i className="fas fa-qrcode"></i>
+                                </button>
+                                <button 
+                                    onClick={copyToClipboard}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c89d53] hover:text-black transition-all relative text-xs"
+                                    title="Copiar enlace"
+                                >
+                                    <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
+                                    {copied && (
+                                        <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-[#8B5A2B]/20 animate-bounce whitespace-nowrap z-50">
+                                            ¡Copiado!
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
                         {relatedSongs.length > 0 && (
                             <div className="mt-10 border-t border-[#8B5A2B]/20 pt-8">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-6 flex items-center gap-3">
@@ -643,6 +763,53 @@ const SmartLinkView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* QR CODE MODAL OVERLAY */}
+            {showQrModal && (
+                <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-all" onClick={() => setShowQrModal(false)}>
+                    <div 
+                        className={`w-full max-w-sm rounded-3xl p-6 border shadow-2xl flex flex-col items-center gap-6 relative ${isJuan ? 'bg-[#2a221f] border-[#8B5A2B]/30 text-[#e8dcc5]' : 'bg-[#0a0c14] border-white/10 text-white'}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Close button */}
+                        <button 
+                            onClick={() => setShowQrModal(false)}
+                            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all text-xs"
+                        >
+                            <i className="fas fa-times"></i>
+                        </button>
+                        
+                        <div className="text-center mt-2">
+                            <h3 className="font-serif italic text-xl font-bold mb-1">Escanear Código QR</h3>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Escucha en tu dispositivo móvil</p>
+                        </div>
+
+                        {/* QR Image */}
+                        <div className="p-4 bg-white rounded-2xl shadow-inner">
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getShareUrl())}&color=${isJuan ? '8B5A2B' : 'c5a059'}&bgcolor=ffffff`}
+                                alt="Código QR del smartlink"
+                                className="w-48 h-48 object-contain rounded-lg"
+                                loading="lazy"
+                            />
+                        </div>
+
+                        <div className="text-center w-full">
+                            <span className="text-[10px] font-bold text-white/40 block mb-3 font-mono break-all px-4">{getShareUrl()}</span>
+                            <button 
+                                onClick={() => {
+                                    copyToClipboard();
+                                    setShowQrModal(false);
+                                }}
+                                className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md font-bold"
+                                style={{ backgroundColor: isJuan ? '#c89d53' : '#c5a059', color: '#000' }}
+                            >
+                                <i className="fas fa-link mr-2"></i> Copiar enlace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
