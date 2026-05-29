@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- PWA_VERSION: 4.9.5 -->
+    <!-- PWA_VERSION: 5.0.3 -->
     <!-- OneSignal Web SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -49,15 +49,6 @@
                     window.location.replace('/#' + path + search + hash);
                     return; // Detener ejecución ya que estamos redireccionando
                 }
-            }
-
-            // 2. Redirección de PWA
-            var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-            var currentPath = window.location.pathname + window.location.hash;
-            
-            if (isPWA && !currentPath.includes('/admin')) {
-                console.log('PWA DETECTADA - REDIRIGIENDO AL PANEL');
-                window.location.replace('/#/admin?pwa=final_v4');
             }
         })();
     </script>
@@ -120,8 +111,8 @@
 </head>
 <body class="flex flex-col">
     <script>
-        // MASTER RESET SCRIPT (v5.0.2)
-        const APP_VERSION = '5.0.2';
+        // MASTER RESET SCRIPT (v5.0.3)
+        const APP_VERSION = '5.0.3';
         if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
             console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
             localStorage.setItem('app_version', APP_VERSION);
