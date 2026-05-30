@@ -726,12 +726,32 @@ export default async function handler(
       const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
       let html = await htmlRes.text();
 
-      // Perform injections
-      html = html.replace('<title>Dios Mas Gym - El Arsenal de Fe</title>', `<title>${title}</title>`);
-      html = html.replace('<meta property="og:title" content="Dios Mas Gym - El Arsenal de Fe">', `<meta property="og:title" content="${title}">`);
-      html = html.replace('<meta property="og:description" content="Reflexiones de fe, valentía y disciplina en El Arsenal.">', `<meta property="og:description" content="${description}">`);
-      html = html.replace('<meta property="og:image" content="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">', `<meta property="og:image" content="${image}">`);
-      html = html.replace('<link rel="canonical" href="https://app.diosmasgym.com/" />', `<link rel="canonical" href="https://app.diosmasgym.com/link/${id}" />`);
+      let shareUrl = `https://app.diosmasgym.com/link/${id}`;
+      if (id === 'custom' && req.query.title && req.query.artist) {
+        const qTitle = req.query.title as string;
+        const qArtist = req.query.artist as string;
+        const qCover = req.query.cover as string;
+        const qUrl = req.query.url as string;
+        shareUrl = `https://app.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`;
+      }
+
+      // Perform injections using robust regexes to avoid minification discrepancies
+      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
+      
+      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
+      
+      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
+      
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
+      
+      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
+      
+      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${shareUrl}" />`);
+      
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${description}">\n</head>`);
 
       res.setHeader('Content-Type', 'text/html');
