@@ -122,7 +122,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
         }
     }
     const songId = videoId || generateSlug(`${release.Artista}-${release.name}`);
-    const smartLinkUrl = `https://app.diosmasgym.com/#/link/${songId}`;
+    const smartLinkUrl = `https://app.diosmasgym.com/link/${songId}`;
 
     const payload: any = {
         app_id: APP_ID,

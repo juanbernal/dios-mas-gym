@@ -180,7 +180,7 @@ const CustomPromoCreator: React.FC = () => {
   };
 
   const getSmartLink = useCallback(() => {
-    if (songId) return `${window.location.origin}/#/link/${songId}`;
+    if (songId) return `${window.location.origin}/link/${songId}`;
     return artist.toLowerCase().includes('juan')
       ? 'https://juan614.diosmasgym.com'
       : 'https://musica.diosmasgym.com';

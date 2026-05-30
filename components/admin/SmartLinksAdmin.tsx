@@ -58,7 +58,7 @@ const SmartLinksAdmin: React.FC = () => {
             url: manualForm.targetUrl
         });
         
-        const url = `${window.location.origin}/#/link/custom?${params.toString()}`;
+        const url = `${window.location.origin}/link/custom?${params.toString()}`;
         navigator.clipboard.writeText(url)
             .then(() => showToast("Enlace manual copiado"))
             .catch(() => showToast("Error al copiar enlace"));
@@ -77,7 +77,7 @@ const SmartLinksAdmin: React.FC = () => {
             url: manualForm.targetUrl
         });
         
-        window.open(`/#/link/custom?${params.toString()}`, '_blank');
+        window.open(`/link/custom?${params.toString()}`, '_blank');
     };
 
     const filteredCatalog = catalog.filter(song => 
@@ -86,14 +86,14 @@ const SmartLinksAdmin: React.FC = () => {
     );
 
     const handleCopyLink = (id: string) => {
-        const url = `${window.location.origin}/#/link/${id}`;
+        const url = `${window.location.origin}/link/${id}`;
         navigator.clipboard.writeText(url)
             .then(() => showToast("¡Enlace copiado!"))
             .catch(() => showToast("Error al copiar enlace"));
     };
 
     const handlePreview = (id: string) => {
-        window.open(`/#/link/${id}`, '_blank');
+        window.open(`/link/${id}`, '_blank');
     };
 
     return (

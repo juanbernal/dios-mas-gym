@@ -170,7 +170,7 @@ const SocialPostGenerator: React.FC = () => {
         try {
             const sheetsSyncUrl = localStorage.getItem('lyrics_sheets_sync_url') || "/api/sheet-proxy?script=lyrics";
             const SYNC_SECRET = "DMG_SYNC_2026";
-            const smartLink = `${window.location.origin}/#/link/${song.id}`;
+            const smartLink = `${window.location.origin}/link/${song.id}`;
 
             const paragraphs = blogText
                 .split(/\n\n+/)
@@ -265,7 +265,7 @@ const SocialPostGenerator: React.FC = () => {
         
         // Auto-construir SmartLink si hay canción
         const song = catalog.find(item => item.id === selectedSongId);
-        const smartLink = song ? `${window.location.origin}/#/link/${song.id}` : '';
+        const smartLink = song ? `${window.location.origin}/link/${song.id}` : '';
         
         let finalInput = cleanInput;
         if (smartLink) {

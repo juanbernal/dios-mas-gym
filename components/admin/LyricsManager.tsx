@@ -490,7 +490,7 @@ const LyricsManager: React.FC = () => {
         if (!songId) return '';
         const song = storyCatalog.find(s => s.id === songId);
         if (!song) return '';
-        return `${window.location.origin}/#/link/${song.id}`;
+        return `${window.location.origin}/link/${song.id}`;
     };
 
     const handleStorySongSelect = (songId: string) => {

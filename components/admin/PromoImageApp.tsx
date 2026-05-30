@@ -372,7 +372,7 @@ const PromoImageApp: React.FC = () => {
 
   // SMART LINK REAL — usa la ruta del proyecto igual que SmartLinksAdmin
   const getSmartLink = useCallback(() => {
-    if (songId) return `${window.location.origin}/#/link/${songId}`;
+    if (songId) return `${window.location.origin}/link/${songId}`;
     // Fallback si no hay id (selección manual de imagen)
     return artist.toLowerCase().includes('juan')
       ? 'https://juan614.diosmasgym.com'

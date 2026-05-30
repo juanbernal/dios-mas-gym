@@ -132,7 +132,7 @@ const UpcomingReleases: React.FC = () => {
                             name: isAlbum ? `${mainItem.name} (LP / Álbum)` : mainItem.name,
                             releaseDate: mainItem.date,
                             coverImageUrl: mainItem.cover,
-                            preSaveLink: `/#/link/${mainItem.id}`,
+                            preSaveLink: `/link/${mainItem.id}`,
                             audioUrl: mainItem.url,
                             id: mainItem.id,
                             isFromCatalog: true
@@ -152,7 +152,7 @@ const UpcomingReleases: React.FC = () => {
                                 name: latest.name,
                                 releaseDate: latest.date,
                                 coverImageUrl: latest.cover,
-                                preSaveLink: `/#/link/${latest.id}`,
+                                preSaveLink: `/link/${latest.id}`,
                                 audioUrl: latest.url,
                                 id: latest.id,
                                 isFromCatalog: true
