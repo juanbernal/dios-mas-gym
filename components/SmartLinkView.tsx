@@ -176,8 +176,8 @@ const SmartLinkView: React.FC = () => {
     const [copied, setCopied] = useState(false);
 
     const getShareUrl = () => {
-        if (typeof window !== 'undefined') {
-            return window.location.href;
+        if (id === 'custom') {
+            return `https://app.diosmasgym.com/link/custom${location.search}`;
         }
         return `https://app.diosmasgym.com/link/${id}`;
     };
