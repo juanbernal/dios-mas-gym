@@ -690,6 +690,36 @@ export default async function handler(
   "description": ${JSON.stringify(description)}
 }
 </script>`;
+      } else if (id === 'custom' || (req.query.title && req.query.artist)) {
+        const qTitle = req.query.title as string;
+        const qArtist = req.query.artist as string;
+        const qCover = req.query.cover as string;
+        const qUrl = req.query.url as string;
+
+        if (qTitle && qArtist) {
+          title = `${qTitle} - ${qArtist}`;
+          description = `Escucha "${qTitle}" de ${qArtist} en Spotify, YouTube, Apple Music, Deezer y más plataformas de streaming.`;
+          if (qCover) {
+            image = qCover;
+          }
+
+          jsonLdBlock = `
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MusicRecording",
+  "name": ${JSON.stringify(qTitle)},
+  "byArtist": {
+    "@type": "MusicGroup",
+    "name": ${JSON.stringify(qArtist)},
+    "url": ${JSON.stringify(`https://app.diosmasgym.com/bio/${qArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
+  },
+  "url": ${JSON.stringify(`https://app.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`)},
+  "image": ${JSON.stringify(image)},
+  "description": ${JSON.stringify(description)}
+}
+</script>`;
+        }
       }
 
       // Fetch compiled index.html
