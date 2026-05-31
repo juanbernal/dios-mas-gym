@@ -18,7 +18,6 @@ interface Suggestion {
     releaseName?: string;
 }
 
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycby5C_0B369l_t69r7x7o7y5K-C9X9xX9x/exec"; // Placeholder, real one is in the file
 const PROMOTED_KEY = 'content_assistant_promoted_ids';
 
 const HASHTAG_SETS = {
@@ -47,14 +46,196 @@ const CAPTIONS_BY_TYPE = {
     })
 };
 
+interface SuggestionCardProps {
+    suggestion: Suggestion;
+    onNext: () => void;
+    onAction: (route: string) => void;
+    title: string;
+}
+
+const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onAction, title }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
+
+    const TYPE_LABELS: Record<Suggestion['type'], { label: string; color: string; icon: string }> = {
+        new_release: { label: '🚀 Lanzamiento', color: '#ff4b2b', icon: 'fa-rocket' },
+        recent: { label: '🔥 Reciente', color: '#c5a059', icon: 'fa-fire' },
+        rotation: { label: '🔄 Rotación Diaria', color: '#3b82f6', icon: 'fa-rotate' },
+        old_gem: { label: '💎 Joya del Archivo', color: '#a855f7', icon: 'fa-gem' },
+    };
+
+    const typeInfo = TYPE_LABELS[suggestion.type];
+
+    const copyText = (text: string, type: 'ig' | 'tt' | 'sl') => {
+        navigator.clipboard.writeText(text);
+        setCopied(type);
+        setTimeout(() => setCopied(null), 2000);
+    };
+
+    const handleAiGenerate = async () => {
+        if (!suggestion.song) return;
+        setAiLoading(true);
+        try {
+            const prompt = {
+                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión MUY corta y directa para Instagram.\n2. Una versión MUY corta y directa para TikTok.\nMantén un tono épico, de fe y disciplina.`,
+                platform: 'Instagram/TikTok',
+                goal: 'Inspirar y Viralizar',
+                tone: 'Épico y Motivador'
+            };
+
+            const response = await fetch('/api/generate-post', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
+                body: JSON.stringify({ content: JSON.stringify(prompt) })
+            });
+            const data = await response.json();
+            if (data.text) {
+                setAiCaptions({ ig: data.text, tt: data.text });
+            }
+        } catch (e) {
+            console.error("AI Generation failed", e);
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    return (
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#0f111a] border shadow-2xl flex flex-col justify-between h-full group hover:border-[#c5a059]/20 transition-all duration-500"
+            style={{ borderColor: `${typeInfo.color}30`, fontFamily: "'Poppins', sans-serif" }}>
+            <div className="absolute -top-20 -left-10 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none"
+                style={{ backgroundColor: typeInfo.color }} />
+
+            <div>
+                {/* Header Section */}
+                <div className="px-6 py-6 border-b"
+                    style={{ borderColor: `${typeInfo.color}15`, background: `linear-gradient(135deg, ${typeInfo.color}08, transparent)` }}>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                            <span className="text-[8px] font-black tracking-widest text-[#c5a059] uppercase block mb-1">
+                                {title}
+                            </span>
+                            <div className="flex items-center gap-2 mb-2">
+                                <i className={`fas ${typeInfo.icon} text-[10px]`} style={{ color: typeInfo.color }}></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
+                                    {typeInfo.label}
+                                </span>
+                            </div>
+                            <h3 className="text-lg font-serif italic text-white leading-tight truncate">
+                                {suggestion.song?.name || 'Inspiración Diaria'}
+                            </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="text-[8px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-3 py-2 rounded-xl border border-white/10 flex items-center justify-center gap-1.5"
+                            >
+                                <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
+                            </button>
+                            <button
+                                onClick={onNext}
+                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
+                            >
+                                <span className="text-[8px] font-black uppercase tracking-widest">Siguiente</span>
+                                <i className="fas fa-arrow-right text-[8px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content Section */}
+                <div className="p-6">
+                    <div className="flex gap-4 items-start mb-6">
+                        {suggestion.song?.cover && (
+                            <div className="relative shrink-0">
+                                <img src={suggestion.song.cover} alt={suggestion.song.name} className="w-16 h-16 rounded-xl object-cover border border-white/10" />
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px]"
+                                    style={{ backgroundColor: typeInfo.color, color: '#000' }}>
+                                    <i className={`fas ${typeInfo.icon}`}></i>
+                                </div>
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.2em] mb-1">Recomendación Estratégica</p>
+                            <p className="text-white/80 text-xs leading-relaxed font-light italic">
+                                "{suggestion.reason}"
+                            </p>
+                        </div>
+                    </div>
+
+                    {isExpanded && (
+                        <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-1 gap-4">
+                            <div className="bg-black/30 rounded-2xl p-5 border border-white/5 flex flex-col">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <i className="fab fa-instagram text-base" style={{ color: '#E1306C' }}></i>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Caption Instagram</span>
+                                    </div>
+                                    <button onClick={() => copyText(`${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`, 'ig')} className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full" style={{ backgroundColor: copied === 'ig' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
+                                        {copied === 'ig' ? '✓ Copiado' : 'Copiar'}
+                                    </button>
+                                </div>
+                                <pre className="text-white/70 text-[10px] leading-relaxed whitespace-pre-wrap font-sans mb-3">{aiCaptions?.ig || suggestion.caption}</pre>
+                                <div className="pt-3 border-t border-white/5"><p className="text-[#c5a059] text-[9px]">{suggestion.hashtags}</p></div>
+                            </div>
+
+                            <div className="bg-black/30 rounded-2xl p-5 border border-white/5 flex flex-col">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <i className="fab fa-tiktok text-base text-white"></i>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Caption TikTok</span>
+                                    </div>
+                                    <button onClick={() => copyText(`${aiCaptions?.tt || suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`, 'tt')} className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full" style={{ backgroundColor: copied === 'tt' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
+                                        {copied === 'tt' ? '✓ Copiado' : 'Copiar'}
+                                    </button>
+                                </div>
+                                <pre className="text-white/70 text-[10px] leading-relaxed whitespace-pre-wrap font-sans mb-3">{aiCaptions?.tt || suggestion.tiktokCaption}</pre>
+                                <div className="pt-3 border-t border-white/5"><p className="text-[#c5a059] text-[9px]">{suggestion.hashtags} #fyp #parati</p></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isExpanded && (
+                        <div className="mt-4 flex justify-center pb-2">
+                            <button onClick={handleAiGenerate} disabled={aiLoading} className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[8px] font-black uppercase tracking-[0.3em] ${aiLoading ? 'bg-white/10 text-white/30' : 'bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-105 transition-all'}`}>
+                                {aiLoading ? 'Generando...' : '✨ Mejorar con IA'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="px-6 pb-6 pt-2 border-t border-white/5 bg-black/10">
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => onAction('/admin/promo-image')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                        <i className="fas fa-image text-[10px]"></i>
+                        <span>Imagen</span>
+                    </button>
+                    <button onClick={() => onAction('/admin/video-snippet')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                        <i className="fas fa-video text-[10px]"></i>
+                        <span>Video</span>
+                    </button>
+                    <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest col-span-2">
+                        <i className="fas fa-share-nodes text-[10px]"></i>
+                        <span>Viral Post</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = [] }) => {
     const navigate = useNavigate();
     const [releases, setReleases] = useState<ReleaseData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
     const [promotedIds, setPromotedIds] = useState<string[]>(() => {
         try {
             return JSON.parse(localStorage.getItem(PROMOTED_KEY) || '[]');
@@ -63,12 +244,6 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
     const today = new Date();
     const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-
-    const markAsPromoted = (id: string) => {
-        const next = [...promotedIds, id];
-        setPromotedIds(next);
-        localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
-    };
 
     useEffect(() => {
         const loadReleases = async () => {
@@ -84,7 +259,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         loadReleases();
     }, []);
 
-    const suggestion = useMemo<Suggestion | null>(() => {
+    const suggestions = useMemo(() => {
         if (!catalog || catalog.length === 0) return null;
 
         const isDM = (s: MusicItem) => (s as any).artistGroup === 'diosmasgym' || s.artist.toLowerCase().includes('dios');
@@ -103,22 +278,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
 
-        // Dynamic alternation flag: swaps priority every time a song is promoted (clicking Siguiente)
+        // Alternation flag
         const alternateFlag = (dayOfYear + promotedIds.length) % 2 === 0;
 
-        // Smart Weekly Scheduling System (Prevents getting stuck on a single category)
-        // - Viernes, Sábado, Domingo (5, 6, 0): Prioridad Lanzamientos
-        // - Lunes, Martes (1, 2): Prioridad Recientes (Últimos 30 días)
-        // - Miércoles (3): Prioridad Rotación Diaria
-        // - Jueves (4): Prioridad Joya del Archivo (TBT)
-        const dayOfWeek = today.getDay();
-
-        // 1. Pre-calculate all categories
-        
         // --- LANZAMIENTOS ---
         let newReleasesDM: ReleaseData[] = [];
         let newReleasesJ6: ReleaseData[] = [];
-        
         try {
             (releases || []).forEach(r => {
                 const d = new Date(r.releaseDate);
@@ -174,7 +339,6 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // Rotate among recent songs if there are multiple, to prevent getting stuck
         const newestDM = recentDM.length > 0 ? recentDM[(dayOfYear + promotedIds.length) % recentDM.length] : null;
         const newestJ6 = recentJ6.length > 0 ? recentJ6[(dayOfYear + promotedIds.length) % recentJ6.length] : null;
         const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
@@ -230,58 +394,54 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 2. Select based on Smart Weekly Schedule
-        if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) { // Fri, Sat, Sun -> Lanzamientos
-            return newReleaseSuggestion || recentSuggestion || rotationSuggestion || gemSuggestion;
-        } else if (dayOfWeek === 1 || dayOfWeek === 2) { // Mon, Tue -> Recientes
-            return recentSuggestion || rotationSuggestion || newReleaseSuggestion || gemSuggestion;
-        } else if (dayOfWeek === 3) { // Wed -> Rotación Diaria
-            return rotationSuggestion || gemSuggestion || recentSuggestion || newReleaseSuggestion;
-        } else { // Thu -> TBT / Joya del archivo
-            return gemSuggestion || rotationSuggestion || recentSuggestion || newReleaseSuggestion;
+        // Double recommendations: Slot 1 (New/Recent) & Slot 2 (Old/Classic)
+        let suggestionNew = newReleaseSuggestion || recentSuggestion;
+        let suggestionOld = rotationSuggestion || gemSuggestion;
+
+        // "si ya no hay nueva que sean dos viejas"
+        if (!suggestionNew) {
+            const nextIdx = (rotationIdx + 1) % dmPool.length;
+            const fallbackPicked = alternateFlag
+                ? (dmPool[nextIdx] || j6Pool[nextIdx])
+                : (j6Pool[nextIdx] || dmPool[nextIdx]);
+            if (fallbackPicked) {
+                const caps = CAPTIONS_BY_TYPE.old_gem(fallbackPicked.name, fallbackPicked.artist);
+                suggestionNew = {
+                    song: fallbackPicked,
+                    reason: `No hay estrenos recientes, así que reactivamos esta joya: "${fallbackPicked.name}" de ${fallbackPicked.artist}.`,
+                    type: 'old_gem',
+                    caption: caps.ig,
+                    tiktokCaption: caps.tt,
+                    hashtags: HASHTAG_SETS.old_gem,
+                };
+            } else {
+                suggestionNew = gemSuggestion;
+            }
         }
 
-        return null;
+        // Ensure suggestionOld uses a different song than suggestionNew
+        if (suggestionNew && suggestionOld && suggestionNew.song?.id === suggestionOld.song?.id) {
+            const nextIdx = (rotationIdx + 2) % dmPool.length;
+            const fallbackPicked = alternateFlag
+                ? (dmPool[nextIdx] || j6Pool[nextIdx])
+                : (j6Pool[nextIdx] || dmPool[nextIdx]);
+            if (fallbackPicked) {
+                const caps = CAPTIONS_BY_TYPE.rotation(fallbackPicked.name, fallbackPicked.artist);
+                suggestionOld = {
+                    song: fallbackPicked,
+                    reason: `Te recomendamos esta alternativa clásica: "${fallbackPicked.name}" de ${fallbackPicked.artist}.`,
+                    type: 'rotation',
+                    caption: caps.ig,
+                    tiktokCaption: caps.tt,
+                    hashtags: HASHTAG_SETS.rotation,
+                };
+            }
+        }
+
+        return { suggestionNew, suggestionOld };
     }, [catalog, releases, dayOfYear, promotedIds]);
 
-    const handleAiGenerate = async () => {
-        if (!suggestion?.song) return;
-        setAiLoading(true);
-        try {
-            const prompt = {
-                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión MUY corta y directa para Instagram.\n2. Una versión MUY corta y directa para TikTok.\nMantén un tono épico, de fe y disciplina.`,
-                platform: 'Instagram/TikTok',
-                goal: 'Inspirar y Viralizar',
-                tone: 'Épico y Motivador'
-            };
-
-            const response = await fetch('/api/generate-post', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-admin-password': localStorage.getItem('admin_password') || ''
-                },
-                body: JSON.stringify({ content: JSON.stringify(prompt) })
-            });
-            const data = await response.json();
-            if (data.text) {
-                setAiCaptions({ ig: data.text, tt: data.text });
-            }
-        } catch (e) {
-            console.error("AI Generation failed", e);
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    const copyText = (text: string, type: 'ig' | 'tt' | 'sl') => {
-        navigator.clipboard.writeText(text);
-        setCopied(type);
-        setTimeout(() => setCopied(null), 2000);
-    };
-
-    const handleNext = () => {
-        if (!suggestion) return;
+    const handleNext = (suggestion: Suggestion) => {
         let idsToMark: string[] = [];
         if (suggestion.song) idsToMark.push(suggestion.song.id);
         if (suggestion.releaseName) idsToMark.push(suggestion.releaseName);
@@ -290,36 +450,15 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             const next = [...promotedIds, ...idsToMark];
             setPromotedIds(next);
             localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
-        } else if (suggestion.type === 'new_release' && releases.length > 0) {
-            // Fallback for releases
-            const activeRelease = releases.find(r => {
-                const now = new Date();
-                const startOfWeek = new Date(now);
-                startOfWeek.setDate(now.getDate() - now.getDay());
-                const d = new Date(r.releaseDate);
-                return d >= startOfWeek && d <= now;
-            });
-            if (activeRelease) {
-                const next = [...promotedIds, activeRelease.name];
-                setPromotedIds(next);
-                localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
-            }
         }
     };
 
-    const handleAction = (route: string) => {
-        if (suggestion?.song) {
+    const handleAction = (route: string, suggestion: Suggestion) => {
+        if (suggestion.song) {
             navigate(route, { state: { song: suggestion.song } });
         } else {
             navigate(route);
         }
-    };
-
-    const TYPE_LABELS: Record<Suggestion['type'], { label: string; color: string; icon: string }> = {
-        new_release: { label: '🚀 Lanzamiento', color: '#ff4b2b', icon: 'fa-rocket' },
-        recent: { label: '🔥 Reciente', color: '#c5a059', icon: 'fa-fire' },
-        rotation: { label: '🔄 Rotación Diaria', color: '#3b82f6', icon: 'fa-rotate' },
-        old_gem: { label: '💎 Joya del Archivo', color: '#a855f7', icon: 'fa-gem' },
     };
 
     if (loading) return (
@@ -329,139 +468,32 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         </div>
     );
 
-    if (!suggestion) return null;
-
-    const typeInfo = TYPE_LABELS[suggestion.type];
+    if (!suggestions || (!suggestions.suggestionNew && !suggestions.suggestionOld)) return null;
 
     return (
-        <div className="mb-16 relative overflow-hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            <div className="absolute -top-20 -left-10 w-96 h-96 rounded-full blur-[120px] opacity-20 pointer-events-none"
-                style={{ backgroundColor: typeInfo.color }} />
-
-            <div className="bg-[#0f111a] border rounded-[2rem] overflow-hidden shadow-2xl"
-                style={{ borderColor: `${typeInfo.color}30` }}>
-
-                {/* Header Section */}
-                <div className="px-6 md:px-8 py-6 md:py-8 border-b"
-                    style={{ borderColor: `${typeInfo.color}15`, background: `linear-gradient(135deg, ${typeInfo.color}08, transparent)` }}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2 md:mb-3">
-                                <i className={`fas ${typeInfo.icon}`} style={{ color: typeInfo.color }}></i>
-                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
-                                    {typeInfo.label}
-                                </span>
-                            </div>
-                            <h3 className="text-xl md:text-3xl font-serif italic text-white leading-tight">
-                                {suggestion.song?.name || 'Inspiración Diaria'}
-                            </h3>
-                        </div>
-
-                        <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
-                            <button
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className="flex-1 md:flex-none text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl border border-white/10 flex items-center justify-center gap-2"
-                            >
-                                <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                                <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-5 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
-                            >
-                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Siguiente</span>
-                                <i className="fas fa-arrow-right text-[10px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content Section */}
-                <div className="p-6 md:p-8">
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        <div className="flex-1 flex items-start gap-4 md:gap-6">
-                            {suggestion.song?.cover && (
-                                <div className="relative shrink-0">
-                                    <img src={suggestion.song.cover} alt={suggestion.song.name} className="w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl object-cover border border-white/10" />
-                                    <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[8px] md:text-xs"
-                                        style={{ backgroundColor: typeInfo.color, color: '#000' }}>
-                                        <i className={`fas ${typeInfo.icon}`}></i>
-                                    </div>
-                                </div>
-                            )}
-                            <div>
-                                <p className="text-white/40 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-1 md:mb-2">Recomendación Estratégica</p>
-                                <p className="text-white/80 text-sm md:text-base leading-relaxed font-light italic">
-                                    "{suggestion.reason}"
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:flex lg:flex-col gap-2 md:gap-3 lg:w-56 shrink-0">
-                            <button onClick={() => handleAction('/admin/promo-image')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Imagen</span>
-                                <i className="fas fa-image text-xs group-hover:scale-110 transition-transform"></i>
-                            </button>
-                            <button onClick={() => handleAction('/admin/video-snippet')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Video</span>
-                                <i className="fas fa-video text-xs group-hover:scale-110 transition-transform"></i>
-                            </button>
-                            <button onClick={() => handleAction('/admin/social-post')} className="flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Viral Post</span>
-                                <i className="fas fa-share-nodes text-xs group-hover:scale-110 transition-transform"></i>
-                            </button>
-                            <div className="flex gap-2 col-span-1 md:col-span-1">
-                                <button onClick={() => window.open(`/#/link/${suggestion.song?.id}`, '_blank')} className="flex-1 flex flex-col md:flex-row items-center justify-center md:justify-between p-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all group">
-                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center md:text-left mb-2 md:mb-0">Smart</span>
-                                    <i className="fas fa-eye text-xs group-hover:scale-110 transition-transform"></i>
-                                </button>
-                                <button onClick={() => { if(suggestion.song) copyText(`${window.location.origin}/#/link/${suggestion.song.id}`, 'sl'); }} className={`p-3 md:px-5 md:py-4 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center ${copied === 'sl' ? 'bg-green-500/20 border-green-500/40 text-green-500' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-[#c5a059]'}`}>
-                                    <i className={`fas ${copied === 'sl' ? 'fa-check' : 'fa-copy'} text-xs`}></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {isExpanded && (
-                        <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5 flex flex-col h-full">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <i className="fab fa-instagram text-lg" style={{ color: '#E1306C' }}></i>
-                                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Caption Instagram</span>
-                                    </div>
-                                    <button onClick={() => copyText(`${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`, 'ig')} className="text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full" style={{ backgroundColor: copied === 'ig' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
-                                        {copied === 'ig' ? '✓ Copiado' : 'Copiar'}
-                                    </button>
-                                </div>
-                                <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans mb-4">{aiCaptions?.ig || suggestion.caption}</pre>
-                                <div className="pt-4 border-t border-white/5"><p className="text-[#c5a059] text-[10px]">{suggestion.hashtags}</p></div>
-                            </div>
-
-                            <div className="bg-black/30 rounded-2xl p-6 border border-white/5 flex flex-col h-full">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <i className="fab fa-tiktok text-lg text-white"></i>
-                                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Caption TikTok</span>
-                                    </div>
-                                    <button onClick={() => copyText(`${aiCaptions?.tt || suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`, 'tt')} className="text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full" style={{ backgroundColor: copied === 'tt' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
-                                        {copied === 'tt' ? '✓ Copiado' : 'Copiar'}
-                                    </button>
-                                </div>
-                                <pre className="text-white/70 text-xs leading-relaxed whitespace-pre-wrap font-sans mb-4">{aiCaptions?.tt || suggestion.tiktokCaption}</pre>
-                                <div className="pt-4 border-t border-white/5"><p className="text-[#c5a059] text-[10px]">{suggestion.hashtags} #fyp #parati</p></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isExpanded && (
-                        <div className="mt-6 flex justify-center pb-4">
-                            <button onClick={handleAiGenerate} disabled={aiLoading} className={`flex items-center gap-4 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] ${aiLoading ? 'bg-white/10 text-white/30' : 'bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-105 transition-all'}`}>
-                                {aiLoading ? 'Generando...' : '✨ Mejorar con IA'}
-                            </button>
-                        </div>
-                    )}
-                </div>
+        <div className="mb-16">
+            <div className="flex items-center gap-3 mb-8">
+                <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></div>
+                <h2 className="font-serif italic text-3xl text-white">Aprovisionamiento Diario de Contenido</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {suggestions.suggestionNew && (
+                    <SuggestionCard 
+                        title="Slot 1: Novedades / Tendencias" 
+                        suggestion={suggestions.suggestionNew} 
+                        onNext={() => handleNext(suggestions.suggestionNew!)} 
+                        onAction={(route) => handleAction(route, suggestions.suggestionNew!)} 
+                    />
+                )}
+                {suggestions.suggestionOld && (
+                    <SuggestionCard 
+                        title="Slot 2: Clásicos / Rotación" 
+                        suggestion={suggestions.suggestionOld} 
+                        onNext={() => handleNext(suggestions.suggestionOld!)} 
+                        onAction={(route) => handleAction(route, suggestions.suggestionOld!)} 
+                    />
+                )}
             </div>
         </div>
     );
