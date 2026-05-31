@@ -118,8 +118,6 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         // --- LANZAMIENTOS ---
         let newReleasesDM: ReleaseData[] = [];
         let newReleasesJ6: ReleaseData[] = [];
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
         
         try {
             (releases || []).forEach(r => {
