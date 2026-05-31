@@ -103,21 +103,53 @@ const App: React.FC = () => {
   const [randomMusicSong, setRandomMusicSong] = useState<MusicItem | null>(null);
   const [randomJuan614Song, setRandomJuan614Song] = useState<MusicItem | null>(null);
   
-  const dailySong = useMemo(() => {
-    const combined = [...state.musicDiosmasgym, ...state.musicJuan614];
-    if (combined.length === 0) return null;
+  const dailyRecommendations = useMemo(() => {
+    const dm = state.musicDiosmasgym;
+    const j6 = state.musicJuan614;
     
-    // Deterministic selection based on YYYY-MM-DD
+    if (dm.length === 0 && j6.length === 0) return null;
+    
+    // Deterministic seed based on YYYY-MM-DD
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-    
     let hash = 0;
     for (let i = 0; i < dateStr.length; i++) {
       hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    const index = Math.abs(hash) % combined.length;
-    return combined[index];
+    const getNewAndOld = (catalog: MusicItem[], seed: number) => {
+      if (catalog.length === 0) return { newSong: null, oldSong: null };
+      
+      // Sort by date to get newest.
+      const sorted = [...catalog].sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      
+      const newSong = sorted[0];
+      const remainder = sorted.slice(1);
+      
+      let oldSong = null;
+      if (remainder.length > 0) {
+        const oldIndex = Math.abs(seed) % remainder.length;
+        oldSong = remainder[oldIndex];
+      } else {
+        oldSong = newSong; // Fallback
+      }
+      
+      return { newSong, oldSong };
+    };
+    
+    const dmSongs = getNewAndOld(dm, hash);
+    const j6Songs = getNewAndOld(j6, hash + 7); // offset seed for second artist
+    
+    return {
+      dmNew: dmSongs.newSong,
+      dmOld: dmSongs.oldSong,
+      j6New: j6Songs.newSong,
+      j6Old: j6Songs.oldSong,
+    };
   }, [state.musicDiosmasgym, state.musicJuan614]);
   
   const navigate = useNavigate();
@@ -541,73 +573,89 @@ const App: React.FC = () => {
               )}
 
               {/* RECOMENDACIÓN DIARIA DE MÚSICA */}
-              {dailySong && (
+              {dailyRecommendations && (
                 <section className="py-24 bg-[#0a0c14] border-t border-white/5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#c5a059]/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+                  <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#c5a059]/3 blur-[140px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
                   <div className="section-container relative z-10">
-                    <div className="flex flex-col items-center mb-14">
+                    <div className="flex flex-col items-center mb-14 text-center">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
-                        <h2 className="font-serif italic text-4xl text-[#c5a059]">La Recomendación del Día</h2>
+                        <h2 className="font-serif italic text-4xl text-[#c5a059]">Las Recomendaciones de Hoy</h2>
                         <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
                       </div>
-                      <p className="text-[10px] text-white/45 font-black uppercase tracking-[0.4em] text-center">
-                        Una selección diaria de fe y disciplina para potenciar tu espíritu
+                      <p className="text-[10px] text-white/45 font-black uppercase tracking-[0.4em] max-w-2xl leading-relaxed">
+                        Lo nuevo y lo clásico de cada artista. Una selección diaria rotativa para difundir todo nuestro arsenal.
                       </p>
                     </div>
-                    <div className="max-w-2xl mx-auto">
-                      <div className="bg-[#0f111a]/90 border border-[#c5a059]/20 rounded-[2.5rem] p-8 md:p-10 shadow-2xl backdrop-blur-md relative overflow-hidden group hover:border-[#c5a059]/40 transition-all duration-500 gold-border-glow">
-                        <div className="absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 pointer-events-none" style={{ backgroundColor: dailySong.artist.toLowerCase().includes('juan') ? '#8B5A2B' : '#c5a059' }}></div>
-                        <div className="flex flex-col md:flex-row gap-8 items-center">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {[
+                        { song: dailyRecommendations.dmNew, isNew: true, label: "Dios Mas Gym" },
+                        { song: dailyRecommendations.dmOld, isNew: false, label: "Dios Mas Gym" },
+                        { song: dailyRecommendations.j6New, isNew: true, label: "Juan614" },
+                        { song: dailyRecommendations.j6Old, isNew: false, label: "Juan614" }
+                      ].map(({ song, isNew, label }) => {
+                        if (!song) return null;
+                        const isJuan = song.artist.toLowerCase().includes('juan');
+                        return (
                           <div 
-                            className="relative w-40 h-40 md:w-44 md:h-44 flex-shrink-0 overflow-hidden rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.5)] group-hover:scale-[1.03] transition-transform duration-700 cursor-pointer"
-                            onClick={() => setState(p => ({ ...p, activeSong: dailySong }))}
+                            key={`${song.id}-${isNew ? 'new' : 'old'}`} 
+                            className="group relative bg-[#0f111a]/85 border border-white/5 rounded-[2rem] p-5 hover:border-[#c5a059]/40 transition-all duration-500 overflow-hidden gold-border-glow flex flex-col justify-between h-full"
                           >
-                            <img src={dailySong.cover} alt={dailySong.name} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/45 group-hover:bg-black/25 transition-colors"></div>
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="w-14 h-14 bg-[#c5a059] rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(197,160,89,0.6)]">
-                                <i className="fas fa-play text-black text-sm ml-0.5"></i>
+                            <div className="absolute -top-24 -right-24 w-56 h-56 blur-[90px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: isJuan ? '#8B5A2B22' : '#c5a05922' }}></div>
+                            
+                            <div>
+                              <div className="flex items-center justify-between mb-4 gap-2">
+                                <span className={`px-3 py-1 rounded-full text-[7.5px] font-black uppercase tracking-[0.2em] ${isNew ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059]'}`}>
+                                  {isNew ? '🚀 LO NUEVO' : '💎 CLÁSICO / TBT'}
+                                </span>
+                                <span className="text-[7.5px] font-black uppercase tracking-widest text-white/20">
+                                  {label}
+                                </span>
                               </div>
-                            </div>
-                          </div>
-                          <div className="flex-1 text-center md:text-left min-w-0 w-full">
-                            <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
-                              <span className="px-3.5 py-1 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/20 text-[9px] font-black uppercase tracking-[0.25em] text-[#c5a059]">
-                                🔥 RECOMENDADO
-                              </span>
-                              <span className="text-[9px] font-black tracking-widest text-white/30 uppercase flex items-center gap-1.5">
-                                <i className="far fa-calendar-alt text-[#c5a059]"></i>
-                                {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
-                              </span>
-                            </div>
-                            <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-2 truncate group-hover:text-[#c5a059] transition-colors leading-tight">
-                              {dailySong.name}
-                            </h3>
-                            <p className="text-[11px] font-black tracking-[0.3em] uppercase text-white/40 mb-6">
-                              {dailySong.artist}
-                            </p>
-                            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-                              <button 
-                                onClick={() => setState(p => ({ ...p, activeSong: dailySong }))}
-                                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-3 hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_rgba(197,160,89,0.2)]"
+                              
+                              <div 
+                                className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-[0_15px_35px_rgba(0,0,0,0.4)] group-hover:scale-[1.02] transition-transform duration-700 cursor-pointer mb-5"
+                                onClick={() => setState((p: any) => ({ ...p, activeSong: song }))}
                               >
-                                <i className="fas fa-play text-xs"></i>
-                                Reproducir Ahora
+                                <img src={song.cover} alt={song.name} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/45 group-hover:bg-black/25 transition-colors"></div>
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(197,160,89,0.6)]">
+                                    <i className="fas fa-play text-black text-xs ml-0.5"></i>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <h4 className="font-serif text-xl font-bold text-white mb-1 truncate group-hover:text-[#c5a059] transition-colors leading-tight">
+                                {song.name}
+                              </h4>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-5">
+                                {song.artist}
+                              </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => setState((p: any) => ({ ...p, activeSong: song }))}
+                                className="flex-1 py-3 rounded-full bg-[#c5a059] text-black text-[8.5px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white hover:scale-102 active:scale-95 transition-all shadow-md"
+                              >
+                                <i className="fas fa-play"></i>
+                                Escuchar
                               </button>
                               <a 
-                                href={`/link/${dailySong.id}`} 
+                                href={`/link/${song.id}`} 
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-3 hover:bg-white hover:text-black hover:scale-105 active:scale-95 transition-all"
+                                className="p-3 rounded-full border border-white/10 text-white/50 hover:bg-white hover:text-black transition-all flex items-center justify-center"
+                                title="Smart Link"
                               >
-                                <i className="fas fa-link text-xs"></i>
-                                Enlaces / Pre-Save
+                                <i className="fas fa-link text-[10px]"></i>
                               </a>
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </section>
