@@ -103,6 +103,23 @@ const App: React.FC = () => {
   const [randomMusicSong, setRandomMusicSong] = useState<MusicItem | null>(null);
   const [randomJuan614Song, setRandomJuan614Song] = useState<MusicItem | null>(null);
   
+  const dailySong = useMemo(() => {
+    const combined = [...state.musicDiosmasgym, ...state.musicJuan614];
+    if (combined.length === 0) return null;
+    
+    // Deterministic selection based on YYYY-MM-DD
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const index = Math.abs(hash) % combined.length;
+    return combined[index];
+  }, [state.musicDiosmasgym, state.musicJuan614]);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { trackEvent } = useAnalytics();
@@ -518,6 +535,79 @@ const App: React.FC = () => {
                           <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
                         </div>
                       ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* RECOMENDACIÓN DIARIA DE MÚSICA */}
+              {dailySong && (
+                <section className="py-24 bg-[#0a0c14] border-t border-white/5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#c5a059]/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+                  <div className="section-container relative z-10">
+                    <div className="flex flex-col items-center mb-14">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
+                        <h2 className="font-serif italic text-4xl text-[#c5a059]">La Recomendación del Día</h2>
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
+                      </div>
+                      <p className="text-[10px] text-white/45 font-black uppercase tracking-[0.4em] text-center">
+                        Una selección diaria de fe y disciplina para potenciar tu espíritu
+                      </p>
+                    </div>
+                    <div className="max-w-2xl mx-auto">
+                      <div className="bg-[#0f111a]/90 border border-[#c5a059]/20 rounded-[2.5rem] p-8 md:p-10 shadow-2xl backdrop-blur-md relative overflow-hidden group hover:border-[#c5a059]/40 transition-all duration-500 gold-border-glow">
+                        <div className="absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-20 pointer-events-none" style={{ backgroundColor: dailySong.artist.toLowerCase().includes('juan') ? '#8B5A2B' : '#c5a059' }}></div>
+                        <div className="flex flex-col md:flex-row gap-8 items-center">
+                          <div 
+                            className="relative w-40 h-40 md:w-44 md:h-44 flex-shrink-0 overflow-hidden rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.5)] group-hover:scale-[1.03] transition-transform duration-700 cursor-pointer"
+                            onClick={() => setState(p => ({ ...p, activeSong: dailySong }))}
+                          >
+                            <img src={dailySong.cover} alt={dailySong.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/45 group-hover:bg-black/25 transition-colors"></div>
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-14 h-14 bg-[#c5a059] rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(197,160,89,0.6)]">
+                                <i className="fas fa-play text-black text-sm ml-0.5"></i>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1 text-center md:text-left min-w-0 w-full">
+                            <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                              <span className="px-3.5 py-1 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/20 text-[9px] font-black uppercase tracking-[0.25em] text-[#c5a059]">
+                                🔥 RECOMENDADO
+                              </span>
+                              <span className="text-[9px] font-black tracking-widest text-white/30 uppercase flex items-center gap-1.5">
+                                <i className="far fa-calendar-alt text-[#c5a059]"></i>
+                                {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
+                              </span>
+                            </div>
+                            <h3 className="font-serif text-3xl md:text-4xl font-bold text-white mb-2 truncate group-hover:text-[#c5a059] transition-colors leading-tight">
+                              {dailySong.name}
+                            </h3>
+                            <p className="text-[11px] font-black tracking-[0.3em] uppercase text-white/40 mb-6">
+                              {dailySong.artist}
+                            </p>
+                            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+                              <button 
+                                onClick={() => setState(p => ({ ...p, activeSong: dailySong }))}
+                                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-3 hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_rgba(197,160,89,0.2)]"
+                              >
+                                <i className="fas fa-play text-xs"></i>
+                                Reproducir Ahora
+                              </button>
+                              <a 
+                                href={`/link/${dailySong.id}`} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-3 hover:bg-white hover:text-black hover:scale-105 active:scale-95 transition-all"
+                              >
+                                <i className="fas fa-link text-xs"></i>
+                                Enlaces / Pre-Save
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>

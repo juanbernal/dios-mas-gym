@@ -106,9 +106,20 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         // Dynamic alternation flag: swaps priority every time a song is promoted (clicking Siguiente)
         const alternateFlag = (dayOfYear + promotedIds.length) % 2 === 0;
 
-        // 1. New release this week (de ambos artistas, con alternancia y prioridad)
+        // Smart Weekly Scheduling System (Prevents getting stuck on a single category)
+        // - Viernes, Sábado, Domingo (5, 6, 0): Prioridad Lanzamientos
+        // - Lunes, Martes (1, 2): Prioridad Recientes (Últimos 30 días)
+        // - Miércoles (3): Prioridad Rotación Diaria
+        // - Jueves (4): Prioridad Joya del Archivo (TBT)
+        const dayOfWeek = today.getDay();
+
+        // 1. Pre-calculate all categories
+        
+        // --- LANZAMIENTOS ---
         let newReleasesDM: ReleaseData[] = [];
         let newReleasesJ6: ReleaseData[] = [];
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
         
         try {
             (releases || []).forEach(r => {
@@ -130,24 +141,22 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         let activeRelease: ReleaseData | null = null;
         if (releaseDM && releaseJ6) {
-            // Ambos tienen nuevos lanzamientos, alternamos según el toggle dinámico
             activeRelease = alternateFlag ? releaseDM : releaseJ6;
         } else {
-            // Si solo uno tiene, mostramos el que tiene
             activeRelease = releaseDM || releaseJ6;
         }
 
+        let newReleaseSuggestion: Suggestion | null = null;
         if (activeRelease) {
             const cleanReleaseName = activeRelease.name.replace(/^(Álbum:|Single:|EP:)\s*/i, '').trim().toLowerCase();
             const matchedSong = catalog.find(s => {
                 const cleanSongName = s.name.toLowerCase();
                 return cleanSongName.includes(cleanReleaseName) || cleanReleaseName.includes(cleanSongName);
             });
-            
             const caps = CAPTIONS_BY_TYPE.new_release(activeRelease.name, activeRelease.Artista);
-            return {
+            newReleaseSuggestion = {
                 song: matchedSong || null,
-                reason: `¡Estreno reciente! "${activeRelease.name}" acaba de salir — es el momento ideal para darle fuego.`,
+                reason: `¡Estreno de la semana! "${activeRelease.name}" acaba de salir — es el momento ideal para darle fuego.`,
                 type: 'new_release',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -156,23 +165,28 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 2. Canción más nueva de cada artista (alterna uno y uno) - Limitar a los últimos 30 días
+        // --- RECIENTES (Últimos 30 días) ---
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const newestDM = [...dmPool]
+        const recentDM = [...dmPool]
             .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-        const newestJ6 = [...j6Pool]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const recentJ6 = [...j6Pool]
             .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // Rotate among recent songs if there are multiple, to prevent getting stuck
+        const newestDM = recentDM.length > 0 ? recentDM[(dayOfYear + promotedIds.length) % recentDM.length] : null;
+        const newestJ6 = recentJ6.length > 0 ? recentJ6[(dayOfYear + promotedIds.length) % recentJ6.length] : null;
         const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
-        
+
+        let recentSuggestion: Suggestion | null = null;
         if (recentSong) {
             const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
-            return {
+            recentSuggestion = {
                 song: recentSong,
-                reason: `"${recentSong.name}" es lo más nuevo de ${recentSong.artist}. Aprovecha el impulso para maximizar el alcance.`,
+                reason: `"${recentSong.name}" es tendencia reciente de ${recentSong.artist}. Aprovecha el impulso para maximizar el alcance.`,
                 type: 'recent',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -180,16 +194,18 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 3. Rotación uno de cada artista (alterna)
+        // --- ROTACIÓN DIARIA ---
         const rotationIdx = dayOfYear + promotedIds.length;
         const picked = alternateFlag
             ? (dmPool[rotationIdx % dmPool.length] || j6Pool[rotationIdx % j6Pool.length])
             : (j6Pool[rotationIdx % j6Pool.length] || dmPool[rotationIdx % dmPool.length]);
+        
+        let rotationSuggestion: Suggestion | null = null;
         if (picked) {
             const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
-            return {
+            rotationSuggestion = {
                 song: picked,
-                reason: `Hoy toca promocionar "${picked.name}" de ${picked.artist}. Mantén tu perfil activo con esta rotación.`,
+                reason: `Hoy toca promocionar "${picked.name}" de ${picked.artist}. Mantén tu perfil activo con esta rotación diaria.`,
                 type: 'rotation',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
@@ -197,22 +213,34 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             };
         }
 
-        // 4. Joya del archivo (alterna uno de cada artista)
+        // --- JOYA DEL ARCHIVO (TBT) ---
         const gemIdx = dayOfYear + promotedIds.length;
         const gemDM = dmPool[(gemIdx + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
         const gemJ6 = j6Pool[(gemIdx + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
         const gem = alternateFlag ? (gemDM || gemJ6) : (gemJ6 || gemDM);
-        
+
+        let gemSuggestion: Suggestion | null = null;
         if (gem) {
             const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
-            return {
+            gemSuggestion = {
                 song: gem,
-                reason: `Recomendación diaria: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
+                reason: `Recomendación TBT: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
                 type: 'old_gem',
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
                 hashtags: HASHTAG_SETS.old_gem,
             };
+        }
+
+        // 2. Select based on Smart Weekly Schedule
+        if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) { // Fri, Sat, Sun -> Lanzamientos
+            return newReleaseSuggestion || recentSuggestion || rotationSuggestion || gemSuggestion;
+        } else if (dayOfWeek === 1 || dayOfWeek === 2) { // Mon, Tue -> Recientes
+            return recentSuggestion || rotationSuggestion || newReleaseSuggestion || gemSuggestion;
+        } else if (dayOfWeek === 3) { // Wed -> Rotación Diaria
+            return rotationSuggestion || gemSuggestion || recentSuggestion || newReleaseSuggestion;
+        } else { // Thu -> TBT / Joya del archivo
+            return gemSuggestion || rotationSuggestion || recentSuggestion || newReleaseSuggestion;
         }
 
         return null;
