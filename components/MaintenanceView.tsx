@@ -61,15 +61,58 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
         </p>
 
         {/* Glowing Loading Pulse indicator */}
-        <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 px-6 py-3 rounded-full backdrop-blur-md">
+        <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 px-6 py-3 rounded-full backdrop-blur-md mb-8">
           <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-ping"></div>
           <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/50">Forjando el Templo en Silencio...</span>
+        </div>
+
+        {/* Social Networks & Music Channels */}
+        <div className="flex flex-col items-center gap-3 w-full">
+          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-1">Únete a Nuestra Comunidad • Escucha la Música</p>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <a 
+              href="https://open.spotify.com/artist/2vP29zO3zP1Mv1T3w2y5B1" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/60 hover:text-[#1DB954] hover:bg-[#1DB954]/10 hover:border-[#1DB954]/30 active:scale-95 transition-all duration-300 group shadow-lg"
+              title="Spotify"
+            >
+              <i className="fab fa-spotify text-lg group-hover:scale-110 transition-transform"></i>
+            </a>
+            <a 
+              href="https://www.youtube.com/@diosmasgym" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/60 hover:text-[#FF0000] hover:bg-[#FF0000]/10 hover:border-[#FF0000]/30 active:scale-95 transition-all duration-300 group shadow-lg"
+              title="YouTube"
+            >
+              <i className="fab fa-youtube text-lg group-hover:scale-110 transition-transform"></i>
+            </a>
+            <a 
+              href="https://www.instagram.com/diosmasgym" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/60 hover:text-[#E1306C] hover:bg-[#E1306C]/10 hover:border-[#E1306C]/30 active:scale-95 transition-all duration-300 group shadow-lg"
+              title="Instagram"
+            >
+              <i className="fab fa-instagram text-lg group-hover:scale-110 transition-transform"></i>
+            </a>
+            <a 
+              href="https://www.tiktok.com/@diosmasgym" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/60 hover:text-[#00f2fe] hover:bg-black/30 hover:border-[#fe2c55]/50 active:scale-95 transition-all duration-300 group shadow-lg"
+              title="TikTok"
+            >
+              <i className="fab fa-tiktok text-lg group-hover:scale-110 transition-transform"></i>
+            </a>
+          </div>
         </div>
       </div>
 
       {/* Bottom Section - Footer & Scripture */}
-      <div className="relative z-10 w-full max-w-4xl text-center pb-6 opacity-40 hover:opacity-80 transition-opacity animate-fade-in">
-        <p className="font-serif italic text-sm md:text-md text-white/80 mb-2">
+      <div className="relative z-10 w-full max-w-4xl text-center pb-6 opacity-60 hover:opacity-100 transition-opacity animate-fade-in">
+        <p className="font-serif italic text-xs md:text-sm text-white/70 mb-2">
           "Todo lo puedo en Cristo que me fortalece."
         </p>
         <p className="text-[8px] font-black uppercase tracking-widest text-[#c5a059]">
