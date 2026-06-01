@@ -88,7 +88,8 @@ INSTRUCCIONES DE RESPUESTA:
 Por favor, genera una estructura de publicación dividida en las siguientes secciones claramente identificadas, usando un lenguaje de alta vibración, emocionante y centrado en la fe:
 
 1. 🌟 ARTÍCULO DE BLOG (Blogger / Prensa):
-Un texto de 3-4 párrafos, reflexivo y profundamente inspirador que narre el mensaje de fe, esfuerzo y fe detrás de la canción (e incluya el mensaje de la letra de la canción si está provista). Debe motivar a los lectores a escuchar la canción y reflexionar.
+Un texto de 3-4 párrafos, reflexivo y profundamente inspirador que narre el mensaje de fe, esfuerzo y fe detrás de la canción. Debe motivar a los lectores a escuchar la canción y reflexionar.
+[INSTRUCCIÓN CRÍTICA DE LETRA]: Si se proporciona la letra de la canción, DEBES incluir OBLIGATORIAMENTE la letra completa y exacta al final de esta sección de 'ARTÍCULO DE BLOG' con el título "LETRA OFICIAL DE LA CANCIÓN" para que quede plasmada directamente en el artículo que se subirá a Blogger.
 
 2. 📱 PUBLICACIÓN PARA REDES SOCIALES (${platform || 'Instagram/TikTok'}):
 Un copy muy directo, impactante y magnético. Utiliza ganchos emocionales en la primera línea, micro-párrafos limpios y emojis estratégicos.
