@@ -60,7 +60,8 @@ export const updateMaintenanceStatus = async (
 
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || result.message || `HTTP ${response.status}`);
+      const errMsg = result.details ? `${result.error} (${result.details})` : (result.error || result.message || `HTTP ${response.status}`);
+      throw new Error(errMsg);
     }
     return { success: true, message: result.message };
   } catch (error: any) {

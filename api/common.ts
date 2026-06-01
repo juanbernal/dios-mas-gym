@@ -384,8 +384,9 @@ export default async function handler(
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
         return res.status(200).json({ success: true, message: 'Maintenance configuration saved successfully' });
-      } catch (error) {
-        return res.status(500).json({ error: 'Error saving maintenance configuration' });
+      } catch (error: any) {
+        console.error("Error saving maintenance config:", error);
+        return res.status(500).json({ error: 'Error saving maintenance configuration', details: error.message });
       }
     }
 
