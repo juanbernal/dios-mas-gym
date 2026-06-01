@@ -48,6 +48,10 @@ const AnalyticsDashboard = React.lazy(() => import('./components/admin/Analytics
 const MusicVideoPromptGenerator = React.lazy(() => import('./components/admin/MusicVideoPromptGenerator'));
 const CustomPromoCreator = React.lazy(() => import('./components/admin/CustomPromoCreator'));
 const SplitSheetGenerator = React.lazy(() => import('./components/admin/SplitSheetGenerator'));
+const MaintenanceAdmin = React.lazy(() => import('./components/admin/MaintenanceAdmin'));
+
+import MaintenanceView from './components/MaintenanceView';
+import { fetchMaintenanceStatus } from './services/maintenanceService';
 
 const VERSES = [
   { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
@@ -99,6 +103,7 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [verse, setVerse] = useState(VERSES[0]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [maintenance, setMaintenance] = useState({ enabled: false, videoUrl: '' });
   const [randomPosts, setRandomPosts] = useState<ContentPost[]>([]);
   const [randomMusicSong, setRandomMusicSong] = useState<MusicItem | null>(null);
   const [randomJuan614Song, setRandomJuan614Song] = useState<MusicItem | null>(null);
@@ -210,11 +215,16 @@ const App: React.FC = () => {
       }
 
       try {
-        const [arsenalResult, musicD, musicJ] = await Promise.all([
+        const [arsenalResult, musicD, musicJ, maintStatus] = await Promise.all([
           fetchArsenalData(50),
           fetchMusicCatalog('diosmasgym'),
-          fetchMusicCatalog('juan614')
+          fetchMusicCatalog('juan614'),
+          fetchMaintenanceStatus().catch(() => ({ enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' }))
         ]);
+
+        if (maintStatus) {
+          setMaintenance(maintStatus);
+        }
 
         const posts = arsenalResult.posts;
         
@@ -475,6 +485,10 @@ const App: React.FC = () => {
   const isToolRoute = location.pathname.startsWith('/admin');
   const isBioRoute = location.pathname.startsWith('/bio');
   const hideGlobalUI = isSmartLinkRoute || isToolRoute || isBioRoute;
+
+  if (maintenance.enabled && !isToolRoute) {
+    return <MaintenanceView videoUrl={maintenance.videoUrl} />;
+  }
 
   if (showSplash && !isBioRoute && !isSmartLinkRoute) {
     return (
@@ -811,6 +825,7 @@ const App: React.FC = () => {
                 <Route path="music-video-prompt" element={<AdminAuthWrapper><MusicVideoPromptGenerator/></AdminAuthWrapper>} />
                 <Route path="custom-promo" element={<AdminAuthWrapper><CustomPromoCreator/></AdminAuthWrapper>} />
                 <Route path="split-sheet" element={<AdminAuthWrapper><SplitSheetGenerator/></AdminAuthWrapper>} />
+                <Route path="maintenance" element={<AdminAuthWrapper><MaintenanceAdmin/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />

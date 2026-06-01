@@ -342,6 +342,57 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: MAINTENANCE
+  // -------------------------------------------------------------
+  if (action === 'maintenance') {
+    const CONFIG_FILE = path.join(process.cwd(), 'data', 'maintenance.json');
+
+    if (req.method === 'GET') {
+      try {
+        if (!fs.existsSync(CONFIG_FILE)) {
+          return res.status(200).json({
+            enabled: false,
+            videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
+          });
+        }
+        const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        return res.status(200).json(JSON.parse(data));
+      } catch (error) {
+        return res.status(500).json({ error: 'Error reading maintenance configuration' });
+      }
+    }
+
+    if (req.method === 'POST') {
+      if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+      }
+      try {
+        let body = req.body;
+        if (typeof body === 'string') {
+          try {
+            body = JSON.parse(body);
+          } catch (e) {}
+        }
+        const { enabled, videoUrl } = body || {};
+        const configData = {
+          enabled: !!enabled,
+          videoUrl: videoUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
+        };
+
+        const dir = path.dirname(CONFIG_FILE);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
+        return res.status(200).json({ success: true, message: 'Maintenance configuration saved successfully' });
+      } catch (error) {
+        return res.status(500).json({ error: 'Error saving maintenance configuration' });
+      }
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // -------------------------------------------------------------
   // ACTION: VERIFY PASSWORD
   // -------------------------------------------------------------
   if (action === 'verify-password') {

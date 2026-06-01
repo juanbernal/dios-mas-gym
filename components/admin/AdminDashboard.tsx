@@ -301,6 +301,15 @@ const AdminDashboard: React.FC = () => {
             color: '#c5a059',
             route: '/admin/analytics',
             category: 'Métricas & Audiencia'
+        },
+        {
+            id: 'maintenance',
+            title: 'Control de Mantenimiento',
+            description: 'Activa o desactiva el modo de mantenimiento global de la página y configura el video animado.',
+            icon: 'fa-screwdriver-wrench',
+            color: '#ff4b2b',
+            route: '/admin/maintenance',
+            category: 'Gestión y Utilidades'
         }
     ];
 
