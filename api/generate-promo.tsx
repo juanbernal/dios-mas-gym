@@ -1,17 +1,19 @@
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
-import crypto from 'crypto';
-
+// Implementación compatible con Vercel Edge usando Web Crypto API
 function timingSafeCompare(a: string, b: string): boolean {
   const strA = String(a).trim();
   const strB = String(b).trim();
-  try {
-    const hashA = crypto.createHash('sha256').update(strA).digest();
-    const hashB = crypto.createHash('sha256').update(strB).digest();
-    return crypto.timingSafeEqual(hashA, hashB);
-  } catch (e) {
+  
+  if (strA.length !== strB.length) {
     return false;
   }
+  
+  let result = 0;
+  for (let i = 0; i < strA.length; i++) {
+    result |= strA.charCodeAt(i) ^ strB.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 function verifyAdminPassword(req: any): boolean {
