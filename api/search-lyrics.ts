@@ -13,10 +13,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
-    // Cargar verifyAdminPassword desde common de manera dinámica o importarla
-    const commonPath = './common';
-    const { verifyAdminPassword } = require(commonPath);
-    if (!verifyAdminPassword(req)) {
+    // Implementación local directa de verifyAdminPassword para evitar problemas de resolución de módulos en Vercel
+    const commonVerify = (req: any): boolean => {
+        const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
+        const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
+        
+        if (!MASTER_KEY) return false;
+
+        let providedPassword = '';
+        let authHeader = '';
+
+        if (typeof req.headers?.get === 'function') {
+            providedPassword = req.headers.get('x-admin-password') || '';
+            authHeader = req.headers.get('authorization') || '';
+        } else if (req.headers) {
+            providedPassword = (req.headers['x-admin-password'] as string) || '';
+            authHeader = (req.headers['authorization'] as string) || '';
+        }
+
+        const tCompare = (a: string, b: string): boolean => {
+            const strA = String(a).trim();
+            const strB = String(b).trim();
+            try {
+                const crypto = require('crypto');
+                const hashA = crypto.createHash('sha256').update(strA).digest();
+                const hashB = crypto.createHash('sha256').update(strB).digest();
+                return crypto.timingSafeEqual(hashA, hashB);
+            } catch (e) {
+                return false;
+            }
+        };
+
+        if (tCompare(providedPassword, MASTER_KEY)) return true;
+
+        if (authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7).trim();
+            if (tCompare(token, MASTER_KEY)) return true;
+        }
+
+        return false;
+    };
+
+    if (!commonVerify(req)) {
         return res.status(401).json({ error: 'Acceso denegado: Se requiere autenticación de administrador.' });
     }
 
