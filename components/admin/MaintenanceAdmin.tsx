@@ -8,6 +8,8 @@ const MaintenanceAdmin: React.FC = () => {
     enabled: false,
     videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
   });
+  const [password, setPassword] = useState(() => localStorage.getItem("admin_password") || "");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -37,9 +39,9 @@ const MaintenanceAdmin: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const savedPassword = localStorage.getItem("admin_password") || "";
-    if (!savedPassword) {
-      setMessage({ type: 'error', text: 'Error de autenticación: Por favor, vuelve a iniciar sesión en el panel.' });
+    const activePassword = password.trim() || localStorage.getItem("admin_password") || "";
+    if (!activePassword) {
+      setMessage({ type: 'error', text: 'Error de autenticación: Por favor, introduce la clave maestra.' });
       return;
     }
 
@@ -47,9 +49,11 @@ const MaintenanceAdmin: React.FC = () => {
     setMessage(null);
 
     try {
-      const result = await updateMaintenanceStatus(status.enabled, status.videoUrl, savedPassword);
+      const result = await updateMaintenanceStatus(status.enabled, status.videoUrl, activePassword);
       if (result.success) {
         setMessage({ type: 'success', text: 'Modo de mantenimiento actualizado con éxito.' });
+        // Guardamos la clave correcta para que nunca más la tenga que escribir
+        localStorage.setItem("admin_password", activePassword);
       } else {
         setMessage({ type: 'error', text: result.message || 'Error al actualizar el modo de mantenimiento.' });
       }
@@ -141,6 +145,31 @@ const MaintenanceAdmin: React.FC = () => {
                   Por defecto: /outros/Robot_performing_dumbbell_curls_202605312331.mp4
                 </p>
               </div>
+
+              {/* Password Verification - Only shown if not found in active session */}
+              {!localStorage.getItem("admin_password") && (
+                <div className="flex flex-col gap-2 border-t border-white/5 pt-8">
+                  <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Autorización (Llave Maestra)</label>
+                  <div className="relative">
+                    <i className="fas fa-key absolute left-5 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="w-full bg-[#05070a] border border-white/10 rounded-2xl pl-11 pr-14 py-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors"
+                      placeholder="Escribe la contraseña maestra..."
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+                    >
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`}></i>
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Notification Message */}
               {message && (
                 <div className={`p-5 rounded-2xl border text-xs ${
