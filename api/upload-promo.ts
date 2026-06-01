@@ -1,4 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+
+function timingSafeCompare(a: string, b: string): boolean {
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+  try {
+    const hashA = crypto.createHash('sha256').update(strA).digest();
+    const hashB = crypto.createHash('sha256').update(strB).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+  } catch (e) {
+    return false;
+  }
+}
 
 function verifyAdminPassword(req: any): boolean {
   const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
@@ -20,13 +33,13 @@ function verifyAdminPassword(req: any): boolean {
     authHeader = (req.headers['authorization'] as string) || '';
   }
 
-  if (providedPassword.trim() === MASTER_KEY) {
+  if (timingSafeCompare(providedPassword, MASTER_KEY)) {
     return true;
   }
 
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7).trim();
-    if (token === MASTER_KEY) {
+    if (timingSafeCompare(token, MASTER_KEY)) {
       return true;
     }
   }

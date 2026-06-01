@@ -1,8 +1,59 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+
+function timingSafeCompare(a: string, b: string): boolean {
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+  try {
+    const hashA = crypto.createHash('sha256').update(strA).digest();
+    const hashB = crypto.createHash('sha256').update(strB).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+  } catch (e) {
+    return false;
+  }
+}
+
+function verifyAdminPassword(req: any): boolean {
+  const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
+  const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
+  
+  if (!MASTER_KEY) {
+    console.error("ADMIN_PASSWORD is not defined in environment variables.");
+    return false;
+  }
+
+  let providedPassword = '';
+  let authHeader = '';
+
+  if (typeof req.headers?.get === 'function') {
+    providedPassword = req.headers.get('x-admin-password') || '';
+    authHeader = req.headers.get('authorization') || '';
+  } else if (req.headers) {
+    providedPassword = (req.headers['x-admin-password'] as string) || '';
+    authHeader = (req.headers['authorization'] as string) || '';
+  }
+
+  if (timingSafeCompare(providedPassword, MASTER_KEY)) {
+    return true;
+  }
+
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (timingSafeCompare(token, MASTER_KEY)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
+    }
+
+    if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
     }
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
