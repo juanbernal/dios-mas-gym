@@ -346,8 +346,19 @@ export default async function handler(
   // -------------------------------------------------------------
   if (action === 'maintenance') {
     const CONFIG_FILE = path.join(process.cwd(), 'data', 'maintenance.json');
+    const CLOUD_URL = 'https://jsonbin-zeta.vercel.app/api/bins/HzFSZP5mcS';
 
     if (req.method === 'GET') {
+      try {
+        const response = await fetch(CLOUD_URL, { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+      } catch (err) {
+        console.warn("[api/common/maintenance] Cloud GET failed, falling back to local file:", err);
+      }
+
       try {
         if (!fs.existsSync(CONFIG_FILE)) {
           return res.status(200).json({
@@ -367,27 +378,52 @@ export default async function handler(
       if (!verifyAdminPassword(req)) {
         return res.status(401).json({ error: 'Unauthorized: Admin password required' });
       }
-      try {
-        let body = req.body;
-        if (typeof body === 'string') {
-          try {
-            body = JSON.parse(body);
-          } catch (e) {}
-        }
-        const { enabled, videoUrl } = body || {};
-        const configData = {
-          enabled: !!enabled,
-          videoUrl: videoUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
-        };
+      
+      let body = req.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch (e) {}
+      }
+      const { enabled, videoUrl } = body || {};
+      const configData = {
+        enabled: !!enabled,
+        videoUrl: videoUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
+      };
 
+      let cloudSuccess = false;
+      let cloudErrorMsg = '';
+
+      try {
+        const response = await fetch(CLOUD_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(configData)
+        });
+        if (response.ok) {
+          cloudSuccess = true;
+        } else {
+          cloudErrorMsg = `Cloud response status ${response.status}`;
+        }
+      } catch (err: any) {
+        cloudErrorMsg = err.message || String(err);
+      }
+
+      try {
         const dir = path.dirname(CONFIG_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
-        return res.status(200).json({ success: true, message: 'Maintenance configuration saved successfully' });
-      } catch (error: any) {
-        console.error("Error saving maintenance config:", error);
-        return res.status(500).json({ error: 'Error saving maintenance configuration', details: error.message });
+      } catch (localErr) {
+        if (!cloudSuccess) {
+          console.error("Both cloud and local writes failed:", localErr);
+          return res.status(500).json({ 
+            error: 'Error saving maintenance configuration', 
+            details: `Cloud failed: ${cloudErrorMsg}. Local failed: ${(localErr as any).message}` 
+          });
+        }
       }
+
+      return res.status(200).json({ success: true, message: 'Maintenance configuration saved successfully' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
