@@ -13,6 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let apiKey = (process.env.GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, '');
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
+    // Cargar verifyAdminPassword desde common de manera dinámica o importarla
+    const commonPath = './common';
+    const { verifyAdminPassword } = require(commonPath);
+    if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Acceso denegado: Se requiere autenticación de administrador.' });
+    }
+
     // Modelo estable (con soporte para Google Search grounding)
     const modelName = "gemini-2.5-flash";
     
