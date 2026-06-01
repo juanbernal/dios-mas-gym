@@ -23,7 +23,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
       </div>
 
       {/* Top Section - Brand Identity */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto flex justify-between items-center pt-4 animate-fade-in">
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex justify-center items-center pt-4 animate-fade-in">
         <div className="flex items-center gap-4">
           <img 
             src="/logo-diosmasgym.png" 
@@ -35,15 +35,6 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
             <p className="text-[#c5a059] text-[8px] font-black uppercase tracking-widest">El Arsenal de Fe</p>
           </div>
         </div>
-
-        {/* Access Admin link discreetly */}
-        <a 
-          href="/#/admin"
-          className="px-4 py-2 border border-white/10 hover:border-[#c5a059]/30 rounded-full text-white/40 hover:text-[#c5a059] text-[8px] font-black uppercase tracking-widest transition-all backdrop-blur-md"
-        >
-          <i className="fas fa-lock mr-2 text-[8px]"></i>
-          Mando Ejecutivo
-        </a>
       </div>
 
       {/* Middle Section - Core Content (Cinematic Presentation) */}
