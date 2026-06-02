@@ -425,11 +425,32 @@ const SocialPostGenerator: React.FC = () => {
                                 <h3 className="text-red-500 font-black text-[10px] uppercase tracking-widest mb-4 flex items-center gap-3">
                                     <i className="fas fa-bug"></i> DETALLES DEL ERROR
                                 </h3>
-                                <pre className="text-[11px] text-red-400 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                                {String(error.error || error.details || JSON.stringify(error)).toLowerCase().includes('unauthorized') ? (
+                                    <div className="mb-6">
+                                        <p className="text-sm text-red-400 mb-4 font-bold">
+                                            ⚠️ Error de Autorización: La contraseña guardada en el navegador no coincide con la clave maestra configurada en el servidor (ADMIN_PASSWORD).
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                localStorage.removeItem("admin_session");
+                                                localStorage.removeItem("admin_password");
+                                                window.location.reload();
+                                            }}
+                                            className="px-6 py-3 bg-[#c5a059] hover:bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                        >
+                                            Re-iniciar Sesión de Administrador
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-red-400 mb-4">
+                                        {error.error || "Ocurrió un error al procesar la petición."}
+                                    </p>
+                                )}
+                                <pre className="text-[11px] text-red-400 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed bg-black/35 p-4 rounded-xl border border-white/5">
                                     {JSON.stringify(error, null, 2)}
                                 </pre>
                                 <div className="mt-8 text-[10px] text-white/40 leading-relaxed italic">
-                                    * Este error viene directamente de Google. Verifica tu API Key en Vercel.
+                                    * Verifica tu API Key o la clave ADMIN_PASSWORD en Vercel.
                                 </div>
                             </div>
                         )}

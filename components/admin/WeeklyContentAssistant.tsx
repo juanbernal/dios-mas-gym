@@ -49,11 +49,12 @@ const CAPTIONS_BY_TYPE = {
 interface SuggestionCardProps {
     suggestion: Suggestion;
     onNext: () => void;
+    onMarkCompleted: () => void;
     onAction: (route: string) => void;
     title: string;
 }
 
-const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onAction, title }) => {
+const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onMarkCompleted, onAction, title }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
@@ -130,7 +131,15 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onA
                             </h3>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <button
+                                onClick={onMarkCompleted}
+                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.15)]"
+                                title="Marcar como usado (Desaparece de los estrenos)"
+                            >
+                                <i className="fas fa-check text-[10px]"></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest">Usado ✓</span>
+                            </button>
                             <button
                                 onClick={() => setIsExpanded(!isExpanded)}
                                 className="text-[8px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-3 py-2 rounded-xl border border-white/10 flex items-center justify-center gap-1.5"
@@ -141,9 +150,10 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onA
                             <button
                                 onClick={onNext}
                                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
+                                title="Saltar al siguiente sin marcar como usado"
                             >
-                                <span className="text-[8px] font-black uppercase tracking-widest">Siguiente</span>
-                                <i className="fas fa-arrow-right text-[8px]"></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest">Saltar</span>
+                                <i className="fas fa-angles-right text-[8px]"></i>
                             </button>
                         </div>
                     </div>
@@ -474,6 +484,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     };
 
     const handleNextSlot1 = (suggestion: Suggestion) => {
+        const nextSkips = slot1Skips + 1;
+        setSlot1Skips(nextSkips);
+        localStorage.setItem('content_assistant_slot1_skips', nextSkips.toString());
+    };
+
+    const handleMarkCompletedSlot1 = (suggestion: Suggestion) => {
         handleNext(suggestion);
         const nextSkips = slot1Skips + 1;
         setSlot1Skips(nextSkips);
@@ -481,6 +497,12 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     };
 
     const handleNextSlot2 = (suggestion: Suggestion) => {
+        const nextSkips = slot2Skips + 1;
+        setSlot2Skips(nextSkips);
+        localStorage.setItem('content_assistant_slot2_skips', nextSkips.toString());
+    };
+
+    const handleMarkCompletedSlot2 = (suggestion: Suggestion) => {
         handleNext(suggestion);
         const nextSkips = slot2Skips + 1;
         setSlot2Skips(nextSkips);
@@ -534,6 +556,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         title="Slot 1: Novedades / Tendencias" 
                         suggestion={suggestions.suggestionNew} 
                         onNext={() => handleNextSlot1(suggestions.suggestionNew!)} 
+                        onMarkCompleted={() => handleMarkCompletedSlot1(suggestions.suggestionNew!)}
                         onAction={(route) => handleAction(route, suggestions.suggestionNew!)} 
                     />
                 )}
@@ -542,6 +565,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         title="Slot 2: Clásicos / Rotación" 
                         suggestion={suggestions.suggestionOld} 
                         onNext={() => handleNextSlot2(suggestions.suggestionOld!)} 
+                        onMarkCompleted={() => handleMarkCompletedSlot2(suggestions.suggestionOld!)}
                         onAction={(route) => handleAction(route, suggestions.suggestionOld!)} 
                     />
                 )}

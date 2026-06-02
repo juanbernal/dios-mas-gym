@@ -9,8 +9,13 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
 
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
-    if (session === "true") {
+    const storedPassword = localStorage.getItem("admin_password");
+    if (session === "true" && storedPassword && storedPassword.trim() !== "") {
       setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      localStorage.removeItem("admin_session");
+      localStorage.removeItem("admin_password");
     }
   }, []);
 
