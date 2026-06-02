@@ -371,8 +371,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         // --- ROTACIÓN DIARIA ---
         const rotationIdx = dayOfYear + slot2Skips;
         const picked = alternateFlag
-            ? (dmPool[rotationIdx % dmPool.length] || j6Pool[rotationIdx % j6Pool.length])
-            : (j6Pool[rotationIdx % j6Pool.length] || dmPool[rotationIdx % dmPool.length]);
+            ? (dmCatalog[rotationIdx % dmCatalog.length] || j6Catalog[rotationIdx % j6Catalog.length])
+            : (j6Catalog[rotationIdx % j6Catalog.length] || dmCatalog[rotationIdx % dmCatalog.length]);
         
         let rotationSuggestion: Suggestion | null = null;
         if (picked) {
@@ -389,8 +389,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         // --- JOYA DEL ARCHIVO (TBT) ---
         const gemIdx = dayOfYear + slot2Skips;
-        const gemDM = dmPool[(gemIdx + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
-        const gemJ6 = j6Pool[(gemIdx + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
+        const gemDM = dmCatalog[(gemIdx + 10) % (dmCatalog.length || 1)] || catalog[0];
+        const gemJ6 = j6Catalog[(gemIdx + 10) % (j6Catalog.length || 1)] || catalog[0];
         const gem = alternateFlag ? (gemDM || gemJ6) : (gemJ6 || gemDM);
 
         let gemSuggestion: Suggestion | null = null;
@@ -437,7 +437,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                           suggestionNew.song.album.trim().toLowerCase() === suggestionOld.song.album.trim().toLowerCase();
 
         if (suggestionNew && suggestionOld && (sameSong || sameAlbum)) {
-            const pool = alternateFlag ? [...dmPool, ...j6Pool] : [...j6Pool, ...dmPool];
+            const pool = alternateFlag ? [...dmCatalog, ...j6Catalog] : [...j6Catalog, ...dmCatalog];
             const fallbackPicked = pool.find(s => {
                 const isSameSong = s.id === suggestionNew.song?.id;
                 const isSameAlbum = s.album && suggestionNew.song?.album && 
@@ -506,9 +506,26 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
     return (
         <div className="mb-16">
-            <div className="flex items-center gap-3 mb-8">
-                <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></div>
-                <h2 className="font-serif italic text-3xl text-white">Aprovisionamiento Diario de Contenido</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></div>
+                    <h2 className="font-serif italic text-3xl text-white">Aprovisionamiento Diario de Contenido</h2>
+                </div>
+                <button 
+                    onClick={() => {
+                        setPromotedIds([]);
+                        setSlot1Skips(0);
+                        setSlot2Skips(0);
+                        localStorage.removeItem(PROMOTED_KEY);
+                        localStorage.removeItem('content_assistant_slot1_skips');
+                        localStorage.removeItem('content_assistant_slot2_skips');
+                    }}
+                    className="text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:text-red-400 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
+                    title="Reiniciar historial y skips para volver a ver todo desde el principio"
+                >
+                    <i className="fas fa-arrow-rotate-left text-[9px]"></i>
+                    <span>Reiniciar Pruebas</span>
+                </button>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
