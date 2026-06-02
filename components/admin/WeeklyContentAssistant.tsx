@@ -242,6 +242,18 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         } catch { return []; }
     });
 
+    const [slot1Skips, setSlot1Skips] = useState<number>(() => {
+        try {
+            return parseInt(localStorage.getItem('content_assistant_slot1_skips') || '0', 10);
+        } catch { return 0; }
+    });
+
+    const [slot2Skips, setSlot2Skips] = useState<number>(() => {
+        try {
+            return parseInt(localStorage.getItem('content_assistant_slot2_skips') || '0', 10);
+        } catch { return 0; }
+    });
+
     const today = new Date();
     const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
 
@@ -279,7 +291,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         startOfWeek.setDate(now.getDate() - now.getDay());
 
         // Alternation flag
-        const alternateFlag = (dayOfYear + promotedIds.length) % 2 === 0;
+        const alternateFlag = (dayOfYear + slot1Skips + slot2Skips) % 2 === 0;
 
         // --- LANZAMIENTOS ---
         let newReleasesDM: ReleaseData[] = [];
@@ -339,8 +351,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        const newestDM = recentDM.length > 0 ? recentDM[(dayOfYear + promotedIds.length) % recentDM.length] : null;
-        const newestJ6 = recentJ6.length > 0 ? recentJ6[(dayOfYear + promotedIds.length) % recentJ6.length] : null;
+        const newestDM = recentDM.length > 0 ? recentDM[(dayOfYear + slot1Skips) % recentDM.length] : null;
+        const newestJ6 = recentJ6.length > 0 ? recentJ6[(dayOfYear + slot1Skips) % recentJ6.length] : null;
         const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
 
         let recentSuggestion: Suggestion | null = null;
@@ -357,7 +369,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // --- ROTACIÓN DIARIA ---
-        const rotationIdx = dayOfYear + promotedIds.length;
+        const rotationIdx = dayOfYear + slot2Skips;
         const picked = alternateFlag
             ? (dmPool[rotationIdx % dmPool.length] || j6Pool[rotationIdx % j6Pool.length])
             : (j6Pool[rotationIdx % j6Pool.length] || dmPool[rotationIdx % dmPool.length]);
@@ -376,7 +388,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         // --- JOYA DEL ARCHIVO (TBT) ---
-        const gemIdx = dayOfYear + promotedIds.length;
+        const gemIdx = dayOfYear + slot2Skips;
         const gemDM = dmPool[(gemIdx + 10) % (dmPool.length || 1)] || dmCatalog[0] || catalog[0];
         const gemJ6 = j6Pool[(gemIdx + 10) % (j6Pool.length || 1)] || j6Catalog[0] || catalog[0];
         const gem = alternateFlag ? (gemDM || gemJ6) : (gemJ6 || gemDM);
@@ -400,7 +412,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         // "si ya no hay nueva que sean dos viejas"
         if (!suggestionNew) {
-            const nextIdx = (rotationIdx + 1) % dmPool.length;
+            const nextIdx = (dayOfYear + slot1Skips) % dmPool.length;
             const fallbackPicked = alternateFlag
                 ? (dmPool[nextIdx] || j6Pool[nextIdx])
                 : (j6Pool[nextIdx] || dmPool[nextIdx]);
@@ -419,12 +431,20 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             }
         }
 
-        // Ensure suggestionOld uses a different song than suggestionNew
-        if (suggestionNew && suggestionOld && suggestionNew.song?.id === suggestionOld.song?.id) {
-            const nextIdx = (rotationIdx + 2) % dmPool.length;
-            const fallbackPicked = alternateFlag
-                ? (dmPool[nextIdx] || j6Pool[nextIdx])
-                : (j6Pool[nextIdx] || dmPool[nextIdx]);
+        // Ensure suggestionOld uses a different song and a different album than suggestionNew
+        const sameSong = suggestionNew?.song?.id === suggestionOld?.song?.id;
+        const sameAlbum = suggestionNew?.song?.album && suggestionOld?.song?.album && 
+                          suggestionNew.song.album.trim().toLowerCase() === suggestionOld.song.album.trim().toLowerCase();
+
+        if (suggestionNew && suggestionOld && (sameSong || sameAlbum)) {
+            const pool = alternateFlag ? [...dmPool, ...j6Pool] : [...j6Pool, ...dmPool];
+            const fallbackPicked = pool.find(s => {
+                const isSameSong = s.id === suggestionNew.song?.id;
+                const isSameAlbum = s.album && suggestionNew.song?.album && 
+                                    s.album.trim().toLowerCase() === suggestionNew.song.album.trim().toLowerCase();
+                return !isSameSong && !isSameAlbum;
+            }) || pool.find(s => s.id !== suggestionNew.song?.id) || pool[0];
+
             if (fallbackPicked) {
                 const caps = CAPTIONS_BY_TYPE.rotation(fallbackPicked.name, fallbackPicked.artist);
                 suggestionOld = {
@@ -439,7 +459,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         return { suggestionNew, suggestionOld };
-    }, [catalog, releases, dayOfYear, promotedIds]);
+    }, [catalog, releases, dayOfYear, promotedIds, slot1Skips, slot2Skips]);
 
     const handleNext = (suggestion: Suggestion) => {
         let idsToMark: string[] = [];
@@ -451,6 +471,20 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             setPromotedIds(next);
             localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
         }
+    };
+
+    const handleNextSlot1 = (suggestion: Suggestion) => {
+        handleNext(suggestion);
+        const nextSkips = slot1Skips + 1;
+        setSlot1Skips(nextSkips);
+        localStorage.setItem('content_assistant_slot1_skips', nextSkips.toString());
+    };
+
+    const handleNextSlot2 = (suggestion: Suggestion) => {
+        handleNext(suggestion);
+        const nextSkips = slot2Skips + 1;
+        setSlot2Skips(nextSkips);
+        localStorage.setItem('content_assistant_slot2_skips', nextSkips.toString());
     };
 
     const handleAction = (route: string, suggestion: Suggestion) => {
@@ -482,7 +516,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                     <SuggestionCard 
                         title="Slot 1: Novedades / Tendencias" 
                         suggestion={suggestions.suggestionNew} 
-                        onNext={() => handleNext(suggestions.suggestionNew!)} 
+                        onNext={() => handleNextSlot1(suggestions.suggestionNew!)} 
                         onAction={(route) => handleAction(route, suggestions.suggestionNew!)} 
                     />
                 )}
@@ -490,7 +524,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                     <SuggestionCard 
                         title="Slot 2: Clásicos / Rotación" 
                         suggestion={suggestions.suggestionOld} 
-                        onNext={() => handleNext(suggestions.suggestionOld!)} 
+                        onNext={() => handleNextSlot2(suggestions.suggestionOld!)} 
                         onAction={(route) => handleAction(route, suggestions.suggestionOld!)} 
                     />
                 )}
