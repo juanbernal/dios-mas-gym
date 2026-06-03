@@ -232,9 +232,27 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         <i className="fas fa-video text-[10px]"></i>
                         <span>Video</span>
                     </button>
-                    <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest col-span-2">
+                    <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
                         <i className="fas fa-share-nodes text-[10px]"></i>
                         <span>Viral Post</span>
+                    </button>
+                    <button 
+                        onClick={() => {
+                            if (suggestion.song) {
+                                const url = `${window.location.origin}/link/${suggestion.song.id}`;
+                                copyText(url, 'sl');
+                            }
+                        }} 
+                        disabled={!suggestion.song}
+                        className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                        style={{ 
+                            backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
+                            borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                            color: copied === 'sl' ? '#fff' : 'rgba(255,255,255,0.6)' 
+                        }}
+                    >
+                        <i className="fas fa-link text-[10px]"></i>
+                        <span>{copied === 'sl' ? '✓ Copiado' : 'Smartlink'}</span>
                     </button>
                 </div>
             </div>
