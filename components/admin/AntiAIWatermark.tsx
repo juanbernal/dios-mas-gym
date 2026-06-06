@@ -32,6 +32,13 @@ const AntiAIWatermark: React.FC = () => {
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
 
+    // Music Platforms States (Listen to our music on...)
+    const [showMusicPlatforms, setShowMusicPlatforms] = useState<boolean>(true);
+    const [musicPlatformsText, setMusicPlatformsText] = useState<string>('Escucha nuestra música en:');
+    const [musicSpotify, setMusicSpotify] = useState<boolean>(true);
+    const [musicApple, setMusicApple] = useState<boolean>(true);
+    const [musicYouTube, setMusicYouTube] = useState<boolean>(true);
+
     // Hashtag Watermark States
     const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(true);
     const [watermarkStyle, setWatermarkStyle] = useState<'diagonal' | 'tiled' | 'center'>('diagonal');
@@ -67,7 +74,7 @@ const AntiAIWatermark: React.FC = () => {
         reader.readAsDataURL(file);
     };
 
-    // Quick phrases for Ribbon (Removed Mando Ejecutivo)
+    // Quick phrases for Ribbon
     const ribbonPhrases = [
         '#PuroSeñorJesucristoCompa',
         'Puro Chihuahua',
@@ -79,7 +86,7 @@ const AntiAIWatermark: React.FC = () => {
         'Diosmasgym'
     ];
 
-    // Quick phrases for Watermark (Removed Mando Ejecutivo)
+    // Quick phrases for Watermark
     const watermarkPhrases = [
         '#PuroSeñorJesucristoCompa',
         'Diosmasgym.com',
@@ -271,7 +278,7 @@ const AntiAIWatermark: React.FC = () => {
             drawLogo(logoToDraw, x, y);
         }
 
-        // 4. Draw Social Media Badge Block (Premium Minimalist Glass Style)
+        // 4. Draw Social Media Badge Block (Premium Minimalist Glass Style with Music Platforms)
         if (showSocials && socialText) {
             ctx.save();
             ctx.globalAlpha = socialOpacity / 100;
@@ -279,21 +286,48 @@ const AntiAIWatermark: React.FC = () => {
             const fontSize = Math.max(12, width * 0.016);
             ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
             
-            // Calculate size with icons
+            // Set colors
+            let drawColor = '#ffffff';
+            if (socialColor === 'gold') drawColor = '#c5a059';
+            else if (socialColor === 'black') drawColor = '#0a0c14';
+            else if (socialColor === 'green') drawColor = '#00ff66';
+            else if (socialColor === 'blue') drawColor = '#33ccff';
+            
+            // Row 1 Dimensions
             let iconCount = 0;
             if (socialInstagram) iconCount++;
             if (socialTikTok) iconCount++;
             if (socialYouTube) iconCount++;
             
-            const textMetrics = ctx.measureText(socialText);
+            const socialTextMetrics = ctx.measureText(socialText);
             const iconSize = fontSize * 1.05;
             const iconGap = fontSize * 0.45;
             const totalIconsWidth = iconCount > 0 ? (iconCount * iconSize) + ((iconCount - 1) * iconGap) : 0;
+            const row1Width = socialTextMetrics.width + totalIconsWidth + (iconCount > 0 ? fontSize * 0.7 : 0);
             
-            const blockPaddingH = fontSize * 0.9;
-            const blockPaddingV = fontSize * 0.6;
-            const blockWidth = textMetrics.width + totalIconsWidth + (iconCount > 0 ? fontSize * 0.7 : 0) + (blockPaddingH * 2);
-            const blockHeight = fontSize + (blockPaddingV * 2);
+            // Row 2 Dimensions
+            let row2Width = 0;
+            let musicIconCount = 0;
+            if (showMusicPlatforms) {
+                if (musicSpotify) musicIconCount++;
+                if (musicApple) musicIconCount++;
+                if (musicYouTube) musicIconCount++;
+                
+                ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                const musicTextMetrics = ctx.measureText(musicPlatformsText);
+                const totalMusicIconsWidth = musicIconCount > 0 ? (musicIconCount * iconSize) + ((musicIconCount - 1) * iconGap) : 0;
+                row2Width = musicTextMetrics.width + totalMusicIconsWidth + (musicIconCount > 0 ? fontSize * 0.6 : 0);
+            }
+            
+            // Reset main font
+            ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
+            
+            const blockPaddingH = fontSize * 1.0;
+            const blockPaddingV = fontSize * 0.7;
+            const rowSpacing = fontSize * 0.6;
+            
+            const blockWidth = Math.max(row1Width, row2Width) + (blockPaddingH * 2);
+            const blockHeight = fontSize + (showMusicPlatforms ? (fontSize * 0.85) + rowSpacing : 0) + (blockPaddingV * 2);
             
             let bx = margin;
             let by = height - margin - blockHeight;
@@ -317,7 +351,7 @@ const AntiAIWatermark: React.FC = () => {
                 
                 ctx.fillStyle = 'rgba(10, 12, 20, 0.88)';
                 ctx.beginPath();
-                ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight / 2);
+                ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.8);
                 ctx.fill();
                 
                 ctx.shadowBlur = 0;
@@ -327,19 +361,12 @@ const AntiAIWatermark: React.FC = () => {
                 ctx.stroke();
             }
             
-            // Set colors
-            let drawColor = '#ffffff';
-            if (socialColor === 'gold') drawColor = '#c5a059';
-            else if (socialColor === 'black') drawColor = '#0a0c14';
-            else if (socialColor === 'green') drawColor = '#00ff66';
-            else if (socialColor === 'blue') drawColor = '#33ccff';
-
+            // --- DRAW ROW 1 (Socials) ---
+            let currentIconX = bx + blockPaddingH;
+            const currentIconY = by + blockPaddingV + (fontSize - iconSize) / 2;
+            
             ctx.fillStyle = drawColor;
             ctx.strokeStyle = drawColor;
-            
-            // Draw icons
-            let currentIconX = bx + blockPaddingH;
-            const currentIconY = by + (blockHeight - iconSize) / 2;
             
             if (socialInstagram) {
                 ctx.save();
@@ -360,7 +387,6 @@ const AntiAIWatermark: React.FC = () => {
             }
             
             if (socialTikTok) {
-                // High-precision vector TikTok icon drawing
                 ctx.save();
                 ctx.strokeStyle = drawColor;
                 ctx.lineWidth = iconSize * 0.14;
@@ -370,20 +396,15 @@ const AntiAIWatermark: React.FC = () => {
                 const cx = currentIconX + iconSize * 0.55;
                 const cy = currentIconY + iconSize * 0.5;
                 
-                // Vertical stem
                 ctx.beginPath();
                 ctx.moveTo(cx, cy - iconSize * 0.35);
                 ctx.lineTo(cx, cy + iconSize * 0.15);
-                
-                // Bottom bowl (225 degree loop curving down-left-up)
                 ctx.arc(cx - iconSize * 0.22, cy + iconSize * 0.15, iconSize * 0.22, 0, Math.PI * 1.25, false);
                 ctx.stroke();
                 
-                // Top flag hook (curves from top of stem to the right)
                 ctx.beginPath();
                 ctx.arc(cx + iconSize * 0.28, cy - iconSize * 0.35, iconSize * 0.28, Math.PI, Math.PI * 0.5, true);
                 ctx.stroke();
-                
                 ctx.restore();
                 
                 currentIconX += iconSize + iconGap;
@@ -412,7 +433,112 @@ const AntiAIWatermark: React.FC = () => {
             ctx.fillStyle = drawColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(socialText, currentIconX, by + blockHeight / 2);
+            ctx.fillText(socialText, currentIconX, by + blockPaddingV + fontSize / 2);
+            
+            // --- DRAW ROW 2 (Music Platforms) ---
+            if (showMusicPlatforms) {
+                ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                let mIconX = bx + blockPaddingH;
+                const mIconY = by + blockPaddingV + fontSize + rowSpacing + ((fontSize * 0.85) - iconSize) / 2;
+                
+                // Draw label text
+                ctx.fillStyle = drawColor;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(musicPlatformsText, mIconX, by + blockPaddingV + fontSize + rowSpacing + (fontSize * 0.85) / 2);
+                
+                mIconX += ctx.measureText(musicPlatformsText).width + fontSize * 0.5;
+                const mRadius = iconSize / 2;
+                
+                if (musicSpotify) {
+                    ctx.save();
+                    ctx.fillStyle = drawColor;
+                    ctx.strokeStyle = drawColor;
+                    
+                    const scx = mIconX + mRadius;
+                    const scy = mIconY + mRadius;
+                    
+                    ctx.beginPath();
+                    ctx.arc(scx, scy, mRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = mRadius * 0.18;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
+                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.55, mRadius * 0.75, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.7, mRadius * 0.6, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.85, mRadius * 0.45, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    mIconX += iconSize + iconGap;
+                }
+                
+                if (musicApple) {
+                    ctx.save();
+                    ctx.fillStyle = drawColor;
+                    
+                    const acx = mIconX + mRadius;
+                    const acy = mIconY + mRadius;
+                    
+                    ctx.beginPath();
+                    ctx.arc(acx, acy, mRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.beginPath();
+                    ctx.ellipse(acx - mRadius * 0.25, acy + mRadius * 0.3, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                    ctx.ellipse(acx + mRadius * 0.15, acy + mRadius * 0.2, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = mRadius * 0.09;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(acx - mRadius * 0.1, acy + mRadius * 0.3);
+                    ctx.lineTo(acx - mRadius * 0.1, acy - mRadius * 0.35);
+                    ctx.lineTo(acx + mRadius * 0.3, acy - mRadius * 0.45);
+                    ctx.lineTo(acx + mRadius * 0.3, acy + mRadius * 0.2);
+                    ctx.stroke();
+                    
+                    ctx.lineWidth = mRadius * 0.22;
+                    ctx.beginPath();
+                    ctx.moveTo(acx - mRadius * 0.12, acy - mRadius * 0.28);
+                    ctx.lineTo(acx + mRadius * 0.32, acy - mRadius * 0.38);
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    mIconX += iconSize + iconGap;
+                }
+                
+                if (musicYouTube) {
+                    ctx.save();
+                    ctx.fillStyle = drawColor;
+                    
+                    const ycx = mIconX + mRadius;
+                    const ycy = mIconY + mRadius;
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(ycx - mRadius, ycy - mRadius * 0.7, mRadius * 2, mRadius * 1.4, mRadius * 0.4);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.beginPath();
+                    ctx.moveTo(ycx - mRadius * 0.3, ycy - mRadius * 0.35);
+                    ctx.lineTo(ycx + mRadius * 0.35, ycy);
+                    ctx.lineTo(ycx - mRadius * 0.3, ycy + mRadius * 0.35);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            
             ctx.restore();
         }
 
@@ -489,6 +615,7 @@ const AntiAIWatermark: React.FC = () => {
         imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
         showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialPosition, socialColor, socialBackground, socialOpacity,
+        showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube,
         watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize
     ]);
 
@@ -516,7 +643,7 @@ const AntiAIWatermark: React.FC = () => {
 
                         zeroth[piexif.ImageIFD.Make] = "Diosmasgym Records";
                         zeroth[piexif.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
-                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.2";
+                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.3";
                         zeroth[piexif.ImageIFD.Artist] = "Diosmasgym";
                         zeroth[piexif.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
 
@@ -668,7 +795,7 @@ const AntiAIWatermark: React.FC = () => {
                     {/* Tab Content */}
                     <div className="flex-1 mb-6">
                         
-                        {/* LOGO TAB (Removed Mando Ejecutivo selection as requested, only Diosmasgym and None remains) */}
+                        {/* LOGO TAB */}
                         {activeTab === 'logo' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
@@ -739,7 +866,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* RIBBON TAB (Expanded color list as requested) */}
+                        {/* RIBBON TAB */}
                         {activeTab === 'ribbon' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
@@ -818,7 +945,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* SOCIALS TAB (Expanded color list as requested) */}
+                        {/* SOCIALS TAB (Includes social media + music platforms) */}
                         {activeTab === 'socials' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -834,7 +961,7 @@ const AntiAIWatermark: React.FC = () => {
                                 {showSocials && (
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Texto de Redes</label>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Texto de Redes (Usuario)</label>
                                             <input 
                                                 type="text"
                                                 value={socialText}
@@ -844,7 +971,7 @@ const AntiAIWatermark: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Iconos Sociales</label>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Redes a Activar</label>
                                             <div className="grid grid-cols-3 gap-2 bg-black/40 p-2.5 rounded-lg border border-white/10">
                                                 <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
                                                     <input 
@@ -876,7 +1003,49 @@ const AntiAIWatermark: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        {/* Music Platforms Section (New) */}
+                                        <div className="border-t border-white/5 pt-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-[10px] font-bold text-white/70">Cinta "Escucha nuestra música en:"</label>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={showMusicPlatforms} 
+                                                    onChange={(e) => setShowMusicPlatforms(e.target.checked)}
+                                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                                />
+                                            </div>
+
+                                            {showMusicPlatforms && (
+                                                <div className="space-y-3 pl-2 border-l border-white/10">
+                                                    <div>
+                                                        <label className="text-[9px] font-bold text-white/50 block mb-1">Frase Escucha</label>
+                                                        <input 
+                                                            type="text"
+                                                            value={musicPlatformsText}
+                                                            onChange={(e) => setMusicPlatformsText(e.target.value)}
+                                                            className="w-full bg-black/40 border border-white/10 rounded p-1.5 text-xs text-white outline-none focus:border-[#c5a059]"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <label className="text-[9px] font-bold text-white/50 block mb-1">Plataformas</label>
+                                                        <div className="flex gap-4">
+                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
+                                                                <input type="checkbox" checked={musicSpotify} onChange={(e) => setMusicSpotify(e.target.checked)} className="accent-[#c5a059]" /> Spotify
+                                                            </label>
+                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
+                                                                <input type="checkbox" checked={musicApple} onChange={(e) => setMusicApple(e.target.checked)} className="accent-[#c5a059]" /> Apple
+                                                            </label>
+                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
+                                                                <input type="checkbox" checked={musicYouTube} onChange={(e) => setMusicYouTube(e.target.checked)} className="accent-[#c5a059]" /> YouTube
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
                                             <div>
                                                 <label className="text-[10px] font-bold text-white/70 block mb-2">Ubicación</label>
                                                 <select 
@@ -934,7 +1103,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* WATERMARK TAB (Default 8% opacity as requested) */}
+                        {/* WATERMARK TAB */}
                         {activeTab === 'watermark' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
