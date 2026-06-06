@@ -9,8 +9,8 @@ const AntiAIWatermark: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark'>('logo');
     
     // Logo States
-    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'mando_ejecutivo' | 'none'>('mando_ejecutivo');
-    const [logoSize, setLogoSize] = useState<number>(25); // percentage of image width
+    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'none'>('diosmasgym');
+    const [logoSize, setLogoSize] = useState<number>(19); // 19% default size
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [showText, setShowText] = useState<boolean>(true);
@@ -18,7 +18,7 @@ const AntiAIWatermark: React.FC = () => {
     // Ribbon / Banner States
     const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left' | 'diagonal-right'>('none');
     const [ribbonText, setRibbonText] = useState<string>('#PuroSeñorJesucristoCompa');
-    const [ribbonColor, setRibbonColor] = useState<'gold' | 'black' | 'white'>('gold');
+    const [ribbonColor, setRibbonColor] = useState<'gold' | 'black' | 'white' | 'red' | 'blue' | 'green' | 'grey'>('gold');
     const [ribbonOpacity, setRibbonOpacity] = useState<number>(90);
 
     // Social Media States
@@ -28,7 +28,7 @@ const AntiAIWatermark: React.FC = () => {
     const [socialTikTok, setSocialTikTok] = useState<boolean>(true);
     const [socialYouTube, setSocialYouTube] = useState<boolean>(false);
     const [socialPosition, setSocialPosition] = useState<'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'>('bottom-left');
-    const [socialColor, setSocialColor] = useState<'gold' | 'white'>('white');
+    const [socialColor, setSocialColor] = useState<'white' | 'gold' | 'black' | 'green' | 'blue'>('white');
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
 
@@ -36,7 +36,7 @@ const AntiAIWatermark: React.FC = () => {
     const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(true);
     const [watermarkStyle, setWatermarkStyle] = useState<'diagonal' | 'tiled' | 'center'>('diagonal');
     const [watermarkText, setWatermarkText] = useState<string>('#PuroSeñorJesucristoCompa');
-    const [watermarkOpacity, setWatermarkOpacity] = useState<number>(20);
+    const [watermarkOpacity, setWatermarkOpacity] = useState<number>(8); // 8% default opacity
     const [watermarkSize, setWatermarkSize] = useState<number>(35);
 
     const [injectExif, setInjectExif] = useState<boolean>(true);
@@ -46,11 +46,9 @@ const AntiAIWatermark: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const diosmasgymLogoRef = useRef<HTMLImageElement>(new Image());
-    const mandoEjecutivoLogoRef = useRef<HTMLImageElement>(new Image());
 
     useEffect(() => {
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
-        mandoEjecutivoLogoRef.current.src = '/logo-mando-ejecutivo.png';
     }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,26 +67,26 @@ const AntiAIWatermark: React.FC = () => {
         reader.readAsDataURL(file);
     };
 
-    // Quick phrases for Ribbon
+    // Quick phrases for Ribbon (Removed Mando Ejecutivo)
     const ribbonPhrases = [
         '#PuroSeñorJesucristoCompa',
         'Puro Chihuahua',
         'Saludos desde Chihuahua',
         'Diosmasgym Records',
-        'Mando Ejecutivo',
         'Puro Señor Jesucristo',
         'La Gloria es de Dios',
-        'Fe y Disciplina'
+        'Fe y Disciplina',
+        'Diosmasgym'
     ];
 
-    // Quick phrases for Watermark
+    // Quick phrases for Watermark (Removed Mando Ejecutivo)
     const watermarkPhrases = [
         '#PuroSeñorJesucristoCompa',
         'Diosmasgym.com',
         'Diosmasgym Records',
         'Puro Chihuahua',
         '#Diosmasgym',
-        'Mando Ejecutivo'
+        'La Gloria es de Dios'
     ];
 
     const drawComposition = (ctx: CanvasRenderingContext2D, width: number, height: number, sourceImage: HTMLImageElement) => {
@@ -99,7 +97,7 @@ const AntiAIWatermark: React.FC = () => {
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(sourceImage, 0, 0, width, height);
 
-        // 1. Draw Watermarks (Hashtags) in background (drawn under logos/ribbons)
+        // 1. Draw Watermarks (Hashtags) in background
         if (watermarkEnabled && watermarkText) {
             ctx.save();
             ctx.globalAlpha = watermarkOpacity / 100;
@@ -151,6 +149,26 @@ const AntiAIWatermark: React.FC = () => {
                 fillStyle = 'rgba(10, 12, 20, 0.92)';
             } else if (ribbonColor === 'white') {
                 fillStyle = 'rgba(255, 255, 255, 0.95)';
+            } else if (ribbonColor === 'red') {
+                const grad = ctx.createLinearGradient(0, 0, width, 0);
+                grad.addColorStop(0, '#590909');
+                grad.addColorStop(0.5, '#bd2c2c');
+                grad.addColorStop(1, '#590909');
+                fillStyle = grad;
+            } else if (ribbonColor === 'blue') {
+                const grad = ctx.createLinearGradient(0, 0, width, 0);
+                grad.addColorStop(0, '#0a225c');
+                grad.addColorStop(0.5, '#2b62d9');
+                grad.addColorStop(1, '#0a225c');
+                fillStyle = grad;
+            } else if (ribbonColor === 'green') {
+                const grad = ctx.createLinearGradient(0, 0, width, 0);
+                grad.addColorStop(0, '#093a1d');
+                grad.addColorStop(0.5, '#228b4c');
+                grad.addColorStop(1, '#093a1d');
+                fillStyle = grad;
+            } else if (ribbonColor === 'grey') {
+                fillStyle = 'rgba(60, 64, 74, 0.88)';
             }
             
             ctx.fillStyle = fillStyle;
@@ -245,7 +263,6 @@ const AntiAIWatermark: React.FC = () => {
 
         let logoToDraw = null;
         if (logoSelection === 'diosmasgym') logoToDraw = diosmasgymLogoRef.current;
-        if (logoSelection === 'mando_ejecutivo') logoToDraw = mandoEjecutivoLogoRef.current;
 
         if (logoToDraw && logoToDraw.complete && logoToDraw.naturalWidth > 0) {
             const aspect = logoToDraw.height / logoToDraw.width;
@@ -294,18 +311,15 @@ const AntiAIWatermark: React.FC = () => {
             
             // Draw luxury rounded pill with shadow and gold accent border
             if (socialBackground) {
-                // Drop shadow
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
                 ctx.shadowBlur = 10;
                 ctx.shadowOffsetY = 4;
                 
-                // Pill Background
                 ctx.fillStyle = 'rgba(10, 12, 20, 0.88)';
                 ctx.beginPath();
                 ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight / 2);
                 ctx.fill();
                 
-                // Gold shiny border
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetY = 0;
                 ctx.strokeStyle = 'rgba(197, 160, 89, 0.6)';
@@ -313,25 +327,29 @@ const AntiAIWatermark: React.FC = () => {
                 ctx.stroke();
             }
             
+            // Set colors
+            let drawColor = '#ffffff';
+            if (socialColor === 'gold') drawColor = '#c5a059';
+            else if (socialColor === 'black') drawColor = '#0a0c14';
+            else if (socialColor === 'green') drawColor = '#00ff66';
+            else if (socialColor === 'blue') drawColor = '#33ccff';
+
+            ctx.fillStyle = drawColor;
+            ctx.strokeStyle = drawColor;
+            
             // Draw icons
             let currentIconX = bx + blockPaddingH;
             const currentIconY = by + (blockHeight - iconSize) / 2;
             
-            ctx.fillStyle = socialColor === 'gold' ? '#c5a059' : '#ffffff';
-            ctx.strokeStyle = socialColor === 'gold' ? '#c5a059' : '#ffffff';
-            
             if (socialInstagram) {
                 ctx.save();
                 ctx.lineWidth = iconSize * 0.11;
-                // Outer body
                 ctx.beginPath();
                 ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.28);
                 ctx.stroke();
-                // Lens
                 ctx.beginPath();
                 ctx.arc(currentIconX + iconSize/2, currentIconY + iconSize/2, iconSize * 0.24, 0, Math.PI * 2);
                 ctx.stroke();
-                // Flash dot
                 ctx.fillStyle = ctx.strokeStyle;
                 ctx.beginPath();
                 ctx.arc(currentIconX + iconSize * 0.76, currentIconY + iconSize * 0.24, iconSize * 0.08, 0, Math.PI * 2);
@@ -342,20 +360,30 @@ const AntiAIWatermark: React.FC = () => {
             }
             
             if (socialTikTok) {
+                // High-precision vector TikTok icon drawing
                 ctx.save();
-                ctx.lineWidth = iconSize * 0.13;
-                const tx = currentIconX + iconSize * 0.46;
-                const ty = currentIconY + iconSize * 0.15;
+                ctx.strokeStyle = drawColor;
+                ctx.lineWidth = iconSize * 0.14;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 
+                const cx = currentIconX + iconSize * 0.55;
+                const cy = currentIconY + iconSize * 0.5;
+                
+                // Vertical stem
                 ctx.beginPath();
-                ctx.moveTo(tx, ty);
-                ctx.lineTo(tx, ty + iconSize * 0.55);
-                ctx.arc(tx - iconSize * 0.2, ty + iconSize * 0.55, iconSize * 0.22, 0, Math.PI);
+                ctx.moveTo(cx, cy - iconSize * 0.35);
+                ctx.lineTo(cx, cy + iconSize * 0.15);
+                
+                // Bottom bowl (225 degree loop curving down-left-up)
+                ctx.arc(cx - iconSize * 0.22, cy + iconSize * 0.15, iconSize * 0.22, 0, Math.PI * 1.25, false);
                 ctx.stroke();
                 
+                // Top flag hook (curves from top of stem to the right)
                 ctx.beginPath();
-                ctx.arc(tx + iconSize * 0.24, ty + iconSize * 0.24, iconSize * 0.24, Math.PI, Math.PI * 1.5);
+                ctx.arc(cx + iconSize * 0.28, cy - iconSize * 0.35, iconSize * 0.28, Math.PI, Math.PI * 0.5, true);
                 ctx.stroke();
+                
                 ctx.restore();
                 
                 currentIconX += iconSize + iconGap;
@@ -363,12 +391,11 @@ const AntiAIWatermark: React.FC = () => {
             
             if (socialYouTube) {
                 ctx.save();
-                ctx.fillStyle = socialColor === 'gold' ? '#c5a059' : '#ffffff';
+                ctx.fillStyle = drawColor;
                 ctx.beginPath();
                 ctx.roundRect(currentIconX, currentIconY + iconSize * 0.1, iconSize * 1.15, iconSize * 0.8, iconSize * 0.22);
                 ctx.fill();
                 
-                // Play triangle inside
                 ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
                 ctx.beginPath();
                 ctx.moveTo(currentIconX + iconSize * 0.45, currentIconY + iconSize * 0.32);
@@ -382,7 +409,7 @@ const AntiAIWatermark: React.FC = () => {
             }
             
             // Draw social handle text
-            ctx.fillStyle = socialColor === 'gold' ? '#c5a059' : '#ffffff';
+            ctx.fillStyle = drawColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillText(socialText, currentIconX, by + blockHeight / 2);
@@ -489,7 +516,7 @@ const AntiAIWatermark: React.FC = () => {
 
                         zeroth[piexif.ImageIFD.Make] = "Diosmasgym Records";
                         zeroth[piexif.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
-                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.1";
+                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.2";
                         zeroth[piexif.ImageIFD.Artist] = "Diosmasgym";
                         zeroth[piexif.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
 
@@ -575,11 +602,11 @@ const AntiAIWatermark: React.FC = () => {
                             <h1 className="text-xl md:text-2xl font-serif italic text-white">Mando Ejecutivo</h1>
                         </div>
                         <p className="text-white/40 text-[11px] leading-relaxed">
-                            Crea masters HD agregando tu logo oficial, listones de fe personalizados y redes oficiales sin pérdida de resolución.
+                            Aplica sellos oficiales, listones de fe personalizados y redes de Diosmasgym sin pérdida de resolución.
                         </p>
                     </div>
 
-                    {/* Drag-and-drop Image Upload directly at top */}
+                    {/* Image Upload */}
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
                         <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">1. Imagen de Fondo</label>
                         <input 
@@ -610,13 +637,13 @@ const AntiAIWatermark: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Tab Navigation in Sidebar for better organization on PC & Mobile */}
+                    {/* Tab Navigation in Sidebar */}
                     <div className="flex border-b border-white/10 mb-6 bg-black/20 rounded-xl p-1.5 gap-1">
                         <button
                             onClick={() => setActiveTab('logo')}
                             className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'logo' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            🤠 Logo
+                            🏆 Logo
                         </button>
                         <button
                             onClick={() => setActiveTab('ribbon')}
@@ -641,37 +668,31 @@ const AntiAIWatermark: React.FC = () => {
                     {/* Tab Content */}
                     <div className="flex-1 mb-6">
                         
-                        {/* LOGO TAB */}
+                        {/* LOGO TAB (Removed Mando Ejecutivo selection as requested, only Diosmasgym and None remains) */}
                         {activeTab === 'logo' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Sello Principal</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Sello Oficial</label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button 
-                                            onClick={() => setLogoSelection('mando_ejecutivo')}
-                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'mando_ejecutivo' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
-                                        >
-                                            🤠 Mando Ejecutivo
-                                        </button>
                                         <button 
                                             onClick={() => setLogoSelection('diosmasgym')}
                                             className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'diosmasgym' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
                                         >
                                             🏆 Diosmasgym
                                         </button>
+                                        <button 
+                                            onClick={() => setLogoSelection('none')}
+                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'none' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
+                                        >
+                                            Ninguno
+                                        </button>
                                     </div>
-                                    <button 
-                                        onClick={() => setLogoSelection('none')}
-                                        className={`w-full mt-2 py-2 text-[9px] font-black uppercase rounded-lg border transition-all ${logoSelection === 'none' ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/30 border-dashed border-white/10 hover:border-white/20'}`}
-                                    >
-                                        Ninguno
-                                    </button>
                                 </div>
 
                                 {logoSelection !== 'none' && (
                                     <>
                                         <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Posición del Logo</label>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Posición del Sello</label>
                                             <select 
                                                 value={logoPosition}
                                                 onChange={(e) => setLogoPosition(e.target.value as any)}
@@ -688,7 +709,7 @@ const AntiAIWatermark: React.FC = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <div className="flex justify-between mb-1">
-                                                    <label className="text-[10px] font-bold text-white/70">Tamaño</label>
+                                                    <label className="text-[10px] font-bold text-white/70">Tamaño (Def: 19%)</label>
                                                     <span className="text-[10px] text-[#c5a059]">{logoSize}%</span>
                                                 </div>
                                                 <input 
@@ -718,7 +739,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* RIBBON TAB */}
+                        {/* RIBBON TAB (Expanded color list as requested) */}
                         {activeTab === 'ribbon' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
@@ -766,15 +787,19 @@ const AntiAIWatermark: React.FC = () => {
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-[10px] font-bold text-white/70 block mb-2">Color</label>
+                                                <label className="text-[10px] font-bold text-white/70 block mb-2">Color del Listón</label>
                                                 <select 
                                                     value={ribbonColor}
                                                     onChange={(e) => setRibbonColor(e.target.value as any)}
                                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
                                                 >
-                                                    <option value="gold">Oro Degradado</option>
-                                                    <option value="black">Negro Carbón</option>
-                                                    <option value="white">Blanco Nítido</option>
+                                                    <option value="gold">🏆 Oro Degradado</option>
+                                                    <option value="black">🖤 Negro Carbón</option>
+                                                    <option value="white">🤍 Blanco Nítido</option>
+                                                    <option value="red">❤️ Rojo Pasión</option>
+                                                    <option value="blue">💙 Azul Rey</option>
+                                                    <option value="green">💚 Verde Esmeralda</option>
+                                                    <option value="grey">🩶 Gris Traslúcido</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -793,7 +818,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* SOCIALS TAB */}
+                        {/* SOCIALS TAB (Expanded color list as requested) */}
                         {activeTab === 'socials' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -872,8 +897,11 @@ const AntiAIWatermark: React.FC = () => {
                                                     onChange={(e) => setSocialColor(e.target.value as any)}
                                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
                                                 >
-                                                    <option value="white">Blanco</option>
-                                                    <option value="gold">Oro</option>
+                                                    <option value="white">🤍 Blanco Nítido</option>
+                                                    <option value="gold">🏆 Oro Diosmasgym</option>
+                                                    <option value="black">🖤 Negro Oscuro</option>
+                                                    <option value="green">💚 Verde Neón</option>
+                                                    <option value="blue">🩵 Azul Claro</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -906,7 +934,7 @@ const AntiAIWatermark: React.FC = () => {
                             </div>
                         )}
 
-                        {/* WATERMARK TAB */}
+                        {/* WATERMARK TAB (Default 8% opacity as requested) */}
                         {activeTab === 'watermark' && (
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -962,12 +990,12 @@ const AntiAIWatermark: React.FC = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <div className="flex justify-between mb-1">
-                                                    <label className="text-[10px] font-bold text-white/70">Opacidad</label>
+                                                    <label className="text-[10px] font-bold text-white/70">Opacidad (Def: 8%)</label>
                                                     <span className="text-[10px] text-[#c5a059]">{watermarkOpacity}%</span>
                                                 </div>
                                                 <input 
                                                     type="range" 
-                                                    min="5" max="80" 
+                                                    min="2" max="80" 
                                                     value={watermarkOpacity}
                                                     onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
                                                     className="w-full accent-[#c5a059]"
