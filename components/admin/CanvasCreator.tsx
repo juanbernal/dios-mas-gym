@@ -269,7 +269,7 @@ const CanvasCreator: React.FC = () => {
                                     <div 
                                         className="absolute inset-0 opacity-30"
                                         style={{ 
-                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)}${isExporting && coverImage && !coverImage.startsWith('data:') && !coverImage.startsWith('blob:') ? '&export_cb=' + Date.now() : ''})`,
+                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
                                             backgroundSize: 'cover',
                                             backgroundPosition: 'center',
                                             filter: getFilterStyle(),
@@ -280,19 +280,19 @@ const CanvasCreator: React.FC = () => {
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
                                     <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
-
+ 
                                     {/* Sombra suave interna (menos oscura) */}
                                     <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.3)] z-10 pointer-events-none"></div>
-
+ 
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
-
+ 
                                     {/* Elemento Central (Portada usando DIV para evitar fallos de object-fit en html2canvas) */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
                                         <div 
                                             className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
                                             style={{ 
-                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)}${isExporting && coverImage && !coverImage.startsWith('data:') && !coverImage.startsWith('blob:') ? '&export_cb=' + Date.now() : ''})`,
+                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
                                                 backgroundSize: 'cover',
                                                 backgroundPosition: 'center',
                                                 filter: getFilterStyle()

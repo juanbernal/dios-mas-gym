@@ -114,30 +114,12 @@ const AdminDashboard: React.FC = () => {
 
     const tools = [
         {
-            id: 'music-video-prompt',
-            title: 'AI Music Video Prompt',
-            description: 'Genera prompts ultra-profesionales y detallados para tus videos musicales por IA, basados 100% en tus letras.',
-            icon: 'fa-wand-magic-sparkles',
-            color: '#00ffcc',
-            route: '/admin/music-video-prompt',
-            category: 'Contenido Audiovisual'
-        },
-        {
             id: 'promo-image',
             title: 'Promo Image Generator',
             description: 'Crea imágenes promocionales para Instagram, Stories y más desde el catálogo de canciones.',
             icon: 'fa-image',
             color: '#c5a059',
             route: '/admin/promo-image',
-            category: 'Contenido Audiovisual'
-        },
-        {
-            id: 'custom-promo',
-            title: 'Custom Promo Creator',
-            description: 'Sube tu propio fondo y genera una promo profesional con caption IA y compartición directa en redes.',
-            icon: 'fa-photo-film',
-            color: '#a855f7',
-            route: '/admin/custom-promo',
             category: 'Contenido Audiovisual'
         },
         {
@@ -168,39 +150,12 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
-            id: 'split-sheet',
-            title: 'Split Sheet Generator',
-            description: 'Genera contratos oficiales de división de derechos de autor (Split Sheets) en PDF listos para firmar con colaboradores.',
-            icon: 'fa-file-signature',
-            color: '#c5a059',
-            route: '/admin/split-sheet',
-            category: 'Gestión y Utilidades'
-        },
-        {
-            id: 'content-calendar',
-            title: 'Calendario de Contenido',
-            description: 'Planifica posts, reels, historias, campañas y lanzamientos en una vista mensual ejecutiva.',
-            icon: 'fa-calendar-days',
-            color: '#38bdf8',
-            route: '/admin/content-calendar',
-            category: 'Marketing & Social'
-        },
-        {
             id: 'social-post',
             title: 'Viral Post Generator',
             description: 'Convierte letras y títulos en publicaciones de alto impacto para redes sociales con IA estratégica.',
             icon: 'fa-bullhorn',
             color: '#fbbf24',
             route: '/admin/social-post',
-            category: 'Marketing & Social'
-        },
-        {
-            id: 'press-release',
-            title: 'AI Press Release',
-            description: 'Redacta comunicados de prensa profesionales para blogs y revistas usando inteligencia artificial.',
-            icon: 'fa-newspaper',
-            color: '#d946ef',
-            route: '/admin/press-release',
             category: 'Marketing & Social'
         },
         {
@@ -211,15 +166,6 @@ const AdminDashboard: React.FC = () => {
             color: '#3b82f6',
             route: '/admin/smart-links',
             category: 'Marketing & Social'
-        },
-        {
-            id: 'epk-generator',
-            title: 'EPK Generator',
-            description: 'Construye y exporta en PDF tu Electronic Press Kit (Presskit) profesional con tus fotos, bio y métricas.',
-            icon: 'fa-file-pdf',
-            color: '#f43f5e',
-            route: '/admin/epk-generator',
-            category: 'Gestión y Utilidades'
         },
         {
             id: 'canvas-creator',
@@ -247,15 +193,6 @@ const AdminDashboard: React.FC = () => {
             color: '#c5a059',
             route: '/admin/links',
             category: 'Marketing & Social'
-        },
-        {
-            id: 'video-snippet',
-            title: 'Video Snippet Creator',
-            description: 'Genera clips de 60 segundos para Reels/TikTok eligiendo cualquier parte de tus canciones.',
-            icon: 'fa-film',
-            color: '#c5a059',
-            route: '/admin/video-snippet',
-            category: 'Contenido Audiovisual'
         },
         {
             id: 'smartlink-video',
