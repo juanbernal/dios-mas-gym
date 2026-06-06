@@ -265,18 +265,18 @@ const CanvasCreator: React.FC = () => {
                                 >
                             {coverImage ? (
                                 <>
-                                    {/* Fondo texturizado (Usando DIV para compatibilidad máxima con html2canvas) */}
+                                    {/* Fondo texturizado (Usando img para máxima nitidez en html2canvas) */}
                                     <div 
-                                        className="absolute inset-0 opacity-30"
-                                        style={{ 
-                                            backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            filter: getFilterStyle(),
-                                            width: '100%',
-                                            height: '100%'
-                                        }}
-                                    ></div>
+                                        className="absolute inset-0 opacity-30 w-full h-full overflow-hidden"
+                                    >
+                                        <img 
+                                            src={getCorsFriendlyUrl(coverImage)} 
+                                            alt="Background Texture" 
+                                            className="w-full h-full object-cover"
+                                            style={{ filter: getFilterStyle() }}
+                                            crossOrigin="anonymous"
+                                        />
+                                    </div>
                                     
                                     {/* Capa de base negra para dar el tono oscuro */}
                                     <div className="absolute inset-0 bg-[#05070a]/80 z-[5]"></div>
@@ -287,17 +287,17 @@ const CanvasCreator: React.FC = () => {
                                     {/* Capa de Efectos/Overlays */}
                                     {filterOverlays[filter]}
  
-                                    {/* Elemento Central (Portada usando DIV para evitar fallos de object-fit en html2canvas) */}
+                                    {/* Elemento Central (Portada usando img para evitar que se vea borroso al exportar) */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
-                                        <div 
-                                            className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12"
-                                            style={{ 
-                                                backgroundImage: `url(${getCorsFriendlyUrl(coverImage)})`,
-                                                backgroundSize: 'cover',
-                                                backgroundPosition: 'center',
-                                                filter: getFilterStyle()
-                                            }}
-                                        ></div>
+                                        <div className="w-full aspect-square shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-sm mb-12 overflow-hidden bg-black flex items-center justify-center">
+                                            <img 
+                                                src={getCorsFriendlyUrl(coverImage)} 
+                                                alt="Central Cover" 
+                                                className="w-full h-full object-cover"
+                                                style={{ filter: getFilterStyle() }}
+                                                crossOrigin="anonymous"
+                                            />
+                                        </div>
                                         
                                         {(songTitle || phrase) && (
                                             <div className="text-center w-full px-4">
