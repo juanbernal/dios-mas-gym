@@ -6,13 +6,13 @@ const AntiAIWatermark: React.FC = () => {
     const navigate = useNavigate();
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [originalSize, setOriginalSize] = useState<{width: number, height: number} | null>(null);
+    const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark'>('logo');
     
     // Logo States
-    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'juan614' | 'mando_ejecutivo' | 'both' | 'none'>('mando_ejecutivo');
+    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'mando_ejecutivo' | 'none'>('mando_ejecutivo');
     const [logoSize, setLogoSize] = useState<number>(25); // percentage of image width
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
-    const [bothLayout, setBothLayout] = useState<'opposite' | 'stacked' | 'side-by-side'>('opposite');
     const [showText, setShowText] = useState<boolean>(true);
     
     // Ribbon / Banner States
@@ -23,7 +23,7 @@ const AntiAIWatermark: React.FC = () => {
 
     // Social Media States
     const [showSocials, setShowSocials] = useState<boolean>(true);
-    const [socialText, setSocialText] = useState<string>('@diosmasssgym');
+    const [socialText, setSocialText] = useState<string>('@diosmasgym');
     const [socialInstagram, setSocialInstagram] = useState<boolean>(true);
     const [socialTikTok, setSocialTikTok] = useState<boolean>(true);
     const [socialYouTube, setSocialYouTube] = useState<boolean>(false);
@@ -36,7 +36,7 @@ const AntiAIWatermark: React.FC = () => {
     const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(true);
     const [watermarkStyle, setWatermarkStyle] = useState<'diagonal' | 'tiled' | 'center'>('diagonal');
     const [watermarkText, setWatermarkText] = useState<string>('#PuroSeñorJesucristoCompa');
-    const [watermarkOpacity, setWatermarkOpacity] = useState<number>(30);
+    const [watermarkOpacity, setWatermarkOpacity] = useState<number>(20);
     const [watermarkSize, setWatermarkSize] = useState<number>(35);
 
     const [injectExif, setInjectExif] = useState<boolean>(true);
@@ -46,12 +46,10 @@ const AntiAIWatermark: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const diosmasgymLogoRef = useRef<HTMLImageElement>(new Image());
-    const juan614LogoRef = useRef<HTMLImageElement>(new Image());
     const mandoEjecutivoLogoRef = useRef<HTMLImageElement>(new Image());
 
     useEffect(() => {
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
-        juan614LogoRef.current.src = '/logo-juan614-v2.jpg';
         mandoEjecutivoLogoRef.current.src = '/logo-mando-ejecutivo.png';
     }, []);
 
@@ -70,6 +68,28 @@ const AntiAIWatermark: React.FC = () => {
         };
         reader.readAsDataURL(file);
     };
+
+    // Quick phrases for Ribbon
+    const ribbonPhrases = [
+        '#PuroSeñorJesucristoCompa',
+        'Puro Chihuahua',
+        'Saludos desde Chihuahua',
+        'Diosmasgym Records',
+        'Mando Ejecutivo',
+        'Puro Señor Jesucristo',
+        'La Gloria es de Dios',
+        'Fe y Disciplina'
+    ];
+
+    // Quick phrases for Watermark
+    const watermarkPhrases = [
+        '#PuroSeñorJesucristoCompa',
+        'Diosmasgym.com',
+        'Diosmasgym Records',
+        'Puro Chihuahua',
+        '#Diosmasgym',
+        'Mando Ejecutivo'
+    ];
 
     const drawComposition = (ctx: CanvasRenderingContext2D, width: number, height: number, sourceImage: HTMLImageElement) => {
         ctx.imageSmoothingEnabled = true;
@@ -96,9 +116,8 @@ const AntiAIWatermark: React.FC = () => {
                 ctx.rotate(-Math.PI / 6); // -30 degrees
                 ctx.fillText(watermarkText, 0, 0);
             } else if (watermarkStyle === 'tiled') {
-                const stepX = width / 2.5;
-                const stepY = height / 3.5;
-                // Draw grid
+                const stepX = width / 2.2;
+                const stepY = height / 3.2;
                 for (let x = -width * 0.2; x < width * 1.5; x += stepX) {
                     for (let y = -height * 0.2; y < height * 1.5; y += stepY) {
                         ctx.save();
@@ -211,80 +230,36 @@ const AntiAIWatermark: React.FC = () => {
             ctx.drawImage(logoImg, posX, posY, targetWidth, targetHeight);
         };
 
-        const getCoordinates = (pos: string, logoW: number, logoH: number, index: number, total: number) => {
+        const getCoordinates = (pos: string, logoW: number, logoH: number) => {
             let x = 0;
             let y = 0;
-            
-            if (total === 1) {
-                switch (pos) {
-                    case 'bottom-right': x = width - logoW - margin; y = height - logoH - margin; break;
-                    case 'bottom-left': x = margin; y = height - logoH - margin; break;
-                    case 'top-right': x = width - logoW - margin; y = margin; break;
-                    case 'top-left': x = margin; y = margin; break;
-                    case 'center': x = (width / 2) - (logoW / 2); y = (height / 2) - (logoH / 2); break;
-                }
-            } else {
-                if (bothLayout === 'opposite') {
-                    if (index === 0) {
-                        switch (pos) {
-                            case 'bottom-right': x = width - logoW - margin; y = height - logoH - margin; break;
-                            case 'bottom-left': x = margin; y = height - logoH - margin; break;
-                            case 'top-right': x = width - logoW - margin; y = margin; break;
-                            case 'top-left': x = margin; y = margin; break;
-                            case 'center': x = (width / 2) - logoW - margin/2; y = (height / 2) - (logoH / 2); break;
-                        }
-                    } else {
-                        switch (pos) {
-                            case 'bottom-right': x = margin; y = height - logoH - margin; break;
-                            case 'bottom-left': x = width - logoW - margin; y = height - logoH - margin; break;
-                            case 'top-right': x = margin; y = margin; break;
-                            case 'top-left': x = width - logoW - margin; y = margin; break;
-                            case 'center': x = (width / 2) + margin/2; y = (height / 2) - (logoH / 2); break;
-                        }
-                    }
-                } else if (bothLayout === 'stacked') {
-                    const totalH = (logoH * 2) + margin;
-                    switch (pos) {
-                        case 'bottom-right': x = width - logoW - margin; y = height - totalH - margin + (index * (logoH + margin)); break;
-                        case 'bottom-left': x = margin; y = height - totalH - margin + (index * (logoH + margin)); break;
-                        case 'top-right': x = width - logoW - margin; y = margin + (index * (logoH + margin)); break;
-                        case 'top-left': x = margin; y = margin + (index * (logoH + margin)); break;
-                        case 'center': x = (width / 2) - (logoW / 2); y = (height / 2) - (totalH / 2) + (index * (logoH + margin)); break;
-                    }
-                } else {
-                    const totalW = (logoW * 2) + margin;
-                    switch (pos) {
-                        case 'bottom-right': x = width - totalW - margin + (index * (logoW + margin)); y = height - logoH - margin; break;
-                        case 'bottom-left': x = margin + (index * (logoW + margin)); y = height - logoH - margin; break;
-                        case 'top-right': x = width - totalW - margin + (index * (logoW + margin)); y = margin; break;
-                        case 'top-left': x = margin + (index * (logoW + margin)); y = margin; break;
-                        case 'center': x = (width / 2) - (totalW / 2) + (index * (logoW + margin)); y = (height / 2) - (logoH / 2); break;
-                    }
-                }
+            switch (pos) {
+                case 'bottom-right': x = width - logoW - margin; y = height - logoH - margin; break;
+                case 'bottom-left': x = margin; y = height - logoH - margin; break;
+                case 'top-right': x = width - logoW - margin; y = margin; break;
+                case 'top-left': x = margin; y = margin; break;
+                case 'center': x = (width / 2) - (logoW / 2); y = (height / 2) - (logoH / 2); break;
             }
             return { x, y };
         };
 
-        let logosToDraw = [];
-        if (logoSelection === 'diosmasgym' || logoSelection === 'both') logosToDraw.push(diosmasgymLogoRef.current);
-        if (logoSelection === 'juan614' || logoSelection === 'both') logosToDraw.push(juan614LogoRef.current);
-        if (logoSelection === 'mando_ejecutivo') logosToDraw.push(mandoEjecutivoLogoRef.current);
+        let logoToDraw = null;
+        if (logoSelection === 'diosmasgym') logoToDraw = diosmasgymLogoRef.current;
+        if (logoSelection === 'mando_ejecutivo') logoToDraw = mandoEjecutivoLogoRef.current;
 
-        logosToDraw.forEach((logo, idx) => {
-            if (logo.complete && logo.naturalWidth > 0) {
-                const aspect = logo.height / logo.width;
-                const lHeight = targetWidth * aspect;
-                const { x, y } = getCoordinates(logoPosition, targetWidth, lHeight, idx, logosToDraw.length);
-                drawLogo(logo, x, y);
-            }
-        });
+        if (logoToDraw && logoToDraw.complete && logoToDraw.naturalWidth > 0) {
+            const aspect = logoToDraw.height / logoToDraw.width;
+            const lHeight = targetWidth * aspect;
+            const { x, y } = getCoordinates(logoPosition, targetWidth, lHeight);
+            drawLogo(logoToDraw, x, y);
+        }
 
-        // 4. Draw Social Media Badge Block
+        // 4. Draw Social Media Badge Block (Premium Minimalist Glass Style)
         if (showSocials && socialText) {
             ctx.save();
             ctx.globalAlpha = socialOpacity / 100;
             
-            const fontSize = Math.max(12, width * 0.018);
+            const fontSize = Math.max(12, width * 0.016);
             ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
             
             // Calculate size with icons
@@ -294,13 +269,13 @@ const AntiAIWatermark: React.FC = () => {
             if (socialYouTube) iconCount++;
             
             const textMetrics = ctx.measureText(socialText);
-            const iconSize = fontSize * 1.1;
-            const iconGap = fontSize * 0.4;
+            const iconSize = fontSize * 1.05;
+            const iconGap = fontSize * 0.45;
             const totalIconsWidth = iconCount > 0 ? (iconCount * iconSize) + ((iconCount - 1) * iconGap) : 0;
             
-            const blockPaddingH = fontSize * 0.8;
-            const blockPaddingV = fontSize * 0.5;
-            const blockWidth = textMetrics.width + totalIconsWidth + (iconCount > 0 ? fontSize * 0.6 : 0) + (blockPaddingH * 2);
+            const blockPaddingH = fontSize * 0.9;
+            const blockPaddingV = fontSize * 0.6;
+            const blockWidth = textMetrics.width + totalIconsWidth + (iconCount > 0 ? fontSize * 0.7 : 0) + (blockPaddingH * 2);
             const blockHeight = fontSize + (blockPaddingV * 2);
             
             let bx = margin;
@@ -317,14 +292,24 @@ const AntiAIWatermark: React.FC = () => {
                 by = margin;
             }
             
-            // Draw pill background
+            // Draw luxury rounded pill with shadow and gold accent border
             if (socialBackground) {
-                ctx.fillStyle = 'rgba(15, 17, 26, 0.85)';
+                // Drop shadow
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 4;
+                
+                // Pill Background
+                ctx.fillStyle = 'rgba(10, 12, 20, 0.88)';
                 ctx.beginPath();
                 ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight / 2);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.5)';
-                ctx.lineWidth = Math.max(1, fontSize * 0.08);
+                
+                // Gold shiny border
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.6)';
+                ctx.lineWidth = Math.max(1.5, fontSize * 0.07);
                 ctx.stroke();
             }
             
@@ -337,10 +322,10 @@ const AntiAIWatermark: React.FC = () => {
             
             if (socialInstagram) {
                 ctx.save();
-                ctx.lineWidth = iconSize * 0.1;
+                ctx.lineWidth = iconSize * 0.11;
                 // Outer body
                 ctx.beginPath();
-                ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.25);
+                ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.28);
                 ctx.stroke();
                 // Lens
                 ctx.beginPath();
@@ -349,7 +334,7 @@ const AntiAIWatermark: React.FC = () => {
                 // Flash dot
                 ctx.fillStyle = ctx.strokeStyle;
                 ctx.beginPath();
-                ctx.arc(currentIconX + iconSize * 0.76, currentIconY + iconSize * 0.24, iconSize * 0.07, 0, Math.PI * 2);
+                ctx.arc(currentIconX + iconSize * 0.76, currentIconY + iconSize * 0.24, iconSize * 0.08, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
                 
@@ -358,18 +343,18 @@ const AntiAIWatermark: React.FC = () => {
             
             if (socialTikTok) {
                 ctx.save();
-                ctx.lineWidth = iconSize * 0.12;
-                const tx = currentIconX + iconSize * 0.45;
+                ctx.lineWidth = iconSize * 0.13;
+                const tx = currentIconX + iconSize * 0.46;
                 const ty = currentIconY + iconSize * 0.15;
                 
                 ctx.beginPath();
                 ctx.moveTo(tx, ty);
                 ctx.lineTo(tx, ty + iconSize * 0.55);
-                ctx.arc(tx - iconSize * 0.2, ty + iconSize * 0.55, iconSize * 0.2, 0, Math.PI);
+                ctx.arc(tx - iconSize * 0.2, ty + iconSize * 0.55, iconSize * 0.22, 0, Math.PI);
                 ctx.stroke();
                 
                 ctx.beginPath();
-                ctx.arc(tx + iconSize * 0.22, ty + iconSize * 0.22, iconSize * 0.22, Math.PI, Math.PI * 1.5);
+                ctx.arc(tx + iconSize * 0.24, ty + iconSize * 0.24, iconSize * 0.24, Math.PI, Math.PI * 1.5);
                 ctx.stroke();
                 ctx.restore();
                 
@@ -380,20 +365,20 @@ const AntiAIWatermark: React.FC = () => {
                 ctx.save();
                 ctx.fillStyle = socialColor === 'gold' ? '#c5a059' : '#ffffff';
                 ctx.beginPath();
-                ctx.roundRect(currentIconX, currentIconY + iconSize * 0.1, iconSize * 1.1, iconSize * 0.8, iconSize * 0.2);
+                ctx.roundRect(currentIconX, currentIconY + iconSize * 0.1, iconSize * 1.15, iconSize * 0.8, iconSize * 0.22);
                 ctx.fill();
                 
                 // Play triangle inside
-                ctx.fillStyle = socialBackground ? 'rgba(15, 17, 26, 0.95)' : '#000000';
+                ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
                 ctx.beginPath();
-                ctx.moveTo(currentIconX + iconSize * 0.42, currentIconY + iconSize * 0.32);
-                ctx.lineTo(currentIconX + iconSize * 0.72, currentIconY + iconSize * 0.5);
-                ctx.lineTo(currentIconX + iconSize * 0.42, currentIconY + iconSize * 0.68);
+                ctx.moveTo(currentIconX + iconSize * 0.45, currentIconY + iconSize * 0.32);
+                ctx.lineTo(currentIconX + iconSize * 0.75, currentIconY + iconSize * 0.5);
+                ctx.lineTo(currentIconX + iconSize * 0.45, currentIconY + iconSize * 0.68);
                 ctx.closePath();
                 ctx.fill();
                 ctx.restore();
                 
-                currentIconX += iconSize * 1.1 + iconGap;
+                currentIconX += iconSize * 1.15 + iconGap;
             }
             
             // Draw social handle text
@@ -474,7 +459,7 @@ const AntiAIWatermark: React.FC = () => {
         img.src = imageSrc;
 
     }, [
-        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, bothLayout, showText,
+        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
         showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialPosition, socialColor, socialBackground, socialOpacity,
         watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize
@@ -504,7 +489,7 @@ const AntiAIWatermark: React.FC = () => {
 
                         zeroth[piexif.ImageIFD.Make] = "Diosmasgym Records";
                         zeroth[piexif.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
-                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.0";
+                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.1";
                         zeroth[piexif.ImageIFD.Artist] = "Diosmasgym";
                         zeroth[piexif.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
 
@@ -571,90 +556,116 @@ const AntiAIWatermark: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#05070a] text-white pt-24 pb-12 px-6">
-            <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-8">
+        <div className="min-h-screen bg-[#05070a] text-white pt-24 pb-12 px-4 md:px-6">
+            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
                 
                 {/* Control Sidebar */}
-                <div className="w-full xl:w-[420px] shrink-0 bg-[#0f111a] border border-white/5 rounded-3xl p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                <div className="w-full lg:w-[440px] shrink-0 bg-[#0f111a] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col max-h-none lg:max-h-[85vh] lg:overflow-y-auto custom-scrollbar">
                     <button 
                         onClick={() => navigate('/admin')}
-                        className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#c5a059] transition-all"
+                        className="mb-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#c5a059] transition-all w-fit"
                     >
                         <i className="fas fa-arrow-left"></i>
                         Volver al Panel
                     </button>
 
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div className="flex items-center gap-3 mb-2">
                             <i className="fas fa-shield-halved text-[#c5a059] text-xl"></i>
-                            <h1 className="text-2xl font-serif italic text-white">Mando Ejecutivo - Marca</h1>
+                            <h1 className="text-xl md:text-2xl font-serif italic text-white">Mando Ejecutivo</h1>
                         </div>
-                        <p className="text-white/40 text-xs leading-relaxed">
-                            Crea imágenes premium personalizadas con tu logo de Mando Ejecutivo, cintas/listones de fe, y tus redes de Diosmasgym sin perder calidad.
+                        <p className="text-white/40 text-[11px] leading-relaxed">
+                            Crea masters HD agregando tu logo oficial, listones de fe personalizados y redes oficiales sin pérdida de resolución.
                         </p>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Image Upload */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3 block">1. Seleccionar Imagen</label>
-                            <input 
-                                type="file" 
-                                accept="image/*" 
-                                ref={fileInputRef}
-                                onChange={handleImageUpload}
-                                className="hidden"
-                            />
+                    {/* Drag-and-drop Image Upload directly at top */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">1. Imagen de Fondo</label>
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            ref={fileInputRef}
+                            onChange={handleImageUpload}
+                            className="hidden"
+                        />
+                        {imageSrc ? (
+                            <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-3">
+                                <span className="text-[10px] font-bold text-[#c5a059] truncate max-w-[200px]">✓ Imagen cargada</span>
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline"
+                                >
+                                    Cambiar
+                                </button>
+                            </div>
+                        ) : (
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-full py-4 bg-black/40 border border-white/10 rounded-xl hover:border-[#c5a059]/50 transition-all flex flex-col items-center gap-2"
+                                className="w-full py-4 bg-black/40 border border-white/10 rounded-xl hover:border-[#c5a059]/50 transition-all flex flex-col items-center gap-1.5"
                             >
-                                <i className="fas fa-cloud-arrow-up text-xl text-white/30"></i>
+                                <i className="fas fa-cloud-arrow-up text-lg text-white/30"></i>
                                 <span className="text-[10px] font-bold text-white/60">Subir Imagen HD / Foto</span>
                             </button>
-                        </div>
+                        )}
+                    </div>
 
-                        {/* Logo Settings */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-4 block">2. Configuración de Logos</label>
-                            
-                            <div className="space-y-5">
+                    {/* Tab Navigation in Sidebar for better organization on PC & Mobile */}
+                    <div className="flex border-b border-white/10 mb-6 bg-black/20 rounded-xl p-1.5 gap-1">
+                        <button
+                            onClick={() => setActiveTab('logo')}
+                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'logo' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            🤠 Logo
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ribbon')}
+                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'ribbon' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            🎗️ Listón
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('socials')}
+                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'socials' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            📱 Redes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('watermark')}
+                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'watermark' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            🏷️ Frases
+                        </button>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="flex-1 mb-6">
+                        
+                        {/* LOGO TAB */}
+                        {activeTab === 'logo' && (
+                            <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
-                                    <label className="text-[10px] font-bold text-white/70 block mb-2">Selección de Logo</label>
-                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Sello Principal</label>
+                                    <div className="grid grid-cols-2 gap-2">
                                         <button 
                                             onClick={() => setLogoSelection('mando_ejecutivo')}
-                                            className={`py-2 px-1 text-[9px] font-bold uppercase rounded-lg border transition-all ${logoSelection === 'mando_ejecutivo' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'}`}
+                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'mando_ejecutivo' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
                                         >
                                             🤠 Mando Ejecutivo
                                         </button>
                                         <button 
                                             onClick={() => setLogoSelection('diosmasgym')}
-                                            className={`py-2 px-1 text-[9px] font-bold uppercase rounded-lg border transition-all ${logoSelection === 'diosmasgym' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'}`}
+                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'diosmasgym' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
                                         >
-                                            Diosmasgym
+                                            🏆 Diosmasgym
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <button 
-                                            onClick={() => setLogoSelection('juan614')}
-                                            className={`py-2 text-[9px] font-bold uppercase rounded-lg border transition-all ${logoSelection === 'juan614' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'}`}
-                                        >
-                                            Juan 614
-                                        </button>
-                                        <button 
-                                            onClick={() => setLogoSelection('both')}
-                                            className={`py-2 text-[9px] font-bold uppercase rounded-lg border transition-all ${logoSelection === 'both' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'}`}
-                                        >
-                                            Ambos
-                                        </button>
-                                        <button 
-                                            onClick={() => setLogoSelection('none')}
-                                            className={`py-2 text-[9px] font-bold uppercase rounded-lg border transition-all ${logoSelection === 'none' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-transparent text-white/50 border-white/10 hover:border-white/30'}`}
-                                        >
-                                            Ninguno
-                                        </button>
-                                    </div>
+                                    <button 
+                                        onClick={() => setLogoSelection('none')}
+                                        className={`w-full mt-2 py-2 text-[9px] font-black uppercase rounded-lg border transition-all ${logoSelection === 'none' ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/30 border-dashed border-white/10 hover:border-white/20'}`}
+                                    >
+                                        Ninguno
+                                    </button>
                                 </div>
 
                                 {logoSelection !== 'none' && (
@@ -664,7 +675,7 @@ const AntiAIWatermark: React.FC = () => {
                                             <select 
                                                 value={logoPosition}
                                                 onChange={(e) => setLogoPosition(e.target.value as any)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none"
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
                                             >
                                                 <option value="bottom-right">Abajo - Derecha</option>
                                                 <option value="bottom-left">Abajo - Izquierda</option>
@@ -674,64 +685,48 @@ const AntiAIWatermark: React.FC = () => {
                                             </select>
                                         </div>
 
-                                        {logoSelection === 'both' && (
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-[10px] font-bold text-white/70 block mb-2">Diseño Ambos Logos</label>
-                                                <select 
-                                                    value={bothLayout}
-                                                    onChange={(e) => setBothLayout(e.target.value as any)}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none mb-2"
-                                                >
-                                                    <option value="opposite">Esquinas Opuestas</option>
-                                                    <option value="side-by-side">Lado a Lado (Horizontal)</option>
-                                                    <option value="stacked">Apilados (Vertical)</option>
-                                                </select>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] font-bold text-white/70">Tamaño</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{logoSize}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="5" max="50" 
+                                                    value={logoSize}
+                                                    onChange={(e) => setLogoSize(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
                                             </div>
-                                        )}
-
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-[10px] font-bold text-white/70">Tamaño del Logo</label>
-                                                <span className="text-[10px] text-[#c5a059]">{logoSize}%</span>
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] font-bold text-white/70">Opacidad</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{logoOpacity}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="10" max="100" 
+                                                    value={logoOpacity}
+                                                    onChange={(e) => setLogoOpacity(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
                                             </div>
-                                            <input 
-                                                type="range" 
-                                                min="5" max="50" 
-                                                value={logoSize}
-                                                onChange={(e) => setLogoSize(Number(e.target.value))}
-                                                className="w-full accent-[#c5a059]"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-[10px] font-bold text-white/70">Opacidad del Logo</label>
-                                                <span className="text-[10px] text-[#c5a059]">{logoOpacity}%</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="10" max="100" 
-                                                value={logoOpacity}
-                                                onChange={(e) => setLogoOpacity(Number(e.target.value))}
-                                                className="w-full accent-[#c5a059]"
-                                            />
                                         </div>
                                     </>
                                 )}
                             </div>
-                        </div>
+                        )}
 
-                        {/* Listón / Cinta */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-4 block">3. Listón o Cinta de Fe</label>
-                            
-                            <div className="space-y-4">
+                        {/* RIBBON TAB */}
+                        {activeTab === 'ribbon' && (
+                            <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
-                                    <label className="text-[10px] font-bold text-white/70 block mb-2">Estilo del Listón</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-2">Estilo de Listón</label>
                                     <select 
                                         value={ribbonStyle}
                                         onChange={(e) => setRibbonStyle(e.target.value as any)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none"
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
                                     >
                                         <option value="none">Sin Listón</option>
                                         <option value="bottom">Cinta Inferior (Completa)</option>
@@ -744,14 +739,29 @@ const AntiAIWatermark: React.FC = () => {
                                 {ribbonStyle !== 'none' && (
                                     <>
                                         <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Texto del Listón</label>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Lema o Frase del Listón</label>
                                             <input 
                                                 type="text"
                                                 value={ribbonText}
                                                 onChange={(e) => setRibbonText(e.target.value)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-[#c5a059]"
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-[#c5a059] mb-3"
                                                 placeholder="#PuroSeñorJesucristoCompa"
                                             />
+                                            
+                                            {/* Quick Phrases for Ribbon */}
+                                            <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-2">Frases Rápidas del Lema</label>
+                                            <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin">
+                                                {ribbonPhrases.map((phrase) => (
+                                                    <button
+                                                        key={phrase}
+                                                        type="button"
+                                                        onClick={() => setRibbonText(phrase)}
+                                                        className={`p-1.5 text-[8.5px] font-bold text-left rounded bg-white/5 border border-white/5 hover:border-[#c5a059]/30 hover:bg-white/[0.08] transition-all truncate ${ribbonText === phrase ? 'border-[#c5a059] bg-[#c5a059]/10 text-[#c5a059]' : 'text-zinc-300'}`}
+                                                    >
+                                                        {phrase}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
@@ -781,237 +791,256 @@ const AntiAIWatermark: React.FC = () => {
                                     </>
                                 )}
                             </div>
-                        </div>
+                        )}
 
-                        {/* Redes Sociales */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <div className="flex items-center justify-between mb-4">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400">4. Redes Sociales Diosmasgym</label>
-                                <input 
-                                    type="checkbox" 
-                                    checked={showSocials} 
-                                    onChange={(e) => setShowSocials(e.target.checked)}
-                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                />
-                            </div>
-
-                            {showSocials && (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-white/70 block mb-2">Texto de Redes</label>
-                                        <input 
-                                            type="text"
-                                            value={socialText}
-                                            onChange={(e) => setSocialText(e.target.value)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-[#c5a059]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-[10px] font-bold text-white/70 block mb-2">Iconos a Incluir</label>
-                                        <div className="flex flex-wrap gap-4 bg-black/20 p-3 rounded-lg border border-white/5">
-                                            <label className="flex items-center gap-2 text-[10px] font-bold text-white/70 cursor-pointer">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={socialInstagram} 
-                                                    onChange={(e) => setSocialInstagram(e.target.checked)}
-                                                    className="accent-[#c5a059]"
-                                                />
-                                                Instagram
-                                            </label>
-                                            <label className="flex items-center gap-2 text-[10px] font-bold text-white/70 cursor-pointer">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={socialTikTok} 
-                                                    onChange={(e) => setSocialTikTok(e.target.checked)}
-                                                    className="accent-[#c5a059]"
-                                                />
-                                                TikTok
-                                            </label>
-                                            <label className="flex items-center gap-2 text-[10px] font-bold text-white/70 cursor-pointer">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={socialYouTube} 
-                                                    onChange={(e) => setSocialYouTube(e.target.checked)}
-                                                    className="accent-[#c5a059]"
-                                                />
-                                                YouTube
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Posición Redes</label>
-                                            <select 
-                                                value={socialPosition}
-                                                onChange={(e) => setSocialPosition(e.target.value as any)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
-                                            >
-                                                <option value="bottom-left">Abajo - Izquierda</option>
-                                                <option value="bottom-right">Abajo - Derecha</option>
-                                                <option value="top-left">Arriba - Izquierda</option>
-                                                <option value="top-right">Arriba - Derecha</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Color Redes</label>
-                                            <select 
-                                                value={socialColor}
-                                                onChange={(e) => setSocialColor(e.target.value as any)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
-                                            >
-                                                <option value="white">Blanco</option>
-                                                <option value="gold">Oro</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5">
-                                        <label className="text-[10px] font-bold text-white/70">Fondo Semi-Transparente</label>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={socialBackground} 
-                                            onChange={(e) => setSocialBackground(e.target.checked)}
-                                            className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <div className="flex justify-between mb-1">
-                                            <label className="text-[10px] font-bold text-white/70">Opacidad Redes</label>
-                                            <span className="text-[10px] text-[#c5a059]">{socialOpacity}%</span>
-                                        </div>
-                                        <input 
-                                            type="range" 
-                                            min="30" max="100" 
-                                            value={socialOpacity}
-                                            onChange={(e) => setSocialOpacity(Number(e.target.value))}
-                                            className="w-full accent-[#c5a059]"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Marca de Agua Central / Malla */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <div className="flex items-center justify-between mb-4">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400">5. Hashtag de Fe (#PuroSeñor)</label>
-                                <input 
-                                    type="checkbox" 
-                                    checked={watermarkEnabled} 
-                                    onChange={(e) => setWatermarkEnabled(e.target.checked)}
-                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                />
-                            </div>
-
-                            {watermarkEnabled && (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-white/70 block mb-2">Texto del Hashtag</label>
-                                        <input 
-                                            type="text"
-                                            value={watermarkText}
-                                            onChange={(e) => setWatermarkText(e.target.value)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-[#c5a059]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-[10px] font-bold text-white/70 block mb-2">Estilo de Malla</label>
-                                        <select 
-                                            value={watermarkStyle}
-                                            onChange={(e) => setWatermarkStyle(e.target.value as any)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none"
-                                        >
-                                            <option value="diagonal">Diagonal Grande (Centro)</option>
-                                            <option value="tiled">Malla Repetitiva (Patrón)</option>
-                                            <option value="center">Central Horizontal</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-[10px] font-bold text-white/70">Opacidad</label>
-                                                <span className="text-[10px] text-[#c5a059]">{watermarkOpacity}%</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="5" max="80" 
-                                                value={watermarkOpacity}
-                                                onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
-                                                className="w-full accent-[#c5a059]"
-                                            />
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-[10px] font-bold text-white/70">Tamaño</label>
-                                                <span className="text-[10px] text-[#c5a059]">{watermarkSize}%</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="15" max="80" 
-                                                value={watermarkSize}
-                                                onChange={(e) => setWatermarkSize(Number(e.target.value))}
-                                                className="w-full accent-[#c5a059]"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* EXIF Metadata & Brand URL */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-4 block">6. Seguridad y Metadatos (Anti-IA)</label>
-                            
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5 group hover:border-[#c5a059]/40 transition-all cursor-pointer" onClick={() => setInjectExif(!injectExif)}>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-white/70 block cursor-pointer">Inyectar Metadatos EXIF</label>
-                                        <span className="text-[8px] text-white/40 uppercase tracking-widest">Firma digital de cámara física real</span>
-                                    </div>
+                        {/* SOCIALS TAB */}
+                        {activeTab === 'socials' && (
+                            <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Mostrar Redes Diosmasgym</label>
                                     <input 
                                         type="checkbox" 
-                                        checked={injectExif} 
-                                        onChange={(e) => setInjectExif(e.target.checked)}
+                                        checked={showSocials} 
+                                        onChange={(e) => setShowSocials(e.target.checked)}
                                         className="accent-[#c5a059] w-4 h-4 cursor-pointer"
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5">
-                                    <label className="text-[10px] font-bold text-white/70">Texto "DIOSMASGYM.COM"</label>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={showText} 
-                                        onChange={(e) => setShowText(e.target.checked)}
-                                        className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                                {showSocials && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Texto de Redes</label>
+                                            <input 
+                                                type="text"
+                                                value={socialText}
+                                                onChange={(e) => setSocialText(e.target.value)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-[#c5a059]"
+                                            />
+                                        </div>
 
-                        {/* Export Button */}
-                        <div className="pt-2">
-                            <button 
-                                onClick={handleDownload}
-                                disabled={!imageSrc || isDownloading}
-                                className="w-full py-4 bg-[#c5a059] text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all transform active:scale-95 disabled:opacity-30 disabled:hover:bg-[#c5a059] flex justify-center items-center gap-3 text-xs shadow-xl"
-                            >
-                                {isDownloading ? (
-                                    <><i className="fas fa-circle-notch fa-spin"></i> Procesando HD...</>
-                                ) : (
-                                    <><i className="fas fa-download"></i> Descargar Master HD</>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Iconos Sociales</label>
+                                            <div className="grid grid-cols-3 gap-2 bg-black/40 p-2.5 rounded-lg border border-white/10">
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialInstagram} 
+                                                        onChange={(e) => setSocialInstagram(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    Insta
+                                                </label>
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialTikTok} 
+                                                        onChange={(e) => setSocialTikTok(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    TikTok
+                                                </label>
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialYouTube} 
+                                                        onChange={(e) => setSocialYouTube(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    YouTube
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-white/70 block mb-2">Ubicación</label>
+                                                <select 
+                                                    value={socialPosition}
+                                                    onChange={(e) => setSocialPosition(e.target.value as any)}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
+                                                >
+                                                    <option value="bottom-left">Abajo - Izquierda</option>
+                                                    <option value="bottom-right">Abajo - Derecha</option>
+                                                    <option value="top-left">Arriba - Izquierda</option>
+                                                    <option value="top-right">Arriba - Derecha</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-white/70 block mb-2">Color Redes</label>
+                                                <select 
+                                                    value={socialColor}
+                                                    onChange={(e) => setSocialColor(e.target.value as any)}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white/80 outline-none"
+                                                >
+                                                    <option value="white">Blanco</option>
+                                                    <option value="gold">Oro</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/10">
+                                            <label className="text-[10px] font-bold text-white/70">Diseño en Bloque de Vidrio</label>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={socialBackground} 
+                                                onChange={(e) => setSocialBackground(e.target.checked)}
+                                                className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-bold text-white/70">Opacidad de Redes</label>
+                                                <span className="text-[10px] text-[#c5a059]">{socialOpacity}%</span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="30" max="100" 
+                                                value={socialOpacity}
+                                                onChange={(e) => setSocialOpacity(Number(e.target.value))}
+                                                className="w-full accent-[#c5a059]"
+                                            />
+                                        </div>
+                                    </div>
                                 )}
-                            </button>
+                            </div>
+                        )}
+
+                        {/* WATERMARK TAB */}
+                        {activeTab === 'watermark' && (
+                            <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Fondo Marca de Fe</label>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={watermarkEnabled} 
+                                        onChange={(e) => setWatermarkEnabled(e.target.checked)}
+                                        className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                    />
+                                </div>
+
+                                {watermarkEnabled && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Frase o Hashtag de Fondo</label>
+                                            <input 
+                                                type="text"
+                                                value={watermarkText}
+                                                onChange={(e) => setWatermarkText(e.target.value)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-[#c5a059] mb-3"
+                                            />
+                                            
+                                            {/* Quick Phrases for Watermark */}
+                                            <label className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block mb-2">Frases Rápidas de Fondo</label>
+                                            <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin">
+                                                {watermarkPhrases.map((phrase) => (
+                                                    <button
+                                                        key={phrase}
+                                                        type="button"
+                                                        onClick={() => setWatermarkText(phrase)}
+                                                        className={`p-1.5 text-[8.5px] font-bold text-left rounded bg-white/5 border border-white/5 hover:border-[#c5a059]/30 hover:bg-white/[0.08] transition-all truncate ${watermarkText === phrase ? 'border-[#c5a059] bg-[#c5a059]/10 text-[#c5a059]' : 'text-zinc-300'}`}
+                                                    >
+                                                        {phrase}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Estilo de Malla</label>
+                                            <select 
+                                                value={watermarkStyle}
+                                                onChange={(e) => setWatermarkStyle(e.target.value as any)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none"
+                                            >
+                                                <option value="diagonal">Diagonal Grande (Centro)</option>
+                                                <option value="tiled">Malla Repetitiva (Patrón)</option>
+                                                <option value="center">Central Horizontal</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] font-bold text-white/70">Opacidad</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{watermarkOpacity}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="5" max="80" 
+                                                    value={watermarkOpacity}
+                                                    onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] font-bold text-white/70">Tamaño</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{watermarkSize}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="15" max="80" 
+                                                    value={watermarkSize}
+                                                    onChange={(e) => setWatermarkSize(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                    </div>
+
+                    {/* Exif and Bottom Branding Option */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-3 block">Seguridad Anti-IA</label>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between bg-black/20 p-2.5 rounded-lg border border-white/5 hover:border-[#c5a059]/40 transition-all cursor-pointer" onClick={() => setInjectExif(!injectExif)}>
+                                <div>
+                                    <label className="text-[10px] font-bold text-white/70 block cursor-pointer">Inyectar Metadatos EXIF</label>
+                                    <span className="text-[8px] text-white/40 uppercase tracking-widest">Firma digital de cámara física real</span>
+                                </div>
+                                <input 
+                                    type="checkbox" 
+                                    checked={injectExif} 
+                                    onChange={(e) => setInjectExif(e.target.checked)}
+                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between bg-black/20 p-2.5 rounded-lg border border-white/5">
+                                <label className="text-[10px] font-bold text-white/70">Texto "DIOSMASGYM.COM" al pie</label>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showText} 
+                                    onChange={(e) => setShowText(e.target.checked)}
+                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                />
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Export Button */}
+                    <div className="pt-2 mt-auto">
+                        <button 
+                            onClick={handleDownload}
+                            disabled={!imageSrc || isDownloading}
+                            className="w-full py-4 bg-[#c5a059] text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all transform active:scale-95 disabled:opacity-30 disabled:hover:bg-[#c5a059] flex justify-center items-center gap-3 text-xs shadow-xl"
+                        >
+                            {isDownloading ? (
+                                <><i className="fas fa-circle-notch fa-spin"></i> Procesando HD...</>
+                            ) : (
+                                <><i className="fas fa-download"></i> Descargar Master HD</>
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 {/* Preview Area */}
-                <div className="flex-1 bg-black rounded-3xl border border-white/5 flex flex-col overflow-hidden relative shadow-2xl min-h-[500px]">
+                <div className="flex-1 bg-black rounded-3xl border border-white/5 flex flex-col overflow-hidden relative shadow-2xl min-h-[450px] lg:min-h-0">
                     <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#0a0c14]">
                         <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Mesa de Trabajo / Master HD</span>
                         {originalSize && (
@@ -1021,16 +1050,16 @@ const AntiAIWatermark: React.FC = () => {
                         )}
                     </div>
                     
-                    <div className="flex-1 flex items-center justify-center p-8 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDkwOTA5Ii8+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMTExIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxMTEiLz48L3N2Zz4=')]">
+                    <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDkwOTA5Ii8+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMTExIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxMTEiLz48L3N2Zz4=')]">
                         {imageSrc ? (
                             <canvas 
                                 ref={previewCanvasRef} 
-                                className="max-w-full max-h-[70vh] shadow-2xl ring-1 ring-white/10 rounded"
+                                className="max-w-full max-h-[65vh] shadow-2xl ring-1 ring-white/10 rounded"
                             ></canvas>
                         ) : (
-                            <div className="text-center opacity-30">
+                            <div className="text-center opacity-30 p-6">
                                 <i className="fas fa-image text-6xl mb-4 text-[#c5a059]"></i>
-                                <p className="text-xs font-black uppercase tracking-[0.2em]">Sube una imagen para previsualizar tu diseño</p>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] max-w-xs mx-auto">Sube una imagen para previsualizar tu diseño</p>
                             </div>
                         )}
                     </div>
