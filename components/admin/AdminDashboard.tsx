@@ -277,8 +277,8 @@ const AdminDashboard: React.FC = () => {
         },
         {
             id: 'anti-ai-watermark',
-            title: 'Anti-AI Watermark',
-            description: 'Añade logos oficiales a tus imágenes sin perder calidad para evitar que TikTok las marque como IA.',
+            title: 'Mando Ejecutivo - Marca',
+            description: 'Aplica el logo oficial Mando Ejecutivo, listones de fe y tus redes de Diosmasgym a tus fotos sin perder calidad.',
             icon: 'fa-shield-halved',
             color: '#c5a059',
             route: '/admin/watermark',
