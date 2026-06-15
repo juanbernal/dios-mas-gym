@@ -34,7 +34,17 @@ const AntiAIWatermark: React.FC = () => {
     const [socialColor, setSocialColor] = useState<'white' | 'gold' | 'black' | 'green' | 'blue'>('white');
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
-    const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow'>('luxury-gold');
+    const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow' | 'cyber-hologram' | 'imperial-gold' | 'minimalist-pill'>('imperial-gold');
+    const [socialLayout, setSocialLayout] = useState<'classic-compact' | 'minimalist-strip' | 'split-inline'>('classic-compact');
+
+    // Advanced Social badge configurations
+    const [socialPaddingScale, setSocialPaddingScale] = useState<number>(1.0);
+    const [socialIconScale, setSocialIconScale] = useState<number>(1.1);
+    const [socialGapScale, setSocialGapScale] = useState<number>(1.0);
+    const [socialFontSizeVal, setSocialFontSizeVal] = useState<number>(1.6);
+
+    // Export Quality format selection
+    const [exportFormat, setExportFormat] = useState<'png' | 'jpg'>('png');
 
     // Frame / Vignette States (New Options)
     const [frameStyle, setFrameStyle] = useState<'none' | 'cinematic' | 'luxury-gold' | 'minimalist'>('none');
@@ -293,7 +303,7 @@ const AntiAIWatermark: React.FC = () => {
             ctx.save();
             ctx.globalAlpha = socialOpacity / 100;
             
-            const fontSize = Math.max(12, width * 0.016);
+            const fontSize = Math.max(10, width * (socialFontSizeVal / 100));
             ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
             
             // Set colors
@@ -302,6 +312,11 @@ const AntiAIWatermark: React.FC = () => {
             else if (socialColor === 'black') drawColor = '#0a0c14';
             else if (socialColor === 'green') drawColor = '#00ff66';
             else if (socialColor === 'blue') drawColor = '#33ccff';
+            
+            // Auto adapt contrast for minimalist-pill
+            if (socialBlockStyle === 'minimalist-pill' && socialColor === 'white') {
+                drawColor = '#111111';
+            }
             
             // Row 1 Dimensions
             let iconCount = 0;
@@ -313,8 +328,8 @@ const AntiAIWatermark: React.FC = () => {
             if (socialX) iconCount++;
             
             const socialTextMetrics = ctx.measureText(socialText);
-            const iconSize = fontSize * 1.05;
-            const iconGap = fontSize * 0.45;
+            const iconSize = fontSize * socialIconScale;
+            const iconGap = fontSize * 0.45 * socialGapScale;
             const totalIconsWidth = iconCount > 0 ? (iconCount * iconSize) + ((iconCount - 1) * iconGap) : 0;
             const row1Width = socialTextMetrics.width + totalIconsWidth + (iconCount > 0 ? fontSize * 0.7 : 0);
             
@@ -335,12 +350,26 @@ const AntiAIWatermark: React.FC = () => {
             // Reset main font
             ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
             
-            const blockPaddingH = fontSize * 1.0;
-            const blockPaddingV = fontSize * 0.7;
+            const blockPaddingH = fontSize * 1.0 * socialPaddingScale;
+            const blockPaddingV = fontSize * 0.7 * socialPaddingScale;
             const rowSpacing = fontSize * 0.6;
             
-            const blockWidth = Math.max(row1Width, row2Width) + (blockPaddingH * 2);
-            const blockHeight = fontSize + (showMusicPlatforms ? (fontSize * 0.85) + rowSpacing : 0) + (blockPaddingV * 2);
+            // Layout calculations
+            let blockWidth = 0;
+            let blockHeight = 0;
+            
+            if (socialLayout === 'classic-compact') {
+                blockWidth = Math.max(row1Width, row2Width) + (blockPaddingH * 2);
+                blockHeight = fontSize + (showMusicPlatforms ? (fontSize * 0.85) + rowSpacing : 0) + (blockPaddingV * 2);
+            } else {
+                // Single row layouts (minimalist-strip and split-inline)
+                let totalIcons = iconCount;
+                if (showMusicPlatforms) totalIcons += musicIconCount;
+                const totalAllIconsWidth = totalIcons > 0 ? (totalIcons * iconSize) + ((totalIcons - 1) * iconGap) : 0;
+                
+                blockWidth = totalAllIconsWidth + (totalIcons > 0 ? fontSize * 0.7 : 0) + socialTextMetrics.width + (blockPaddingH * 2);
+                blockHeight = fontSize + (blockPaddingV * 2);
+            }
             
             let bx = margin;
             let by = height - margin - blockHeight;
@@ -356,8 +385,11 @@ const AntiAIWatermark: React.FC = () => {
                 by = margin;
             }
             
-            // Draw luxury rounded pill with shadow and gold accent border
-            if (socialBackground) {
+            // Force socialBackground to false for split-inline layout
+            const shouldDrawBackground = socialBackground && socialLayout !== 'split-inline';
+            
+            // Draw background block
+            if (shouldDrawBackground) {
                 ctx.save();
                 
                 // Add soft drop shadow
@@ -377,8 +409,82 @@ const AntiAIWatermark: React.FC = () => {
                     
                     ctx.shadowBlur = 0;
                     ctx.shadowOffsetY = 0;
-                    ctx.strokeStyle = 'rgba(197, 160, 89, 0.75)';
+                    
+                    // Left Gold Highlight stripe for modern-badge feel
+                    ctx.fillStyle = '#c5a059';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, fontSize * 0.2, blockHeight, [fontSize * 0.5, 0, 0, fontSize * 0.5]);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = 'rgba(197, 160, 89, 0.65)';
+                    ctx.lineWidth = Math.max(1.5, fontSize * 0.07);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'imperial-gold') {
+                    // Rich deep black capsule pill shape with thick gold borders
+                    ctx.fillStyle = '#06080c';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    
+                    // Outer polished gold border
+                    ctx.strokeStyle = '#c5a059';
                     ctx.lineWidth = Math.max(1.5, fontSize * 0.08);
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight * 0.5);
+                    ctx.stroke();
+
+                    // Inner detail highlight
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = Math.max(0.7, fontSize * 0.03);
+                    ctx.beginPath();
+                    ctx.roundRect(bx + 2, by + 2, blockWidth - 4, blockHeight - 4, blockHeight * 0.5 - 2);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'cyber-hologram') {
+                    // Futuristic glowing translucent dark cyan
+                    ctx.fillStyle = 'rgba(5, 10, 20, 0.82)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.4);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = fontSize * 0.5;
+                    ctx.shadowOffsetY = 0;
+                    ctx.shadowColor = '#00ffff';
+                    
+                    // Dual neon border grad
+                    const cyberGrad = ctx.createLinearGradient(bx, by, bx + blockWidth, by);
+                    cyberGrad.addColorStop(0, '#00ffff');
+                    cyberGrad.addColorStop(0.5, '#ff00ff');
+                    cyberGrad.addColorStop(1, '#00ffff');
+                    ctx.strokeStyle = cyberGrad;
+                    ctx.lineWidth = Math.max(1.5, fontSize * 0.08);
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.4);
+                    ctx.stroke();
+
+                    // Cyber lines aesthetic
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
+                    for (let gx = bx + 5; gx < bx + blockWidth; gx += 16) {
+                        ctx.fillRect(gx, by, 1, blockHeight);
+                    }
+                } else if (socialBlockStyle === 'minimalist-pill') {
+                    // Pure white clean aesthetic pill
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = fontSize * 0.5;
+                    ctx.shadowOffsetY = fontSize * 0.15;
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+                    
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, blockHeight * 0.5);
                     ctx.stroke();
                 } else if (socialBlockStyle === 'glassmorphism-dark') {
                     // Frosty dark glass
@@ -429,238 +535,213 @@ const AntiAIWatermark: React.FC = () => {
             ctx.fillStyle = drawColor;
             ctx.strokeStyle = drawColor;
             
-            if (socialInstagram) {
-                ctx.save();
-                ctx.lineWidth = iconSize * 0.11;
-                ctx.beginPath();
-                ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.28);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(currentIconX + iconSize/2, currentIconY + iconSize/2, iconSize * 0.24, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.fillStyle = ctx.strokeStyle;
-                ctx.beginPath();
-                ctx.arc(currentIconX + iconSize * 0.76, currentIconY + iconSize * 0.24, iconSize * 0.08, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-                
-                currentIconX += iconSize + iconGap;
-            }
-            
-            if (socialTikTok) {
-                ctx.save();
-                ctx.strokeStyle = drawColor;
-                ctx.lineWidth = iconSize * 0.14;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                const cx = currentIconX + iconSize * 0.55;
-                const cy = currentIconY + iconSize * 0.5;
-                
-                ctx.beginPath();
-                ctx.moveTo(cx, cy - iconSize * 0.35);
-                ctx.lineTo(cx, cy + iconSize * 0.15);
-                ctx.arc(cx - iconSize * 0.22, cy + iconSize * 0.15, iconSize * 0.22, 0, Math.PI * 1.25, false);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.arc(cx + iconSize * 0.28, cy - iconSize * 0.35, iconSize * 0.28, Math.PI, Math.PI * 0.5, true);
-                ctx.stroke();
-                ctx.restore();
-                
-                currentIconX += iconSize + iconGap;
-            }
-            
-            if (socialYouTube) {
-                ctx.save();
-                ctx.fillStyle = drawColor;
-                ctx.beginPath();
-                ctx.roundRect(currentIconX, currentIconY + iconSize * 0.1, iconSize * 1.15, iconSize * 0.8, iconSize * 0.22);
-                ctx.fill();
-                
-                ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                ctx.beginPath();
-                ctx.moveTo(currentIconX + iconSize * 0.45, currentIconY + iconSize * 0.32);
-                ctx.lineTo(currentIconX + iconSize * 0.75, currentIconY + iconSize * 0.5);
-                ctx.lineTo(currentIconX + iconSize * 0.45, currentIconY + iconSize * 0.68);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
-                
-                currentIconX += iconSize * 1.15 + iconGap;
-            }
-
-            if (socialFacebook) {
-                ctx.save();
-                ctx.fillStyle = drawColor;
-                ctx.beginPath();
-                ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.28);
-                ctx.fill();
-                
-                ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                ctx.font = `bold ${iconSize * 0.85}px Inter, Arial, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('f', currentIconX + iconSize * 0.5, currentIconY + iconSize * 0.48);
-                ctx.restore();
-                
-                currentIconX += iconSize + iconGap;
-            }
-
-            if (socialSpotify) {
-                ctx.save();
-                ctx.fillStyle = drawColor;
-                ctx.beginPath();
-                ctx.arc(currentIconX + iconSize/2, currentIconY + iconSize/2, iconSize/2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                ctx.lineWidth = iconSize * 0.08;
-                ctx.lineCap = 'round';
-                
-                const cx = currentIconX + iconSize/2;
-                const cy = currentIconY + iconSize/2;
-                const r = iconSize/2;
-                
-                ctx.beginPath();
-                ctx.arc(cx - r * 0.05, cy + r * 0.55, r * 0.75, Math.PI * 1.25, Math.PI * 1.75);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(cx - r * 0.05, cy + r * 0.7, r * 0.6, Math.PI * 1.25, Math.PI * 1.75);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(cx - r * 0.05, cy + r * 0.85, r * 0.45, Math.PI * 1.25, Math.PI * 1.75);
-                ctx.stroke();
-                ctx.restore();
-                
-                currentIconX += iconSize + iconGap;
-            }
-
-            if (socialX) {
-                ctx.save();
-                ctx.strokeStyle = drawColor;
-                ctx.lineWidth = iconSize * 0.15;
-                ctx.lineCap = 'round';
-                
-                ctx.beginPath();
-                ctx.moveTo(currentIconX + iconSize * 0.15, currentIconY + iconSize * 0.15);
-                ctx.lineTo(currentIconX + iconSize * 0.85, currentIconY + iconSize * 0.85);
-                ctx.moveTo(currentIconX + iconSize * 0.85, currentIconY + iconSize * 0.15);
-                ctx.lineTo(currentIconX + iconSize * 0.15, currentIconY + iconSize * 0.85);
-                ctx.stroke();
-                ctx.restore();
-                
-                currentIconX += iconSize + iconGap;
-            }
-            
-            // Draw social handle text
+            // --- DRAWING SOCIAL CONTENT BASED ON LAYOUT ---
             ctx.fillStyle = drawColor;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(socialText, currentIconX, by + blockPaddingV + fontSize / 2);
+            ctx.strokeStyle = drawColor;
             
-            // --- DRAW ROW 2 (Music Platforms) ---
-            if (showMusicPlatforms) {
-                ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
-                let mIconX = bx + blockPaddingH;
-                const mIconY = by + blockPaddingV + fontSize + rowSpacing + ((fontSize * 0.85) - iconSize) / 2;
+            // If split-inline, add subtle text shadow for readability since there is no background
+            if (socialLayout === 'split-inline') {
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = fontSize * 0.4;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 2;
+            }
+            
+            const drawIcon = (type: string, targetX: number, targetY: number) => {
+                ctx.save();
+                if (type === 'instagram') {
+                    ctx.lineWidth = iconSize * 0.11;
+                    ctx.beginPath();
+                    ctx.roundRect(targetX, targetY, iconSize, iconSize, iconSize * 0.28);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(targetX + iconSize/2, targetY + iconSize/2, iconSize * 0.24, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.beginPath();
+                    ctx.arc(targetX + iconSize * 0.76, targetY + iconSize * 0.24, iconSize * 0.08, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (type === 'tiktok') {
+                    ctx.strokeStyle = drawColor;
+                    ctx.lineWidth = iconSize * 0.14;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    const cx = targetX + iconSize * 0.55;
+                    const cy = targetY + iconSize * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy - iconSize * 0.35);
+                    ctx.lineTo(cx, cy + iconSize * 0.15);
+                    ctx.arc(cx - iconSize * 0.22, cy + iconSize * 0.15, iconSize * 0.22, 0, Math.PI * 1.25, false);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(cx + iconSize * 0.28, cy - iconSize * 0.35, iconSize * 0.28, Math.PI, Math.PI * 0.5, true);
+                    ctx.stroke();
+                } else if (type === 'youtube') {
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.roundRect(targetX, targetY + iconSize * 0.1, iconSize * 1.15, iconSize * 0.8, iconSize * 0.22);
+                    ctx.fill();
+                    ctx.fillStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.beginPath();
+                    ctx.moveTo(targetX + iconSize * 0.45, targetY + iconSize * 0.32);
+                    ctx.lineTo(targetX + iconSize * 0.75, targetY + iconSize * 0.5);
+                    ctx.lineTo(targetX + iconSize * 0.45, targetY + iconSize * 0.68);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (type === 'facebook') {
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.roundRect(targetX, targetY, iconSize, iconSize, iconSize * 0.28);
+                    ctx.fill();
+                    ctx.fillStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.font = `bold ${iconSize * 0.85}px Inter, Arial, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('f', targetX + iconSize * 0.5, targetY + iconSize * 0.48);
+                } else if (type === 'spotify') {
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.arc(targetX + iconSize/2, targetY + iconSize/2, iconSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = iconSize * 0.08;
+                    ctx.lineCap = 'round';
+                    const cx = targetX + iconSize/2;
+                    const cy = targetY + iconSize/2;
+                    const r = iconSize/2;
+                    ctx.beginPath();
+                    ctx.arc(cx - r * 0.05, cy + r * 0.55, r * 0.75, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(cx - r * 0.05, cy + r * 0.7, r * 0.6, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(cx - r * 0.05, cy + r * 0.85, r * 0.45, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.stroke();
+                } else if (type === 'x') {
+                    ctx.strokeStyle = drawColor;
+                    ctx.lineWidth = iconSize * 0.15;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(targetX + iconSize * 0.15, targetY + iconSize * 0.15);
+                    ctx.lineTo(targetX + iconSize * 0.85, targetY + iconSize * 0.85);
+                    ctx.moveTo(targetX + iconSize * 0.85, targetY + iconSize * 0.15);
+                    ctx.lineTo(targetX + iconSize * 0.15, targetY + iconSize * 0.85);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            };
+            
+            if (socialLayout === 'classic-compact') {
+                // --- CLASSIC COMPACT TWO ROW DRAWING ---
+                let currentIconX = bx + blockPaddingH;
+                if (socialBlockStyle === 'luxury-gold' && shouldDrawBackground) {
+                    currentIconX += fontSize * 0.25; // Shift right to avoid overlapping left gold accent strip
+                }
+                const currentIconY = by + blockPaddingV + (fontSize - iconSize) / 2;
                 
-                // Draw label text
+                if (socialInstagram) { drawIcon('instagram', currentIconX, currentIconY); currentIconX += iconSize + iconGap; }
+                if (socialTikTok) { drawIcon('tiktok', currentIconX, currentIconY); currentIconX += iconSize + iconGap; }
+                if (socialYouTube) { drawIcon('youtube', currentIconX, currentIconY); currentIconX += iconSize * 1.15 + iconGap; }
+                if (socialFacebook) { drawIcon('facebook', currentIconX, currentIconY); currentIconX += iconSize + iconGap; }
+                if (socialSpotify) { drawIcon('spotify', currentIconX, currentIconY); currentIconX += iconSize + iconGap; }
+                if (socialX) { drawIcon('x', currentIconX, currentIconY); currentIconX += iconSize + iconGap; }
+                
                 ctx.fillStyle = drawColor;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(musicPlatformsText, mIconX, by + blockPaddingV + fontSize + rowSpacing + (fontSize * 0.85) / 2);
+                ctx.fillText(socialText, currentIconX, by + blockPaddingV + fontSize / 2);
                 
-                mIconX += ctx.measureText(musicPlatformsText).width + fontSize * 0.5;
-                const mRadius = iconSize / 2;
-                
-                if (musicSpotify) {
-                    ctx.save();
+                // Draw Row 2 (Music Platforms)
+                if (showMusicPlatforms) {
+                    ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                    let mIconX = bx + blockPaddingH;
+                    if (socialBlockStyle === 'luxury-gold' && shouldDrawBackground) {
+                        mIconX += fontSize * 0.25;
+                    }
+                    const mIconY = by + blockPaddingV + fontSize + rowSpacing + ((fontSize * 0.85) - iconSize) / 2;
+                    
                     ctx.fillStyle = drawColor;
-                    ctx.strokeStyle = drawColor;
+                    ctx.fillText(musicPlatformsText, mIconX, by + blockPaddingV + fontSize + rowSpacing + (fontSize * 0.85) / 2);
+                    mIconX += ctx.measureText(musicPlatformsText).width + fontSize * 0.5;
                     
-                    const scx = mIconX + mRadius;
-                    const scy = mIconY + mRadius;
-                    
-                    ctx.beginPath();
-                    ctx.arc(scx, scy, mRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                    ctx.lineWidth = mRadius * 0.18;
-                    ctx.lineCap = 'round';
-                    
-                    ctx.beginPath();
-                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.55, mRadius * 0.75, Math.PI * 1.25, Math.PI * 1.75);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.7, mRadius * 0.6, Math.PI * 1.25, Math.PI * 1.75);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(scx - mRadius * 0.05, scy + mRadius * 0.85, mRadius * 0.45, Math.PI * 1.25, Math.PI * 1.75);
-                    ctx.stroke();
-                    ctx.restore();
-                    
-                    mIconX += iconSize + iconGap;
+                    if (musicSpotify) { drawIcon('spotify', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicApple) {
+                        ctx.save();
+                        ctx.fillStyle = drawColor;
+                        const acx = mIconX + iconSize/2;
+                        const acy = mIconY + iconSize/2;
+                        const mRadius = iconSize/2;
+                        ctx.beginPath();
+                        ctx.arc(acx, acy, mRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                        ctx.beginPath();
+                        ctx.ellipse(acx - mRadius * 0.25, acy + mRadius * 0.3, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                        ctx.ellipse(acx + mRadius * 0.15, acy + mRadius * 0.2, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                        ctx.lineWidth = mRadius * 0.09;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(acx - mRadius * 0.1, acy + mRadius * 0.3);
+                        ctx.lineTo(acx - mRadius * 0.1, acy - mRadius * 0.35);
+                        ctx.lineTo(acx + mRadius * 0.3, acy - mRadius * 0.45);
+                        ctx.lineTo(acx + mRadius * 0.3, acy + mRadius * 0.2);
+                        ctx.stroke();
+                        ctx.lineWidth = mRadius * 0.22;
+                        ctx.beginPath();
+                        ctx.moveTo(acx - mRadius * 0.12, acy - mRadius * 0.28);
+                        ctx.lineTo(acx + mRadius * 0.32, acy - mRadius * 0.38);
+                        ctx.stroke();
+                        ctx.restore();
+                        mIconX += iconSize + iconGap;
+                    }
+                    if (musicYouTube) { drawIcon('youtube', mIconX, mIconY); }
+                }
+            } else {
+                // --- SINGLE ROW MINIMALIST / INLINE LAYOUTS ---
+                let currentX = bx + blockPaddingH;
+                if (socialBlockStyle === 'luxury-gold' && shouldDrawBackground) {
+                    currentX += fontSize * 0.25;
+                }
+                const currentY = by + blockPaddingV + (fontSize - iconSize) / 2;
+                
+                // 1. Draw Social Icons first
+                if (socialInstagram) { drawIcon('instagram', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialTikTok) { drawIcon('tiktok', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialYouTube) { drawIcon('youtube', currentX, currentY); currentX += iconSize * 1.15 + iconGap; }
+                if (socialFacebook) { drawIcon('facebook', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialSpotify) { drawIcon('spotify', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialX) { drawIcon('x', currentX, currentY); currentX += iconSize + iconGap; }
+                
+                // 2. Draw Music Icons inline as well
+                if (showMusicPlatforms) {
+                    if (musicSpotify) { drawIcon('spotify', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicYouTube) { drawIcon('youtube', currentX, currentY); currentX += iconSize * 1.15 + iconGap; }
                 }
                 
-                if (musicApple) {
-                    ctx.save();
-                    ctx.fillStyle = drawColor;
-                    
-                    const acx = mIconX + mRadius;
-                    const acy = mIconY + mRadius;
-                    
-                    ctx.beginPath();
-                    ctx.arc(acx, acy, mRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                    ctx.beginPath();
-                    ctx.ellipse(acx - mRadius * 0.25, acy + mRadius * 0.3, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
-                    ctx.ellipse(acx + mRadius * 0.15, acy + mRadius * 0.2, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
-                    ctx.fill();
-                    
-                    ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                    ctx.lineWidth = mRadius * 0.09;
-                    ctx.lineCap = 'round';
-                    ctx.beginPath();
-                    ctx.moveTo(acx - mRadius * 0.1, acy + mRadius * 0.3);
-                    ctx.lineTo(acx - mRadius * 0.1, acy - mRadius * 0.35);
-                    ctx.lineTo(acx + mRadius * 0.3, acy - mRadius * 0.45);
-                    ctx.lineTo(acx + mRadius * 0.3, acy + mRadius * 0.2);
-                    ctx.stroke();
-                    
-                    ctx.lineWidth = mRadius * 0.22;
-                    ctx.beginPath();
-                    ctx.moveTo(acx - mRadius * 0.12, acy - mRadius * 0.28);
-                    ctx.lineTo(acx + mRadius * 0.32, acy - mRadius * 0.38);
-                    ctx.stroke();
-                    ctx.restore();
-                    
-                    mIconX += iconSize + iconGap;
-                }
+                // 3. Draw Divider Line
+                ctx.save();
+                ctx.strokeStyle = drawColor;
+                ctx.globalAlpha = 0.4;
+                ctx.lineWidth = Math.max(1, fontSize * 0.08);
+                ctx.beginPath();
+                ctx.moveTo(currentX - iconGap * 0.5, currentY + iconSize * 0.1);
+                ctx.lineTo(currentX - iconGap * 0.5, currentY + iconSize * 0.9);
+                ctx.stroke();
+                ctx.restore();
                 
-                if (musicYouTube) {
-                    ctx.save();
-                    ctx.fillStyle = drawColor;
-                    
-                    const ycx = mIconX + mRadius;
-                    const ycy = mIconY + mRadius;
-                    
-                    ctx.beginPath();
-                    ctx.roundRect(ycx - mRadius, ycy - mRadius * 0.7, mRadius * 2, mRadius * 1.4, mRadius * 0.4);
-                    ctx.fill();
-                    
-                    ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                    ctx.beginPath();
-                    ctx.moveTo(ycx - mRadius * 0.3, ycy - mRadius * 0.35);
-                    ctx.lineTo(ycx + mRadius * 0.35, ycy);
-                    ctx.lineTo(ycx - mRadius * 0.3, ycy + mRadius * 0.35);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.restore();
-                }
+                // 4. Draw handle Text
+                ctx.fillStyle = drawColor;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(socialText, currentX, by + blockPaddingV + fontSize / 2);
+            }
+            
+            if (socialLayout === 'split-inline') {
+                ctx.restore(); // Restore shadow context
             }
             
             ctx.restore();
@@ -769,7 +850,7 @@ const AntiAIWatermark: React.FC = () => {
             const containerHeight = canvas.parentElement?.clientHeight || 600;
             const scale = Math.min(containerWidth / originalSize.width, containerHeight / originalSize.height, 1);
             
-            canvas.width = originalSize.width * scale;
+canvas.width = originalSize.width * scale;
             canvas.height = originalSize.height * scale;
             
             drawComposition(ctx, canvas.width, canvas.height, img);
@@ -779,10 +860,11 @@ const AntiAIWatermark: React.FC = () => {
     }, [
         imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
-        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle,
+        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle, socialLayout,
         showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube,
         watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
-        frameStyle, frameOpacity, vignetteEnabled, vignetteStrength
+        frameStyle, frameOpacity, vignetteEnabled, vignetteStrength,
+        socialPaddingScale, socialIconScale, socialGapScale, socialFontSizeVal
     ]);
 
     const handleDownload = () => {
@@ -821,25 +903,40 @@ const AntiAIWatermark: React.FC = () => {
                         const exifObj = {"0th": zeroth, "Exif": exif, "GPS": gps};
                         const exifBytes = piexif.dump(exifObj);
                         const newJpegDataUrl = piexif.insert(exifBytes, dataURL);
-
-                        const arr = newJpegDataUrl.split(',');
-                        const mime = arr[0].match(/:(.*?);/)[1];
-                        const bstr = atob(arr[1]);
-                        let n = bstr.length;
-                        const u8arr = new Uint8Array(n);
-                        while (n--) {
-                            u8arr[n] = bstr.charCodeAt(n);
-                        }
-                        const blob = new Blob([u8arr], { type: mime });
-                        const blobUrl = URL.createObjectURL(blob);
-
-                        const a = document.createElement('a');
-                        a.href = blobUrl;
-                        a.download = `mando_ejecutivo_${new Date().getTime()}.jpg`;
-                        a.click();
                         
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                        setIsDownloading(false);
+                        // Lossless formats routing based on format selection
+                        if (exportFormat === 'png') {
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `mando_ejecutivo_${new Date().getTime()}.png`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                }
+                                setIsDownloading(false);
+                            }, 'image/png', 1.0);
+                        } else {
+                            const arr = newJpegDataUrl.split(',');
+                            const mime = arr[0].match(/:(.*?);/)[1];
+                            const bstr = atob(arr[1]);
+                            let n = bstr.length;
+                            const u8arr = new Uint8Array(n);
+                            while (n--) {
+                                u8arr[n] = bstr.charCodeAt(n);
+                            }
+                            const blob = new Blob([u8arr], { type: mime });
+                            const blobUrl = URL.createObjectURL(blob);
+
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = `mando_ejecutivo_${new Date().getTime()}.jpg`;
+                            a.click();
+                            
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                            setIsDownloading(false);
+                        }
                     } else {
                         canvas.toBlob((blob) => {
                             if (blob) {
@@ -892,7 +989,10 @@ const AntiAIWatermark: React.FC = () => {
                     <div className="mb-6">
                         <div className="flex items-center gap-3 mb-2">
                             <i className="fas fa-shield-halved text-[#c5a059] text-xl"></i>
-                            <h1 className="text-xl md:text-2xl font-serif italic text-white">Mando Ejecutivo</h1>
+                            <div className="flex flex-col">
+                                <h1 className="text-xl md:text-2xl font-serif italic text-white leading-none">Mando Ejecutivo</h1>
+                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.4 PRO PREMIUM</span>
+                            </div>
                         </div>
                         <p className="text-white/40 text-[11px] leading-relaxed">
                             Aplica sellos oficiales, listones de fe personalizados y redes de Diosmasgym sin pérdida de resolución.
@@ -928,6 +1028,34 @@ const AntiAIWatermark: React.FC = () => {
                                 <span className="text-[10px] font-bold text-white/60">Subir Imagen HD / Foto</span>
                             </button>
                         )}
+                    </div>
+
+                    {/* Exif Metadata & Image Export Controls */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-3 block">Exportar & Calidad</label>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                            <button 
+                                onClick={() => setExportFormat('png')}
+                                className={`py-2 px-2 text-[8px] font-black uppercase rounded-lg border transition-all ${exportFormat === 'png' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5'}`}
+                            >
+                                Lossless PNG (Máx Calidad)
+                            </button>
+                            <button 
+                                onClick={() => setExportFormat('jpg')}
+                                className={`py-2 px-2 text-[8px] font-black uppercase rounded-lg border transition-all ${exportFormat === 'jpg' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5'}`}
+                            >
+                                Exif JPG (Sello Exif)
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                            <span className="text-[9px] text-white/40">Inyectar Metadata Oficial (Exif)</span>
+                            <input 
+                                type="checkbox" 
+                                checked={injectExif} 
+                                onChange={(e) => setInjectExif(e.target.checked)}
+                                className="accent-[#c5a059] w-3.5 h-3.5 cursor-pointer"
+                            />
+                        </div>
                     </div>
 
                     {/* Tab Navigation in Sidebar */}
@@ -1170,17 +1298,32 @@ const AntiAIWatermark: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/10 mb-4">
-                                            <label className="text-[10px] font-bold text-white/70">Fondo de Bloque</label>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={socialBackground} 
-                                                onChange={(e) => setSocialBackground(e.target.checked)}
-                                                className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                            />
+                                        <div className="mb-4">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] block mb-2">Distribución / Layout</label>
+                                            <select 
+                                                value={socialLayout}
+                                                onChange={(e) => setSocialLayout(e.target.value as any)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
+                                            >
+                                                <option value="classic-compact">💼 Clásico Compacto (Dos Filas)</option>
+                                                <option value="minimalist-strip">📱 Tira Minimalista (Una Fila con Fondo)</option>
+                                                <option value="split-inline">✨ Estilo Dividido (Una Fila Sin Fondo)</option>
+                                            </select>
                                         </div>
 
-                                        {socialBackground && (
+                                        {socialLayout !== 'split-inline' && (
+                                            <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/10 mb-4">
+                                                <label className="text-[10px] font-bold text-white/70">Fondo de Bloque</label>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={socialBackground} 
+                                                    onChange={(e) => setSocialBackground(e.target.checked)}
+                                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {socialBackground && socialLayout !== 'split-inline' && (
                                             <div className="mb-4">
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] block mb-2">Estilo de Bloque</label>
                                                 <select 
@@ -1188,13 +1331,69 @@ const AntiAIWatermark: React.FC = () => {
                                                     onChange={(e) => setSocialBlockStyle(e.target.value as any)}
                                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
                                                 >
-                                                    <option value="luxury-gold">🏆 Oro Diosmasgym (Oscuro + Borde Oro)</option>
+                                                    <option value="imperial-gold">🏆 Oro Imperial (Lujoso, Redondeado)</option>
+                                                    <option value="luxury-gold">🏅 Oro Diosmasgym (Clásico + Borde Oro)</option>
+                                                    <option value="cyber-hologram">⚡ Holograma Cyberpunk (Líneas + Neón)</option>
+                                                    <option value="minimalist-pill">💊 Cápsula Minimalista (Limpio, Blanco)</option>
                                                     <option value="glassmorphism-dark">🌫️ Vidrio Esmerilado Oscuro (Efecto Glass)</option>
                                                     <option value="glassmorphism-light">❄️ Vidrio Esmerilado Claro</option>
                                                     <option value="neon-glow">⚡ Brillo de Neón (Borde Resplandeciente)</option>
                                                 </select>
                                             </div>
                                         )}
+
+                                        {/* Custom sliders for precise visual layouts */}
+                                        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 space-y-3.5 mb-4">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block">Ajustes Finos de la Insignia</label>
+                                            
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] text-white/70">Tamaño del Texto (Def: 1.6%)</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{socialFontSizeVal}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="0.8" max="4.0" step="0.1"
+                                                    value={socialFontSizeVal} onChange={(e) => setSocialFontSizeVal(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] text-white/70">Escala de Iconos</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{socialIconScale}x</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="0.8" max="2.0" step="0.1"
+                                                    value={socialIconScale} onChange={(e) => setSocialIconScale(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] text-white/70">Espaciado del Relleno (Padding)</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{socialPaddingScale}x</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="0.5" max="2.5" step="0.1"
+                                                    value={socialPaddingScale} onChange={(e) => setSocialPaddingScale(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] text-white/70">Distancia entre Iconos (Gap)</label>
+                                                    <span className="text-[10px] text-[#c5a059]">{socialGapScale}x</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="0.3" max="2.5" step="0.1"
+                                                    value={socialGapScale} onChange={(e) => setSocialGapScale(Number(e.target.value))}
+                                                    className="w-full accent-[#c5a059]"
+                                                />
+                                            </div>
+                                        </div>
 
                                         {/* Music Platforms Section (New) */}
                                         <div className="border-t border-white/5 pt-4">
