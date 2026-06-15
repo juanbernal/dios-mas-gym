@@ -58,6 +58,10 @@ const AntiAIWatermark: React.FC = () => {
     const [musicSpotify, setMusicSpotify] = useState<boolean>(true);
     const [musicApple, setMusicApple] = useState<boolean>(true);
     const [musicYouTube, setMusicYouTube] = useState<boolean>(true);
+    const [musicAmazon, setMusicAmazon] = useState<boolean>(true);
+    const [musicTidal, setMusicTidal] = useState<boolean>(true);
+    const [musicDeezer, setMusicDeezer] = useState<boolean>(true);
+    const [musicAudiomack, setMusicAudiomack] = useState<boolean>(true);
 
     // Hashtag Watermark States
     const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(true);
@@ -340,6 +344,10 @@ const AntiAIWatermark: React.FC = () => {
                 if (musicSpotify) musicIconCount++;
                 if (musicApple) musicIconCount++;
                 if (musicYouTube) musicIconCount++;
+                if (musicAmazon) musicIconCount++;
+                if (musicTidal) musicIconCount++;
+                if (musicDeezer) musicIconCount++;
+                if (musicAudiomack) musicIconCount++;
                 
                 ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
                 const musicTextMetrics = ctx.measureText(musicPlatformsText);
@@ -629,6 +637,111 @@ const AntiAIWatermark: React.FC = () => {
                     ctx.moveTo(targetX + iconSize * 0.85, targetY + iconSize * 0.15);
                     ctx.lineTo(targetX + iconSize * 0.15, targetY + iconSize * 0.85);
                     ctx.stroke();
+                } else if (type === 'apple') {
+                    ctx.fillStyle = drawColor;
+                    const acx = targetX + iconSize/2;
+                    const acy = targetY + iconSize/2;
+                    const mRadius = iconSize/2;
+                    ctx.beginPath();
+                    ctx.arc(acx, acy, mRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.beginPath();
+                    ctx.ellipse(acx - mRadius * 0.25, acy + mRadius * 0.3, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                    ctx.ellipse(acx + mRadius * 0.15, acy + mRadius * 0.2, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = mRadius * 0.09;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(acx - mRadius * 0.1, acy + mRadius * 0.3);
+                    ctx.lineTo(acx - mRadius * 0.1, acy - mRadius * 0.35);
+                    ctx.lineTo(acx + mRadius * 0.3, acy - mRadius * 0.45);
+                    ctx.lineTo(acx + mRadius * 0.3, acy + mRadius * 0.2);
+                    ctx.stroke();
+                    ctx.lineWidth = mRadius * 0.22;
+                    ctx.beginPath();
+                    ctx.moveTo(acx - mRadius * 0.12, acy - mRadius * 0.28);
+                    ctx.lineTo(acx + mRadius * 0.32, acy - mRadius * 0.38);
+                    ctx.stroke();
+                } else if (type === 'amazon') {
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.arc(targetX + iconSize/2, targetY + iconSize/2, iconSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = iconSize * 0.08;
+                    ctx.lineCap = 'round';
+                    const cx = targetX + iconSize/2;
+                    const cy = targetY + iconSize/2;
+                    const r = iconSize/2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy - r * 0.1, r * 0.6, Math.PI * 0.1, Math.PI * 0.9);
+                    ctx.stroke();
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + r * 0.6 * Math.cos(Math.PI * 0.1), cy - r * 0.1 + r * 0.6 * Math.sin(Math.PI * 0.1));
+                    ctx.lineTo(cx + r * 0.45, cy + r * 0.05);
+                    ctx.lineTo(cx + r * 0.7, cy - r * 0.25);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (type === 'tidal') {
+                    ctx.fillStyle = drawColor;
+                    const cx = targetX + iconSize/2;
+                    const cy = targetY + iconSize/2;
+                    const sz = iconSize * 0.32;
+                    const offset = sz * 0.85;
+                    const drawDiamond = (dx: number, dy: number, size: number) => {
+                        ctx.beginPath();
+                        ctx.moveTo(dx, dy - size/2);
+                        ctx.lineTo(dx + size/2, dy);
+                        ctx.lineTo(dx, dy + size/2);
+                        ctx.lineTo(dx - size/2, dy);
+                        ctx.closePath();
+                        ctx.fill();
+                    };
+                    drawDiamond(cx, cy - offset, sz); // Top
+                    drawDiamond(cx - offset, cy, sz); // Left
+                    drawDiamond(cx + offset, cy, sz); // Right
+                    drawDiamond(cx, cy + offset, sz); // Bottom
+                } else if (type === 'deezer') {
+                    ctx.fillStyle = drawColor;
+                    const cx = targetX;
+                    const cy = targetY;
+                    const colWidth = iconSize * 0.18;
+                    const colGap = iconSize * 0.08;
+                    const rowHeight = iconSize * 0.14;
+                    const rowGap = iconSize * 0.06;
+                    const colHeights = [2, 4, 3, 5, 3];
+                    for (let c = 0; c < 5; c++) {
+                        const colX = cx + c * (colWidth + colGap);
+                        const numBlocks = colHeights[c];
+                        for (let r = 0; r < numBlocks; r++) {
+                            const blockY = cy + iconSize - (r + 1) * (rowHeight + rowGap);
+                            ctx.beginPath();
+                            ctx.roundRect(colX, blockY, colWidth, rowHeight, iconSize * 0.04);
+                            ctx.fill();
+                        }
+                    }
+                } else if (type === 'audiomack') {
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.arc(targetX + iconSize/2, targetY + iconSize/2, iconSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                    ctx.lineWidth = iconSize * 0.08;
+                    ctx.lineCap = 'round';
+                    const cx = targetX + iconSize/2;
+                    const cy = targetY + iconSize/2;
+                    const r = iconSize/2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - r * 0.4, cy + r * 0.4);
+                    ctx.quadraticCurveTo(cx - r * 0.35, cy - r * 0.2, cx - r * 0.15, cy + r * 0.4);
+                    ctx.moveTo(cx - r * 0.1, cy + r * 0.4);
+                    ctx.quadraticCurveTo(cx, cy - r * 0.5, cx + r * 0.1, cy + r * 0.4);
+                    ctx.moveTo(cx + r * 0.15, cy + r * 0.4);
+                    ctx.quadraticCurveTo(cx + r * 0.35, cy - r * 0.1, cx + r * 0.4, cy + r * 0.4);
+                    ctx.stroke();
                 }
                 ctx.restore();
             };
@@ -667,38 +780,12 @@ const AntiAIWatermark: React.FC = () => {
                     mIconX += ctx.measureText(musicPlatformsText).width + fontSize * 0.5;
                     
                     if (musicSpotify) { drawIcon('spotify', mIconX, mIconY); mIconX += iconSize + iconGap; }
-                    if (musicApple) {
-                        ctx.save();
-                        ctx.fillStyle = drawColor;
-                        const acx = mIconX + iconSize/2;
-                        const acy = mIconY + iconSize/2;
-                        const mRadius = iconSize/2;
-                        ctx.beginPath();
-                        ctx.arc(acx, acy, mRadius, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                        ctx.beginPath();
-                        ctx.ellipse(acx - mRadius * 0.25, acy + mRadius * 0.3, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
-                        ctx.ellipse(acx + mRadius * 0.15, acy + mRadius * 0.2, mRadius * 0.18, mRadius * 0.12, -Math.PI/6, 0, Math.PI*2);
-                        ctx.fill();
-                        ctx.strokeStyle = (socialBackground && socialLayout !== 'split-inline') ? 'rgba(10, 12, 20, 0.95)' : '#000000';
-                        ctx.lineWidth = mRadius * 0.09;
-                        ctx.lineCap = 'round';
-                        ctx.beginPath();
-                        ctx.moveTo(acx - mRadius * 0.1, acy + mRadius * 0.3);
-                        ctx.lineTo(acx - mRadius * 0.1, acy - mRadius * 0.35);
-                        ctx.lineTo(acx + mRadius * 0.3, acy - mRadius * 0.45);
-                        ctx.lineTo(acx + mRadius * 0.3, acy + mRadius * 0.2);
-                        ctx.stroke();
-                        ctx.lineWidth = mRadius * 0.22;
-                        ctx.beginPath();
-                        ctx.moveTo(acx - mRadius * 0.12, acy - mRadius * 0.28);
-                        ctx.lineTo(acx + mRadius * 0.32, acy - mRadius * 0.38);
-                        ctx.stroke();
-                        ctx.restore();
-                        mIconX += iconSize + iconGap;
-                    }
-                    if (musicYouTube) { drawIcon('youtube', mIconX, mIconY); }
+                    if (musicApple) { drawIcon('apple', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicYouTube) { drawIcon('youtube', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicAmazon) { drawIcon('amazon', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicTidal) { drawIcon('tidal', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicDeezer) { drawIcon('deezer', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                    if (musicAudiomack) { drawIcon('audiomack', mIconX, mIconY); mIconX += iconSize + iconGap; }
                 }
             } else {
                 // --- SINGLE ROW MINIMALIST / INLINE LAYOUTS ---
@@ -719,7 +806,12 @@ const AntiAIWatermark: React.FC = () => {
                 // 2. Draw Music Icons inline as well
                 if (showMusicPlatforms) {
                     if (musicSpotify) { drawIcon('spotify', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicApple) { drawIcon('apple', currentX, currentY); currentX += iconSize + iconGap; }
                     if (musicYouTube) { drawIcon('youtube', currentX, currentY); currentX += iconSize * 1.15 + iconGap; }
+                    if (musicAmazon) { drawIcon('amazon', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicTidal) { drawIcon('tidal', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicDeezer) { drawIcon('deezer', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicAudiomack) { drawIcon('audiomack', currentX, currentY); currentX += iconSize + iconGap; }
                 }
                 
                 // 3. Draw Divider Line
@@ -861,7 +953,7 @@ canvas.width = originalSize.width * scale;
         imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
         showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle, socialLayout,
-        showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube,
+        showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube, musicAmazon, musicTidal, musicDeezer, musicAudiomack,
         watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
         frameStyle, frameOpacity, vignetteEnabled, vignetteStrength,
         socialPaddingScale, socialIconScale, socialGapScale, socialFontSizeVal
@@ -1274,12 +1366,12 @@ canvas.width = originalSize.width * scale;
                                             <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Redes a Activar</label>
                                             <div className="grid grid-cols-2 gap-3 mb-4">
                                                 {[
-                                                    { id: 'insta', name: 'Instagram', checked: socialInstagram, set: setSocialInstagram, icon: 'fab fa-instagram', color: 'hover:border-[#E1306C]/50 hover:bg-[#E1306C]/10' },
-                                                    { id: 'tiktok', name: 'TikTok', checked: socialTikTok, set: setSocialTikTok, icon: 'fab fa-tiktok', color: 'hover:border-white/30 hover:bg-white/5' },
-                                                    { id: 'youtube', name: 'YouTube', checked: socialYouTube, set: setSocialYouTube, icon: 'fab fa-youtube', color: 'hover:border-[#FF0000]/50 hover:bg-[#FF0000]/10' },
-                                                    { id: 'facebook', name: 'Facebook', checked: socialFacebook, set: setSocialFacebook, icon: 'fab fa-facebook-f', color: 'hover:border-[#1877F2]/50 hover:bg-[#1877F2]/10' },
-                                                    { id: 'spotify', name: 'Spotify', checked: socialSpotify, set: setSocialSpotify, icon: 'fab fa-spotify', color: 'hover:border-[#1DB954]/50 hover:bg-[#1DB954]/10' },
-                                                    { id: 'x', name: 'X / Twitter', checked: socialX, set: setSocialX, icon: 'fab fa-x-twitter', color: 'hover:border-white/20 hover:bg-white/5' }
+                                                    { id: 'insta', name: 'Instagram', checked: socialInstagram, set: setSocialInstagram, icon: 'fab fa-instagram', color: 'hover:border-[#E1306C]/50 hover:bg-[#E1306C]/10', activeColor: 'bg-[#E1306C]/20 border-[#E1306C] text-white shadow-[0_0_15px_rgba(225,48,108,0.2)]', brandColor: '#E1306C' },
+                                                    { id: 'tiktok', name: 'TikTok', checked: socialTikTok, set: setSocialTikTok, icon: 'fab fa-tiktok', color: 'hover:border-white/30 hover:bg-white/5', activeColor: 'bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.15)]', brandColor: '#ffffff' },
+                                                    { id: 'youtube', name: 'YouTube', checked: socialYouTube, set: setSocialYouTube, icon: 'fab fa-youtube', color: 'hover:border-[#FF0000]/50 hover:bg-[#FF0000]/10', activeColor: 'bg-[#FF0000]/20 border-[#FF0000] text-white shadow-[0_0_15px_rgba(255,0,0,0.2)]', brandColor: '#FF0000' },
+                                                    { id: 'facebook', name: 'Facebook', checked: socialFacebook, set: setSocialFacebook, icon: 'fab fa-facebook-f', color: 'hover:border-[#1877F2]/50 hover:bg-[#1877F2]/10', activeColor: 'bg-[#1877F2]/20 border-[#1877F2] text-white shadow-[0_0_15px_rgba(24,119,242,0.2)]', brandColor: '#1877F2' },
+                                                    { id: 'spotify', name: 'Spotify', checked: socialSpotify, set: setSocialSpotify, icon: 'fab fa-spotify', color: 'hover:border-[#1DB954]/50 hover:bg-[#1DB954]/10', activeColor: 'bg-[#1DB954]/20 border-[#1DB954] text-white shadow-[0_0_15px_rgba(29,185,84,0.2)]', brandColor: '#1DB954' },
+                                                    { id: 'x', name: 'X / Twitter', checked: socialX, set: setSocialX, icon: 'fab fa-x-twitter', color: 'hover:border-white/20 hover:bg-white/5', activeColor: 'bg-white/10 border-white/40 text-white', brandColor: '#ffffff' }
                                                 ].map(net => (
                                                     <button
                                                         key={net.id}
@@ -1287,11 +1379,11 @@ canvas.width = originalSize.width * scale;
                                                         onClick={() => net.set(!net.checked)}
                                                         className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                                                             net.checked 
-                                                                ? 'bg-[#c5a059]/10 border-[#c5a059] text-white shadow-[0_0_15px_rgba(197,160,89,0.1)]' 
+                                                                ? net.activeColor 
                                                                 : 'bg-black/30 border-white/5 text-white/40 ' + net.color
                                                         }`}
                                                     >
-                                                        <i className={`${net.icon} text-lg ${net.checked ? 'text-[#c5a059]' : 'text-white/30'}`}></i>
+                                                        <i className={`${net.icon} text-lg`} style={{ color: net.checked ? net.brandColor : undefined }}></i>
                                                         <span className="text-[10px] font-black uppercase tracking-wider">{net.name}</span>
                                                     </button>
                                                 ))}
@@ -1420,17 +1512,31 @@ canvas.width = originalSize.width * scale;
                                                     </div>
                                                     
                                                     <div>
-                                                        <label className="text-[9px] font-bold text-white/50 block mb-1">Plataformas</label>
-                                                        <div className="flex gap-4">
-                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
-                                                                <input type="checkbox" checked={musicSpotify} onChange={(e) => setMusicSpotify(e.target.checked)} className="accent-[#c5a059]" /> Spotify
-                                                            </label>
-                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
-                                                                <input type="checkbox" checked={musicApple} onChange={(e) => setMusicApple(e.target.checked)} className="accent-[#c5a059]" /> Apple
-                                                            </label>
-                                                            <label className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-300 cursor-pointer">
-                                                                <input type="checkbox" checked={musicYouTube} onChange={(e) => setMusicYouTube(e.target.checked)} className="accent-[#c5a059]" /> YouTube
-                                                            </label>
+                                                        <label className="text-[9px] font-bold text-white/50 block mb-2">Plataformas a Activar (Cinta)</label>
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                                            {[
+                                                                { id: 'spotify', name: 'Spotify', checked: musicSpotify, set: setMusicSpotify, icon: 'fab fa-spotify', color: 'hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5', activeColor: 'bg-[#1DB954]/20 border-[#1DB954] text-white shadow-[0_0_15px_rgba(29,185,84,0.15)]', brandColor: '#1DB954' },
+                                                                { id: 'apple', name: 'Apple Music', checked: musicApple, set: setMusicApple, icon: 'fab fa-apple', color: 'hover:border-[#FC3C44]/50 hover:bg-[#FC3C44]/5', activeColor: 'bg-[#FC3C44]/20 border-[#FC3C44] text-white shadow-[0_0_15px_rgba(252,60,68,0.15)]', brandColor: '#FC3C44' },
+                                                                { id: 'youtube', name: 'YouTube', checked: musicYouTube, set: setMusicYouTube, icon: 'fab fa-youtube', color: 'hover:border-[#FF0000]/50 hover:bg-[#FF0000]/5', activeColor: 'bg-[#FF0000]/20 border-[#FF0000] text-white shadow-[0_0_15px_rgba(255,0,0,0.15)]', brandColor: '#FF0000' },
+                                                                { id: 'amazon', name: 'Amazon Music', checked: musicAmazon, set: setMusicAmazon, icon: 'fab fa-amazon', color: 'hover:border-[#00A8E1]/50 hover:bg-[#00A8E1]/5', activeColor: 'bg-[#00A8E1]/20 border-[#00A8E1] text-white shadow-[0_0_15px_rgba(0,168,225,0.15)]', brandColor: '#00A8E1' },
+                                                                { id: 'tidal', name: 'Tidal', checked: musicTidal, set: setMusicTidal, icon: 'fas fa-water', color: 'hover:border-[#00FFE0]/50 hover:bg-[#00FFE0]/5', activeColor: 'bg-[#00FFE0]/20 border-[#00FFE0] text-white shadow-[0_0_15px_rgba(0,255,224,0.15)]', brandColor: '#00FFE0' },
+                                                                { id: 'deezer', name: 'Deezer', checked: musicDeezer, set: setMusicDeezer, icon: 'fab fa-deezer', color: 'hover:border-[#FEAA2D]/50 hover:bg-[#FEAA2D]/5', activeColor: 'bg-[#FEAA2D]/20 border-[#FEAA2D] text-white shadow-[0_0_15px_rgba(254,170,45,0.15)]', brandColor: '#FEAA2D' },
+                                                                { id: 'audiomack', name: 'Audiomack', checked: musicAudiomack, set: setMusicAudiomack, icon: 'fas fa-music', color: 'hover:border-[#FFA500]/50 hover:bg-[#FFA500]/5', activeColor: 'bg-[#FFA500]/20 border-[#FFA500] text-white shadow-[0_0_15px_rgba(255,165,0,0.15)]', brandColor: '#FFA500' }
+                                                            ].map(net => (
+                                                                <button
+                                                                    key={net.id}
+                                                                    type="button"
+                                                                    onClick={() => net.set(!net.checked)}
+                                                                    className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all ${
+                                                                        net.checked 
+                                                                            ? net.activeColor 
+                                                                            : 'bg-black/30 border-white/5 text-white/40 ' + net.color
+                                                                    }`}
+                                                                >
+                                                                    <i className={`${net.icon} text-sm`} style={{ color: net.checked ? net.brandColor : undefined }}></i>
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider">{net.name}</span>
+                                                                </button>
+                                                            ))}
                                                         </div>
                                                     </div>
                                                 </div>
