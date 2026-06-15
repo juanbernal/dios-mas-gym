@@ -5,6 +5,29 @@ import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
 
+let cachedIndexHtml = '';
+let cachedIndexHtmlTime = 0;
+
+async function getBaseIndexHtml(): Promise<string> {
+  const now = Date.now();
+  if (cachedIndexHtml && (now - cachedIndexHtmlTime) < 10 * 60 * 1000) {
+    return cachedIndexHtml;
+  }
+  try {
+    const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+    const html = await htmlRes.text();
+    if (html && html.includes('<div id="root">')) {
+      cachedIndexHtml = html;
+      cachedIndexHtmlTime = now;
+      return html;
+    }
+  } catch (err) {
+    console.error("Failed to fetch base index.html:", err);
+  }
+  if (cachedIndexHtml) return cachedIndexHtml;
+  throw new Error("Unable to fetch index.html");
+}
+
 function timingSafeCompare(a: string, b: string): boolean {
   const strA = String(a).trim();
   const strB = String(b).trim();
@@ -331,7 +354,7 @@ export default async function handler(
       if (refresh) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       } else {
-        res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       }
       
       res.setHeader('Content-Type', 'text/csv');
@@ -627,8 +650,8 @@ export default async function handler(
     const slug = req.query.slug as string;
     if (!slug) {
       try {
-        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
-        const text = await htmlRes.text();
+        const text = await getBaseIndexHtml();
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
         res.setHeader('Content-Type', 'text/html');
         return res.status(200).send(text);
       } catch (err) {
@@ -687,9 +710,8 @@ export default async function handler(
         }
       }
 
-      // Fetch the compiled production index.html
-      const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
-      let html = await htmlRes.text();
+      // Fetch the compiled production index.html (from cache/network)
+      let html = await getBaseIndexHtml();
 
       // Build JSON-LD structured data if post match was found
       let jsonLdBlock = '';
@@ -730,15 +752,17 @@ export default async function handler(
       html = html.replace('<link rel="canonical" href="https://app.diosmasgym.com/" />', `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${description}">\n</head>`);
 
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
     } catch (err: any) {
       console.error("Error in post-ssr:", err);
       try {
-        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+        const text = await getBaseIndexHtml();
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
         res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(await htmlRes.text());
+        return res.status(200).send(text);
       } catch {
         return res.status(500).send("Error loading app");
       }
@@ -752,9 +776,10 @@ export default async function handler(
     const id = req.query.id as string;
     if (!id) {
       try {
-        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+        const text = await getBaseIndexHtml();
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
         res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(await htmlRes.text());
+        return res.status(200).send(text);
       } catch (err) {
         return res.status(500).send("Error loading app");
       }
@@ -824,9 +849,8 @@ export default async function handler(
         }
       }
 
-      // Fetch compiled index.html
-      const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
-      let html = await htmlRes.text();
+      // Fetch compiled index.html (from cache/network)
+      let html = await getBaseIndexHtml();
 
       let shareUrl = `https://app.diosmasgym.com/link/${id}`;
       if (id === 'custom' && req.query.title && req.query.artist) {
@@ -856,15 +880,17 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${description}">\n</head>`);
 
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
     } catch (err: any) {
       console.error("Error in smartlink-ssr:", err);
       try {
-        const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+        const text = await getBaseIndexHtml();
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
         res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(await htmlRes.text());
+        return res.status(200).send(text);
       } catch {
         return res.status(500).send("Error loading app");
       }

@@ -209,7 +209,7 @@ const SmartLinkView: React.FC = () => {
 
                 // Fetch de la hoja de Próximos Lanzamientos
                 try {
-                    const response = await fetch(`/api/sheet-proxy?read=true&t=${Date.now()}`);
+                    const response = await fetch(`/api/sheet-proxy?read=true`);
                     if (response.ok) {
                         const data = await response.json();
                         const extraReleases = (data as any[]).map(r => {

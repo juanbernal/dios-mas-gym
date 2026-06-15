@@ -38,10 +38,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const response = await fetch(url, fetchOptions);
         
-        // No cache for sheet data (always fresh)
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+        // Cache logic for sheet reads (e.g. main database and lyrics)
+        const hasNoCache = req.query.nocache === 'true' || req.query.t;
+        if (req.method === 'GET' && !hasNoCache && (script === 'main' || script === 'lyrics')) {
+            // Cache sheet reads at Vercel Edge for 5 minutes, and stale-while-revalidate for 10 minutes
+            res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+        } else {
+            // No cache for admin actions, analytics, or explicit no-cache requests
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
 
         // Handle responses
         const contentType = response.headers.get('content-type');
