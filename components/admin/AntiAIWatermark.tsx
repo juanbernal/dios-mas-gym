@@ -34,6 +34,7 @@ const AntiAIWatermark: React.FC = () => {
     const [socialColor, setSocialColor] = useState<'white' | 'gold' | 'black' | 'green' | 'blue'>('white');
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
+    const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow'>('luxury-gold');
 
     // Frame / Vignette States (New Options)
     const [frameStyle, setFrameStyle] = useState<'none' | 'cinematic' | 'luxury-gold' | 'minimalist'>('none');
@@ -357,20 +358,68 @@ const AntiAIWatermark: React.FC = () => {
             
             // Draw luxury rounded pill with shadow and gold accent border
             if (socialBackground) {
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetY = 4;
+                ctx.save();
                 
-                ctx.fillStyle = 'rgba(10, 12, 20, 0.88)';
-                ctx.beginPath();
-                ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.8);
-                ctx.fill();
+                // Add soft drop shadow
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = fontSize * 0.6;
+                ctx.shadowOffsetY = fontSize * 0.15;
                 
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.6)';
-                ctx.lineWidth = Math.max(1.5, fontSize * 0.07);
-                ctx.stroke();
+                if (socialBlockStyle === 'luxury-gold') {
+                    // Dark gold theme
+                    const grad = ctx.createLinearGradient(bx, by, bx, by + blockHeight);
+                    grad.addColorStop(0, '#0a0d14');
+                    grad.addColorStop(1, '#111622');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = 'rgba(197, 160, 89, 0.75)';
+                    ctx.lineWidth = Math.max(1.5, fontSize * 0.08);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'glassmorphism-dark') {
+                    // Frosty dark glass
+                    ctx.fillStyle = 'rgba(15, 17, 26, 0.65)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                    ctx.lineWidth = Math.max(1, fontSize * 0.05);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'glassmorphism-light') {
+                    // Frosty white glass
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = Math.max(1, fontSize * 0.05);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'neon-glow') {
+                    // Tech neon glow
+                    ctx.fillStyle = 'rgba(5, 7, 12, 0.9)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.5);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = fontSize * 0.4;
+                    ctx.shadowOffsetY = 0;
+                    ctx.shadowColor = drawColor; // Glow matches the icon color!
+                    ctx.strokeStyle = drawColor;
+                    ctx.lineWidth = Math.max(1, fontSize * 0.06);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
             }
             
             // --- DRAW ROW 1 (Socials) ---
@@ -730,7 +779,7 @@ const AntiAIWatermark: React.FC = () => {
     }, [
         imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
-        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity,
+        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle,
         showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube,
         watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
         frameStyle, frameOpacity, vignetteEnabled, vignetteStrength
@@ -1094,64 +1143,58 @@ const AntiAIWatermark: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className="text-[10px] font-bold text-white/70 block mb-2">Redes a Activar</label>
-                                            <div className="grid grid-cols-3 gap-2 bg-black/40 p-2.5 rounded-lg border border-white/10">
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialInstagram} 
-                                                        onChange={(e) => setSocialInstagram(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    Insta
-                                                </label>
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialTikTok} 
-                                                        onChange={(e) => setSocialTikTok(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    TikTok
-                                                </label>
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialYouTube} 
-                                                        onChange={(e) => setSocialYouTube(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    YouTube
-                                                </label>
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialFacebook} 
-                                                        onChange={(e) => setSocialFacebook(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    FB
-                                                </label>
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialSpotify} 
-                                                        onChange={(e) => setSocialSpotify(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    Spotify
-                                                </label>
-                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={socialX} 
-                                                        onChange={(e) => setSocialX(e.target.checked)}
-                                                        className="accent-[#c5a059]"
-                                                    />
-                                                    X (Twitter)
-                                                </label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Redes a Activar</label>
+                                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                                {[
+                                                    { id: 'insta', name: 'Instagram', checked: socialInstagram, set: setSocialInstagram, icon: 'fab fa-instagram', color: 'hover:border-[#E1306C]/50 hover:bg-[#E1306C]/10' },
+                                                    { id: 'tiktok', name: 'TikTok', checked: socialTikTok, set: setSocialTikTok, icon: 'fab fa-tiktok', color: 'hover:border-white/30 hover:bg-white/5' },
+                                                    { id: 'youtube', name: 'YouTube', checked: socialYouTube, set: setSocialYouTube, icon: 'fab fa-youtube', color: 'hover:border-[#FF0000]/50 hover:bg-[#FF0000]/10' },
+                                                    { id: 'facebook', name: 'Facebook', checked: socialFacebook, set: setSocialFacebook, icon: 'fab fa-facebook-f', color: 'hover:border-[#1877F2]/50 hover:bg-[#1877F2]/10' },
+                                                    { id: 'spotify', name: 'Spotify', checked: socialSpotify, set: setSocialSpotify, icon: 'fab fa-spotify', color: 'hover:border-[#1DB954]/50 hover:bg-[#1DB954]/10' },
+                                                    { id: 'x', name: 'X / Twitter', checked: socialX, set: setSocialX, icon: 'fab fa-x-twitter', color: 'hover:border-white/20 hover:bg-white/5' }
+                                                ].map(net => (
+                                                    <button
+                                                        key={net.id}
+                                                        type="button"
+                                                        onClick={() => net.set(!net.checked)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                                            net.checked 
+                                                                ? 'bg-[#c5a059]/10 border-[#c5a059] text-white shadow-[0_0_15px_rgba(197,160,89,0.1)]' 
+                                                                : 'bg-black/30 border-white/5 text-white/40 ' + net.color
+                                                        }`}
+                                                    >
+                                                        <i className={`${net.icon} text-lg ${net.checked ? 'text-[#c5a059]' : 'text-white/30'}`}></i>
+                                                        <span className="text-[10px] font-black uppercase tracking-wider">{net.name}</span>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
+
+                                        <div className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/10 mb-4">
+                                            <label className="text-[10px] font-bold text-white/70">Fondo de Bloque</label>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={socialBackground} 
+                                                onChange={(e) => setSocialBackground(e.target.checked)}
+                                                className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {socialBackground && (
+                                            <div className="mb-4">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] block mb-2">Estilo de Bloque</label>
+                                                <select 
+                                                    value={socialBlockStyle}
+                                                    onChange={(e) => setSocialBlockStyle(e.target.value as any)}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
+                                                >
+                                                    <option value="luxury-gold">🏆 Oro Diosmasgym (Oscuro + Borde Oro)</option>
+                                                    <option value="glassmorphism-dark">🌫️ Vidrio Esmerilado Oscuro (Efecto Glass)</option>
+                                                    <option value="glassmorphism-light">❄️ Vidrio Esmerilado Claro</option>
+                                                    <option value="neon-glow">⚡ Brillo de Neón (Borde Resplandeciente)</option>
+                                                </select>
+                                            </div>
+                                        )}
 
                                         {/* Music Platforms Section (New) */}
                                         <div className="border-t border-white/5 pt-4">
