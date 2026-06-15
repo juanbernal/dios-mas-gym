@@ -35,7 +35,7 @@ const AntiAIWatermark: React.FC = () => {
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
     const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow' | 'cyber-hologram' | 'imperial-gold' | 'minimalist-pill'>('imperial-gold');
-    const [socialLayout, setSocialLayout] = useState<'classic-compact' | 'minimalist-strip' | 'split-inline'>('classic-compact');
+    const [socialLayout, setSocialLayout] = useState<'classic-compact' | 'minimalist-strip' | 'split-inline' | 'icons-only-pill' | 'vertical-pilar' | 'dual-column'>('classic-compact');
 
     // Advanced Social badge configurations
     const [socialPaddingScale, setSocialPaddingScale] = useState<number>(1.0);
@@ -369,6 +369,50 @@ const AntiAIWatermark: React.FC = () => {
             if (socialLayout === 'classic-compact') {
                 blockWidth = Math.max(row1Width, row2Width) + (blockPaddingH * 2);
                 blockHeight = fontSize + (showMusicPlatforms ? (fontSize * 0.85) + rowSpacing : 0) + (blockPaddingV * 2);
+            } else if (socialLayout === 'icons-only-pill') {
+                let totalIcons = iconCount;
+                if (showMusicPlatforms) totalIcons += musicIconCount;
+                const totalAllIconsWidth = totalIcons > 0 ? (totalIcons * iconSize) + ((totalIcons - 1) * iconGap) : 0;
+                
+                blockWidth = totalAllIconsWidth + (blockPaddingH * 2);
+                blockHeight = iconSize + (blockPaddingV * 2);
+            } else if (socialLayout === 'vertical-pilar') {
+                const totalSocialIconsWidth = iconCount > 0 ? (iconCount * iconSize) + ((iconCount - 1) * iconGap) : 0;
+                const socialRowWidth = socialTextMetrics.width + (iconCount > 0 ? fontSize * 0.7 + totalSocialIconsWidth : 0);
+                
+                let musicTextWidth = 0;
+                let musicIconsWidth = 0;
+                if (showMusicPlatforms) {
+                    ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                    musicTextWidth = ctx.measureText(musicPlatformsText).width;
+                    musicIconsWidth = musicIconCount > 0 ? (musicIconCount * iconSize) + ((musicIconCount - 1) * iconGap) : 0;
+                    ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
+                }
+                
+                blockWidth = Math.max(socialRowWidth, musicTextWidth, musicIconsWidth) + (blockPaddingH * 2);
+                blockHeight = fontSize + (blockPaddingV * 2);
+                if (showMusicPlatforms) {
+                    blockHeight += rowSpacing + (fontSize * 0.85) + rowSpacing + iconSize;
+                }
+            } else if (socialLayout === 'dual-column') {
+                const totalSocialIconsWidth = iconCount > 0 ? (iconCount * iconSize) + ((iconCount - 1) * iconGap) : 0;
+                const col1Width = socialTextMetrics.width + (iconCount > 0 ? fontSize * 0.7 + totalSocialIconsWidth : 0);
+                
+                let col2Width = 0;
+                if (showMusicPlatforms) {
+                    ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                    const musicTextMetrics = ctx.measureText(musicPlatformsText);
+                    const totalMusicIconsWidth = musicIconCount > 0 ? (musicIconCount * iconSize) + ((musicIconCount - 1) * iconGap) : 0;
+                    col2Width = Math.max(musicTextMetrics.width, totalMusicIconsWidth);
+                    ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
+                }
+                
+                const colGap = fontSize * 1.5;
+                blockWidth = col1Width + (showMusicPlatforms ? colGap + col2Width : 0) + (blockPaddingH * 2);
+                
+                const col1Height = fontSize;
+                const col2Height = showMusicPlatforms ? (fontSize * 0.85 + rowSpacing + iconSize) : 0;
+                blockHeight = Math.max(col1Height, col2Height) + (blockPaddingV * 2);
             } else {
                 // Single row layouts (minimalist-strip and split-inline)
                 let totalIcons = iconCount;
@@ -786,6 +830,131 @@ const AntiAIWatermark: React.FC = () => {
                     if (musicTidal) { drawIcon('tidal', mIconX, mIconY); mIconX += iconSize + iconGap; }
                     if (musicDeezer) { drawIcon('deezer', mIconX, mIconY); mIconX += iconSize + iconGap; }
                     if (musicAudiomack) { drawIcon('audiomack', mIconX, mIconY); mIconX += iconSize + iconGap; }
+                }
+            } else if (socialLayout === 'icons-only-pill') {
+                let currentX = bx + blockPaddingH;
+                const currentY = by + blockPaddingV;
+                
+                if (socialInstagram) { drawIcon('instagram', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialTikTok) { drawIcon('tiktok', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialYouTube) { drawIcon('youtube', currentX, currentY); currentX += iconSize * 1.15 + iconGap; }
+                if (socialFacebook) { drawIcon('facebook', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialSpotify) { drawIcon('spotify', currentX, currentY); currentX += iconSize + iconGap; }
+                if (socialX) { drawIcon('x', currentX, currentY); currentX += iconSize + iconGap; }
+                
+                if (showMusicPlatforms) {
+                    if (musicSpotify) { drawIcon('spotify', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicApple) { drawIcon('apple', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicYouTube) { drawIcon('youtube', currentX, currentY); currentX += iconSize * 1.15 + iconGap; }
+                    if (musicAmazon) { drawIcon('amazon', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicTidal) { drawIcon('tidal', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicDeezer) { drawIcon('deezer', currentX, currentY); currentX += iconSize + iconGap; }
+                    if (musicAudiomack) { drawIcon('audiomack', currentX, currentY); currentX += iconSize + iconGap; }
+                }
+            } else if (socialLayout === 'vertical-pilar') {
+                let currentY = by + blockPaddingV;
+                
+                // Draw social row
+                let currentIconX = bx + blockPaddingH;
+                ctx.fillStyle = drawColor;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(socialText, currentIconX, currentY + fontSize / 2);
+                currentIconX += ctx.measureText(socialText).width + fontSize * 0.7;
+                
+                const mIconY1 = currentY + (fontSize - iconSize) / 2;
+                if (socialInstagram) { drawIcon('instagram', currentIconX, mIconY1); currentIconX += iconSize + iconGap; }
+                if (socialTikTok) { drawIcon('tiktok', currentIconX, mIconY1); currentIconX += iconSize + iconGap; }
+                if (socialYouTube) { drawIcon('youtube', currentIconX, mIconY1); currentIconX += iconSize * 1.15 + iconGap; }
+                if (socialFacebook) { drawIcon('facebook', currentIconX, mIconY1); currentIconX += iconSize + iconGap; }
+                if (socialSpotify) { drawIcon('spotify', currentIconX, mIconY1); currentIconX += iconSize + iconGap; }
+                if (socialX) { drawIcon('x', currentIconX, mIconY1); currentIconX += iconSize + iconGap; }
+                
+                currentY += fontSize + rowSpacing;
+                
+                if (showMusicPlatforms) {
+                    // Divider line
+                    ctx.save();
+                    ctx.strokeStyle = drawColor;
+                    ctx.globalAlpha = 0.25;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx + blockPaddingH, currentY - rowSpacing * 0.5);
+                    ctx.lineTo(bx + blockWidth - blockPaddingH, currentY - rowSpacing * 0.5);
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    // Music Text
+                    ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                    ctx.fillStyle = drawColor;
+                    ctx.fillText(musicPlatformsText, bx + blockPaddingH, currentY + (fontSize * 0.85) / 2);
+                    
+                    currentY += (fontSize * 0.85) + rowSpacing;
+                    
+                    // Music Icons
+                    let mIconX = bx + blockPaddingH;
+                    const mIconY2 = currentY;
+                    if (musicSpotify) { drawIcon('spotify', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicApple) { drawIcon('apple', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicYouTube) { drawIcon('youtube', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicAmazon) { drawIcon('amazon', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicTidal) { drawIcon('tidal', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicDeezer) { drawIcon('deezer', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicAudiomack) { drawIcon('audiomack', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    
+                    ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
+                }
+            } else if (socialLayout === 'dual-column') {
+                let currentY = by + blockPaddingV;
+                const colGap = fontSize * 1.5;
+                
+                // Left Column (Social)
+                let currentIconX = bx + blockPaddingH;
+                ctx.fillStyle = drawColor;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(socialText, currentIconX, currentY + fontSize / 2);
+                currentIconX += ctx.measureText(socialText).width + fontSize * 0.7;
+                
+                const mIconY = currentY + (fontSize - iconSize) / 2;
+                if (socialInstagram) { drawIcon('instagram', currentIconX, mIconY); currentIconX += iconSize + iconGap; }
+                if (socialTikTok) { drawIcon('tiktok', currentIconX, mIconY); currentIconX += iconSize + iconGap; }
+                if (socialYouTube) { drawIcon('youtube', currentIconX, mIconY); currentIconX += iconSize * 1.15 + iconGap; }
+                if (socialFacebook) { drawIcon('facebook', currentIconX, mIconY); currentIconX += iconSize + iconGap; }
+                if (socialSpotify) { drawIcon('spotify', currentIconX, mIconY); currentIconX += iconSize + iconGap; }
+                if (socialX) { drawIcon('x', currentIconX, mIconY); currentIconX += iconSize + iconGap; }
+                
+                // Vertical Divider Line (if music is enabled)
+                if (showMusicPlatforms) {
+                    const dividerX = currentIconX + colGap * 0.5;
+                    ctx.save();
+                    ctx.strokeStyle = drawColor;
+                    ctx.globalAlpha = 0.25;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(dividerX, by + blockPaddingV);
+                    ctx.lineTo(dividerX, by + blockHeight - blockPaddingV);
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    // Right Column (Music)
+                    let musicStartX = dividerX + colGap * 0.5;
+                    ctx.font = `italic 600 ${fontSize * 0.85}px Montserrat, Inter, sans-serif`;
+                    ctx.fillStyle = drawColor;
+                    ctx.fillText(musicPlatformsText, musicStartX, currentY + (fontSize * 0.85) / 2);
+                    
+                    // Music Icons under it (stacked in right column)
+                    const mIconY2 = currentY + (fontSize * 0.85) + rowSpacing;
+                    let mIconX = musicStartX;
+                    if (musicSpotify) { drawIcon('spotify', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicApple) { drawIcon('apple', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicYouTube) { drawIcon('youtube', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicAmazon) { drawIcon('amazon', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicTidal) { drawIcon('tidal', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicDeezer) { drawIcon('deezer', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    if (musicAudiomack) { drawIcon('audiomack', mIconX, mIconY2); mIconX += iconSize + iconGap; }
+                    
+                    ctx.font = `700 ${fontSize}px Montserrat, Inter, sans-serif`;
                 }
             } else {
                 // --- SINGLE ROW MINIMALIST / INLINE LAYOUTS ---
@@ -1400,6 +1569,9 @@ canvas.width = originalSize.width * scale;
                                                 <option value="classic-compact">💼 Clásico Compacto (Dos Filas)</option>
                                                 <option value="minimalist-strip">📱 Tira Minimalista (Una Fila con Fondo)</option>
                                                 <option value="split-inline">✨ Estilo Dividido (Una Fila Sin Fondo)</option>
+                                                <option value="icons-only-pill">🏷️ Solo Iconos (Sin textos, ultra compacto)</option>
+                                                <option value="vertical-pilar">💈 Pilar Vertical Apilado (Ideal para vertical)</option>
+                                                <option value="dual-column">📐 Doble Columna (Izquierda redes, Derecha música)</option>
                                             </select>
                                         </div>
 
