@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800'); // Cache for 24h (browser), 7 days (CDN)
 
     // We use the robust native fetch API which automatically follows redirects (301, 302, etc.) server-side
     const response = await fetch(imageUrl, {
