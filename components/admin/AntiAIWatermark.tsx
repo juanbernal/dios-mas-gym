@@ -6,7 +6,7 @@ const AntiAIWatermark: React.FC = () => {
     const navigate = useNavigate();
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [originalSize, setOriginalSize] = useState<{width: number, height: number} | null>(null);
-    const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark'>('logo');
+    const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark' | 'frames'>('logo');
     
     // Logo States
     const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'none'>('diosmasgym');
@@ -26,11 +26,20 @@ const AntiAIWatermark: React.FC = () => {
     const [socialText, setSocialText] = useState<string>('@diosmasgym');
     const [socialInstagram, setSocialInstagram] = useState<boolean>(true);
     const [socialTikTok, setSocialTikTok] = useState<boolean>(true);
-    const [socialYouTube, setSocialYouTube] = useState<boolean>(false);
+    const [socialYouTube, setSocialYouTube] = useState<boolean>(true);
+    const [socialFacebook, setSocialFacebook] = useState<boolean>(true);
+    const [socialSpotify, setSocialSpotify] = useState<boolean>(true);
+    const [socialX, setSocialX] = useState<boolean>(true);
     const [socialPosition, setSocialPosition] = useState<'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'>('bottom-left');
     const [socialColor, setSocialColor] = useState<'white' | 'gold' | 'black' | 'green' | 'blue'>('white');
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
+
+    // Frame / Vignette States (New Options)
+    const [frameStyle, setFrameStyle] = useState<'none' | 'cinematic' | 'luxury-gold' | 'minimalist'>('none');
+    const [frameOpacity, setFrameOpacity] = useState<number>(100);
+    const [vignetteEnabled, setVignetteEnabled] = useState<boolean>(false);
+    const [vignetteStrength, setVignetteStrength] = useState<number>(50);
 
     // Music Platforms States (Listen to our music on...)
     const [showMusicPlatforms, setShowMusicPlatforms] = useState<boolean>(true);
@@ -298,6 +307,9 @@ const AntiAIWatermark: React.FC = () => {
             if (socialInstagram) iconCount++;
             if (socialTikTok) iconCount++;
             if (socialYouTube) iconCount++;
+            if (socialFacebook) iconCount++;
+            if (socialSpotify) iconCount++;
+            if (socialX) iconCount++;
             
             const socialTextMetrics = ctx.measureText(socialText);
             const iconSize = fontSize * 1.05;
@@ -428,6 +440,69 @@ const AntiAIWatermark: React.FC = () => {
                 
                 currentIconX += iconSize * 1.15 + iconGap;
             }
+
+            if (socialFacebook) {
+                ctx.save();
+                ctx.fillStyle = drawColor;
+                ctx.beginPath();
+                ctx.roundRect(currentIconX, currentIconY, iconSize, iconSize, iconSize * 0.28);
+                ctx.fill();
+                
+                ctx.fillStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                ctx.font = `bold ${iconSize * 0.85}px Inter, Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('f', currentIconX + iconSize * 0.5, currentIconY + iconSize * 0.48);
+                ctx.restore();
+                
+                currentIconX += iconSize + iconGap;
+            }
+
+            if (socialSpotify) {
+                ctx.save();
+                ctx.fillStyle = drawColor;
+                ctx.beginPath();
+                ctx.arc(currentIconX + iconSize/2, currentIconY + iconSize/2, iconSize/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = socialBackground ? 'rgba(10, 12, 20, 0.95)' : '#000000';
+                ctx.lineWidth = iconSize * 0.08;
+                ctx.lineCap = 'round';
+                
+                const cx = currentIconX + iconSize/2;
+                const cy = currentIconY + iconSize/2;
+                const r = iconSize/2;
+                
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.05, cy + r * 0.55, r * 0.75, Math.PI * 1.25, Math.PI * 1.75);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.05, cy + r * 0.7, r * 0.6, Math.PI * 1.25, Math.PI * 1.75);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.05, cy + r * 0.85, r * 0.45, Math.PI * 1.25, Math.PI * 1.75);
+                ctx.stroke();
+                ctx.restore();
+                
+                currentIconX += iconSize + iconGap;
+            }
+
+            if (socialX) {
+                ctx.save();
+                ctx.strokeStyle = drawColor;
+                ctx.lineWidth = iconSize * 0.15;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(currentIconX + iconSize * 0.15, currentIconY + iconSize * 0.15);
+                ctx.lineTo(currentIconX + iconSize * 0.85, currentIconY + iconSize * 0.85);
+                ctx.moveTo(currentIconX + iconSize * 0.85, currentIconY + iconSize * 0.15);
+                ctx.lineTo(currentIconX + iconSize * 0.15, currentIconY + iconSize * 0.85);
+                ctx.stroke();
+                ctx.restore();
+                
+                currentIconX += iconSize + iconGap;
+            }
             
             // Draw social handle text
             ctx.fillStyle = drawColor;
@@ -542,6 +617,47 @@ const AntiAIWatermark: React.FC = () => {
             ctx.restore();
         }
 
+        // Draw Frame Style
+        if (frameStyle !== 'none') {
+            ctx.save();
+            ctx.globalAlpha = frameOpacity / 100;
+            if (frameStyle === 'cinematic') {
+                const barHeight = height * 0.08;
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, width, barHeight);
+                ctx.fillRect(0, height - barHeight, width, barHeight);
+            } else if (frameStyle === 'luxury-gold') {
+                const borderOffset = Math.max(10, width * 0.015);
+                ctx.strokeStyle = '#c5a059';
+                ctx.lineWidth = Math.max(2, width * 0.003);
+                ctx.strokeRect(borderOffset, borderOffset, width - borderOffset * 2, height - borderOffset * 2);
+                
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.4)';
+                ctx.lineWidth = Math.max(1, width * 0.001);
+                ctx.strokeRect(borderOffset + 8, borderOffset + 8, width - (borderOffset + 8) * 2, height - (borderOffset + 8) * 2);
+            } else if (frameStyle === 'minimalist') {
+                const borderOffset = Math.max(15, width * 0.02);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = Math.max(1, width * 0.0015);
+                ctx.strokeRect(borderOffset, borderOffset, width - borderOffset * 2, height - borderOffset * 2);
+            }
+            ctx.restore();
+        }
+
+        // Draw Vignette
+        if (vignetteEnabled) {
+            ctx.save();
+            const grad = ctx.createRadialGradient(
+                width / 2, height / 2, Math.min(width, height) * 0.3, 
+                width / 2, height / 2, Math.max(width, height) * 0.7
+            );
+            grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            grad.addColorStop(1, `rgba(0, 0, 0, ${vignetteStrength / 100})`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
+        }
+
         // 5. Add Default Brand Text at the bottom if enabled
         if (showText) {
             ctx.globalAlpha = logoOpacity / 100;
@@ -614,9 +730,10 @@ const AntiAIWatermark: React.FC = () => {
     }, [
         imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
-        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialPosition, socialColor, socialBackground, socialOpacity,
+        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity,
         showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube,
-        watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize
+        watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
+        frameStyle, frameOpacity, vignetteEnabled, vignetteStrength
     ]);
 
     const handleDownload = () => {
@@ -765,30 +882,36 @@ const AntiAIWatermark: React.FC = () => {
                     </div>
 
                     {/* Tab Navigation in Sidebar */}
-                    <div className="flex border-b border-white/10 mb-6 bg-black/20 rounded-xl p-1.5 gap-1">
+                    <div className="flex flex-wrap border-b border-white/10 mb-6 bg-black/20 rounded-xl p-1.5 gap-1">
                         <button
                             onClick={() => setActiveTab('logo')}
-                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'logo' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                            className={`flex-1 min-w-[60px] py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'logo' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            🏆 Logo
+                            🏆 Sello
                         </button>
                         <button
                             onClick={() => setActiveTab('ribbon')}
-                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'ribbon' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                            className={`flex-1 min-w-[60px] py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'ribbon' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            🎗️ Listón
+                            🎗️ Lema
                         </button>
                         <button
                             onClick={() => setActiveTab('socials')}
-                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'socials' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                            className={`flex-1 min-w-[60px] py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'socials' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
                             📱 Redes
                         </button>
                         <button
-                            onClick={() => setActiveTab('watermark')}
-                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'watermark' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                            onClick={() => setActiveTab('frames')}
+                            className={`flex-1 min-w-[60px] py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'frames' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            🏷️ Frases
+                            🖼️ Marcos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('watermark')}
+                            className={`flex-1 min-w-[60px] py-2 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === 'watermark' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
+                        >
+                            🏷️ Fondo
                         </button>
                     </div>
 
@@ -1000,6 +1123,33 @@ const AntiAIWatermark: React.FC = () => {
                                                     />
                                                     YouTube
                                                 </label>
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialFacebook} 
+                                                        onChange={(e) => setSocialFacebook(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    FB
+                                                </label>
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialSpotify} 
+                                                        onChange={(e) => setSocialSpotify(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    Spotify
+                                                </label>
+                                                <label className="flex items-center justify-center gap-2 text-[9px] font-black uppercase py-1.5 rounded cursor-pointer border border-white/5 hover:bg-white/5 transition-all text-zinc-300">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={socialX} 
+                                                        onChange={(e) => setSocialX(e.target.checked)}
+                                                        className="accent-[#c5a059]"
+                                                    />
+                                                    X (Twitter)
+                                                </label>
                                             </div>
                                         </div>
 
@@ -1100,6 +1250,69 @@ const AntiAIWatermark: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* FRAMES TAB (New Options) */}
+                        {activeTab === 'frames' && (
+                            <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-2">Marco Estético</label>
+                                    <select 
+                                        value={frameStyle}
+                                        onChange={(e) => setFrameStyle(e.target.value as any)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white/80 outline-none focus:border-[#c5a059]"
+                                    >
+                                        <option value="none">Sin Marco</option>
+                                        <option value="cinematic">🎬 Formato Cine (Franjas Negras)</option>
+                                        <option value="luxury-gold">🏆 Doble Filete Dorado</option>
+                                        <option value="minimalist">🤍 Borde Blanco Minimalista</option>
+                                    </select>
+                                </div>
+
+                                {frameStyle !== 'none' && (
+                                    <div>
+                                        <div className="flex justify-between mb-1">
+                                            <label className="text-[10px] font-bold text-white/70">Opacidad del Marco</label>
+                                            <span className="text-[10px] text-[#c5a059]">{frameOpacity}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="20" max="100" 
+                                            value={frameOpacity}
+                                            onChange={(e) => setFrameOpacity(Number(e.target.value))}
+                                            className="w-full accent-[#c5a059]"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="border-t border-white/5 pt-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <label className="text-[10px] font-bold text-white/70">Efecto Viñeta (Bordes Oscuros)</label>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={vignetteEnabled} 
+                                            onChange={(e) => setVignetteEnabled(e.target.checked)}
+                                            className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                        />
+                                    </div>
+
+                                    {vignetteEnabled && (
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-bold text-white/70">Intensidad de Sombra</label>
+                                                <span className="text-[10px] text-[#c5a059]">{vignetteStrength}%</span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="10" max="90" 
+                                                value={vignetteStrength}
+                                                onChange={(e) => setVignetteStrength(Number(e.target.value))}
+                                                className="w-full accent-[#c5a059]"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
