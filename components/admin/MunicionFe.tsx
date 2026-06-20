@@ -192,18 +192,36 @@ const MunicionFe: React.FC = () => {
   };
 
   const handleDownload = async () => {
-    if (!previewRef.current) return;
+    const element = previewRef.current;
+    if (!element) return;
     setGenerating(true);
 
+    // Save original styles
+    const originalWidth = element.style.width;
+    const originalHeight = element.style.height;
+    const originalMaxWidth = element.style.maxWidth;
+
+    // Force absolute dimensions for clean high-res export (360px scaled by 3 = 1080px)
+    if (format === 'story') {
+      element.style.width = '360px';
+      element.style.height = '640px';
+      element.style.maxWidth = 'none';
+    } else {
+      element.style.width = '360px';
+      element.style.height = '360px';
+      element.style.maxWidth = 'none';
+    }
+
     try {
-      // Temporarily set scale for high-res download
-      const canvas = await html2canvas(previewRef.current, {
+      // Sleep 50ms to allow browser layout reflow
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const canvas = await html2canvas(element, {
         useCORS: true,
         allowTaint: true,
-        scale: 3, // High resolution scale
+        scale: 3, // 360 * 3 = 1080px (perfect resolution)
         backgroundColor: '#05070a',
-        width: format === 'story' ? 1080 : 1080,
-        height: format === 'story' ? 1920 : 1080
+        logging: false
       });
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -215,6 +233,10 @@ const MunicionFe: React.FC = () => {
       console.error('Error generating image:', error);
       alert('Error al generar la imagen. Inténtalo de nuevo.');
     } finally {
+      // Restore original styles
+      element.style.width = originalWidth;
+      element.style.height = originalHeight;
+      element.style.maxWidth = originalMaxWidth;
       setGenerating(false);
     }
   };

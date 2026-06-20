@@ -151,53 +151,68 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
   const [copied, setCopied] = useState(false);
   const [activeVersiculo, setActiveVersiculo] = useState<{ versiculo: string; cita: string } | null>(null);
   const [loadingVersiculo, setLoadingVersiculo] = useState(false);
+  const [verseHistory, setVerseHistory] = useState<string[]>([]);
 
   const fetchRandomVerseForState = async (stateKey: string) => {
     setLoadingVersiculo(true);
     const books = ESTADOS_LIBROS[stateKey];
     if (!books || books.length === 0) {
       const fallbackList = LOCAL_FALLBACKS[stateKey] || [];
-      if (fallbackList.length > 0) {
-        const rand = fallbackList[Math.floor(Math.random() * fallbackList.length)];
-        setActiveVersiculo(rand);
-      }
+      const availableFallbacks = fallbackList.filter(f => !verseHistory.includes(f.cita));
+      const chosenList = availableFallbacks.length > 0 ? availableFallbacks : fallbackList;
+      const rand = chosenList[Math.floor(Math.random() * chosenList.length)];
+      setActiveVersiculo(rand);
+      setVerseHistory(prev => [...prev.slice(-29), rand.cita]);
       setLoadingVersiculo(false);
       return;
     }
 
-    const randomBookKey = books[Math.floor(Math.random() * books.length)];
-    const bookData = LIBROS_DATOS[randomBookKey];
-    if (!bookData) {
-      setLoadingVersiculo(false);
-      return;
+    let attempts = 0;
+    let selectedVerseText = "";
+    let selectedCitation = "";
+    let success = false;
+
+    while (attempts < 5 && !success) {
+      attempts++;
+      const randomBookKey = books[Math.floor(Math.random() * books.length)];
+      const bookData = LIBROS_DATOS[randomBookKey];
+      if (!bookData) continue;
+
+      const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
+      const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
+          const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
+          const citationCandidate = `${bookData.prettyName.toUpperCase()} ${randomChapter}:${randomVerseObj.number}`;
+          
+          if (!verseHistory.includes(citationCandidate) || attempts === 5) {
+            selectedVerseText = randomVerseObj.verse;
+            selectedCitation = citationCandidate;
+            success = true;
+          }
+        }
+      } catch (error) {
+        console.warn(`Attempt ${attempts} failed:`, error);
+      }
     }
 
-    const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
-    const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("API error");
-      const data = await res.json();
-      if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
-        const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
-        setActiveVersiculo({
-          versiculo: randomVerseObj.verse,
-          cita: `${bookData.prettyName.toUpperCase()} ${randomChapter}:${randomVerseObj.number}`
-        });
-      } else {
-        throw new Error("No verses found");
-      }
-    } catch (error) {
-      console.warn("Error fetching verse from API, using local fallback:", error);
+    if (success) {
+      setActiveVersiculo({ versiculo: selectedVerseText, cita: selectedCitation });
+      setVerseHistory(prev => [...prev.slice(-29), selectedCitation]);
+    } else {
+      console.warn("Could not fetch a non-repeated verse from API, using fallback.");
       const fallbackList = LOCAL_FALLBACKS[stateKey] || [];
-      if (fallbackList.length > 0) {
-        const rand = fallbackList[Math.floor(Math.random() * fallbackList.length)];
-        setActiveVersiculo(rand);
-      }
-    } finally {
-      setLoadingVersiculo(false);
+      const availableFallbacks = fallbackList.filter(f => !verseHistory.includes(f.cita));
+      const chosenList = availableFallbacks.length > 0 ? availableFallbacks : fallbackList;
+      const rand = chosenList[Math.floor(Math.random() * chosenList.length)];
+      setActiveVersiculo(rand);
+      setVerseHistory(prev => [...prev.slice(-29), rand.cita]);
     }
+    setLoadingVersiculo(false);
   };
 
   const handleSelectEstado = (estado: EstadoCombate) => {
