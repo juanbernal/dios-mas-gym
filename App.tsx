@@ -205,12 +205,13 @@ const App: React.FC = () => {
   // Initial Data Fetch
   useEffect(() => {
     const init = async () => {
+      let cachedPosts: ContentPost[] = [];
       const cached = localStorage.getItem('dg_posts_cache');
       if (cached) {
         try {
-          const initialPosts = JSON.parse(cached);
-          if (initialPosts.length > 0) {
-            setState(prev => ({ ...prev, allPosts: initialPosts, loading: false }));
+          cachedPosts = JSON.parse(cached) || [];
+          if (cachedPosts.length > 0) {
+            setState(prev => ({ ...prev, allPosts: cachedPosts, loading: false }));
             setShowSplash(false);
           }
         } catch (e) { }
@@ -229,19 +230,38 @@ const App: React.FC = () => {
         }
 
         const posts = arsenalResult.posts;
-        
+        let finalPosts = posts;
+        let nextToken = arsenalResult.nextPageToken;
+        let needsSync = true;
+
+        if (cachedPosts.length > 0 && posts.length > 0) {
+          const matchIndex = posts.findIndex(p => p.id === cachedPosts[0].id);
+          if (matchIndex !== -1) {
+            // Overlap found! Merge new posts with cached posts, no background sync needed
+            const newPosts = posts.slice(0, matchIndex);
+            finalPosts = [...newPosts, ...cachedPosts];
+            needsSync = false;
+            nextToken = undefined;
+            localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
+            console.log(`🚀 Caching match found! Prepend ${newPosts.length} new posts. Total: ${finalPosts.length}. No sync needed.`);
+          }
+        } else if (posts.length > 0 && cachedPosts.length === 0) {
+          // If no cache, we will cache the first page immediately
+          localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
+        }
+
         setState(prev => ({ 
           ...prev, 
-          allPosts: posts, 
+          allPosts: finalPosts, 
           musicDiosmasgym: musicD,
           musicJuan614: musicJ,
           loading: false,
           error: null,
-          nextPageToken: arsenalResult.nextPageToken,
-          mainNextPageToken: arsenalResult.nextPageToken
+          nextPageToken: nextToken,
+          mainNextPageToken: needsSync ? nextToken : undefined
         }));
 
-        if (posts.length > 0) setRandomPosts(getRandomSample(posts, 3));
+        if (finalPosts.length > 0) setRandomPosts(getRandomSample(finalPosts, 3));
         if (musicD.length > 0) setRandomMusicSong(musicD[Math.floor(Math.random() * musicD.length)]);
         if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
@@ -268,6 +288,13 @@ const App: React.FC = () => {
                 result.posts.forEach(np => {
                    if (!combined.some(cp => cp.id === np.id)) combined.push(np);
                 });
+                
+                // If it is the last page, cache it
+                if (!result.nextPageToken) {
+                   localStorage.setItem('dg_posts_cache', JSON.stringify(combined));
+                   console.log(`🚀 Background sync finished! Cached all ${combined.length} posts.`);
+                }
+
                 return {
                    ...prev,
                    allPosts: combined,
@@ -279,7 +306,10 @@ const App: React.FC = () => {
              // Update random posts as more articles come in (gives a "live" feel)
              setRandomPosts(prev => getRandomSample([...state.allPosts], 3));
           } else {
-             setState(prev => ({ ...prev, mainNextPageToken: undefined }));
+             setState(prev => {
+                localStorage.setItem('dg_posts_cache', JSON.stringify(prev.allPosts));
+                return { ...prev, mainNextPageToken: undefined };
+             });
           }
        } catch (e) { } finally {
           syncLocked.current = false;
