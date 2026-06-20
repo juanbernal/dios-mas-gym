@@ -12,6 +12,16 @@ declare global {
   }
 }
 
+
+const HUDCorners = ({ color }: { color: string }) => (
+    <>
+        <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l pointer-events-none" style={{ borderColor: `${color}60` }}></div>
+        <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r pointer-events-none" style={{ borderColor: `${color}60` }}></div>
+        <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l pointer-events-none" style={{ borderColor: `${color}60` }}></div>
+        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r pointer-events-none" style={{ borderColor: `${color}60` }}></div>
+    </>
+);
+
 const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean, key?: any }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -125,41 +135,77 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     };
 
     const accentColor = isJuan ? '#c89d53' : '#c5a059';
+    const waveBarCount = 16;
+    const delays = [0.1, 0.4, 0.2, 0.6, 0.3, 0.8, 0.5, 0.2, 0.7, 0.4, 0.9, 0.3, 0.6, 0.1, 0.5, 0.8];
 
     return (
-        <div className={`w-full max-w-md mb-8 rounded-3xl p-4 border shadow-xl flex flex-col gap-4 relative overflow-hidden ${isJuan ? 'bg-[#2a221f] border-[#8B5A2B]/20' : 'bg-white/5 border-white/10 backdrop-blur-xl'}`}>
+        <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden ${isJuan ? 'bg-[#2a221f]/90 border-[#8B5A2B]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
             <div id={`yt-player-${videoId}`} className="hidden"></div>
             
-            {/* Background progress indicator pulse */}
-            {isPlaying && <div className="absolute inset-0 opacity-10 animate-pulse" style={{ backgroundColor: accentColor }}></div>}
-            
-            <div className="flex justify-between items-center relative z-10 px-2">
-                <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-2" style={{ color: accentColor }}>
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    Previa (60 Segundos)
+            <HUDCorners color={isJuan ? '#c89d53' : '#c5a059'} />
+
+            {/* scanline overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,6px_100%] pointer-events-none opacity-[0.07]"></div>
+
+            <div className="flex justify-between items-center relative z-10 px-1">
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: accentColor }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
+                    PREVIA DE AUDIO // TÁCTICO
                 </span>
-                <span className={`text-[8px] uppercase tracking-widest ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
-                    Escucha un fragmento
+                <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
+                    {Math.floor(progress * 0.6)}s / 60s
                 </span>
             </div>
 
             <div className="flex items-center gap-4 relative z-10">
-                <button onClick={togglePlay} className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform" style={{ backgroundColor: accentColor }}>
-                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-black text-xl ${!isPlaying ? 'ml-1' : ''}`}></i>
+                <button 
+                    onClick={togglePlay} 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group"
+                    style={{ 
+                        backgroundColor: 'transparent',
+                        borderColor: `${accentColor}80`,
+                        color: accentColor,
+                        boxShadow: `0 0 10px ${accentColor}20`
+                    }}
+                >
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} group-hover:scale-110 transition-transform ${!isPlaying ? 'ml-0.5' : ''}`}></i>
                 </button>
-                <div className="flex-1 pr-2">
-                    <div className={`flex justify-between text-[9px] font-black uppercase tracking-widest mb-3 ${isJuan ? 'text-[#e8dcc5]/70' : 'text-white/70'}`}>
-                        <span>{isPlaying ? 'Reproduciendo...' : 'Listo para escuchar'}</span>
-                        <span className="font-mono">{Math.floor(progress * 0.6)}s / 60s</span>
+                <div className="flex-1 pr-1 text-left">
+                    <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#e8dcc5]/60' : 'text-white/60'}`}>
+                        <span>{isPlaying ? 'SEÑAL ACTIVA' : 'SISTEMA LISTO'}</span>
+                        <span className="font-mono">{isPlaying ? 'TRANSMITIENDO...' : 'STANDBY'}</span>
                     </div>
-                    <div className={`w-full h-2 rounded-full overflow-hidden ${isJuan ? 'bg-black/30' : 'bg-white/10'}`}>
-                        <div className="h-full transition-all duration-1000 ease-linear rounded-full" style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: accentColor }}></div>
-                    </div>
+                </div>
+            </div>
+
+            <div className="mt-1">
+                <div className="flex items-end justify-between h-9 w-full relative z-10 px-1">
+                    {Array.from({ length: waveBarCount }).map((_, idx) => {
+                        const delay = delays[idx % delays.length];
+                        const duration = 0.5 + Math.sin(idx + 1) * 0.2 + 0.5; // ~0.6s to ~1.2s
+                        const isActive = (progress / 100) >= (idx / waveBarCount);
+                        
+                        return (
+                            <div 
+                                key={idx}
+                                className="w-[4%] rounded-full transition-all duration-300"
+                                style={{
+                                    backgroundColor: accentColor,
+                                    opacity: isActive ? 1 : 0.25,
+                                    animation: isPlaying ? `wave-bounce ${duration}s ease-in-out infinite alternate` : 'none',
+                                    animationDelay: `${delay}s`,
+                                    height: isPlaying ? undefined : '5px',
+                                    boxShadow: isActive ? `0 0 8px ${accentColor}` : 'none',
+                                }}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </div>
     );
 };
+
 
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
@@ -396,9 +442,34 @@ const SmartLinkView: React.FC = () => {
     if (!isJuan) {
         return (
             <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] flex flex-col relative overflow-hidden">
+                <style>{`
+                  @keyframes wave-bounce {
+                    0%, 100% {
+                      height: 5px;
+                    }
+                    50% {
+                      height: 32px;
+                    }
+                  }
+                  @keyframes float-slow-orb {
+                    0%, 100% {
+                      transform: translate(0px, 0px) scale(1);
+                    }
+                    33% {
+                      transform: translate(40px, -60px) scale(1.1);
+                    }
+                    66% {
+                      transform: translate(-30px, 30px) scale(0.95);
+                    }
+                  }
+                  .animate-float-slow {
+                    animation: float-slow-orb 18s ease-in-out infinite;
+                  }
+                `}</style>
+
                 {/* Dynamic Gold Glowing Orbs (Premium background effect) */}
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c5a059]/10 rounded-full blur-[130px] animate-pulse pointer-events-none"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8c6b32]/10 rounded-full blur-[130px] animate-pulse pointer-events-none" style={{ animationDelay: '2.5s' }}></div>
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c5a059]/8 rounded-full blur-[120px] animate-float-slow pointer-events-none"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8c6b32]/8 rounded-full blur-[120px] animate-float-slow pointer-events-none" style={{ animationDelay: '5s' }}></div>
 
                 {/* Background Blur */}
                 <div 
@@ -411,17 +482,35 @@ const SmartLinkView: React.FC = () => {
                     
                     {/* LEFT COLUMN: Art & Player */}
                     <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
-                        <div className="relative group mb-4 md:mb-8">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-3xl blur opacity-35 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                            <img 
-                                src={song.cover} 
-                                alt={song.name} 
-                                className="relative w-40 h-40 md:w-80 md:h-80 object-cover rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#c5a059]/20 transition-transform duration-500 group-hover:scale-[1.03]"
-                            />
+                        <div className="relative group mb-4 md:mb-8 p-1">
+                            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-[32px] blur-md opacity-25 group-hover:opacity-60 transition duration-700 animate-pulse pointer-events-none"></div>
+                            <div className="relative w-40 h-40 md:w-80 md:h-80 overflow-hidden rounded-3xl border border-[#c5a059]/25 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                                <img 
+                                    src={song.cover} 
+                                    alt={song.name} 
+                                    className="w-full h-full object-cover"
+                                />
+                                <HUDCorners color="#c5a059" />
+                            </div>
                         </div>
                         
                         <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] font-bold px-2 tracking-wide">{song.name}</h1>
-                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8 text-center">{song.artist}</p>
+                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-6 text-center">{song.artist}</p>
+
+                        {/* Audio Tech Specs HUD */}
+                        <div className="w-full max-w-sm border border-white/5 bg-black/40 rounded-xl p-3 mb-6 relative overflow-hidden text-left font-mono">
+                            <div className="absolute top-0 right-2 text-[6px] text-white/20 tracking-wider">SYSTEM LOG v5.0.4</div>
+                            <div className="text-[7.5px] text-[#c5a059]/80 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
+                                <span>ESPECIFICACIONES DE AUDIO</span>
+                                <span className="text-green-500 animate-pulse">SISTEMA ACTIVO</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[7px] text-white/50 uppercase tracking-wider font-semibold">
+                                <div>FORMATO: <span className="text-white font-bold">24-BIT LOSSLESS</span></div>
+                                <div>SEÑAL: <span className="text-white font-bold">HD / STREAMING</span></div>
+                                <div>MUESTREO: <span className="text-white font-bold">48.0 KHZ</span></div>
+                                <div>CODEC: <span className="text-white font-bold">AAC / FLAC</span></div>
+                            </div>
+                        </div>
 
                         {embedData?.type === 'youtube' && (
                             <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
@@ -451,21 +540,22 @@ const SmartLinkView: React.FC = () => {
 
                     {/* RIGHT COLUMN: Links & Social */}
                     <div className="flex flex-col items-center w-full max-w-md">
-                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(197,160,89,0.15)] transition-all hover:border-[#c5a059]/30 duration-500">
+                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(197,160,89,0.15)] transition-all hover:border-[#c5a059]/30 duration-500 overflow-hidden">
+                            <HUDCorners color="#c5a059" />
                             <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
                                 <div className="bg-[#c5a059] text-black text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(197,160,89,0.5)] flex items-center gap-2 font-bold">
                                     ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
-                                <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
-                                <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
-                                <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
-                                <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
-                                <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
-                                <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
-                                <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c5a059" url="https://musica.diosmasgym.com/" />
+                            <div className="flex flex-col gap-3">
+                                <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
+                                <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
+                                <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
+                                <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={false} />
+                                <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={false} />
+                                <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={false} />
+                                <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={false} />
+                                <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c5a059" url="https://musica.diosmasgym.com/" isJuan={false} />
                             </div>
 
                             {/* SECCIÓN COMPARTIR (DGM) */}
@@ -632,9 +722,34 @@ const SmartLinkView: React.FC = () => {
     // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
     return (
         <div className="min-h-screen bg-[#1a1412] text-[#e8dcc5] font-['Poppins'] flex flex-col relative overflow-hidden">
+            <style>{`
+              @keyframes wave-bounce {
+                0%, 100% {
+                  height: 5px;
+                }
+                50% {
+                  height: 32px;
+                }
+              }
+              @keyframes float-slow-orb {
+                0%, 100% {
+                  transform: translate(0px, 0px) scale(1);
+                }
+                33% {
+                  transform: translate(40px, -60px) scale(1.1);
+                }
+                66% {
+                  transform: translate(-30px, 30px) scale(0.95);
+                }
+              }
+              .animate-float-slow {
+                animation: float-slow-orb 18s ease-in-out infinite;
+              }
+            `}</style>
+
             {/* Dynamic Earthy/Bronze Glowing Orbs (Acoustic feel) */}
-            <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-[#c89d53]/5 rounded-full blur-[140px] animate-pulse pointer-events-none"></div>
-            <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-[#8B5A2B]/5 rounded-full blur-[140px] animate-pulse pointer-events-none" style={{ animationDelay: '3s' }}></div>
+            <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-[#c89d53]/6 rounded-full blur-[130px] animate-float-slow pointer-events-none"></div>
+            <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-[#8B5A2B]/6 rounded-full blur-[130px] animate-float-slow pointer-events-none" style={{ animationDelay: '5s' }}></div>
 
             {/* Background Blur basado en portada */}
             <div 
@@ -648,18 +763,37 @@ const SmartLinkView: React.FC = () => {
                 
                 {/* LEFT COLUMN: Art & Player */}
                 <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
-                    <div className="relative mb-4 md:mb-8 group">
-                        <img 
-                            src={song.cover} 
-                            alt={song.name} 
-                            className="w-40 h-40 md:w-80 md:h-80 object-cover rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-10 relative group-hover:scale-105 transition-transform duration-500 border border-[#c89d53]/15"
-                        />
+                    <div className="relative mb-4 md:mb-8 group p-1">
+                        <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c89d53] to-[#8B5A2B] rounded-[24px] blur-md opacity-20 group-hover:opacity-50 transition duration-700 animate-pulse pointer-events-none"></div>
+                        <div className="relative w-40 h-40 md:w-80 md:h-80 overflow-hidden rounded-2xl border border-[#c89d53]/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                            <img 
+                                src={song.cover} 
+                                alt={song.name} 
+                                className="w-full h-full object-cover"
+                            />
+                            <HUDCorners color="#c89d53" />
+                        </div>
                         {/* Elemento de diseño de fondo */}
-                        <div className="absolute -inset-4 border-2 border-[#8B5A2B] opacity-30 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500"></div>
+                        <div className="absolute -inset-4 border border-[#8B5A2B]/30 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500 pointer-events-none"></div>
                     </div>
                     
                     <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2 drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)]">{song.name}</h1>
-                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-8 text-center">{song.artist}</p>
+                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-6 text-center">{song.artist}</p>
+
+                    {/* Audio Tech Specs HUD (Juan style) */}
+                    <div className="w-full max-w-sm border border-[#8B5A2B]/10 bg-[#2a221f]/40 rounded-xl p-3 mb-6 relative overflow-hidden text-left font-mono">
+                        <div className="absolute top-0 right-2 text-[6px] text-[#e8dcc5]/20 tracking-wider">SYSTEM LOG v5.0.4</div>
+                        <div className="text-[7.5px] text-[#c89d53]/80 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
+                            <span>ESPECIFICACIONES DE AUDIO</span>
+                            <span className="text-green-500 animate-pulse">SISTEMA ACTIVO</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[7px] text-[#e8dcc5]/50 uppercase tracking-wider font-semibold">
+                            <div>FORMATO: <span className="text-[#e8dcc5] font-bold">24-BIT LOSSLESS</span></div>
+                            <div>SEÑAL: <span className="text-[#e8dcc5] font-bold">HD / STREAMING</span></div>
+                            <div>MUESTREO: <span className="text-[#e8dcc5] font-bold">48.0 KHZ</span></div>
+                            <div>CODEC: <span className="text-[#e8dcc5] font-bold">AAC / FLAC</span></div>
+                        </div>
+                    </div>
 
                     {embedData?.type === 'youtube' && (
                         <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
@@ -689,21 +823,22 @@ const SmartLinkView: React.FC = () => {
 
                 {/* RIGHT COLUMN: Links & Social */}
                 <div className="flex flex-col items-center w-full max-w-md">
-                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c89d53]/25 shadow-[0_30px_70px_rgba(139,90,43,0.18)] transition-all hover:border-[#c89d53]/40 duration-500">
+                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c89d53]/25 shadow-[0_30px_70px_rgba(139,90,43,0.18)] transition-all hover:border-[#c89d53]/40 duration-500 overflow-hidden">
+                        <HUDCorners color="#c89d53" />
                         <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
                             <div className="bg-[#c89d53] text-[#1a1412] text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(200,157,83,0.4)] flex items-center gap-2 font-bold">
                                 ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 md:gap-3">
-                            <PlatformButton light={false} platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} />
-                            <PlatformButton light={false} platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} />
-                            <PlatformButton light={false} platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} />
-                            <PlatformButton light={false} platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} />
-                            <PlatformButton light={false} platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} />
-                            <PlatformButton light={false} platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} />
-                            <PlatformButton light={false} platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} />
-                            <PlatformButton light={false} platform="Sitio Web Oficial" icon="fas fa-globe" color="#c89d53" url="https://juan614.diosmasgym.com/" />
+                        <div className="flex flex-col gap-3">
+                            <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
+                            <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
+                            <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
+                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={true} />
+                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={true} />
+                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={true} />
+                            <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} />
+                            <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c89d53" url="https://juan614.diosmasgym.com/" isJuan={true} />
                         </div>
 
                         {/* SECCIÓN COMPARTIR (JUAN 614) */}
@@ -772,10 +907,15 @@ const SmartLinkView: React.FC = () => {
                                             className="w-full flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <span className="text-[10px] font-mono text-[#c89d53]/30">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                <div className="w-5 h-5 flex items-center justify-center relative font-mono text-[10px]">
+                                                    <span className="absolute transition-opacity duration-300 opacity-100 group-hover:opacity-0 text-[#c89d53]/30">
+                                                        {i + 1 < 10 ? `0${i + 1}` : i + 1}
+                                                    </span>
+                                                    <i className="fas fa-play absolute transition-opacity duration-300 opacity-0 group-hover:opacity-100 text-[#c89d53] text-[8px]"></i>
+                                                </div>
                                                 <span className="text-xs font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
                                             </div>
-                                            <i className="fas fa-play text-[8px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
+                                            <i className="fas fa-chevron-right text-[10px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
                                         </button>
                                     ))}
                                 </div>
@@ -867,19 +1007,82 @@ const SmartLinkView: React.FC = () => {
     );
 };
 
-const PlatformButton = ({ platform, icon, color, url, light }: { platform: string, icon: string, color: string, url: string, light?: boolean }) => {
-    const isDarkBg = platform === 'Tidal' && !light;
+const PlatformButton = ({ platform, icon, color, url, isJuan }: { platform: string, icon: string, color: string, url: string, isJuan: boolean }) => {
+    const accentColor = isJuan ? '#c89d53' : '#c5a059';
+    
+    let subtitle = "Escuchar canción";
+    let actionText = "Escuchar";
+    
+    if (platform.toLowerCase().includes('youtube')) {
+        subtitle = "Ver video oficial";
+        actionText = "Ver";
+    } else if (platform.toLowerCase().includes('sitio web')) {
+        subtitle = "Visitar portal";
+        actionText = "Entrar";
+    } else if (platform.toLowerCase().includes('apple')) {
+        subtitle = "Escuchar en alta fidelidad";
+    } else if (platform.toLowerCase().includes('amazon')) {
+        subtitle = "Escuchar en HD";
+    } else if (platform.toLowerCase().includes('deezer')) {
+        subtitle = "Escuchar en Deezer";
+    } else if (platform.toLowerCase().includes('audiomack')) {
+        subtitle = "Escuchar gratis";
+    } else if (platform.toLowerCase().includes('tidal')) {
+        subtitle = "Escuchar audio HiFi";
+    }
+
+    const ctaClass = isJuan 
+        ? "group-hover:bg-[#c89d53] group-hover:text-black group-hover:border-[#c89d53] group-hover:shadow-[0_0_12px_rgba(200,157,83,0.4)]"
+        : "group-hover:bg-[#c5a059] group-hover:text-black group-hover:border-[#c5a059] group-hover:shadow-[0_0_15px_rgba(197,160,89,0.5)]";
+
     return (
         <a 
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-full p-2.5 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 ${light ? 'bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200' : (isDarkBg ? 'bg-black border border-white/20 shadow-lg' : 'bg-white/5 border border-white/10 hover:bg-white/10')}`}
+            className={`w-full p-3 rounded-2xl flex items-center justify-between transition-all duration-300 group border relative overflow-hidden ${
+                isJuan 
+                ? 'bg-[#2a221f]/40 border-[#8B5A2B]/20 hover:border-[#c89d53]/50 hover:bg-[#2a221f]/70' 
+                : 'bg-black/30 border-white/5 hover:border-[#c5a059]/40 hover:bg-black/60'
+            }`}
         >
-            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-inner ${light ? 'bg-gray-50' : 'bg-black/20'}`} style={{ color }}>
-                <i className={`${icon} text-xl md:text-3xl drop-shadow-md`}></i>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300" style={{ backgroundColor: color }}></div>
+
+            <div className="flex items-center gap-4 relative z-10">
+                <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0"
+                    style={{ 
+                        backgroundColor: `${color}15`, 
+                        border: `1px solid ${color}30`,
+                        color: color 
+                    }}
+                >
+                    <i className={`${icon} text-lg md:text-xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></i>
+                </div>
+                
+                <div className="text-left">
+                    <h4 className={`text-xs md:text-sm font-bold tracking-wide ${isJuan ? 'text-[#e8dcc5]' : 'text-white'}`}>
+                        {platform}
+                    </h4>
+                    <p className={`text-[8px] md:text-[9px] uppercase tracking-wider font-semibold ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
+                        {subtitle}
+                    </p>
+                </div>
             </div>
-            <span className={`font-bold tracking-wide text-[8px] md:text-[10px] uppercase ${light ? 'text-gray-800' : 'text-white'}`}>{platform}</span>
+
+            <div className="relative z-10 shrink-0">
+                <span 
+                    className={`px-3 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all duration-300 border font-mono block ${ctaClass}`}
+                    style={{
+                        backgroundColor: 'transparent',
+                        borderColor: `${accentColor}30`,
+                        color: accentColor,
+                        boxShadow: `0 0 0px ${accentColor}`,
+                    }}
+                >
+                    {actionText}
+                </span>
+            </div>
         </a>
     );
 };
