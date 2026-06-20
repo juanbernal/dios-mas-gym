@@ -60,9 +60,151 @@ const ESTADOS: EstadoCombate[] = [
   }
 ];
 
+
+const LIBROS_DATOS: Record<string, { apiName: string; prettyName: string; chapters: number }> = {
+  genesis: { apiName: "genesis", prettyName: "Génesis", chapters: 50 },
+  josue: { apiName: "josue", prettyName: "Josué", chapters: 24 },
+  salmos: { apiName: "salmos", prettyName: "Salmos", chapters: 150 },
+  proverbios: { apiName: "proverbios", prettyName: "Proverbios", chapters: 31 },
+  isaias: { apiName: "isaias", prettyName: "Isaías", chapters: 66 },
+  romanos: { apiName: "romanos", prettyName: "Romanos", chapters: 16 },
+  "1-corintios": { apiName: "1-corintios", prettyName: "1 Corintios", chapters: 16 },
+  "2-corintios": { apiName: "2-corintios", prettyName: "2 Corintios", chapters: 13 },
+  efesios: { apiName: "efesios", prettyName: "Efesios", chapters: 6 },
+  filipenses: { apiName: "filipenses", prettyName: "Filipenses", chapters: 4 },
+  "1-pedro": { apiName: "1-pedro", prettyName: "1 Pedro", chapters: 5 },
+  "2-pedro": { apiName: "2-pedro", prettyName: "2 Pedro", chapters: 3 },
+  "1-juan": { apiName: "1-juan", prettyName: "1 Juan", chapters: 5 },
+  santiago: { apiName: "santiago", prettyName: "Santiago", chapters: 5 },
+  hebreos: { apiName: "hebreos", prettyName: "Hebreos", chapters: 13 },
+  apocalipsis: { apiName: "apocalipsis", prettyName: "Apocalipsis", chapters: 22 }
+};
+
+const ESTADOS_LIBROS: Record<string, string[]> = {
+  bajo_fuego: ["salmos", "isaias", "santiago", "1-pedro", "hebreos"],
+  fuerza_maxima: ["proverbios", "josue", "1-corintios", "filipenses", "efesios"],
+  escudo_fe: ["salmos", "romanos", "1-juan", "2-corintios"],
+  victoria: ["salmos", "romanos", "1-corintios", "apocalipsis"]
+};
+
+const LOCAL_FALLBACKS: Record<string, { versiculo: string; cita: string }[]> = {
+  bajo_fuego: [
+    {
+      versiculo: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo; siempre te ayudaré, siempre te sustentaré con la diestra de mi justicia.",
+      cita: "ISAÍAS 41:10"
+    },
+    {
+      versiculo: "Jehová es mi luz y mi salvación; ¿de quién temeré? Jehová es la fortaleza de mi vida; ¿de quién he de atemorizarme?",
+      cita: "SALMOS 27:1"
+    },
+    {
+      versiculo: "El que habita al abrigo del Altísimo morará bajo la sombra del Omnipotente.",
+      cita: "SALMOS 91:1"
+    }
+  ],
+  fuerza_maxima: [
+    {
+      versiculo: "Todo lo puedo en Cristo que me fortalece.",
+      cita: "FILIPENSES 4:13"
+    },
+    {
+      versiculo: "El hierro con hierro se afila, y el hombre con el rostro de su amigo se afila.",
+      cita: "PROVERBIOS 27:17"
+    },
+    {
+      versiculo: "Dios es el que me ciñe de fuerza, y hace perfecto mi camino.",
+      cita: "SALMOS 18:32"
+    }
+  ],
+  escudo_fe: [
+    {
+      versiculo: "Por nada estéis afanosos, sino sean conocidas vuestras peticiones delante de Dios en toda oración y ruego, con acción de gracias.",
+      cita: "FILIPENSES 4:6"
+    },
+    {
+      versiculo: "Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia.",
+      cita: "PROVERBIOS 3:5"
+    },
+    {
+      versiculo: "Echando toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros.",
+      cita: "1 PEDRO 5:7"
+    }
+  ],
+  victoria: [
+    {
+      versiculo: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.",
+      cita: "JOSUÉ 1:9"
+    },
+    {
+      versiculo: "Mas gracias sean dadas a Dios, que nos da la victoria por medio de nuestro Señor Jesucristo.",
+      cita: "1 CORINTIOS 15:57"
+    },
+    {
+      versiculo: "Antes, en todas estas cosas somos más que vencedores por medio de aquel que nos amó.",
+      cita: "ROMANOS 8:37"
+    }
+  ]
+};
+
 const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) => {
   const [selectedEstado, setSelectedEstado] = useState<EstadoCombate | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeVersiculo, setActiveVersiculo] = useState<{ versiculo: string; cita: string } | null>(null);
+  const [loadingVersiculo, setLoadingVersiculo] = useState(false);
+
+  const fetchRandomVerseForState = async (stateKey: string) => {
+    setLoadingVersiculo(true);
+    const books = ESTADOS_LIBROS[stateKey];
+    if (!books || books.length === 0) {
+      const fallbackList = LOCAL_FALLBACKS[stateKey] || [];
+      if (fallbackList.length > 0) {
+        const rand = fallbackList[Math.floor(Math.random() * fallbackList.length)];
+        setActiveVersiculo(rand);
+      }
+      setLoadingVersiculo(false);
+      return;
+    }
+
+    const randomBookKey = books[Math.floor(Math.random() * books.length)];
+    const bookData = LIBROS_DATOS[randomBookKey];
+    if (!bookData) {
+      setLoadingVersiculo(false);
+      return;
+    }
+
+    const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
+    const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
+        const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
+        setActiveVersiculo({
+          versiculo: randomVerseObj.verse,
+          cita: `${bookData.prettyName.toUpperCase()} ${randomChapter}:${randomVerseObj.number}`
+        });
+      } else {
+        throw new Error("No verses found");
+      }
+    } catch (error) {
+      console.warn("Error fetching verse from API, using local fallback:", error);
+      const fallbackList = LOCAL_FALLBACKS[stateKey] || [];
+      if (fallbackList.length > 0) {
+        const rand = fallbackList[Math.floor(Math.random() * fallbackList.length)];
+        setActiveVersiculo(rand);
+      }
+    } finally {
+      setLoadingVersiculo(false);
+    }
+  };
+
+  const handleSelectEstado = (estado: EstadoCombate) => {
+    setSelectedEstado(estado);
+    fetchRandomVerseForState(estado.key);
+  };
+
 
   const getRecommendedSong = (stateKey: string): MusicItem | null => {
     if (!catalog || catalog.length === 0) return null;
@@ -118,7 +260,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
           {ESTADOS.map((estado) => (
             <button
               key={estado.key}
-              onClick={() => setSelectedEstado(estado)}
+              onClick={() => handleSelectEstado(estado)}
               className="bg-[#0f111a]/60 backdrop-blur-md border border-white/5 rounded-[2rem] p-6 text-left hover:border-[#c5a059]/40 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
             >
               <div 
@@ -168,18 +310,38 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
 
               <div className="bg-black/35 rounded-3xl p-6 border border-white/5 relative group">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]/60 mb-3">Versículo de Cobertura</p>
-                <p className="font-serif italic text-lg text-white leading-relaxed mb-4">
-                  "{selectedEstado.versiculo}"
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black tracking-widest text-white/40">{selectedEstado.cita}</span>
-                  <button
-                    onClick={() => handleCopy(`"${selectedEstado.versiculo}" - ${selectedEstado.cita}`)}
-                    className="text-[8px] font-black uppercase tracking-wider text-[#c5a059] hover:text-white transition-colors flex items-center gap-1.5"
-                  >
-                    <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`}></i>
-                    {copied ? 'Copiado' : 'Copiar Versículo'}
-                  </button>
+                {loadingVersiculo ? (
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <i className="fas fa-spinner fa-spin text-[#c5a059] text-2xl mb-2"></i>
+                    <p className="text-[10px] text-white/30 font-black uppercase tracking-widest animate-pulse">Cargando munición de fe...</p>
+                  </div>
+                ) : (
+                  <p className="font-serif italic text-lg text-white leading-relaxed mb-4">
+                    "{activeVersiculo?.versiculo}"
+                  </p>
+                )}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <span className="text-[9px] font-black tracking-widest text-white/40">
+                    {loadingVersiculo ? 'Buscando cita...' : activeVersiculo?.cita}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => fetchRandomVerseForState(selectedEstado.key)}
+                      disabled={loadingVersiculo}
+                      className="text-[8px] font-black uppercase tracking-wider text-white/60 hover:text-[#c5a059] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <i className={`fas fa-dice ${loadingVersiculo ? 'fa-spin' : ''}`}></i>
+                      {loadingVersiculo ? 'Buscando...' : 'Otro Versículo'}
+                    </button>
+                    <button
+                      onClick={() => activeVersiculo && handleCopy(`"${activeVersiculo.versiculo}" - ${activeVersiculo.cita}`)}
+                      disabled={loadingVersiculo || !activeVersiculo}
+                      className="text-[8px] font-black uppercase tracking-wider text-[#c5a059] hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`}></i>
+                      {copied ? 'Copiado' : 'Copiar Versículo'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

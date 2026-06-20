@@ -43,8 +43,75 @@ const VERSICULOS_PREDEFINIDOS: VersiculoPredefinido[] = [
     versiculo: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio.",
     cita: "2 TIMOTEO 1:7",
     categoria: "Valentía"
+  },
+  {
+    versiculo: "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán.",
+    cita: "ISAÍAS 40:31",
+    categoria: "Fortaleza"
+  },
+  {
+    versiculo: "Él da esfuerzo al cansado, y multiplica las fuerzas al que no tiene ningunas.",
+    cita: "ISAÍAS 40:29",
+    categoria: "Fortaleza"
+  },
+  {
+    versiculo: "Dios es el que me ciñe de fuerza, y hace perfecto mi camino.",
+    cita: "SALMOS 18:32",
+    categoria: "Fuerza / Fe"
+  },
+  {
+    versiculo: "Por nada estéis afanosos, sino sean conocidas vuestras peticiones delante de Dios en toda oración y ruego, con acción de gracias.",
+    cita: "FILIPENSES 4:6",
+    categoria: "Paz"
+  },
+  {
+    versiculo: "Sino que golpeo mi cuerpo, y lo pongo en servidumbre, no sea que habiendo sido heraldo para otros, yo mismo venga a ser eliminado.",
+    cita: "1 CORINTIOS 9:27",
+    categoria: "Disciplina"
+  },
+  {
+    versiculo: "Mas gracias sean dadas a Dios, que nos da la victoria por medio de nuestro Señor Jesucristo.",
+    cita: "1 CORINTIOS 15:57",
+    categoria: "Victoria"
+  },
+  {
+    versiculo: "Antes, en todas estas cosas somos más que vencedores por medio de aquel que nos amó.",
+    cita: "ROMANOS 8:37",
+    categoria: "Victoria"
+  },
+  {
+    versiculo: "Echando toda vuestra ansiedad sobre él, porque él tiene cuidado de vosotros.",
+    cita: "1 PEDRO 5:7",
+    categoria: "Paz"
   }
 ];
+
+interface ParsedReference {
+  book: string;
+  chapter: number;
+  verse: number;
+}
+
+const parseReference = (ref: string): ParsedReference | null => {
+  const cleaned = ref.trim();
+  const regex = /^((?:\d+\s+)?[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s-]+?)\s+(\d+):(\d+)$/;
+  const match = cleaned.match(regex);
+  if (!match) return null;
+
+  return {
+    book: match[1].trim(),
+    chapter: parseInt(match[2], 10),
+    verse: parseInt(match[3], 10)
+  };
+};
+
+const getAPIBookName = (book: string): string => {
+  return book
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .toLowerCase();
+};
 
 const FONDO_ESTILOS = [
   { id: 'carbon', name: '🖤 Negro Carbón', bgClass: 'bg-[#05070a]' },
@@ -57,9 +124,11 @@ const FONDO_ESTILOS = [
 const MunicionFe: React.FC = () => {
   const navigate = useNavigate();
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  const initialIndex = useRef(Math.floor(Math.random() * VERSICULOS_PREDEFINIDOS.length));
 
-  const [texto, setTexto] = useState(VERSICULOS_PREDEFINIDOS[0].versiculo);
-  const [cita, setCita] = useState(VERSICULOS_PREDEFINIDOS[0].cita);
+  const [texto, setTexto] = useState(VERSICULOS_PREDEFINIDOS[initialIndex.current].versiculo);
+  const [cita, setCita] = useState(VERSICULOS_PREDEFINIDOS[initialIndex.current].cita);
   const [styleFondo, setStyleFondo] = useState(FONDO_ESTILOS[0]);
   const [format, setFormat] = useState<'story' | 'post'>('story');
   const [colorAccent, setColorAccent] = useState('#c5a059'); // Gold
@@ -71,6 +140,55 @@ const MunicionFe: React.FC = () => {
   const handleSelectPredefinido = (v: VersiculoPredefinido) => {
     setTexto(v.versiculo);
     setCita(v.cita);
+  };
+
+  const [loadingBible, setLoadingBible] = useState(false);
+
+  const handleFetchFromBible = async () => {
+    if (!cita || !cita.trim()) {
+      alert("Por favor, escribe una cita en el campo 'Cita / Autor' (ej. Josué 1:9, Filipenses 4:13).");
+      return;
+    }
+
+    setLoadingBible(true);
+    try {
+      const parsed = parseReference(cita);
+      if (!parsed) {
+        throw new Error("Formato de cita no reconocido. Usa el formato 'Libro Capítulo:Versículo' (ej: Josue 1:9 o 1 Corintios 9:27).");
+      }
+
+      const apiBook = getAPIBookName(parsed.book);
+      const url = `https://bible-api.deno.dev/api/read/rv1960/${apiBook}/${parsed.chapter}`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error("No se pudo conectar con la API de la Biblia o el libro/capítulo es inválido.");
+      }
+
+      const data = await res.json();
+      if (!data.vers || !Array.isArray(data.vers)) {
+        throw new Error("Respuesta de la API inválida.");
+      }
+
+      const verseObj = data.vers.find((v: any) => v.number === parsed.verse);
+      if (!verseObj) {
+        throw new Error(`No se encontró el versículo ${parsed.verse} en el capítulo ${parsed.chapter}.`);
+      }
+
+      setTexto(verseObj.verse);
+      setCita(cita.toUpperCase().trim());
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error al buscar el versículo.");
+    } finally {
+      setLoadingBible(false);
+    }
+  };
+
+  const handleRandomPredefinido = () => {
+    const rand = VERSICULOS_PREDEFINIDOS[Math.floor(Math.random() * VERSICULOS_PREDEFINIDOS.length)];
+    setTexto(rand.versiculo);
+    setCita(rand.cita);
   };
 
   const handleDownload = async () => {
@@ -130,9 +248,17 @@ const MunicionFe: React.FC = () => {
             <div className="flex flex-col gap-3">
               <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Biblioteca de Munición Rápida</label>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                <button
+                  type="button"
+                  onClick={handleRandomPredefinido}
+                  className="shrink-0 px-4 py-2.5 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/30 text-[9px] font-black uppercase tracking-wider hover:border-[#c5a059] hover:bg-[#c5a059]/20 transition-all text-[#c5a059]"
+                >
+                  🎲 Aleatorio
+                </button>
                 {VERSICULOS_PREDEFINIDOS.map((v, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => handleSelectPredefinido(v)}
                     className="shrink-0 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-wider hover:border-[#c5a059]/40 hover:bg-[#c5a059]/10 transition-all text-white/80 hover:text-white"
                   >
@@ -161,13 +287,29 @@ const MunicionFe: React.FC = () => {
             {/* Cita Reference Input */}
             <div className="flex flex-col gap-2">
               <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Cita / Autor</label>
-              <input
-                type="text"
-                value={cita}
-                onChange={e => setCita(e.target.value)}
-                className="w-full bg-[#05070a] border border-white/10 rounded-2xl px-5 py-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors"
-                placeholder="Ej: JOSUÉ 1:9 o DIOS MAS GYM"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cita}
+                  onChange={e => setCita(e.target.value)}
+                  className="flex-1 bg-[#05070a] border border-white/10 rounded-2xl px-5 py-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors"
+                  placeholder="Ej: JOSUÉ 1:9 o DIOS MAS GYM"
+                />
+                <button
+                  type="button"
+                  onClick={handleFetchFromBible}
+                  disabled={loadingBible}
+                  className="px-4 rounded-2xl bg-[#c5a059]/10 border border-[#c5a059]/30 hover:border-[#c5a059] text-[#c5a059] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  title="Cargar texto desde la Biblia Reina Valera 1960"
+                >
+                  {loadingBible ? (
+                    <i className="fas fa-spinner fa-spin"></i>
+                  ) : (
+                    <i className="fas fa-cloud-arrow-down"></i>
+                  )}
+                  {loadingBible ? "Buscando..." : "Cargar Biblia"}
+                </button>
+              </div>
             </div>
 
             {/* Grid settings */}
