@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import fs from "fs";
 import https from "https";
 import http from "http";
+import arsenalHandler from "./api/arsenal.ts";
+import commonHandler from "./api/common.ts";
 
 dotenv.config({ path: ".env.local" });
 
@@ -24,98 +26,28 @@ async function startServer() {
     next();
   });
 
-  // API route to proxy the Blogger API v3 (Secure)
-  app.get("/api/arsenal", async (req, res) => {
-    try {
-      const blogId = "5031959192789589903";
-      const apiKey = process.env.BLOGGER_API_KEY;
-      
-      if (!apiKey) {
-        console.error("CRITICAL: BLOGGER_API_KEY is not defined in environment variables.");
-        return res.status(500).json({ error: "BLOGGER_API_KEY not configured on server" });
-      }
+  // Proxy to Vercel API Handlers for local development compatibility
+  app.all("/api/arsenal", (req, res) => {
+    arsenalHandler(req as any, res as any);
+  });
 
-      const maxResults = req.query.maxResults || "50";
-      const pageToken = req.query.pageToken;
-      const q = req.query.q;
-      
-      let endpoint = q ? 'posts/search' : 'posts';
-      let url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/${endpoint}?key=${apiKey}&maxResults=${maxResults}&fetchImages=true`;
-      
-      if (q) url += `&q=${encodeURIComponent(q as string)}`;
-      if (pageToken) url += `&pageToken=${pageToken}`;
+  app.all("/api/common", (req, res) => {
+    commonHandler(req as any, res as any);
+  });
 
-      console.log(`Blogger API Request: endpoint=${endpoint}, q=${q || 'none'}, pageToken=${pageToken || 'none'}`);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Referer': 'https://app.diosmasgym.com',
-          'Origin': 'https://app.diosmasgym.com',
-          'Accept': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.error("Blogger API Error Details:", JSON.stringify(errData, null, 2));
-        return res.status(response.status).json({ 
-          error: errData.error?.message || `Blogger API responded with ${response.status}`,
-          details: errData.error || null
-        });
-      }
-      
-      const data = await response.json();
-      console.log(`Blogger API Success: Found ${data.items?.length || 0} posts.`);
-      res.json(data);
-    } catch (error: any) {
-      console.error("Error fetching arsenal:", error);
-      res.status(500).json({ error: error.message });
-    }
+  app.get("/api/music", (req, res) => {
+    req.query.action = 'music';
+    commonHandler(req as any, res as any);
+  });
+
+  app.all("/api/links", (req, res) => {
+    req.query.action = 'links';
+    commonHandler(req as any, res as any);
   });
 
   app.post("/api/verify-password", (req, res) => {
-    const { password } = req.body;
-    const MASTER_KEY = process.env.ADMIN_PASSWORD;
-    
-    if (password && password === MASTER_KEY) {
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ success: false });
-    }
-  });
-
-  // Link-in-Bio API
-  const LINKS_FILE = path.join(process.cwd(), "data", "links.json");
-
-  app.get("/api/links", (req, res) => {
-    try {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      console.log(`Reading links from: ${LINKS_FILE}`);
-      if (!fs.existsSync(LINKS_FILE)) {
-        console.warn("Links file not found, returning default data.");
-        return res.json({ links: [], profile: { name: "Dios Mas Gym", bio: "El Arsenal de Fe | Música, Disciplina y Transformación", avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" } });
-      }
-      const data = fs.readFileSync(LINKS_FILE, "utf-8");
-      res.json(JSON.parse(data));
-    } catch (error) {
-      console.error("Error reading links file:", error);
-      res.status(500).json({ error: "Failed to load links" });
-    }
-  });
-
-  app.post("/api/links", (req, res) => {
-    try {
-      const data = req.body;
-      const dir = path.dirname(LINKS_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(LINKS_FILE, JSON.stringify(data, null, 2));
-      console.log(`Links saved to: ${LINKS_FILE}`);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error saving links file:", error);
-      res.status(500).json({ error: "Failed to save links" });
-    }
+    req.query.action = 'verify-password';
+    commonHandler(req as any, res as any);
   });
 
   // Sheet proxy (Google Apps Script)

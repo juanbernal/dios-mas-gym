@@ -111,8 +111,8 @@ const App: React.FC = () => {
   const [randomJuan614Song, setRandomJuan614Song] = useState<MusicItem | null>(null);
   
   const dailyRecommendations = useMemo(() => {
-    const dm = state.musicDiosmasgym;
-    const j6 = state.musicJuan614;
+    const dm = state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url);
+    const j6 = state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url);
     
     if (dm.length === 0 && j6.length === 0) return null;
     
@@ -209,12 +209,17 @@ const App: React.FC = () => {
       const cached = localStorage.getItem('dg_posts_cache');
       if (cached) {
         try {
-          cachedPosts = JSON.parse(cached) || [];
-          if (cachedPosts.length > 0) {
-            setState(prev => ({ ...prev, allPosts: cachedPosts, loading: false }));
-            setShowSplash(false);
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            cachedPosts = parsed.filter((p: any) => p && typeof p === 'object' && p.id);
+            if (cachedPosts.length > 0) {
+              setState(prev => ({ ...prev, allPosts: cachedPosts, loading: false }));
+              setShowSplash(false);
+            }
           }
-        } catch (e) { }
+        } catch (e) {
+          console.warn("Error parsing dg_posts_cache:", e);
+        }
       }
 
       try {
@@ -247,7 +252,7 @@ const App: React.FC = () => {
         let needsSync = true;
 
         if (posts.length > 0) {
-          if (cachedPosts.length > 0) {
+          if (cachedPosts.length > 0 && cachedPosts[0] && cachedPosts[0].id) {
             const matchIndex = posts.findIndex(p => p.id === cachedPosts[0].id);
             if (matchIndex !== -1) {
               // Overlap found! Merge new posts with cached posts, no background sync needed
@@ -255,12 +260,16 @@ const App: React.FC = () => {
               finalPosts = [...newPosts, ...cachedPosts];
               needsSync = false;
               nextToken = undefined;
-              localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
+              if (finalPosts.length > 0) {
+                localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
+              }
               console.log(`🚀 Caching match found! Prepend ${newPosts.length} new posts. Total: ${finalPosts.length}. No sync needed.`);
             }
           } else {
             // If no cache, we will cache the first page immediately
-            localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
+            if (posts.length > 0) {
+              localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
+            }
           }
         } else {
           // Network failed or returned empty: Fallback to cache if available
@@ -730,11 +739,11 @@ const App: React.FC = () => {
               )}
 
               {/* TEMPLO DEL GUERRERO */}
-              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614]} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
+              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name && s.url)} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
 
               {/* MÚSICA */}
-              {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
-              {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
+              {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
+              {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
 
               {/* ÚLTIMA INSPIRACIÓN */}
               <section className="py-32 bg-[#05070a] border-y border-white/5">
