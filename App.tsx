@@ -70,6 +70,107 @@ const getRandomSample = <T,>(arr: T[], count: number): T[] => {
   return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
 };
 
+interface DiagnosticInfo {
+  bloggerStatus: string;
+  musicStatus: string;
+  apiBase: string;
+  hostname: string;
+}
+
+const DiagnosticConsole: React.FC = () => {
+  const [info, setInfo] = useState<DiagnosticInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      const getApiBase = () => {
+        const hostname = window.location.hostname;
+        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+        const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
+        const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
+        return (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
+      };
+
+      const apiBase = getApiBase();
+      let bloggerStatus = 'Verificando...';
+      let musicStatus = 'Verificando...';
+
+      try {
+        const bloggerRes = await fetch(`${apiBase}/api/arsenal?maxResults=1`);
+        bloggerStatus = `HTTP ${bloggerRes.status}`;
+        if (!bloggerRes.ok) {
+          const txt = await bloggerRes.text();
+          bloggerStatus += ` - Info: ${txt.slice(0, 50)}`;
+        }
+      } catch (e: any) {
+        bloggerStatus = `Error de red: ${e.message}`;
+      }
+
+      try {
+        const musicRes = await fetch(`${apiBase}/api/music?artist=diosmasgym`);
+        musicStatus = `HTTP ${musicRes.status}`;
+        if (!musicRes.ok) {
+          const txt = await musicRes.text();
+          musicStatus += ` - Info: ${txt.slice(0, 50)}`;
+        }
+      } catch (e: any) {
+        musicStatus = `Error de red: ${e.message}`;
+      }
+
+      setInfo({
+        bloggerStatus,
+        musicStatus,
+        apiBase,
+        hostname: window.location.hostname
+      });
+      setLoading(false);
+    };
+
+    runDiagnostics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mt-8 p-6 bg-[#0f111a] border border-white/5 rounded-2xl text-center max-w-md mx-auto">
+        <p className="text-xs text-white/40 animate-pulse">Iniciando diagnóstico táctico...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 p-6 bg-red-950/20 border border-red-900/30 rounded-[2rem] text-left max-w-md mx-auto backdrop-blur-md">
+      <div className="flex items-center gap-3 mb-4 text-red-400">
+        <i className="fas fa-triangle-exclamation text-lg"></i>
+        <h4 className="font-serif italic text-lg">Consola de Diagnóstico</h4>
+      </div>
+      <p className="text-[10px] text-white/40 uppercase tracking-widest mb-4">Información de conectividad con la Central de Datos</p>
+      
+      <div className="space-y-3 font-mono text-[10px] text-white/70">
+        <div className="flex justify-between border-b border-white/5 pb-2">
+          <span className="text-white/40">HOST LOCAL:</span>
+          <span>{info?.hostname}</span>
+        </div>
+        <div className="flex justify-between border-b border-white/5 pb-2">
+          <span className="text-white/40">API BASE URL:</span>
+          <span>{info?.apiBase}</span>
+        </div>
+        <div className="flex justify-between border-b border-white/5 pb-2">
+          <span className="text-white/40">REFLEXIONES (Blogger API):</span>
+          <span className={info?.bloggerStatus.includes('200') ? 'text-green-400 font-bold' : 'text-red-400'}>{info?.bloggerStatus}</span>
+        </div>
+        <div className="flex justify-between border-b border-white/5 pb-2">
+          <span className="text-white/40">MÚSICA (Sheets API):</span>
+          <span className={info?.musicStatus.includes('200') ? 'text-green-400 font-bold' : 'text-red-400'}>{info?.musicStatus}</span>
+        </div>
+      </div>
+      
+      <p className="mt-4 text-[9px] text-white/35 leading-relaxed">
+        ⚠️ Si las pruebas de red reportan HTTP 404, tu dominio no está mapeado a las APIs de Vercel. Si reportan errores de red (CORS), limpia la caché del navegador.
+      </p>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => {
     let favs = [];
@@ -618,7 +719,10 @@ const App: React.FC = () => {
                         <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size={idx === 0 ? 'lg' : 'md'} />
                       </div>
                     )) : (
-                      <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">Cargando arsenal...</div>
+                      <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">
+                        Cargando arsenal...
+                        <DiagnosticConsole />
+                      </div>
                     )}
                   </div>
                 </div>

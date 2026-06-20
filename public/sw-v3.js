@@ -1,6 +1,17 @@
-// SW V11 - Push Notifications + Release Checker
+// SW V12 - Push Notifications + Release Checker + Force Cache Purge
 self.addEventListener('install', (e) => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          console.log('[SW] Deleting cache key:', key);
+          return caches.delete(key);
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
 
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('/api/')) {
