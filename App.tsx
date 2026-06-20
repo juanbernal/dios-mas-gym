@@ -219,10 +219,22 @@ const App: React.FC = () => {
 
       try {
         const [arsenalResult, musicD, musicJ, maintStatus] = await Promise.all([
-          fetchArsenalData(50),
-          fetchMusicCatalog('diosmasgym'),
-          fetchMusicCatalog('juan614'),
-          fetchMaintenanceStatus().catch(() => ({ enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' }))
+          fetchArsenalData(50).catch(err => {
+            console.error("Blogger fetch failed:", err);
+            return { posts: [], nextPageToken: undefined };
+          }),
+          fetchMusicCatalog('diosmasgym').catch(err => {
+            console.error("Music Diosmasgym fetch failed:", err);
+            return [];
+          }),
+          fetchMusicCatalog('juan614').catch(err => {
+            console.error("Music Juan614 fetch failed:", err);
+            return [];
+          }),
+          fetchMaintenanceStatus().catch(err => {
+            console.error("Maintenance fetch failed:", err);
+            return { enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' };
+          })
         ]);
 
         if (maintStatus) {
