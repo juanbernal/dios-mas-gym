@@ -25,6 +25,7 @@ import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
 import SocialPopup, { InlineSocialBanner } from './components/SocialPromo';
 import { useAnalytics } from './hooks/useAnalytics';
+import { safeStorage } from './services/safeStorage';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
@@ -77,7 +78,11 @@ interface DiagnosticInfo {
   hostname: string;
 }
 
-const DiagnosticConsole: React.FC = () => {
+interface DiagnosticConsoleProps {
+  appError?: string | null;
+}
+
+const DiagnosticConsole: React.FC<DiagnosticConsoleProps> = ({ appError }) => {
   const [info, setInfo] = useState<DiagnosticInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -163,6 +168,13 @@ const DiagnosticConsole: React.FC = () => {
           <span className={info?.musicStatus.includes('200') ? 'text-green-400 font-bold' : 'text-red-400'}>{info?.musicStatus}</span>
         </div>
       </div>
+
+      {appError && (
+        <div className="mt-4 p-3 bg-red-950/40 border border-red-500/20 rounded-xl text-red-200">
+          <p className="text-[7.5px] uppercase tracking-wider text-red-400 font-bold mb-1">Error Crítico Detectado:</p>
+          <p className="font-mono text-[9px] break-all leading-normal">{appError}</p>
+        </div>
+      )}
       
       <p className="mt-4 text-[9px] text-white/35 leading-relaxed">
         ⚠️ Si las pruebas de red reportan HTTP 404, tu dominio no está mapeado a las APIs de Vercel. Si reportan errores de red (CORS), limpia la caché del navegador.
@@ -175,7 +187,7 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => {
     let favs = [];
     try {
-      favs = JSON.parse(localStorage.getItem('dg_favs') || '[]');
+      favs = JSON.parse(safeStorage.getItem('dg_favs') || '[]');
       if (!Array.isArray(favs)) favs = [];
     } catch (e) { favs = []; }
     
@@ -200,7 +212,7 @@ const App: React.FC = () => {
   });
 
   const [readingHistory, setReadingHistory] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('dg_history') || '[]'); } catch (e) { return []; }
+    try { return JSON.parse(safeStorage.getItem('dg_history') || '[]'); } catch (e) { return []; }
   });
 
   const [showSplash, setShowSplash] = useState(true);
@@ -307,9 +319,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       let cachedPosts: ContentPost[] = [];
-      const cached = localStorage.getItem('dg_posts_cache');
-      if (cached) {
-        try {
+      try {
+        const cached = safeStorage.getItem('dg_posts_cache');
+        if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed)) {
             cachedPosts = parsed.filter((p: any) => p && typeof p === 'object' && p.id);
@@ -318,9 +330,9 @@ const App: React.FC = () => {
               setShowSplash(false);
             }
           }
-        } catch (e) {
-          console.warn("Error parsing dg_posts_cache:", e);
         }
+      } catch (e) {
+        console.warn("Error reading/parsing dg_posts_cache:", e);
       }
 
       try {
@@ -362,14 +374,14 @@ const App: React.FC = () => {
               needsSync = false;
               nextToken = undefined;
               if (finalPosts.length > 0) {
-                localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
+                safeStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
               }
               console.log(`🚀 Caching match found! Prepend ${newPosts.length} new posts. Total: ${finalPosts.length}. No sync needed.`);
             }
           } else {
             // If no cache, we will cache the first page immediately
             if (posts.length > 0) {
-              localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
+              safeStorage.setItem('dg_posts_cache', JSON.stringify(posts));
             }
           }
         } else {
@@ -398,8 +410,13 @@ const App: React.FC = () => {
         if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         setShowSplash(false);
-      } catch (err) {
-        setState(prev => ({ ...prev, loading: false, error: "Error de conexión con el Hub." }));
+      } catch (err: any) {
+        console.error("Critical error during app initialization:", err);
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: err?.message || String(err)
+        }));
         setShowSplash(false);
       }
     };
@@ -423,7 +440,7 @@ const App: React.FC = () => {
                 
                 // If it is the last page, cache it
                 if (!result.nextPageToken) {
-                   localStorage.setItem('dg_posts_cache', JSON.stringify(combined));
+                   safeStorage.setItem('dg_posts_cache', JSON.stringify(combined));
                    console.log(`🚀 Background sync finished! Cached all ${combined.length} posts.`);
                 }
 
@@ -439,7 +456,7 @@ const App: React.FC = () => {
              setRandomPosts(prev => getRandomSample([...state.allPosts], 3));
           } else {
              setState(prev => {
-                localStorage.setItem('dg_posts_cache', JSON.stringify(prev.allPosts));
+                safeStorage.setItem('dg_posts_cache', JSON.stringify(prev.allPosts));
                 return { ...prev, mainNextPageToken: undefined };
              });
           }
@@ -485,8 +502,8 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    localStorage.setItem('dg_favs', JSON.stringify(state.favorites));
-    localStorage.setItem('dg_history', JSON.stringify(readingHistory));
+    safeStorage.setItem('dg_favs', JSON.stringify(state.favorites));
+    safeStorage.setItem('dg_history', JSON.stringify(readingHistory));
   }, [state.favorites, readingHistory]);
 
   const filteredPosts = useMemo(() => {
@@ -721,7 +738,7 @@ const App: React.FC = () => {
                     )) : (
                       <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">
                         Cargando arsenal...
-                        <DiagnosticConsole />
+                        <DiagnosticConsole appError={state.error} />
                       </div>
                     )}
                   </div>

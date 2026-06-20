@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { safeStorage } from '../services/safeStorage';
 
 // El Popup Inteligente Premium
 export const SocialPopup: React.FC = () => {
     const [showPopup, setShowPopup] = useState(false);
 
     useEffect(() => {
-        const popupDismissed = localStorage.getItem('dg_popup_dismissed');
+        const popupDismissed = safeStorage.getItem('dg_popup_dismissed');
         if (!popupDismissed || Date.now() > parseInt(popupDismissed)) {
             const timer = setTimeout(() => {
                 setShowPopup(true);
@@ -16,7 +17,7 @@ export const SocialPopup: React.FC = () => {
 
     const dismissPopup = () => {
         setShowPopup(false);
-        localStorage.setItem('dg_popup_dismissed', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
+        safeStorage.setItem('dg_popup_dismissed', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
     };
 
     if (!showPopup) return null;
