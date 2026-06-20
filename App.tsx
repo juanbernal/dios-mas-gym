@@ -229,25 +229,35 @@ const App: React.FC = () => {
           setMaintenance(maintStatus);
         }
 
-        const posts = arsenalResult.posts;
+        const posts = arsenalResult.posts || [];
         let finalPosts = posts;
         let nextToken = arsenalResult.nextPageToken;
         let needsSync = true;
 
-        if (cachedPosts.length > 0 && posts.length > 0) {
-          const matchIndex = posts.findIndex(p => p.id === cachedPosts[0].id);
-          if (matchIndex !== -1) {
-            // Overlap found! Merge new posts with cached posts, no background sync needed
-            const newPosts = posts.slice(0, matchIndex);
-            finalPosts = [...newPosts, ...cachedPosts];
+        if (posts.length > 0) {
+          if (cachedPosts.length > 0) {
+            const matchIndex = posts.findIndex(p => p.id === cachedPosts[0].id);
+            if (matchIndex !== -1) {
+              // Overlap found! Merge new posts with cached posts, no background sync needed
+              const newPosts = posts.slice(0, matchIndex);
+              finalPosts = [...newPosts, ...cachedPosts];
+              needsSync = false;
+              nextToken = undefined;
+              localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
+              console.log(`🚀 Caching match found! Prepend ${newPosts.length} new posts. Total: ${finalPosts.length}. No sync needed.`);
+            }
+          } else {
+            // If no cache, we will cache the first page immediately
+            localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
+          }
+        } else {
+          // Network failed or returned empty: Fallback to cache if available
+          if (cachedPosts.length > 0) {
+            finalPosts = cachedPosts;
             needsSync = false;
             nextToken = undefined;
-            localStorage.setItem('dg_posts_cache', JSON.stringify(finalPosts));
-            console.log(`🚀 Caching match found! Prepend ${newPosts.length} new posts. Total: ${finalPosts.length}. No sync needed.`);
+            console.log(`⚠️ Network fetch returned empty. Falling back to cached posts (${cachedPosts.length}).`);
           }
-        } else if (posts.length > 0 && cachedPosts.length === 0) {
-          // If no cache, we will cache the first page immediately
-          localStorage.setItem('dg_posts_cache', JSON.stringify(posts));
         }
 
         setState(prev => ({ 
