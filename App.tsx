@@ -50,6 +50,7 @@ const MusicVideoPromptGenerator = React.lazy(() => import('./components/admin/Mu
 const CustomPromoCreator = React.lazy(() => import('./components/admin/CustomPromoCreator'));
 const SplitSheetGenerator = React.lazy(() => import('./components/admin/SplitSheetGenerator'));
 const MaintenanceAdmin = React.lazy(() => import('./components/admin/MaintenanceAdmin'));
+const MunicionFe = React.lazy(() => import('./components/admin/MunicionFe'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -830,6 +831,7 @@ const App: React.FC = () => {
                 <Route path="custom-promo" element={<AdminAuthWrapper><CustomPromoCreator/></AdminAuthWrapper>} />
                 <Route path="split-sheet" element={<AdminAuthWrapper><SplitSheetGenerator/></AdminAuthWrapper>} />
                 <Route path="maintenance" element={<AdminAuthWrapper><MaintenanceAdmin/></AdminAuthWrapper>} />
+                <Route path="municion-fe" element={<AdminAuthWrapper><MunicionFe/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />

@@ -247,6 +247,15 @@ const AdminDashboard: React.FC = () => {
             color: '#ff4b2b',
             route: '/admin/maintenance',
             category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'municion-fe',
+            title: 'Centro de Munición de Fe',
+            description: 'Generador de imágenes y tarjetas motivadoras en alta resolución con versículos o citas personalizadas.',
+            icon: 'fa-quote-left',
+            color: '#c5a059',
+            route: '/admin/municion-fe',
+            category: 'Contenido Audiovisual'
         }
     ];
 

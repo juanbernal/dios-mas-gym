@@ -1,0 +1,433 @@
+import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+
+interface VersiculoPredefinido {
+  versiculo: string;
+  cita: string;
+  categoria: string;
+}
+
+const VERSICULOS_PREDEFINIDOS: VersiculoPredefinido[] = [
+  {
+    versiculo: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.",
+    cita: "JOSUÉ 1:9",
+    categoria: "Valentía / Esfuerzo"
+  },
+  {
+    versiculo: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo; siempre te ayudaré, siempre te sustentaré con la diestra de mi justicia.",
+    cita: "ISAÍAS 41:10",
+    categoria: "Fortaleza"
+  },
+  {
+    versiculo: "Todo lo puedo en Cristo que me fortalece.",
+    cita: "FILIPENSES 4:13",
+    categoria: "Fortaleza"
+  },
+  {
+    versiculo: "Jehová es mi luz y mi salvación; ¿de quién temeré? Jehová es la fortaleza de mi vida; ¿de quién he de atemorizarme?",
+    cita: "SALMOS 27:1",
+    categoria: "Confianza"
+  },
+  {
+    versiculo: "El hierro con hierro se afila, y el hombre con el rostro de su amigo se afila.",
+    cita: "PROVERBIOS 27:17",
+    categoria: "Disciplina"
+  },
+  {
+    versiculo: "No nos cansemos, pues, de hacer bien; porque a su tiempo segaremos, si no desmayamos.",
+    cita: "GÁLATAS 6:9",
+    categoria: "Perseverancia"
+  },
+  {
+    versiculo: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio.",
+    cita: "2 TIMOTEO 1:7",
+    categoria: "Valentía"
+  }
+];
+
+const FONDO_ESTILOS = [
+  { id: 'carbon', name: '🖤 Negro Carbón', bgClass: 'bg-[#05070a]' },
+  { id: 'diosmasgym', name: '⚜️ Cruz Dios Mas Gym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
+  { id: 'mando', name: '🛡️ Mando Ejecutivo', bgClass: 'bg-[#05070a]', watermark: '/logo-mando-ejecutivo.png' },
+  { id: 'juan614', name: '🤠 Juan 614', bgClass: 'bg-[#05070a]', watermark: '/logo-juan614-v2.jpg' },
+  { id: 'metal', name: '⚡ Grano de Acero', bgClass: 'bg-gradient-to-b from-[#080b11] to-[#030406]', grain: true }
+];
+
+const MunicionFe: React.FC = () => {
+  const navigate = useNavigate();
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const [texto, setTexto] = useState(VERSICULOS_PREDEFINIDOS[0].versiculo);
+  const [cita, setCita] = useState(VERSICULOS_PREDEFINIDOS[0].cita);
+  const [styleFondo, setStyleFondo] = useState(FONDO_ESTILOS[0]);
+  const [format, setFormat] = useState<'story' | 'post'>('story');
+  const [colorAccent, setColorAccent] = useState('#c5a059'); // Gold
+  const [fontSize, setFontSize] = useState(24);
+  const [align, setAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [logoSize, setLogoSize] = useState(80);
+  const [generating, setGenerating] = useState(false);
+
+  const handleSelectPredefinido = (v: VersiculoPredefinido) => {
+    setTexto(v.versiculo);
+    setCita(v.cita);
+  };
+
+  const handleDownload = async () => {
+    if (!previewRef.current) return;
+    setGenerating(true);
+
+    try {
+      // Temporarily set scale for high-res download
+      const canvas = await html2canvas(previewRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 3, // High resolution scale
+        backgroundColor: '#05070a',
+        width: format === 'story' ? 1080 : 1080,
+        height: format === 'story' ? 1920 : 1080
+      });
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.download = `municion-fe-${cita.replace(/[^a-zA-Z0-9]/g, '_') || 'cita'}.jpg`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Error al generar la imagen. Inténtalo de nuevo.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 md:px-8 font-['Poppins'] text-white">
+      <div className="max-w-6xl mx-auto">
+        
+        {/* Header */}
+        <div className="mb-12 text-left">
+          <h1 
+            onClick={() => navigate('/admin')}
+            className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3 cursor-pointer hover:text-[#c5a059] transition-colors"
+          >
+            <i className="fas fa-arrow-left mr-2"></i> Volver al Mando Ejecutivo
+          </h1>
+          <h2 className="font-serif italic text-3xl md:text-5xl text-white leading-tight">
+            Centro de <span className="text-[#c5a059]">Munición de Fe</span>
+          </h2>
+          <p className="text-white/40 text-[10px] uppercase tracking-wider mt-2">
+            Generador de gráficos premium con versículos y barras para redes sociales.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Controls Panel */}
+          <div className="lg:col-span-6 flex flex-col gap-8 bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative">
+            
+            {/* Quick Presets selector */}
+            <div className="flex flex-col gap-3">
+              <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Biblioteca de Munición Rápida</label>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                {VERSICULOS_PREDEFINIDOS.map((v, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectPredefinido(v)}
+                    className="shrink-0 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-wider hover:border-[#c5a059]/40 hover:bg-[#c5a059]/10 transition-all text-white/80 hover:text-white"
+                  >
+                    {v.cita} ({v.categoria})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Input */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Mensaje / Versículo</label>
+              <textarea
+                value={texto}
+                onChange={e => setTexto(e.target.value)}
+                rows={4}
+                maxLength={400}
+                className="w-full bg-[#05070a] border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors resize-none"
+                placeholder="Escribe el mensaje motivador o versículo bíblico..."
+              />
+              <div className="text-right text-[8px] text-white/30 font-bold">
+                {texto.length} / 400 caracteres
+              </div>
+            </div>
+
+            {/* Cita Reference Input */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Cita / Autor</label>
+              <input
+                type="text"
+                value={cita}
+                onChange={e => setCita(e.target.value)}
+                className="w-full bg-[#05070a] border border-white/10 rounded-2xl px-5 py-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors"
+                placeholder="Ej: JOSUÉ 1:9 o DIOS MAS GYM"
+              />
+            </div>
+
+            {/* Grid settings */}
+            <div className="grid grid-cols-2 gap-6">
+              
+              {/* Format Select */}
+              <div className="flex flex-col gap-2">
+                <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Formato de Redes</label>
+                <div className="flex bg-[#05070a] p-1 rounded-2xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setFormat('story')}
+                    className={`flex-1 py-3 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${
+                      format === 'story' ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    📱 Story (9:16)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat('post')}
+                    className={`flex-1 py-3 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${
+                      format === 'post' ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    🖼️ Post (1:1)
+                  </button>
+                </div>
+              </div>
+
+              {/* Text Align Select */}
+              <div className="flex flex-col gap-2">
+                <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Alineación del Texto</label>
+                <div className="flex bg-[#05070a] p-1 rounded-2xl border border-white/10">
+                  {(['left', 'center', 'right'] as const).map(a => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAlign(a)}
+                      className={`flex-1 py-3 text-xs rounded-xl transition-all ${
+                        align === a ? 'bg-[#c5a059] text-black font-bold' : 'text-white/50 hover:text-white'
+                      }`}
+                    >
+                      <i className={`fas fa-align-${a}`}></i>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Background design selector */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Marca de Agua / Fondo</label>
+              <div className="grid grid-cols-2 gap-3">
+                {FONDO_ESTILOS.map(estilo => (
+                  <button
+                    key={estilo.id}
+                    type="button"
+                    onClick={() => setStyleFondo(estilo)}
+                    className={`px-4 py-3 rounded-2xl border text-left text-[10px] font-bold transition-all ${
+                      styleFondo.id === estilo.id 
+                        ? 'border-[#c5a059] bg-[#c5a059]/10 text-[#c5a059]' 
+                        : 'border-white/10 bg-[#05070a] hover:border-white/20 text-white/70'
+                    }`}
+                  >
+                    {estilo.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sliders group */}
+            <div className="grid grid-cols-2 gap-6">
+              
+              {/* Font Size slider */}
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Tamaño de Letra</label>
+                  <span className="text-[10px] font-bold text-[#c5a059]">{fontSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={16}
+                  max={42}
+                  value={fontSize}
+                  onChange={e => setFontSize(parseInt(e.target.value))}
+                  className="w-full accent-[#c5a059]"
+                />
+              </div>
+
+              {/* Accent Color picker */}
+              <div className="flex flex-col gap-2">
+                <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Color de Cita / Detalles</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={colorAccent}
+                    onChange={e => setColorAccent(e.target.value)}
+                    className="w-12 h-10 bg-transparent border border-white/15 rounded-xl cursor-pointer"
+                  />
+                  <div className="flex gap-2">
+                    {['#c5a059', '#00ffcc', '#ffffff', '#ff4b2b'].map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setColorAccent(c)}
+                        className="w-6 h-6 rounded-full border border-white/20"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Logo Size slider (Only if watermark exists) */}
+            {styleFondo.watermark && (
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Tamaño de Logo</label>
+                  <span className="text-[10px] font-bold text-[#c5a059]">{logoSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={40}
+                  max={180}
+                  value={logoSize}
+                  onChange={e => setLogoSize(parseInt(e.target.value))}
+                  className="w-full accent-[#c5a059]"
+                />
+              </div>
+            )}
+
+            {/* Download Button */}
+            <button
+              onClick={handleDownload}
+              disabled={generating}
+              className="mt-4 py-5 rounded-2xl bg-[#c5a059] text-black font-black text-[10px] uppercase tracking-[0.25em] hover:bg-white transition-all transform active:scale-95 shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {generating ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Generando Imagen...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-cloud-arrow-down"></i> Descargar Imagen
+                </>
+              )}
+            </button>
+
+          </div>
+
+          {/* Interactive Live Preview Panel */}
+          <div className="lg:col-span-6 flex flex-col items-center justify-start">
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mb-4 align-self-start">Vista Previa (En Vivo)</span>
+            
+            {/* Resolution boundary box wrapper */}
+            <div className="w-full max-w-[360px] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative bg-[#05070a]">
+              
+              {/* Render Canvas */}
+              <div
+                ref={previewRef}
+                style={{ 
+                  textAlign: align,
+                  width: '100%',
+                  aspectRatio: format === 'story' ? '9/16' : '1/1'
+                }}
+                className={`relative flex flex-col items-center justify-between p-10 md:p-12 ${styleFondo.bgClass} overflow-hidden select-none`}
+              >
+                
+                {/* Grain Effect */}
+                {styleFondo.grain && (
+                  <div 
+                    className="absolute inset-0 pointer-events-none opacity-50"
+                    style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='noiseFilter'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23noiseFilter)' opacity='0.04'/></svg>")` }}
+                  ></div>
+                )}
+
+                {/* Watermark Watermark background overlay */}
+                {styleFondo.watermark && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                    <img 
+                      src={styleFondo.watermark} 
+                      alt="watermark" 
+                      className="w-[85%] aspect-square object-contain filter grayscale"
+                    />
+                  </div>
+                )}
+
+                {/* Header (Logo small top) */}
+                <div className="w-full flex justify-center pt-2">
+                  {styleFondo.watermark ? (
+                    <img 
+                      src={styleFondo.watermark} 
+                      alt="logo header" 
+                      style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                      className="object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                    />
+                  ) : (
+                    <span 
+                      style={{ color: colorAccent }}
+                      className="text-[8px] font-black uppercase tracking-[0.5em]"
+                    >
+                      Mando Ejecutivo
+                    </span>
+                  )}
+                </div>
+
+                {/* Center Content: The quote text */}
+                <div className="w-full flex-1 flex flex-col justify-center py-8">
+                  
+                  {/* Decorative quotes icons */}
+                  <div className="text-white/10 text-4xl mb-4 font-serif text-left">
+                    <i className="fas fa-quote-left"></i>
+                  </div>
+
+                  <p
+                    style={{ 
+                      fontSize: `${fontSize}px`,
+                      lineHeight: '1.5',
+                      color: '#ffffff'
+                    }}
+                    className="font-serif italic font-bold leading-relaxed break-words"
+                  >
+                    {texto || 'Escribe algo...'}
+                  </p>
+
+                  <div className="text-right text-white/10 text-4xl mt-4 font-serif">
+                    <i className="fas fa-quote-right"></i>
+                  </div>
+                </div>
+
+                {/* Footer details (Cita references) */}
+                <div className="w-full border-t border-white/5 pt-6 pb-2 flex flex-col items-center gap-1.5">
+                  <span 
+                    style={{ color: colorAccent }}
+                    className="text-[10px] font-black uppercase tracking-[0.25em] drop-shadow-[0_0_10px_rgba(197,160,89,0.15)]"
+                  >
+                    {cita || 'BÍBLIA'}
+                  </span>
+                  
+                  {/* Small link logo signature watermark */}
+                  <span className="text-[6.5px] font-black uppercase tracking-[0.4em] text-white/20">
+                    diosmasgym.com
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default MunicionFe;
