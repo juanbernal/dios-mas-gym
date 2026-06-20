@@ -218,7 +218,7 @@ const MunicionFe: React.FC = () => {
 
       const canvas = await html2canvas(element, {
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         scale: 4, // 360 * 4 = 1440px (ultra high resolution, premium quality)
         backgroundColor: '#05070a',
         logging: false
@@ -514,11 +514,12 @@ const MunicionFe: React.FC = () => {
 
                 {/* Watermark Watermark background overlay */}
                 {styleFondo.watermark && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none">
                     <img 
                       src={styleFondo.watermark} 
                       alt="watermark" 
-                      className="w-[85%] aspect-square object-contain"
+                      style={{ width: '75%', height: 'auto', maxHeight: '75%' }}
+                      className="object-contain"
                     />
                   </div>
                 )}
@@ -529,7 +530,7 @@ const MunicionFe: React.FC = () => {
                     <img 
                       src={styleFondo.watermark} 
                       alt="logo header" 
-                      style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                      style={{ width: `${logoSize}px`, height: 'auto' }}
                       className="object-contain"
                     />
                   ) : (
