@@ -210,8 +210,9 @@ const ProximosLanzamientos: React.FC = () => {
                         coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
                     } as ReleaseData;
                 });
-                setCurrentReleases(normalized);
-                checkCatalogSync(normalized, force);
+                const filtered = normalized.filter(r => !r.Artista || !r.Artista.toLowerCase().startsWith('config'));
+                setCurrentReleases(filtered);
+                checkCatalogSync(filtered, force);
             }
         } catch (error) {
             console.error("Error fetching admin releases:", error);

@@ -383,17 +383,24 @@ export default async function handler(
   // -------------------------------------------------------------
   if (action === 'maintenance') {
     const CONFIG_FILE = path.join(process.cwd(), 'data', 'maintenance.json');
-    const CLOUD_URL = 'https://jsonbin-zeta.vercel.app/api/bins/HzFSZP5mcS';
+    const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     if (req.method === 'GET') {
       try {
-        const response = await fetch(CLOUD_URL, { cache: 'no-store' });
+        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
-          const data = await response.json();
-          return res.status(200).json(data);
+          const rows = await response.json();
+          const configRows = rows.filter((r: any) => r.Artista === 'CONFIG_MAINTENANCE');
+          if (configRows.length > 0) {
+            const lastConfig = configRows[configRows.length - 1];
+            return res.status(200).json({
+              enabled: lastConfig.name === 'true' || lastConfig.name === true,
+              videoUrl: lastConfig.audioUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
+            });
+          }
         }
       } catch (err) {
-        console.warn("[api/common/maintenance] Cloud GET failed, falling back to local file:", err);
+        console.warn("[api/common/maintenance] Google Sheet GET failed, falling back to local file:", err);
       }
 
       try {
@@ -432,15 +439,21 @@ export default async function handler(
       let cloudErrorMsg = '';
 
       try {
+        const params = new URLSearchParams();
+        params.append('Artista', 'CONFIG_MAINTENANCE');
+        params.append('name', configData.enabled ? 'true' : 'false');
+        params.append('audioUrl', configData.videoUrl);
+        params.append('releaseDate', new Date().toISOString().split('T')[0]);
+
         const response = await fetch(CLOUD_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(configData)
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
         });
         if (response.ok) {
           cloudSuccess = true;
         } else {
-          cloudErrorMsg = `Cloud response status ${response.status}`;
+          cloudErrorMsg = `Google Sheet response status ${response.status}`;
         }
       } catch (err: any) {
         cloudErrorMsg = err.message || String(err);
@@ -452,7 +465,7 @@ export default async function handler(
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
       } catch (localErr) {
         if (!cloudSuccess) {
-          console.error("Both cloud and local writes failed:", localErr);
+          console.error("Both cloud (Google Sheets) and local writes failed:", localErr);
           return res.status(500).json({ 
             error: 'Error saving maintenance configuration', 
             details: `Cloud failed: ${cloudErrorMsg}. Local failed: ${(localErr as any).message}` 

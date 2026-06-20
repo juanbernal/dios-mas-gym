@@ -12,6 +12,7 @@ import SmartLinkView from "./components/SmartLinkView";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import LinkBioPublic from "./components/LinkBioPublic";
 import UpcomingReleases from "./components/UpcomingReleases";
+import TemploGuerrero from "./components/TemploGuerrero";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import Footer from './components/Footer';
 import CommentSection from './components/CommentSection';
@@ -674,6 +675,9 @@ const App: React.FC = () => {
                   </div>
                 </section>
               )}
+
+              {/* TEMPLO DEL GUERRERO */}
+              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614]} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
 
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}

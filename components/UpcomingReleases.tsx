@@ -76,7 +76,6 @@ const UpcomingReleases: React.FC = () => {
                                 const [d, m, y] = rawDate.split('/');
                                 if (d && m && y) rawDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                             }
-
                             return {
                                 id: `prx-${r.rowId || Math.random().toString(36).substr(2, 9)}`,
                                 artist: findKey(['artista']) || 'Desconocido',
@@ -86,7 +85,7 @@ const UpcomingReleases: React.FC = () => {
                                 cover: findKey(['coverimageurl', 'imagen', 'portada']),
                                 type: 'Próximo Lanzamiento'
                             };
-                        }).filter(r => r.name && r.date); // Solo los que tengan nombre y fecha válidos
+                        }).filter(r => r.name && r.date && !r.artist.toLowerCase().startsWith('config')); // Solo los que tengan nombre y fecha válidos y no sean config
                         
                         // Añadimos a la lista si no existen ya en el catálogo principal (por nombre y artista)
                         extraReleases.forEach(extra => {

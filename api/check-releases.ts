@@ -391,6 +391,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Match releases for any of the candidate dates
         const todaysReleases = releases.filter(r => {
             if (!r.name || !r.releaseDate) return false;
+            // Ignore config rows
+            if (r.Artista && r.Artista.toLowerCase().startsWith('config')) return false;
             // Support both YYYY-MM-DD and DD/MM/YYYY
             let cleanDate = r.releaseDate.trim();
             if (cleanDate.includes('/') && !cleanDate.includes('-')) {

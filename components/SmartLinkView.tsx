@@ -226,7 +226,7 @@ const SmartLinkView: React.FC = () => {
                                 cover: findKey(['coverimageurl', 'imagen', 'portada']),
                                 type: 'Próximo Lanzamiento'
                             };
-                        }).filter(r => r.name && r.date);
+                        }).filter(r => r.name && r.date && !r.artist.toLowerCase().startsWith('config'));
                         
                         extraReleases.forEach(extra => {
                             const exists = fullCatalog.some(c => 

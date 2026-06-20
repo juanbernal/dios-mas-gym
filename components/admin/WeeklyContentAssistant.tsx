@@ -289,7 +289,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const loadReleases = async () => {
             try {
                 const res = await fetch("/api/sheet-proxy?read=true").then(r => r.json());
-                setReleases(res || []);
+                const filtered = (res || []).filter((r: any) => !r.Artista || !r.Artista.toLowerCase().startsWith('config'));
+                setReleases(filtered);
             } catch (err) {
                 console.error("Error loading releases:", err);
             } finally {
