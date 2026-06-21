@@ -1119,7 +1119,7 @@ const AntiAIWatermark: React.FC = () => {
             const containerHeight = canvas.parentElement?.clientHeight || 600;
             const scale = Math.min(containerWidth / originalSize.width, containerHeight / originalSize.height, 1);
             const hasFooter = showText || showSocials;
-            const footerRatio = hasFooter ? 0.18 : 0; // 18% of the image height for footer
+            const footerRatio = hasFooter ? 0.08 : 0; // 8% of the image height for footer
 
             canvas.width = originalSize.width * scale;
             const footerPixels = (originalSize.height * scale) * footerRatio;
@@ -1149,7 +1149,7 @@ const AntiAIWatermark: React.FC = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const hasFooter = showText || showSocials;
-            const footerRatio = hasFooter ? 0.18 : 0;
+            const footerRatio = hasFooter ? 0.08 : 0;
             
             canvas.width = originalSize.width;
             const footerPixels = originalSize.height * footerRatio;

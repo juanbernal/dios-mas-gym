@@ -335,7 +335,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const suggestionNew = createSuggestion(song1, 'recent');
         const suggestionOld = createSuggestion(song2, 'rotation');
 
-        return [suggestionNew, suggestionOld];
+        return { suggestionNew, suggestionOld };
     }, [catalog, promotedIds, slot1Skips, slot2Skips, dayOfYear, releases]);
 
     const handleNext = (suggestion: Suggestion) => {
