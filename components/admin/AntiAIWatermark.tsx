@@ -120,13 +120,21 @@ const AntiAIWatermark: React.FC = () => {
         'La Gloria es de Dios'
     ];
 
-    const drawComposition = (ctx: CanvasRenderingContext2D, width: number, height: number, sourceImage: HTMLImageElement) => {
+    const drawComposition = (ctx: CanvasRenderingContext2D, width: number, height: number, sourceImage: HTMLImageElement, footerHeightPixels: number = 0) => {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
+        const imgHeight = height - footerHeightPixels;
+
         // Draw main image
         ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(sourceImage, 0, 0, width, height);
+        ctx.drawImage(sourceImage, 0, 0, width, imgHeight);
+
+        // Draw Footer Area background
+        if (footerHeightPixels > 0) {
+            ctx.fillStyle = '#050608'; // Very dark background for the footer
+            ctx.fillRect(0, imgHeight, width, footerHeightPixels);
+        }
 
         // 1. Draw Watermarks (Hashtags) in background
         if (watermarkEnabled && watermarkText) {
@@ -1110,11 +1118,14 @@ const AntiAIWatermark: React.FC = () => {
             const containerWidth = canvas.parentElement?.clientWidth || 800;
             const containerHeight = canvas.parentElement?.clientHeight || 600;
             const scale = Math.min(containerWidth / originalSize.width, containerHeight / originalSize.height, 1);
+            const hasFooter = showText || showSocials;
+            const footerRatio = hasFooter ? 0.18 : 0; // 18% of the image height for footer
+
+            canvas.width = originalSize.width * scale;
+            const footerPixels = (originalSize.height * scale) * footerRatio;
+            canvas.height = (originalSize.height * scale) + footerPixels;
             
-canvas.width = originalSize.width * scale;
-            canvas.height = originalSize.height * scale;
-            
-            drawComposition(ctx, canvas.width, canvas.height, img);
+            drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
         };
         img.src = imageSrc;
 
@@ -1136,12 +1147,16 @@ canvas.width = originalSize.width * scale;
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = originalSize.width;
-            canvas.height = originalSize.height;
             const ctx = canvas.getContext('2d');
+            const hasFooter = showText || showSocials;
+            const footerRatio = hasFooter ? 0.18 : 0;
+            
+            canvas.width = originalSize.width;
+            const footerPixels = originalSize.height * footerRatio;
+            canvas.height = originalSize.height + footerPixels;
             
             if (ctx) {
-                drawComposition(ctx, canvas.width, canvas.height, img);
+                drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
                 
                 try {
                     if (injectExif) {

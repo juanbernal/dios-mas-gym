@@ -303,192 +303,40 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const suggestions = useMemo(() => {
         if (!catalog || catalog.length === 0) return null;
 
-        const isDM = (s: MusicItem) => (s as any).artistGroup === 'diosmasgym' || s.artist.toLowerCase().includes('dios');
-        const isJ6 = (s: MusicItem) => (s as any).artistGroup === 'juan614' || s.artist.toLowerCase().includes('juan');
+        const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
+        const pool = freshCatalog.length >= 2 ? freshCatalog : catalog;
 
-        const dmCatalog = catalog.filter(isDM);
-        const j6Catalog = catalog.filter(isJ6);
+        if (pool.length === 0) return null;
 
-        const dmFresh = dmCatalog.filter(s => !promotedIds.includes(s.id));
-        const j6Fresh = j6Catalog.filter(s => !promotedIds.includes(s.id));
+        // Slot 1 Pick
+        const idx1 = ((dayOfYear * 17) + slot1Skips) % pool.length;
+        const song1 = pool[idx1];
 
-        const dmPool = dmFresh.length > 0 ? dmFresh : dmCatalog;
-        const j6Pool = j6Fresh.length > 0 ? j6Fresh : j6Catalog;
+        // Slot 2 Pick
+        let idx2 = ((dayOfYear * 31) + slot2Skips + 1) % pool.length;
+        let song2 = pool[idx2];
+        if (song1.id === song2.id && pool.length > 1) {
+            idx2 = (idx2 + 1) % pool.length;
+            song2 = pool[idx2];
+        }
 
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-
-        // Alternation flag
-        const alternateFlag = (dayOfYear + slot1Skips + slot2Skips) % 2 === 0;
-
-        // --- LANZAMIENTOS ---
-        let newReleasesDM: ReleaseData[] = [];
-        let newReleasesJ6: ReleaseData[] = [];
-        try {
-            (releases || []).forEach(r => {
-                const d = new Date(r.releaseDate);
-                if (d >= startOfWeek && d <= now) {
-                    const artistLower = r.Artista.toLowerCase();
-                    if (artistLower.includes('dios')) newReleasesDM.push(r);
-                    if (artistLower.includes('juan')) newReleasesJ6.push(r);
-                }
-            });
-        } catch(e) {}
-
-        const findUnpromotedRelease = (list: ReleaseData[]) => {
-            return list.find(r => !promotedIds.includes(r.name));
+        const createSuggestion = (song: MusicItem, type: 'recent' | 'rotation'): Suggestion => {
+            const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist);
+            return {
+                song,
+                reason: `Recomendación aleatoria del día: "${song.name}" de ${song.artist}. Mantén tu perfil activo publicando contenido a diario.`,
+                type,
+                caption: caps.ig,
+                tiktokCaption: caps.tt,
+                hashtags: HASHTAG_SETS[type],
+            };
         };
 
-        const releaseDM = findUnpromotedRelease(newReleasesDM);
-        const releaseJ6 = findUnpromotedRelease(newReleasesJ6);
+        const suggestionNew = createSuggestion(song1, 'recent');
+        const suggestionOld = createSuggestion(song2, 'rotation');
 
-        let activeRelease: ReleaseData | null = null;
-        if (releaseDM && releaseJ6) {
-            activeRelease = alternateFlag ? releaseDM : releaseJ6;
-        } else {
-            activeRelease = releaseDM || releaseJ6;
-        }
-
-        let newReleaseSuggestion: Suggestion | null = null;
-        if (activeRelease) {
-            const cleanReleaseName = activeRelease.name.replace(/^(Álbum:|Single:|EP:)\s*/i, '').trim().toLowerCase();
-            const matchedSong = catalog.find(s => {
-                const cleanSongName = s.name.toLowerCase();
-                return cleanSongName.includes(cleanReleaseName) || cleanReleaseName.includes(cleanSongName);
-            });
-            const caps = CAPTIONS_BY_TYPE.new_release(activeRelease.name, activeRelease.Artista);
-            newReleaseSuggestion = {
-                song: matchedSong || null,
-                reason: `¡Estreno de la semana! "${activeRelease.name}" acaba de salir — es el momento ideal para darle fuego.`,
-                type: 'new_release',
-                caption: caps.ig,
-                tiktokCaption: caps.tt,
-                hashtags: HASHTAG_SETS.new_release,
-                releaseName: activeRelease.name,
-            };
-        }
-
-        // --- RECIENTES (Últimos 30 días) ---
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const recentDM = [...dmPool]
-            .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const recentJ6 = [...j6Pool]
-            .filter(s => s.date && new Date(s.date) >= thirtyDaysAgo)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        const newestDM = recentDM.length > 0 ? recentDM[(dayOfYear + slot1Skips) % recentDM.length] : null;
-        const newestJ6 = recentJ6.length > 0 ? recentJ6[(dayOfYear + slot1Skips) % recentJ6.length] : null;
-        const recentSong = alternateFlag ? (newestDM || newestJ6) : (newestJ6 || newestDM);
-
-        let recentSuggestion: Suggestion | null = null;
-        if (recentSong) {
-            const caps = CAPTIONS_BY_TYPE.recent(recentSong.name, recentSong.artist);
-            recentSuggestion = {
-                song: recentSong,
-                reason: `"${recentSong.name}" es tendencia reciente de ${recentSong.artist}. Aprovecha el impulso para maximizar el alcance.`,
-                type: 'recent',
-                caption: caps.ig,
-                tiktokCaption: caps.tt,
-                hashtags: HASHTAG_SETS.recent,
-            };
-        }
-
-        // --- ROTACIÓN DIARIA ---
-        const rotationIdx = dayOfYear + slot2Skips;
-        const picked = alternateFlag
-            ? (dmCatalog[rotationIdx % dmCatalog.length] || j6Catalog[rotationIdx % j6Catalog.length])
-            : (j6Catalog[rotationIdx % j6Catalog.length] || dmCatalog[rotationIdx % dmCatalog.length]);
-        
-        let rotationSuggestion: Suggestion | null = null;
-        if (picked) {
-            const caps = CAPTIONS_BY_TYPE.rotation(picked.name, picked.artist);
-            rotationSuggestion = {
-                song: picked,
-                reason: `Hoy toca promocionar "${picked.name}" de ${picked.artist}. Mantén tu perfil activo con esta rotación diaria.`,
-                type: 'rotation',
-                caption: caps.ig,
-                tiktokCaption: caps.tt,
-                hashtags: HASHTAG_SETS.rotation,
-            };
-        }
-
-        // --- JOYA DEL ARCHIVO (TBT) ---
-        const gemIdx = dayOfYear + slot2Skips;
-        const gemDM = dmCatalog[(gemIdx + 10) % (dmCatalog.length || 1)] || catalog[0];
-        const gemJ6 = j6Catalog[(gemIdx + 10) % (j6Catalog.length || 1)] || catalog[0];
-        const gem = alternateFlag ? (gemDM || gemJ6) : (gemJ6 || gemDM);
-
-        let gemSuggestion: Suggestion | null = null;
-        if (gem) {
-            const caps = CAPTIONS_BY_TYPE.old_gem(gem.name, gem.artist);
-            gemSuggestion = {
-                song: gem,
-                reason: `Recomendación TBT: Reactiva "${gem.name}" de ${gem.artist}. Una joya del catálogo que merece volver a ser escuchada.`,
-                type: 'old_gem',
-                caption: caps.ig,
-                tiktokCaption: caps.tt,
-                hashtags: HASHTAG_SETS.old_gem,
-            };
-        }
-
-        // Double recommendations: Slot 1 (New/Recent) & Slot 2 (Old/Classic)
-        let suggestionNew = newReleaseSuggestion || recentSuggestion;
-        let suggestionOld = rotationSuggestion || gemSuggestion;
-
-        // "si ya no hay nueva que sean dos viejas"
-        if (!suggestionNew) {
-            const nextIdx = (dayOfYear + slot1Skips) % dmPool.length;
-            const fallbackPicked = alternateFlag
-                ? (dmPool[nextIdx] || j6Pool[nextIdx])
-                : (j6Pool[nextIdx] || dmPool[nextIdx]);
-            if (fallbackPicked) {
-                const caps = CAPTIONS_BY_TYPE.old_gem(fallbackPicked.name, fallbackPicked.artist);
-                suggestionNew = {
-                    song: fallbackPicked,
-                    reason: `No hay estrenos recientes, así que reactivamos esta joya: "${fallbackPicked.name}" de ${fallbackPicked.artist}.`,
-                    type: 'old_gem',
-                    caption: caps.ig,
-                    tiktokCaption: caps.tt,
-                    hashtags: HASHTAG_SETS.old_gem,
-                };
-            } else {
-                suggestionNew = gemSuggestion;
-            }
-        }
-
-        // Ensure suggestionOld uses a different song and a different album than suggestionNew
-        const sameSong = suggestionNew?.song?.id === suggestionOld?.song?.id;
-        const sameAlbum = suggestionNew?.song?.album && suggestionOld?.song?.album && 
-                          suggestionNew.song.album.trim().toLowerCase() === suggestionOld.song.album.trim().toLowerCase();
-
-        if (suggestionNew && suggestionOld && (sameSong || sameAlbum)) {
-            const pool = alternateFlag ? [...dmCatalog, ...j6Catalog] : [...j6Catalog, ...dmCatalog];
-            const fallbackPicked = pool.find(s => {
-                const isSameSong = s.id === suggestionNew.song?.id;
-                const isSameAlbum = s.album && suggestionNew.song?.album && 
-                                    s.album.trim().toLowerCase() === suggestionNew.song.album.trim().toLowerCase();
-                return !isSameSong && !isSameAlbum;
-            }) || pool.find(s => s.id !== suggestionNew.song?.id) || pool[0];
-
-            if (fallbackPicked) {
-                const caps = CAPTIONS_BY_TYPE.rotation(fallbackPicked.name, fallbackPicked.artist);
-                suggestionOld = {
-                    song: fallbackPicked,
-                    reason: `Te recomendamos esta alternativa clásica: "${fallbackPicked.name}" de ${fallbackPicked.artist}.`,
-                    type: 'rotation',
-                    caption: caps.ig,
-                    tiktokCaption: caps.tt,
-                    hashtags: HASHTAG_SETS.rotation,
-                };
-            }
-        }
-
-        return { suggestionNew, suggestionOld };
-    }, [catalog, releases, dayOfYear, promotedIds, slot1Skips, slot2Skips]);
+        return [suggestionNew, suggestionOld];
+    }, [catalog, promotedIds, slot1Skips, slot2Skips, dayOfYear, releases]);
 
     const handleNext = (suggestion: Suggestion) => {
         let idsToMark: string[] = [];
