@@ -1160,7 +1160,7 @@ const AntiAIWatermark: React.FC = () => {
                 
                 try {
                     if (injectExif) {
-                        const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.95);
                         const zeroth: any = {};
                         const exif: any = {};
                         const gps: any = {};
@@ -1214,32 +1214,36 @@ const AntiAIWatermark: React.FC = () => {
                             setIsDownloading(false);
                         }
                     } else {
+                        const formatMime = exportFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+                        const formatQuality = exportFormat === 'jpg' ? 0.95 : undefined;
                         canvas.toBlob((blob) => {
                             if (blob) {
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
-                                a.download = `mando_ejecutivo_${new Date().getTime()}.png`;
+                                a.download = `mando_ejecutivo_${new Date().getTime()}.${exportFormat}`;
                                 a.click();
                                 URL.revokeObjectURL(url);
                             }
                             setIsDownloading(false);
-                        }, 'image/png', 1.0);
+                        }, formatMime, formatQuality);
                     }
                 } catch (err) {
                     console.error(err);
                     alert("Error al inyectar metadatos. Descargando sin EXIF.");
+                    const formatMime = exportFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+                    const formatQuality = exportFormat === 'jpg' ? 0.95 : undefined;
                     canvas.toBlob((blob) => {
                         if (blob) {
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = `mando_ejecutivo_${new Date().getTime()}.png`;
+                            a.download = `mando_ejecutivo_${new Date().getTime()}.${exportFormat}`;
                             a.click();
                             URL.revokeObjectURL(url);
                         }
                         setIsDownloading(false);
-                    }, 'image/png', 1.0);
+                    }, formatMime, formatQuality);
                 }
             } else {
                 setIsDownloading(false);
