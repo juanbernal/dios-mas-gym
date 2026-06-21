@@ -134,12 +134,30 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         }
     };
 
+    const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!playerRef.current || !playerRef.current.seekTo) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        let percentage = clickX / width;
+        if (percentage < 0) percentage = 0;
+        if (percentage > 1) percentage = 1;
+
+        const newTime = startTime + (percentage * 60);
+        playerRef.current.seekTo(newTime);
+        setProgress(percentage * 100);
+
+        if (!isPlaying) {
+            playerRef.current.playVideo();
+        }
+    };
+
     const accentColor = isJuan ? '#c89d53' : '#c5a059';
     const waveBarCount = 16;
     const delays = [0.1, 0.4, 0.2, 0.6, 0.3, 0.8, 0.5, 0.2, 0.7, 0.4, 0.9, 0.3, 0.6, 0.1, 0.5, 0.8];
 
     return (
-        <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden ${isJuan ? 'bg-[#2a221f]/90 border-[#8B5A2B]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
+        <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-300 ${isJuan ? 'bg-[#2a221f]/90 border-[#8B5A2B]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
             <div id={`yt-player-${videoId}`} className="hidden"></div>
             
             <HUDCorners color={isJuan ? '#c89d53' : '#c5a059'} />
@@ -150,7 +168,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             <div className="flex justify-between items-center relative z-10 px-1">
                 <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: accentColor }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
-                    PREVIA DE AUDIO // TÁCTICO
+                    VISTA PREVIA DE AUDIO (60s)
                 </span>
                 <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
                     {Math.floor(progress * 0.6)}s / 60s
@@ -172,13 +190,13 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 </button>
                 <div className="flex-1 pr-1 text-left">
                     <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#e8dcc5]/60' : 'text-white/60'}`}>
-                        <span>{isPlaying ? 'SEÑAL ACTIVA' : 'SISTEMA LISTO'}</span>
-                        <span className="font-mono">{isPlaying ? 'TRANSMITIENDO...' : 'STANDBY'}</span>
+                        <span>{isPlaying ? 'REPRODUCIENDO PREVIA' : 'LISTO PARA REPRODUCIR'}</span>
+                        <span className="font-mono">{isPlaying ? 'AVANCE ACTIVO' : 'STANDBY'}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-1">
+            <div className="mt-1 cursor-pointer hover:opacity-95 group/timeline" onClick={handleTimelineClick} title="Haz clic en las barras para navegar la previa">
                 <div className="flex items-end justify-between h-9 w-full relative z-10 px-1">
                     {Array.from({ length: waveBarCount }).map((_, idx) => {
                         const delay = delays[idx % delays.length];
@@ -188,7 +206,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                         return (
                             <div 
                                 key={idx}
-                                className="w-[4%] rounded-full transition-all duration-300"
+                                className="w-[4%] rounded-full transition-all duration-300 group-hover/timeline:scale-y-110"
                                 style={{
                                     backgroundColor: accentColor,
                                     opacity: isActive ? 1 : 0.25,
@@ -206,6 +224,140 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     );
 };
 
+const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan: boolean }) => {
+    const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+    const [isReleased, setIsReleased] = useState(false);
+
+    useEffect(() => {
+        if (!releaseDate) {
+            setIsReleased(true);
+            return;
+        }
+
+        const target = new Date(releaseDate).getTime();
+        if (isNaN(target)) {
+            setIsReleased(true);
+            return;
+        }
+
+        const updateTimer = () => {
+            const now = new Date().getTime();
+            const difference = target - now;
+
+            if (difference <= 0) {
+                setIsReleased(true);
+                setTimeLeft(null);
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            setTimeLeft({ days, hours, minutes, seconds });
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [releaseDate]);
+
+    const accentColor = isJuan ? '#c89d53' : '#c5a059';
+
+    if (isReleased) {
+        return (
+            <div className={`w-full max-w-sm flex items-center justify-center gap-2 mb-6 py-2.5 px-4 rounded-xl border text-[9px] uppercase font-black tracking-widest font-mono ${
+                isJuan 
+                ? 'bg-[#c89d53]/5 border-[#c89d53]/25 text-[#c89d53]'
+                : 'bg-green-500/5 border-green-500/20 text-green-400'
+            }`}>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isJuan ? 'bg-[#c89d53]' : 'bg-green-500'}`}></span>
+                ¡Ya Disponible en Plataformas!
+            </div>
+        );
+    }
+
+    if (!timeLeft) return null;
+
+    return (
+        <div className={`w-full max-w-sm rounded-2xl p-4 mb-6 border text-center font-mono ${
+            isJuan 
+            ? 'bg-[#2a221f]/40 border-[#8B5A2B]/20 text-[#e8dcc5]' 
+            : 'bg-black/40 border-white/5 text-white'
+        }`}>
+            <div className="text-[8px] uppercase tracking-[0.25em] mb-2.5 font-black" style={{ color: accentColor }}>
+                ⏳ Estreno Oficial en
+            </div>
+            <div className="flex justify-center gap-3">
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black tracking-tight" style={{ textShadow: `0 0 10px ${accentColor}30` }}>
+                        {String(timeLeft.days).padStart(2, '0')}
+                    </span>
+                    <span className="text-[6px] uppercase tracking-widest opacity-40 font-sans mt-0.5">Días</span>
+                </div>
+                <span className="text-xl font-bold opacity-30 animate-pulse">:</span>
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black tracking-tight" style={{ textShadow: `0 0 10px ${accentColor}30` }}>
+                        {String(timeLeft.hours).padStart(2, '0')}
+                    </span>
+                    <span className="text-[6px] uppercase tracking-widest opacity-40 font-sans mt-0.5">Hrs</span>
+                </div>
+                <span className="text-xl font-bold opacity-30 animate-pulse">:</span>
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black tracking-tight" style={{ textShadow: `0 0 10px ${accentColor}30` }}>
+                        {String(timeLeft.minutes).padStart(2, '0')}
+                    </span>
+                    <span className="text-[6px] uppercase tracking-widest opacity-40 font-sans mt-0.5">Min</span>
+                </div>
+                <span className="text-xl font-bold opacity-30 animate-pulse">:</span>
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black tracking-tight text-red-500" style={{ textShadow: '0 0 10px rgba(239,68,68,0.3)' }}>
+                        {String(timeLeft.seconds).padStart(2, '0')}
+                    </span>
+                    <span className="text-[6px] uppercase tracking-widest opacity-40 font-sans mt-0.5">Seg</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const getMotivationalQuotes = (isJuan: boolean, songName: string) => {
+    if (isJuan) {
+        return [
+            "Música acústica y honesta para reconectar con lo esencial y calmar el espíritu.",
+            "Cada acorde de madera busca llevarte a un momento de intimidad y adoración pura.",
+            "Una propuesta para detener el ruido diario y encontrar paz en la sencillez de la fe.",
+            "Adoración cruda y orgánica nacida en el corazón, cantada desde el alma."
+        ];
+    } else {
+        return [
+            "El cuerpo entrena, el espíritu persevera. Tu verdadera fuerza proviene del Creador.",
+            "La disciplina en el ejercicio es el reflejo externo de tu constancia en la fe.",
+            "¡No te rindas! Todo lo puedo en Cristo que me fortalece (Filipenses 4:13).",
+            "Música de alto impacto diseñada para activar tu cuerpo y fortalecer tu espíritu hoy.",
+            "Fe en el proceso, fuerza en el cuerpo, enfoque en la meta. ¡Dale con todo!"
+        ];
+    }
+};
+
+const getThematicStats = (isJuan: boolean, songName: string) => {
+    if (isJuan) {
+        return {
+            uso: "Tiempo de Meditación / Adoración / Calma",
+            ritmo: "Adoración Acústica / Tempo Lento y Profundo",
+            enfoque: "Paz Mental & Intimidad Espiritual",
+            recom: "Ideal para iniciar el día en oración o encontrar descanso en Dios."
+        };
+    } else {
+        return {
+            uso: "Entrenamiento de Fuerza / Cardio / Alta Intensidad",
+            ritmo: "Ritmo Energético / Enfoque Motivacional",
+            enfoque: "Disciplina Mental & Poder Espiritual",
+            recom: "Ideal para escuchar al iniciar tu rutina o durante tus series más pesadas."
+        };
+    }
+};
 
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
@@ -220,6 +372,7 @@ const SmartLinkView: React.FC = () => {
 
     const [showQrModal, setShowQrModal] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [showPlatforms, setShowPlatforms] = useState(false);
 
     const getShareUrl = () => {
         if (id === 'custom') {
@@ -384,6 +537,11 @@ const SmartLinkView: React.FC = () => {
 
     const isJuan = song.artist.toLowerCase().includes('juan');
 
+    const quotes = getMotivationalQuotes(isJuan, song.name);
+    const hash = song.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const selectedQuote = quotes[hash % quotes.length];
+    const stats = getThematicStats(isJuan, song.name);
+
     const getPlatformUrl = (platform: string) => {
         const urlStr = song.url.toLowerCase();
         const query = encodeURIComponent(`${song.name} ${song.artist}`);
@@ -418,7 +576,7 @@ const SmartLinkView: React.FC = () => {
         }
         if (platform === 'Pandora') {
             if (urlStr.includes('pandora.com')) return song.url;
-            return `https://www.pandora.com/search/${query}/all`;
+            return `https://pandora.com/search/${query}/all`;
         }
         return song.url;
     };
@@ -481,36 +639,27 @@ const SmartLinkView: React.FC = () => {
                 <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto animate-fade-in">
                     
                     {/* LEFT COLUMN: Art & Player */}
-                    <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
-                        <div className="relative group mb-4 md:mb-8 p-1">
-                            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-[32px] blur-md opacity-25 group-hover:opacity-60 transition duration-700 animate-pulse pointer-events-none"></div>
-                            <div className="relative w-40 h-40 md:w-80 md:h-80 overflow-hidden rounded-3xl border border-[#c5a059]/25 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                    <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500">
+                        <div className="relative group mb-6 md:mb-8 p-1">
+                            {/* Ambient Glow using Cover image */}
+                            <div 
+                                className="absolute -inset-4 bg-cover bg-center rounded-[40px] blur-xl opacity-30 group-hover:opacity-55 transition duration-700 pointer-events-none"
+                                style={{ backgroundImage: `url(${song.cover})` }}
+                            ></div>
+                            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c5a059] to-[#8c6b32] rounded-[36px] opacity-10 group-hover:opacity-30 transition duration-700 pointer-events-none"></div>
+                            <div className="relative w-44 h-44 md:w-80 md:h-80 overflow-hidden rounded-[32px] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.02]">
                                 <img 
                                     src={song.cover} 
                                     alt={song.name} 
                                     className="w-full h-full object-cover"
                                 />
-                                <HUDCorners color="#c5a059" />
                             </div>
                         </div>
                         
-                        <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] font-bold px-2 tracking-wide">{song.name}</h1>
-                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-4 md:mb-6 text-center">{song.artist}</p>
+                        <h1 className="font-serif italic text-2xl md:text-5xl text-center mb-1 md:mb-2 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold px-2 tracking-wide text-white">{song.name}</h1>
+                        <p className="text-[#c5a059] text-[11px] font-black uppercase tracking-[0.5em] mb-5 md:mb-6 text-center">{song.artist}</p>
 
-                        {/* Audio Tech Specs HUD */}
-                        <div className="w-full max-w-sm border border-white/5 bg-black/40 rounded-xl p-3 mb-6 relative overflow-hidden text-left font-mono">
-                            <div className="absolute top-0 right-2 text-[6px] text-white/20 tracking-wider">SYSTEM LOG v5.0.4</div>
-                            <div className="text-[7.5px] text-[#c5a059]/80 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
-                                <span>ESPECIFICACIONES DE AUDIO</span>
-                                <span className="text-green-500 animate-pulse">SISTEMA ACTIVO</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[7px] text-white/50 uppercase tracking-wider font-semibold">
-                                <div>FORMATO: <span className="text-white font-bold">24-BIT LOSSLESS</span></div>
-                                <div>SEÑAL: <span className="text-white font-bold">HD / STREAMING</span></div>
-                                <div>MUESTREO: <span className="text-white font-bold">48.0 KHZ</span></div>
-                                <div>CODEC: <span className="text-white font-bold">AAC / FLAC</span></div>
-                            </div>
-                        </div>
+                        <ReleaseCountdown releaseDate={song.date} isJuan={false} />
 
                         {embedData?.type === 'youtube' && (
                             <YouTubeAudioPlayer videoId={embedData.id!} isJuan={false} />
@@ -539,15 +688,58 @@ const SmartLinkView: React.FC = () => {
                     </div>
 
                     {/* RIGHT COLUMN: Links & Social */}
-                    <div className="flex flex-col items-center w-full max-w-md">
-                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(197,160,89,0.15)] transition-all hover:border-[#c5a059]/30 duration-500 overflow-hidden">
-                            <HUDCorners color="#c5a059" />
-                            <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
-                                <div className="bg-[#c5a059] text-black text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(197,160,89,0.5)] flex items-center gap-2 font-bold">
-                                    ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
+                    <div className="flex flex-col items-center w-full max-w-md gap-6">
+                        {/* Dynamic Inspiration & Thematic Stats Cards */}
+                        <div className="w-full flex flex-col gap-4 relative z-20">
+                            {/* Card 1: Inspiration Quote */}
+                            <div className="w-full backdrop-blur-xl bg-black/40 p-5 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-[#c5a059]"></div>
+                                <h4 className="text-[#c5a059] text-[8px] font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
+                                    <i className="fas fa-quote-left text-[6px]"></i> INSPIRACIÓN Y REFLEXIÓN
+                                </h4>
+                                <p className="text-white/90 text-xs font-serif italic leading-relaxed tracking-wide">
+                                    "{selectedQuote}"
+                                </p>
+                            </div>
+
+                            {/* Card 2: Thematic Workout Stats */}
+                            <div className="w-full backdrop-blur-xl bg-black/40 p-5 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-[#8c6b32]/60"></div>
+                                <h4 className="text-[#c5a059] text-[8px] font-black uppercase tracking-[0.25em] mb-3 flex items-center gap-1.5">
+                                    <i className="fas fa-dumbbell text-[8px]"></i> ESPECIFICACIONES DE ENTRENAMIENTO
+                                </h4>
+                                <div className="space-y-2.5 text-[9px] text-white/50 uppercase tracking-wider font-semibold">
+                                    <div>USO RECOMENDADO: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.uso}</span></div>
+                                    <div>RITMO Y VIBRA: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.ritmo}</span></div>
+                                    <div>ENFOQUE CENTRAL: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.enfoque}</span></div>
+                                    <div className="border-t border-white/5 pt-2 mt-2 normal-case text-white/40 font-sans font-normal italic text-[8.5px]">
+                                        {stats.recom}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-3">
+                        </div>
+
+                        {/* Platforms Dropdown Card */}
+                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-4 md:p-5 rounded-3xl border border-[#c5a059]/20 shadow-[0_20px_50px_rgba(197,160,89,0.08)] transition-all hover:border-[#c5a059]/30 duration-500 overflow-hidden">
+                            <HUDCorners color="#c5a059" />
+                            
+                            <button 
+                                onClick={() => setShowPlatforms(!showPlatforms)}
+                                className={`w-full py-4 px-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 ${
+                                    showPlatforms 
+                                    ? 'bg-white text-black shadow-lg scale-[0.99]' 
+                                    : 'bg-gradient-to-r from-[#c5a059] to-[#8c6b32] text-black shadow-[0_4px_25px_rgba(197,160,89,0.35)] hover:shadow-[0_8px_30px_rgba(197,160,89,0.5)] hover:scale-[1.01]'
+                                }`}
+                            >
+                                <i className={`fas ${showPlatforms ? 'fa-times' : 'fa-play-circle'} text-xs`}></i>
+                                {showPlatforms ? 'Ocultar Plataformas' : 'Escuchar en plataformas'}
+                            </button>
+
+                            <div 
+                                className={`transition-all duration-500 ease-in-out overflow-hidden flex flex-col gap-3 ${
+                                    showPlatforms ? 'max-h-[600px] mt-4 opacity-100' : 'max-h-0 opacity-0'
+                                }`}
+                            >
                                 <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
                                 <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
                                 <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
@@ -559,7 +751,7 @@ const SmartLinkView: React.FC = () => {
                             </div>
 
                             {/* SECCIÓN COMPARTIR (DGM) */}
-                            <div className="mt-8 border-t border-white/5 pt-8 w-full">
+                            <div className="mt-6 border-t border-white/5 pt-6 w-full">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4 flex items-center gap-2">
                                     <i className="fas fa-share-alt"></i> Compartir lanzamiento
                                 </h3>
@@ -607,6 +799,15 @@ const SmartLinkView: React.FC = () => {
                                             </span>
                                         )}
                                     </button>
+                                </div>
+                                <div className="mt-5 flex justify-center">
+                                    <a 
+                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
+                                        target="_blank" rel="noreferrer"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-white bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.45)]"
+                                    >
+                                        <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
+                                    </a>
                                 </div>
                             </div>
 
@@ -664,7 +865,7 @@ const SmartLinkView: React.FC = () => {
                                 <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                                 <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                             </div>
-                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.4</p>
+                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.5</p>
                         </div>
                     </div>
                 </div>
@@ -762,38 +963,29 @@ const SmartLinkView: React.FC = () => {
             <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-16 px-4 py-6 md:py-20 w-full max-w-5xl mx-auto animate-fade-in">
                 
                 {/* LEFT COLUMN: Art & Player */}
-                <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500 hover:scale-[1.01]">
-                    <div className="relative mb-4 md:mb-8 group p-1">
-                        <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c89d53] to-[#8B5A2B] rounded-[24px] blur-md opacity-20 group-hover:opacity-50 transition duration-700 animate-pulse pointer-events-none"></div>
-                        <div className="relative w-40 h-40 md:w-80 md:h-80 overflow-hidden rounded-2xl border border-[#c89d53]/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                <div className="flex flex-col items-center w-full max-w-sm shrink-0 transition-transform duration-500">
+                    <div className="relative mb-6 md:mb-8 group p-1">
+                        {/* Ambient Glow using Cover image */}
+                        <div 
+                            className="absolute -inset-4 bg-cover bg-center rounded-[32px] blur-xl opacity-20 group-hover:opacity-45 transition duration-700 pointer-events-none"
+                            style={{ backgroundImage: `url(${song.cover})` }}
+                        ></div>
+                        <div className="absolute -inset-1.5 bg-gradient-to-r from-[#c89d53] to-[#8B5A2B] rounded-[28px] opacity-15 group-hover:opacity-35 transition duration-700 pointer-events-none"></div>
+                        <div className="relative w-44 h-44 md:w-80 md:h-80 overflow-hidden rounded-[24px] border border-[#c89d53]/25 shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.02]">
                             <img 
                                 src={song.cover} 
                                 alt={song.name} 
                                 className="w-full h-full object-cover"
                             />
-                            <HUDCorners color="#c89d53" />
                         </div>
                         {/* Elemento de diseño de fondo */}
-                        <div className="absolute -inset-4 border border-[#8B5A2B]/30 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500 pointer-events-none"></div>
+                        <div className="absolute -inset-4 border border-[#8B5A2B]/20 transform rotate-3 rounded-2xl group-hover:rotate-6 transition-transform duration-500 pointer-events-none"></div>
                     </div>
                     
-                    <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2 drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)]">{song.name}</h1>
-                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-4 md:mb-6 text-center">{song.artist}</p>
+                    <h1 className="font-['Playfair_Display',serif] italic text-2xl md:text-5xl text-center mb-1 md:mb-2 text-[#e8dcc5] font-bold px-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">{song.name}</h1>
+                    <p className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.4em] mb-5 md:mb-6 text-center">{song.artist}</p>
 
-                    {/* Audio Tech Specs HUD (Juan style) */}
-                    <div className="w-full max-w-sm border border-[#8B5A2B]/10 bg-[#2a221f]/40 rounded-xl p-3 mb-6 relative overflow-hidden text-left font-mono">
-                        <div className="absolute top-0 right-2 text-[6px] text-[#e8dcc5]/20 tracking-wider">SYSTEM LOG v5.0.4</div>
-                        <div className="text-[7.5px] text-[#c89d53]/80 font-bold uppercase tracking-widest mb-1.5 flex justify-between">
-                            <span>ESPECIFICACIONES DE AUDIO</span>
-                            <span className="text-green-500 animate-pulse">SISTEMA ACTIVO</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[7px] text-[#e8dcc5]/50 uppercase tracking-wider font-semibold">
-                            <div>FORMATO: <span className="text-[#e8dcc5] font-bold">24-BIT LOSSLESS</span></div>
-                            <div>SEÑAL: <span className="text-[#e8dcc5] font-bold">HD / STREAMING</span></div>
-                            <div>MUESTREO: <span className="text-[#e8dcc5] font-bold">48.0 KHZ</span></div>
-                            <div>CODEC: <span className="text-[#e8dcc5] font-bold">AAC / FLAC</span></div>
-                        </div>
-                    </div>
+                    <ReleaseCountdown releaseDate={song.date} isJuan={true} />
 
                     {embedData?.type === 'youtube' && (
                         <YouTubeAudioPlayer videoId={embedData.id!} isJuan={true} />
@@ -822,15 +1014,58 @@ const SmartLinkView: React.FC = () => {
                 </div>
 
                 {/* RIGHT COLUMN: Links & Social */}
-                <div className="flex flex-col items-center w-full max-w-md">
-                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-[#c89d53]/25 shadow-[0_30px_70px_rgba(139,90,43,0.18)] transition-all hover:border-[#c89d53]/40 duration-500 overflow-hidden">
-                        <HUDCorners color="#c89d53" />
-                        <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
-                            <div className="bg-[#c89d53] text-[#1a1412] text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-bounce shadow-[0_0_20px_rgba(200,157,83,0.4)] flex items-center gap-2 font-bold">
-                                ¡Canción Completa Aquí! <i className="fas fa-arrow-down"></i>
+                <div className="flex flex-col items-center w-full max-w-md gap-6">
+                    {/* Dynamic Inspiration & Acoustic Stats Cards */}
+                    <div className="w-full flex flex-col gap-4 relative z-20">
+                        {/* Card 1: Inspiration Quote */}
+                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-5 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-[#c89d53]"></div>
+                            <h4 className="text-[#c89d53] text-[8px] font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
+                                <i className="fas fa-quote-left text-[6px]"></i> INSPIRACIÓN Y MENSAJE
+                            </h4>
+                            <p className="text-[#e8dcc5]/90 text-xs font-serif italic leading-relaxed tracking-wide">
+                                "{selectedQuote}"
+                            </p>
+                        </div>
+
+                        {/* Card 2: Acoustic Stats */}
+                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-5 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-[#8B5A2B]/50"></div>
+                            <h4 className="text-[#c89d53] text-[8px] font-black uppercase tracking-[0.25em] mb-3 flex items-center gap-1.5">
+                                <i className="fas fa-music text-[8px]"></i> ESPECIFICACIONES DE ADORACIÓN
+                            </h4>
+                            <div className="space-y-2.5 text-[9px] text-[#e8dcc5]/50 uppercase tracking-wider font-semibold">
+                                <div>USO RECOMENDADO: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.uso}</span></div>
+                                <div>ESTILO Y RITMO: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.ritmo}</span></div>
+                                <div>ENFOQUE CENTRAL: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.enfoque}</span></div>
+                                <div className="border-t border-[#8B5A2B]/20 pt-2 mt-2 normal-case text-[#e8dcc5]/40 font-sans font-normal italic text-[8.5px]">
+                                    {stats.recom}
+                                </div>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-3">
+                    </div>
+
+                    {/* Platforms Dropdown Card */}
+                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-4 md:p-5 rounded-3xl border border-[#c89d53]/25 shadow-[0_20px_50px_rgba(139,90,43,0.08)] transition-all hover:border-[#c89d53]/40 duration-500 overflow-hidden">
+                        <HUDCorners color="#c89d53" />
+                        
+                        <button 
+                            onClick={() => setShowPlatforms(!showPlatforms)}
+                            className={`w-full py-4 px-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 ${
+                                showPlatforms 
+                                ? 'bg-[#e8dcc5] text-[#1a1412] shadow-lg scale-[0.99]' 
+                                : 'bg-gradient-to-r from-[#c89d53] to-[#8B5A2B] text-black shadow-[0_4px_25px_rgba(200,157,83,0.3)] hover:shadow-[0_8px_30px_rgba(200,157,83,0.45)] hover:scale-[1.01]'
+                            }`}
+                        >
+                            <i className={`fas ${showPlatforms ? 'fa-times' : 'fa-play-circle'} text-xs`}></i>
+                            {showPlatforms ? 'Ocultar Plataformas' : 'Escuchar en plataformas'}
+                        </button>
+
+                        <div 
+                            className={`transition-all duration-500 ease-in-out overflow-hidden flex flex-col gap-3 ${
+                                showPlatforms ? 'max-h-[600px] mt-4 opacity-100' : 'max-h-0 opacity-0'
+                            }`}
+                        >
                             <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
                             <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
                             <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
@@ -842,7 +1077,7 @@ const SmartLinkView: React.FC = () => {
                         </div>
 
                         {/* SECCIÓN COMPARTIR (JUAN 614) */}
-                        <div className="mt-8 border-t border-[#8B5A2B]/20 pt-8 w-full">
+                        <div className="mt-6 border-t border-[#8B5A2B]/20 pt-6 w-full">
                             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-4 flex items-center gap-2">
                                 <i className="fas fa-share-alt"></i> Compartir lanzamiento
                             </h3>
@@ -890,6 +1125,15 @@ const SmartLinkView: React.FC = () => {
                                         </span>
                                     )}
                                 </button>
+                            </div>
+                            <div className="mt-5 flex justify-center">
+                                <a 
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-[#e8dcc5] bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.45)]"
+                                >
+                                    <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
+                                </a>
                             </div>
                         </div>
 
@@ -952,7 +1196,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.4</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.5</p>
                     </div>
                 </div>
             </div>
