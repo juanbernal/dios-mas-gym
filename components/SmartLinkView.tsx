@@ -541,13 +541,14 @@ const SmartLinkView: React.FC = () => {
                     
                     setRelatedSongs(related);
 
-                    // Buscar otros lanzamientos del mismo artista (excluyendo el tema actual y los relacionados)
+                    // Buscar otros lanzamientos del mismo artista (excluyendo el tema actual y los relacionados) de forma aleatoria
                     const others = fullCatalog.filter(s => 
                         s.artist.toLowerCase() === found.artist.toLowerCase() &&
                         s.id !== found.id &&
                         !related.some(r => r.id === s.id)
-                    ).slice(0, 3);
-                    setOtherReleases(others);
+                    );
+                    const randomOthers = others.sort(() => 0.5 - Math.random()).slice(0, 3);
+                    setOtherReleases(randomOthers);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
@@ -940,7 +941,19 @@ const SmartLinkView: React.FC = () => {
                         <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                         <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                     </div>
-                    <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.7</p>
+                    <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.8</p>
+                    
+                    {/* Watermark Brand Link */}
+                    <div className="mt-4">
+                        <a 
+                            href="https://diosmasgym.com" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-[7.5px] font-black tracking-[0.35em] uppercase text-white/20 hover:text-[#c5a059] transition-colors hover:underline"
+                        >
+                            Visítanos en DiosMasGym.com
+                        </a>
+                    </div>
                 </div>
 
                 {/* QR CODE MODAL OVERLAY (DGM) */}
@@ -1301,7 +1314,19 @@ const SmartLinkView: React.FC = () => {
                     <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                     <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                 </div>
-                <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.7</p>
+                <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.8</p>
+                
+                {/* Watermark Brand Link */}
+                <div className="mt-4">
+                    <a 
+                        href="https://diosmasgym.com" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[7.5px] font-black tracking-[0.35em] uppercase text-[#e8dcc5]/20 hover:text-[#c89d53] transition-colors hover:underline"
+                    >
+                        Visítanos en DiosMasGym.com
+                    </a>
+                </div>
             </div>
 
             {/* QR CODE MODAL OVERLAY */}
