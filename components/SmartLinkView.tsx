@@ -322,40 +322,61 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
     );
 };
 
-const getMotivationalQuotes = (isJuan: boolean, songName: string) => {
-    if (isJuan) {
-        return [
-            "Música acústica y honesta para reconectar con lo esencial y calmar el espíritu.",
-            "Cada acorde de madera busca llevarte a un momento de intimidad y adoración pura.",
-            "Una propuesta para detener el ruido diario y encontrar paz en la sencillez de la fe.",
-            "Adoración cruda y orgánica nacida en el corazón, cantada desde el alma."
-        ];
-    } else {
-        return [
-            "El cuerpo entrena, el espíritu persevera. Tu verdadera fuerza proviene del Creador.",
-            "La disciplina en el ejercicio es el reflejo externo de tu constancia en la fe.",
-            "¡No te rindas! Todo lo puedo en Cristo que me fortalece (Filipenses 4:13).",
-            "Música de alto impacto diseñada para activar tu cuerpo y fortalecer tu espíritu hoy.",
-            "Fe en el proceso, fuerza en el cuerpo, enfoque en la meta. ¡Dale con todo!"
-        ];
-    }
-};
+interface DevotionalVerse {
+    verse: string;
+    reference: string;
+}
 
-const getThematicStats = (isJuan: boolean, songName: string) => {
+const getDevotionalVerse = (isJuan: boolean, songId: string): DevotionalVerse => {
+    const hash = songId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     if (isJuan) {
-        return {
-            uso: "Tiempo de Meditación / Adoración / Calma",
-            ritmo: "Adoración Acústica / Tempo Lento y Profundo",
-            enfoque: "Paz Mental & Intimidad Espiritual",
-            recom: "Ideal para iniciar el día en oración o encontrar descanso en Dios."
-        };
+        const verses: DevotionalVerse[] = [
+            {
+                verse: "Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará.",
+                reference: "Salmos 23:1-2"
+            },
+            {
+                verse: "La paz os dejo, mi paz os doy; yo no os la doy como el mundo la da. No se turbe vuestro corazón, ni tenga miedo.",
+                reference: "Juan 14:27"
+            },
+            {
+                verse: "Estad quietos, y conoced que yo soy Dios; seré exaltado entre las naciones; enaltecido seré en la tierra.",
+                reference: "Salmos 46:10"
+            },
+            {
+                verse: "Venid a mí todos los que estáis trabajados y cargados, y yo os haré descansar.",
+                reference: "Mateo 11:28"
+            },
+            {
+                verse: "Alzaré mis ojos a los montes; ¿de dónde vendrá mi socorro? Mi socorro viene de Jehová, que hizo los cielos y la tierra.",
+                reference: "Salmos 121:1-2"
+            }
+        ];
+        return verses[hash % verses.length];
     } else {
-        return {
-            uso: "Entrenamiento de Fuerza / Cardio / Alta Intensidad",
-            ritmo: "Ritmo Energético / Enfoque Motivacional",
-            enfoque: "Disciplina Mental & Poder Espiritual",
-            recom: "Ideal para escuchar al iniciar tu rutina o durante tus series más pesadas."
-        };
+        const verses: DevotionalVerse[] = [
+            {
+                verse: "Jehová es mi fortaleza y mi escudo; en él confió mi corazón, y fui ayudado, por lo que se gozó mi corazón, y con mi cántico le alabaré.",
+                reference: "Salmos 28:7"
+            },
+            {
+                verse: "Todo lo puedo en Cristo que me fortalece.",
+                reference: "Filipenses 4:13"
+            },
+            {
+                verse: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.",
+                reference: "Josué 1:9"
+            },
+            {
+                verse: "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán.",
+                reference: "Isaías 40:31"
+            },
+            {
+                verse: "No te he dicho que si crees, verás la gloria de Dios?",
+                reference: "Juan 11:40"
+            }
+        ];
+        return verses[hash % verses.length];
     }
 };
 
@@ -365,6 +386,7 @@ const SmartLinkView: React.FC = () => {
     const location = useLocation();
     const [song, setSong] = useState<MusicItem | null>(null);
     const [relatedSongs, setRelatedSongs] = useState<MusicItem[]>([]);
+    const [otherReleases, setOtherReleases] = useState<MusicItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const { isSubscribed, subscribe, unsubscribe } = useOneSignal();
@@ -499,6 +521,14 @@ const SmartLinkView: React.FC = () => {
                     }
                     
                     setRelatedSongs(related);
+
+                    // Buscar otros lanzamientos del mismo artista (excluyendo el tema actual y los relacionados)
+                    const others = fullCatalog.filter(s => 
+                        s.artist.toLowerCase() === found.artist.toLowerCase() &&
+                        s.id !== found.id &&
+                        !related.some(r => r.id === s.id)
+                    ).slice(0, 3);
+                    setOtherReleases(others);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
@@ -536,11 +566,7 @@ const SmartLinkView: React.FC = () => {
     if (!song) return null;
 
     const isJuan = song.artist.toLowerCase().includes('juan');
-
-    const quotes = getMotivationalQuotes(isJuan, song.name);
-    const hash = song.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const selectedQuote = quotes[hash % quotes.length];
-    const stats = getThematicStats(isJuan, song.name);
+    const devotional = getDevotionalVerse(isJuan, song.id);
 
     const getPlatformUrl = (platform: string) => {
         const urlStr = song.url.toLowerCase();
@@ -689,57 +715,15 @@ const SmartLinkView: React.FC = () => {
 
                     {/* RIGHT COLUMN: Links & Social */}
                     <div className="flex flex-col items-center w-full max-w-md gap-6">
-                        {/* Dynamic Inspiration & Thematic Stats Cards */}
-                        <div className="w-full flex flex-col gap-4 relative z-20">
-                            {/* Card 1: Inspiration Quote */}
-                            <div className="w-full backdrop-blur-xl bg-black/40 p-5 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-[#c5a059]"></div>
-                                <h4 className="text-[#c5a059] text-[8px] font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
-                                    <i className="fas fa-quote-left text-[6px]"></i> INSPIRACIÓN Y REFLEXIÓN
-                                </h4>
-                                <p className="text-white/90 text-xs font-serif italic leading-relaxed tracking-wide">
-                                    "{selectedQuote}"
-                                </p>
-                            </div>
-
-                            {/* Card 2: Thematic Workout Stats */}
-                            <div className="w-full backdrop-blur-xl bg-black/40 p-5 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-[#8c6b32]/60"></div>
-                                <h4 className="text-[#c5a059] text-[8px] font-black uppercase tracking-[0.25em] mb-3 flex items-center gap-1.5">
-                                    <i className="fas fa-dumbbell text-[8px]"></i> ESPECIFICACIONES DE ENTRENAMIENTO
-                                </h4>
-                                <div className="space-y-2.5 text-[9px] text-white/50 uppercase tracking-wider font-semibold">
-                                    <div>USO RECOMENDADO: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.uso}</span></div>
-                                    <div>RITMO Y VIBRA: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.ritmo}</span></div>
-                                    <div>ENFOQUE CENTRAL: <span className="text-white font-bold block normal-case font-sans text-xs mt-0.5">{stats.enfoque}</span></div>
-                                    <div className="border-t border-white/5 pt-2 mt-2 normal-case text-white/40 font-sans font-normal italic text-[8.5px]">
-                                        {stats.recom}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Platforms Dropdown Card */}
-                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/40 p-4 md:p-5 rounded-3xl border border-[#c5a059]/20 shadow-[0_20px_50px_rgba(197,160,89,0.08)] transition-all hover:border-[#c5a059]/30 duration-500 overflow-hidden">
+                        {/* Platforms Card (Visible by default) */}
+                        <div className="w-full relative z-20 backdrop-blur-xl bg-black/45 p-5 md:p-6 rounded-3xl border border-[#c5a059]/20 shadow-[0_20px_50px_rgba(197,160,89,0.08)] transition-all hover:border-[#c5a059]/30 duration-500 overflow-hidden">
                             <HUDCorners color="#c5a059" />
                             
-                            <button 
-                                onClick={() => setShowPlatforms(!showPlatforms)}
-                                className={`w-full py-4 px-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 ${
-                                    showPlatforms 
-                                    ? 'bg-white text-black shadow-lg scale-[0.99]' 
-                                    : 'bg-gradient-to-r from-[#c5a059] to-[#8c6b32] text-black shadow-[0_4px_25px_rgba(197,160,89,0.35)] hover:shadow-[0_8px_30px_rgba(197,160,89,0.5)] hover:scale-[1.01]'
-                                }`}
-                            >
-                                <i className={`fas ${showPlatforms ? 'fa-times' : 'fa-play-circle'} text-xs`}></i>
-                                {showPlatforms ? 'Ocultar Plataformas' : 'Escuchar en plataformas'}
-                            </button>
+                            <h3 className="text-[#c5a059] text-[10px] font-black uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
+                                <i className="fas fa-play-circle text-xs animate-pulse"></i> ESCUCHAR EL TEMA COMPLETO
+                            </h3>
 
-                            <div 
-                                className={`transition-all duration-500 ease-in-out overflow-hidden flex flex-col gap-3 ${
-                                    showPlatforms ? 'max-h-[600px] mt-4 opacity-100' : 'max-h-0 opacity-0'
-                                }`}
-                            >
+                            <div className="flex flex-col gap-3">
                                 <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
                                 <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
                                 <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
@@ -749,112 +733,164 @@ const SmartLinkView: React.FC = () => {
                                 <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={false} />
                                 <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c5a059" url="https://musica.diosmasgym.com/" isJuan={false} />
                             </div>
+                        </div>
 
-                            {/* SECCIÓN COMPARTIR (DGM) */}
-                            <div className="mt-6 border-t border-white/5 pt-6 w-full">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4 flex items-center gap-2">
-                                    <i className="fas fa-share-alt"></i> Compartir lanzamiento
-                                </h3>
-                                <div className="flex gap-3 justify-center">
-                                    <a 
-                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
-                                        title="Compartir por WhatsApp"
-                                    >
-                                        <i className="fab fa-whatsapp"></i>
-                                    </a>
-                                    <a 
-                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
-                                        title="Compartir en X (Twitter)"
-                                    >
-                                        <i className="fab fa-x-twitter"></i>
-                                    </a>
-                                    <a 
-                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
-                                        title="Compartir en Facebook"
-                                    >
-                                        <i className="fab fa-facebook-f"></i>
-                                    </a>
-                                    <button 
-                                        onClick={() => setShowQrModal(true)}
-                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all text-xs"
-                                        title="Código QR"
-                                    >
-                                        <i className="fas fa-qrcode"></i>
-                                    </button>
-                                    <button 
-                                        onClick={copyToClipboard}
-                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all relative text-xs"
-                                        title="Copiar enlace"
-                                    >
-                                        <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
-                                        {copied && (
-                                            <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-white/10 animate-bounce whitespace-nowrap z-50">
-                                                ¡Copiado!
-                                            </span>
-                                        )}
-                                    </button>
-                                </div>
-                                <div className="mt-5 flex justify-center">
-                                    <a 
-                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-white bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.45)]"
-                                    >
-                                        <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
-                                    </a>
-                                </div>
-                            </div>
-
-                            {relatedSongs.length > 0 && (
-                                <div className="mt-10 border-t border-white/5 pt-8">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-3">
-                                        <i className="fas fa-list-ul"></i>
-                                        Lista de Canciones / Tracks
-                                    </h3>
-                                    <div className="space-y-2">
-                                        {relatedSongs.map((track, i) => (
-                                            <button 
-                                                key={i} 
-                                                onClick={() => navigate(`/link/${track.id}`)}
-                                                className="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-[10px] font-mono text-white/20">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
-                                                    <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{track.name}</span>
-                                                </div>
-                                                <i className="fas fa-chevron-right text-[10px] text-white/20 group-hover:text-[#c5a059] transition-colors"></i>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center">
-                                <button 
-                                    onClick={subscribe}
-                                    className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10'}`}
+                        {/* Palabra de Aliento Card */}
+                        <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-[#c5a059]/15 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c5a059] to-[#8c6b32]"></div>
+                            <h4 className="text-[#c5a059] text-[8px] font-black uppercase tracking-[0.25em] mb-3.5 flex items-center gap-2">
+                                <i className="fas fa-shield-halved text-[9px] text-[#c5a059]"></i> ESCUDO DE FE / ALIENTO DIARIO
+                            </h4>
+                            <p className="text-white/90 text-xs font-serif italic leading-relaxed tracking-wide mb-4">
+                                "{devotional.verse}"
+                            </p>
+                            <div className="flex justify-between items-center border-t border-white/5 pt-3.5">
+                                <span className="text-[7.5px] font-mono text-white/40 uppercase tracking-wider font-bold">{devotional.reference}</span>
+                                <a 
+                                    href="/" 
+                                    className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] hover:text-white transition-colors flex items-center gap-1"
                                 >
-                                    <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
-                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-white/70 group-hover:text-white'}`}>
-                                        {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
-                                    </span>
-                                </button>
-                                <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
-                                {isSubscribed && (
-                                    <button 
-                                        onClick={unsubscribe}
-                                        className="mt-4 text-[7px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
-                                    >
-                                        Darse de baja
-                                    </button>
-                                )}
+                                    ⚔️ Entrar al Templo <i className="fas fa-chevron-right text-[6px]"></i>
+                                </a>
                             </div>
+                        </div>
+
+                        {/* Otros Lanzamientos Card */}
+                        {otherReleases.length > 0 && (
+                            <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left">
+                                <h4 className="text-[#c5a059] text-[8.5px] font-black uppercase tracking-[0.25em] mb-4 flex items-center gap-2">
+                                    <i className="fas fa-compact-disc text-[9px]"></i> OTROS LANZAMIENTOS DE {song.artist.toUpperCase()}
+                                </h4>
+                                <div className="flex flex-col gap-3">
+                                    {otherReleases.map((other, idx) => (
+                                        <button 
+                                            key={idx}
+                                            onClick={() => navigate(`/link/${other.id}`)}
+                                            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-[#c5a059]/30 transition-all duration-300 group text-left"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <img 
+                                                    src={other.cover} 
+                                                    alt={other.name} 
+                                                    className="w-10 h-10 rounded-lg object-cover border border-white/10 group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                                <div>
+                                                    <h5 className="text-[11px] font-bold text-white leading-snug group-hover:text-[#c5a059] transition-colors">{other.name}</h5>
+                                                    <p className="text-[7.5px] font-mono uppercase text-white/40 tracking-wider mt-0.5">{other.type || 'Sencillo'}</p>
+                                                </div>
+                                            </div>
+                                            <i className="fas fa-chevron-right text-[8px] text-white/20 group-hover:text-[#c5a059] group-hover:translate-x-0.5 transition-all"></i>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Compartir & Redes */}
+                        <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                            <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-4 text-left flex items-center gap-2">
+                                <i className="fas fa-share-nodes text-[8px]"></i> Compartir con el mundo
+                            </h3>
+                            <div className="flex gap-3 justify-center mb-5">
+                                <a 
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
+                                    title="Compartir por WhatsApp"
+                                >
+                                    <i className="fab fa-whatsapp"></i>
+                                </a>
+                                <a 
+                                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
+                                    title="Compartir en X (Twitter)"
+                                >
+                                    <i className="fab fa-x-twitter"></i>
+                                </a>
+                                <a 
+                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
+                                    title="Compartir en Facebook"
+                                >
+                                    <i className="fab fa-facebook-f"></i>
+                                </a>
+                                <button 
+                                    onClick={() => setShowQrModal(true)}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all text-xs"
+                                    title="Código QR"
+                                >
+                                    <i className="fas fa-qrcode"></i>
+                                </button>
+                                <button 
+                                    onClick={copyToClipboard}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c5a059] hover:text-black transition-all relative text-xs"
+                                    title="Copiar enlace"
+                                >
+                                    <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
+                                    {copied && (
+                                        <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-white/10 animate-bounce whitespace-nowrap z-50">
+                                            ¡Copiado!
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                            
+                            <div className="flex justify-center border-t border-white/5 pt-4">
+                                <a 
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
+                                    target="_blank" rel="noreferrer"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-white bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.455)]"
+                                >
+                                    <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
+                                </a>
+                            </div>
+                        </div>
+
+                        {relatedSongs.length > 0 && (
+                            <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-3 text-left">
+                                    <i className="fas fa-list-ul"></i>
+                                    Lista de Canciones / Tracks
+                                </h3>
+                                <div className="space-y-2">
+                                    {relatedSongs.map((track, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => navigate(`/link/${track.id}`)}
+                                            className="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[10px] font-mono text-white/20">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{track.name}</span>
+                                            </div>
+                                            <i className="fas fa-chevron-right text-[10px] text-white/20 group-hover:text-[#c5a059] transition-colors"></i>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center">
+                            <button 
+                                onClick={subscribe}
+                                className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#c5a059] hover:bg-[#c5a059]/10'}`}
+                            >
+                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-white/70 group-hover:text-white'}`}>
+                                    {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
+                                </span>
+                            </button>
+                            <p className="mt-3 text-[7px] font-bold uppercase tracking-widest text-white/20 text-center">Recibe una notificación push cuando {song.artist} saque música nueva</p>
+                            {isSubscribed && (
+                                <button 
+                                    onClick={unsubscribe}
+                                    className="mt-4 text-[7px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
+                                >
+                                    Darse de baja
+                                </button>
+                            )}
                         </div>
 
 
@@ -865,7 +901,7 @@ const SmartLinkView: React.FC = () => {
                                 <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl text-white"></i></a>
                                 <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl text-white"></i></a>
                             </div>
-                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.5</p>
+                            <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">© {new Date().getFullYear()} {song.artist}. v5.0.6</p>
                         </div>
                     </div>
                 </div>
@@ -1015,57 +1051,15 @@ const SmartLinkView: React.FC = () => {
 
                 {/* RIGHT COLUMN: Links & Social */}
                 <div className="flex flex-col items-center w-full max-w-md gap-6">
-                    {/* Dynamic Inspiration & Acoustic Stats Cards */}
-                    <div className="w-full flex flex-col gap-4 relative z-20">
-                        {/* Card 1: Inspiration Quote */}
-                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-5 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#c89d53]"></div>
-                            <h4 className="text-[#c89d53] text-[8px] font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
-                                <i className="fas fa-quote-left text-[6px]"></i> INSPIRACIÓN Y MENSAJE
-                            </h4>
-                            <p className="text-[#e8dcc5]/90 text-xs font-serif italic leading-relaxed tracking-wide">
-                                "{selectedQuote}"
-                            </p>
-                        </div>
-
-                        {/* Card 2: Acoustic Stats */}
-                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-5 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#8B5A2B]/50"></div>
-                            <h4 className="text-[#c89d53] text-[8px] font-black uppercase tracking-[0.25em] mb-3 flex items-center gap-1.5">
-                                <i className="fas fa-music text-[8px]"></i> ESPECIFICACIONES DE ADORACIÓN
-                            </h4>
-                            <div className="space-y-2.5 text-[9px] text-[#e8dcc5]/50 uppercase tracking-wider font-semibold">
-                                <div>USO RECOMENDADO: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.uso}</span></div>
-                                <div>ESTILO Y RITMO: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.ritmo}</span></div>
-                                <div>ENFOQUE CENTRAL: <span className="text-[#e8dcc5] font-bold block normal-case font-sans text-xs mt-0.5">{stats.enfoque}</span></div>
-                                <div className="border-t border-[#8B5A2B]/20 pt-2 mt-2 normal-case text-[#e8dcc5]/40 font-sans font-normal italic text-[8.5px]">
-                                    {stats.recom}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Platforms Dropdown Card */}
-                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-4 md:p-5 rounded-3xl border border-[#c89d53]/25 shadow-[0_20px_50px_rgba(139,90,43,0.08)] transition-all hover:border-[#c89d53]/40 duration-500 overflow-hidden">
+                    {/* Platforms Card (Visible by default) */}
+                    <div className="w-full relative z-20 backdrop-blur-xl bg-[#2a221f]/90 p-5 md:p-6 rounded-3xl border border-[#c89d53]/25 shadow-[0_20px_50px_rgba(139,90,43,0.08)] transition-all hover:border-[#c89d53]/40 duration-500 overflow-hidden">
                         <HUDCorners color="#c89d53" />
                         
-                        <button 
-                            onClick={() => setShowPlatforms(!showPlatforms)}
-                            className={`w-full py-4 px-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 ${
-                                showPlatforms 
-                                ? 'bg-[#e8dcc5] text-[#1a1412] shadow-lg scale-[0.99]' 
-                                : 'bg-gradient-to-r from-[#c89d53] to-[#8B5A2B] text-black shadow-[0_4px_25px_rgba(200,157,83,0.3)] hover:shadow-[0_8px_30px_rgba(200,157,83,0.45)] hover:scale-[1.01]'
-                            }`}
-                        >
-                            <i className={`fas ${showPlatforms ? 'fa-times' : 'fa-play-circle'} text-xs`}></i>
-                            {showPlatforms ? 'Ocultar Plataformas' : 'Escuchar en plataformas'}
-                        </button>
+                        <h3 className="text-[#c89d53] text-[10px] font-black uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
+                            <i className="fas fa-play-circle text-xs animate-pulse"></i> ESCUCHAR EL TEMA COMPLETO
+                        </h3>
 
-                        <div 
-                            className={`transition-all duration-500 ease-in-out overflow-hidden flex flex-col gap-3 ${
-                                showPlatforms ? 'max-h-[600px] mt-4 opacity-100' : 'max-h-0 opacity-0'
-                            }`}
-                        >
+                        <div className="flex flex-col gap-3">
                             <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
                             <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
                             <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
@@ -1075,119 +1069,169 @@ const SmartLinkView: React.FC = () => {
                             <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} />
                             <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c89d53" url="https://juan614.diosmasgym.com/" isJuan={true} />
                         </div>
+                    </div>
 
-                        {/* SECCIÓN COMPARTIR (JUAN 614) */}
-                        <div className="mt-6 border-t border-[#8B5A2B]/20 pt-6 w-full">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-4 flex items-center gap-2">
-                                <i className="fas fa-share-alt"></i> Compartir lanzamiento
-                            </h3>
-                            <div className="flex gap-3 justify-center">
-                                <a 
-                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
-                                    title="Compartir por WhatsApp"
-                                >
-                                    <i className="fab fa-whatsapp"></i>
-                                </a>
-                                <a 
-                                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
-                                    title="Compartir en X (Twitter)"
-                                >
-                                    <i className="fab fa-x-twitter"></i>
-                                </a>
-                                <a 
-                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
-                                    title="Compartir en Facebook"
-                                >
-                                    <i className="fab fa-facebook-f"></i>
-                                </a>
-                                <button 
-                                    onClick={() => setShowQrModal(true)}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c89d53] hover:text-black transition-all text-xs"
-                                    title="Código QR"
-                                >
-                                    <i className="fas fa-qrcode"></i>
-                                </button>
-                                <button 
-                                    onClick={copyToClipboard}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#c89d53] hover:text-black transition-all relative text-xs"
-                                    title="Copiar enlace"
-                                >
-                                    <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
-                                    {copied && (
-                                        <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-[#8B5A2B]/20 animate-bounce whitespace-nowrap z-50">
-                                            ¡Copiado!
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
-                            <div className="mt-5 flex justify-center">
-                                <a 
-                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-[#e8dcc5] bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.45)]"
-                                >
-                                    <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
-                                </a>
-                            </div>
-                        </div>
-
-                        {relatedSongs.length > 0 && (
-                            <div className="mt-10 border-t border-[#8B5A2B]/20 pt-8">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-6 flex items-center gap-3">
-                                    <i className="fas fa-compact-disc"></i>
-                                    Contenido del Álbum
-                                </h3>
-                                <div className="space-y-2">
-                                    {relatedSongs.map((track, i) => (
-                                        <button 
-                                            key={i} 
-                                            onClick={() => navigate(`/link/${track.id}`)}
-                                            className="w-full flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-5 h-5 flex items-center justify-center relative font-mono text-[10px]">
-                                                    <span className="absolute transition-opacity duration-300 opacity-100 group-hover:opacity-0 text-[#c89d53]/30">
-                                                        {i + 1 < 10 ? `0${i + 1}` : i + 1}
-                                                    </span>
-                                                    <i className="fas fa-play absolute transition-opacity duration-300 opacity-0 group-hover:opacity-100 text-[#c89d53] text-[8px]"></i>
-                                                </div>
-                                                <span className="text-xs font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
-                                            </div>
-                                            <i className="fas fa-chevron-right text-[10px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Public Notification Subscription (Juan Style) */}
-                        <div className="mt-8 pt-8 border-t border-[#8B5A2B]/20 flex flex-col items-center">
-                            <button 
-                                onClick={subscribe}
-                                className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1a1412] border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10'}`}
+                    {/* Palabra de Aliento Card */}
+                    <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c89d53] to-[#8B5A2B]"></div>
+                        <h4 className="text-[#c89d53] text-[8px] font-black uppercase tracking-[0.25em] mb-3.5 flex items-center gap-2">
+                            <i className="fas fa-book-open text-[9px] text-[#c89d53]"></i> PALABRA DE ALIENTO Y PAZ
+                        </h4>
+                        <p className="text-[#e8dcc5]/90 text-xs font-serif italic leading-relaxed tracking-wide mb-4">
+                            "{devotional.verse}"
+                        </p>
+                        <div className="flex justify-between items-center border-t border-[#8B5A2B]/10 pt-3.5">
+                            <span className="text-[7.5px] font-mono text-[#e8dcc5]/40 uppercase tracking-wider font-bold">{devotional.reference}</span>
+                            <a 
+                                href="/" 
+                                className="text-[8px] font-black uppercase tracking-widest text-[#c89d53] hover:text-white transition-colors flex items-center gap-1"
                             >
-                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c89d53] group-hover:animate-bounce'}`}></i>
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-[#e8dcc5]/70 group-hover:text-[#e8dcc5]'}`}>
-                                    {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
-                                </span>
-                            </button>
-                            {isSubscribed && (
-                                <button 
-                                    onClick={unsubscribe}
-                                    className="mt-4 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20 hover:text-red-500 transition-all underline underline-offset-4"
-                                >
-                                    ¿Ya no quieres recibir avisos? Haz clic aquí para darte de baja
-                                </button>
-                            )}
+                                📖 Visitar Inicio <i className="fas fa-chevron-right text-[6px]"></i>
+                            </a>
                         </div>
                     </div>
 
+                    {/* Otros Lanzamientos Card */}
+                    {otherReleases.length > 0 && (
+                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-left">
+                            <h4 className="text-[#c89d53] text-[8.5px] font-black uppercase tracking-[0.25em] mb-4 flex items-center gap-2">
+                                <i className="fas fa-compact-disc text-[9px]"></i> OTROS TEMAS DE {song.artist.toUpperCase()}
+                            </h4>
+                            <div className="flex flex-col gap-3">
+                                {otherReleases.map((other, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => navigate(`/link/${other.id}`)}
+                                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-black/[0.08] border border-[#8B5A2B]/10 hover:bg-black/20 hover:border-[#c89d53]/30 transition-all duration-300 group text-left"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <img 
+                                                src={other.cover} 
+                                                alt={other.name} 
+                                                className="w-10 h-10 rounded-lg object-cover border border-[#8B5A2B]/20 group-hover:scale-105 transition-transform duration-300"
+                                            />
+                                            <div>
+                                                <h5 className="text-[11px] font-bold text-[#e8dcc5] leading-snug group-hover:text-[#c89d53] transition-colors">{other.name}</h5>
+                                                <p className="text-[7.5px] font-mono uppercase text-[#e8dcc5]/40 tracking-wider mt-0.5">{other.type || 'Sencillo'}</p>
+                                            </div>
+                                        </div>
+                                        <i className="fas fa-chevron-right text-[8px] text-[#e8dcc5]/20 group-hover:text-[#c89d53] group-hover:translate-x-0.5 transition-all"></i>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Compartir & Redes */}
+                    <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                        <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-4 text-left flex items-center gap-2">
+                            <i className="fas fa-share-nodes text-[8px]"></i> Compartir con el mundo
+                        </h3>
+                        <div className="flex gap-3 justify-center mb-5">
+                            <a 
+                                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
+                                target="_blank" rel="noreferrer"
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-xs"
+                                title="Compartir por WhatsApp"
+                            >
+                                <i className="fab fa-whatsapp"></i>
+                            </a>
+                            <a 
+                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
+                                target="_blank" rel="noreferrer"
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-xs"
+                                title="Compartir en X (Twitter)"
+                            >
+                                <i className="fab fa-x-twitter"></i>
+                            </a>
+                            <a 
+                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
+                                target="_blank" rel="noreferrer"
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-xs"
+                                title="Compartir en Facebook"
+                            >
+                                <i className="fab fa-facebook-f"></i>
+                            </a>
+                            <button 
+                                onClick={() => setShowQrModal(true)}
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-[#8B5A2B]/10 hover:bg-[#c89d53] hover:text-black transition-all text-xs"
+                                title="Código QR"
+                            >
+                                <i className="fas fa-qrcode"></i>
+                            </button>
+                            <button 
+                                onClick={copyToClipboard}
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-[#8B5A2B]/10 hover:bg-[#c89d53] hover:text-black transition-all relative text-xs"
+                                title="Copiar enlace"
+                            >
+                                <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
+                                {copied && (
+                                    <span className="absolute -top-10 bg-black text-white text-[8px] px-2 py-1 rounded border border-[#8B5A2B]/20 animate-bounce whitespace-nowrap z-50">
+                                        ¡Copiado!
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                        
+                        <div className="flex justify-center border-t border-[#8B5A2B]/10 pt-4">
+                            <a 
+                                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
+                                target="_blank" rel="noreferrer"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all text-[#e8dcc5] bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.455)]"
+                            >
+                                <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
+                            </a>
+                        </div>
+                    </div>
+
+                    {relatedSongs.length > 0 && (
+                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c89d53] mb-6 flex items-center gap-3 text-left">
+                                <i className="fas fa-compact-disc"></i>
+                                Contenido del Álbum
+                            </h3>
+                            <div className="space-y-2">
+                                {relatedSongs.map((track, i) => (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => navigate(`/link/${track.id}`)}
+                                        className="w-full flex items-center justify-between p-4 bg-[#1a1412] rounded-xl border border-[#8B5A2B]/10 hover:border-[#c89d53]/40 transition-all group"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-5 h-5 flex items-center justify-center relative font-mono text-[10px]">
+                                                <span className="absolute transition-opacity duration-300 opacity-100 group-hover:opacity-0 text-[#c89d53]/30">
+                                                    {i + 1 < 10 ? `0${i + 1}` : i + 1}
+                                                </span>
+                                                <i className="fas fa-play absolute transition-opacity duration-300 opacity-0 group-hover:opacity-100 text-[#c89d53] text-[8px]"></i>
+                                            </div>
+                                            <span className="text-xs font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
+                                        </div>
+                                        <i className="fas fa-chevron-right text-[10px] text-[#c89d53]/30 group-hover:text-[#c89d53] transition-colors"></i>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/15 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center">
+                        <button 
+                            onClick={subscribe}
+                            className={`flex items-center gap-3 px-6 py-3 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1a1412] border-[#8B5A2B]/40 hover:border-[#c89d53] hover:bg-[#c89d53]/10'}`}
+                        >
+                            <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c89d53] group-hover:animate-bounce'}`}></i>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-[#e8dcc5]/70 group-hover:text-[#e8dcc5]'}`}>
+                                {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
+                            </span>
+                        </button>
+                        {isSubscribed && (
+                            <button 
+                                onClick={unsubscribe}
+                                className="mt-4 text-[7px] font-bold uppercase tracking-widest text-[#e8dcc5]/20 hover:text-red-500 transition-all underline underline-offset-4"
+                            >
+                                ¿Ya no quieres recibir avisos? Haz clic aquí para darte de baja
+                            </button>
+                        )}
+                    </div>
 
                     <div className="mt-8 text-center w-full border-t border-[#8B5A2B]/20 pt-8 relative z-20">
                         <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#e8dcc5]/50 mb-6">Sígueme en Redes</h3>
@@ -1196,7 +1240,7 @@ const SmartLinkView: React.FC = () => {
                             <a href="https://tiktok.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-black hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-tiktok text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                             <a href="https://youtube.com/@juan614" target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-[#2a221f] border border-[#8B5A2B]/20 shadow-sm flex items-center justify-center hover:bg-[#FF0000] hover:text-white hover:border-transparent hover:scale-110 transition-all duration-300 group"><i className="fab fa-youtube text-xl text-[#c89d53] group-hover:text-white transition-colors"></i></a>
                         </div>
-                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.5</p>
+                        <p className="mt-8 text-[8px] font-bold uppercase tracking-[0.2em] text-[#e8dcc5]/30">© {new Date().getFullYear()} {song.artist}. v5.0.6</p>
                     </div>
                 </div>
             </div>
