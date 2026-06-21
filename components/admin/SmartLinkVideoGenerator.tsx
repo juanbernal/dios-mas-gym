@@ -16,7 +16,7 @@ const smoothNoise = (t: number) => {
     return noise(t0, 0) * (1 - u) + noise(t1, 0) * u;
 };
 
-export const SMARTLINK_CREATOR_VERSION = '8.0 (4K UHD - Ultra Sharp Master - Proxy CORS-Safe)';
+export const SMARTLINK_CREATOR_VERSION = '8.1 (4K UHD - Ultra Sharp Master - Balanced Layout & Dynamic Cards)';
 
 const SmartLinkVideoGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -176,6 +176,55 @@ const SmartLinkVideoGenerator: React.FC = () => {
         if (sameArtist.length > 0) return sameArtist.slice(0, 3);
         // Fallback to general catalog if no other same-artist tracks are found
         return catalog.filter(s => s.id !== selectedSong.id).slice(0, 3);
+    };
+
+    const getDevotionalVerse = (isJuan: boolean, seed: string) => {
+        const fallbacks = isJuan ? [
+            { verse: "Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará.", reference: "SALMOS 23:1-2" },
+            { verse: "La paz os dejo, mi paz os doy; yo no os la doy como el mundo la da. No se turbe vuestro corazón, ni tenga miedo.", reference: "JUAN 14:27" },
+            { verse: "Estad quietos, y conoced que yo soy Dios; seré exaltado entre las naciones; enaltecido seré en la tierra.", reference: "SALMOS 46:10" }
+        ] : [
+            { verse: "Jehová es mi fortaleza y mi escudo; en él confió mi corazón, y fui ayudado, por lo que se gozó mi corazón, y con mi cántico le alabaré.", reference: "SALMOS 28:7" },
+            { verse: "Todo lo puedo en Cristo que me fortalece.", reference: "FILIPENSES 4:13" },
+            { verse: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.", reference: "JOSUÉ 1:9" }
+        ];
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % fallbacks.length;
+        return fallbacks[index];
+    };
+
+    const getOtherReleases = () => {
+        if (!selectedSong) return [];
+        const isJuan = (artistRef.current || selectedSong.artist || '').toLowerCase().includes('juan');
+        const artistName = isJuan ? 'juan' : 'diosmasgym';
+        const related = getRelatedTracks();
+        
+        const others = catalog.filter(s => 
+            s.artist.toLowerCase().includes(artistName) &&
+            s.id !== selectedSong.id &&
+            !related.some(r => r.id === s.id)
+        );
+        
+        if (others.length === 0) return [];
+        
+        // Deterministic shuffle using seed from selectedSong.id
+        const seed = selectedSong.id || '';
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        let seedVal = Math.abs(hash) || 1;
+        const lcgRandom = () => {
+            const x = Math.sin(seedVal++) * 10000;
+            return x - Math.floor(x);
+        };
+        
+        const shuffled = [...others].sort(() => 0.5 - lcgRandom());
+        return shuffled.slice(0, 2);
     };
 
     const drawRef = useRef<() => void>(() => {});
@@ -530,6 +579,39 @@ const SmartLinkVideoGenerator: React.FC = () => {
         ctx.fill();
         ctx.restore();
 
+        // Left Notification Bell Capsule (Moved from right column)
+        const bellW = 460;
+        const bellH = 50;
+        const bellX = colCenterX - (bellW / 2);
+        const bellY = 850;
+        const bellRadius = 25;
+
+        ctx.save();
+        ctx.fillStyle = isJuan ? 'rgba(42, 34, 31, 0.72)' : 'rgba(255, 255, 255, 0.05)';
+        ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.22)' : 'rgba(255, 255, 255, 0.09)';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.roundRect(bellX, bellY, bellW, bellH, bellRadius);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Bell content
+        ctx.save();
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        
+        ctx.fillStyle = accentColor;
+        ctx.font = '900 14px "Font Awesome 6 Free"';
+        ctx.fillText('\uf0f3', bellX + 100, bellY + bellH/2);
+
+        ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
+        ctx.font = '900 11px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+        ctx.fillText('AVÍSAME DE NUEVOS ESTRENOS', bellX + bellW / 2 + 10, bellY + bellH/2);
+        ctx.restore();
+
         // ----------------------------------------------------
         // COL B: RIGHT COLUMN (Premium Glassmorphic Card Container)
         // ----------------------------------------------------
@@ -727,39 +809,168 @@ const SmartLinkVideoGenerator: React.FC = () => {
             });
         }
 
-        // 12. Capsule Notification Bell Capsule (Drawn at card base, dynamic height based on tracks)
-        const bellW = 490;
-        const bellH = 50;
-        const bellX = cardX + 35;
-        // Float to bottom of card (Y = 740) if tracklist is empty, or fit right below tracklist
-        const bellY = hasTracklist ? (tracklistStartY + 28 + (relatedTracks.length * 45) + 15) : (cardY + 740);
-        const bellRadius = 25;
-
+        // 12. Palabra de Aliento Card (Devocional)
+        const devW = 490;
+        const devH = 120;
+        const devX = cardX + 35;
+        // Determine position based on tracklist
+        const devY = hasTracklist ? (tracklistStartY + 28 + (relatedTracks.length * 45) + 15) : (gridY + (btnH + rowGap) * 3 + admH + 25);
+        
         ctx.save();
         ctx.fillStyle = isJuan ? 'rgba(26, 20, 18, 0.72)' : 'rgba(255, 255, 255, 0.03)';
         ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.16)' : 'rgba(255, 255, 255, 0.07)';
         ctx.lineWidth = 1.5;
-
         ctx.beginPath();
-        ctx.roundRect(bellX, bellY, bellW, bellH, bellRadius);
+        ctx.roundRect(devX, devY, devW, devH, 18);
         ctx.fill();
         ctx.stroke();
         ctx.restore();
 
-        // Bell content
+        // Left gold/bronze vertical stripe
         ctx.save();
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
-        
         ctx.fillStyle = accentColor;
-        ctx.font = '900 14px "Font Awesome 6 Free"';
-        ctx.fillText('\uf0f3', bellX + 115, bellY + bellH/2);
-
-        ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
-        ctx.font = '900 11px Poppins';
-        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
-        ctx.fillText('AVÍSAME DE NUEVOS ESTRENOS', bellX + bellW / 2 + 10, bellY + bellH/2);
+        ctx.beginPath();
+        ctx.roundRect(devX, devY, 5, devH, { topLeft: 18, bottomLeft: 18, topRight: 0, bottomRight: 0 } as any);
+        ctx.fill();
         ctx.restore();
+
+        // Devocional Title
+        const devTitleY = devY + 22;
+        ctx.save();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = accentColor;
+        ctx.font = '900 11px "Font Awesome 6 Free"';
+        // Open book (\uf518) or Shield (\uf3ed)
+        ctx.fillText(isJuan ? '\uf518' : '\uf3ed', devX + 20, devTitleY);
+
+        ctx.font = '900 10px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+        ctx.fillText(isJuan ? 'PALABRA DE ALIENTO Y PAZ' : 'ESCUDO DE FE / ALIENTO DIARIO', devX + 42, devTitleY + 0.5);
+        ctx.restore();
+
+        // Devocional Verse Text & Reference
+        const devVerse = getDevotionalVerse(isJuan, selectedSong.id);
+        
+        ctx.save();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
+        ctx.font = 'italic 12.5px Georgia, serif';
+        
+        // Wrap text to fit
+        const textMaxWidth = devW - 40;
+        const words = `"${devVerse.verse}"`.split(' ');
+        const lines = [];
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = ctx.measureText(currentLine + " " + word).width;
+            if (width < textMaxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        
+        // Draw up to 2 lines
+        const maxLinesToDraw = Math.min(2, lines.length);
+        for (let i = 0; i < maxLinesToDraw; i++) {
+            ctx.fillText(lines[i], devX + 20, devY + 44 + (i * 18));
+        }
+        
+        // Reference at bottom left
+        ctx.fillStyle = isJuan ? 'rgba(232, 220, 197, 0.45)' : 'rgba(255, 255, 255, 0.45)';
+        ctx.font = '700 9.5px monospace';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '1px';
+        ctx.fillText(devVerse.reference, devX + 20, devY + devH - 22);
+
+        // Link/Brand tag at bottom right
+        ctx.fillStyle = accentColor;
+        ctx.textAlign = 'right';
+        ctx.font = '900 9px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '1.5px';
+        ctx.fillText(isJuan ? 'LEER MÁS ➔' : 'ENTRAR AL TEMPLO ➔', devX + devW - 20, devY + devH - 22);
+        ctx.restore();
+
+        // 13. Otros Lanzamientos Card (Only for single songs, if space permits)
+        if (!hasTracklist) {
+            const othersY = devY + devH + 20; // Y = 675 + 120 + 20 = 815px
+            
+            // Section Title
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = accentColor;
+            ctx.font = '900 13px "Font Awesome 6 Free"';
+            ctx.fillText('\uf51f', cardX + 35, othersY); // Compact disc icon
+            
+            ctx.font = '900 11px Poppins';
+            if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '2px';
+            ctx.fillText(`OTROS TEMAS DE ${selectedSong.artist.toUpperCase()}`, cardX + 62, othersY + 0.5);
+            ctx.restore();
+
+            // Draw 2 other releases side-by-side
+            const otherReleasesList = getOtherReleases();
+            otherReleasesList.forEach((other, idx) => {
+                const itemW = 235;
+                const itemH = 60;
+                const itemX = cardX + 35 + (idx * (itemW + 20));
+                const itemY = othersY + 18;
+
+                ctx.save();
+                ctx.fillStyle = isJuan ? 'rgba(26, 20, 18, 0.72)' : 'rgba(255, 255, 255, 0.03)';
+                ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.16)' : 'rgba(255, 255, 255, 0.07)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(itemX, itemY, itemW, itemH, 12);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+
+                // Placeholder mini cover art (X = itemX + 10, size = 40x40)
+                const covSize = 40;
+                const covX = itemX + 10;
+                const covY = itemY + 10;
+                
+                ctx.save();
+                ctx.fillStyle = isJuan ? 'rgba(139, 90, 43, 0.15)' : 'rgba(197, 160, 89, 0.1)';
+                ctx.strokeStyle = isJuan ? 'rgba(139, 90, 43, 0.25)' : 'rgba(197, 160, 89, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(covX, covY, covSize, covSize, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                // Musical note icon centered in cover placeholder
+                ctx.fillStyle = accentColor;
+                ctx.font = '900 14px "Font Awesome 6 Free"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('\uf001', covX + covSize/2, covY + covSize/2);
+                ctx.restore();
+
+                // Text: Song name and type
+                ctx.save();
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = isJuan ? '#e8dcc5' : '#ffffff';
+                ctx.font = '900 10.5px Poppins';
+                
+                // Truncate title to fit
+                const maxNameLen = 16;
+                const displayTitle = other.name.length > maxNameLen ? other.name.substring(0, maxNameLen) + '...' : other.name;
+                ctx.fillText(displayTitle, itemX + 60, itemY + 15);
+                
+                ctx.fillStyle = isJuan ? 'rgba(232, 220, 197, 0.4)' : 'rgba(255, 255, 255, 0.4)';
+                ctx.font = '700 8.5px monospace';
+                if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '1px';
+                ctx.fillText(other.type?.toUpperCase() || 'SENCILLO', itemX + 60, itemY + 33);
+                ctx.restore();
+            });
+        }
 
         // ------------------------------------------
         // LOWER BOTTOM COMMON FOOTER AREA
@@ -787,6 +998,16 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.fillText(s.icon, s.x, socY);
             ctx.restore();
         });
+
+        // 14. Watermark Brand Link at the bottom center of the canvas
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isJuan ? 'rgba(232, 220, 197, 0.28)' : 'rgba(255, 255, 255, 0.22)';
+        ctx.font = '900 12px Poppins';
+        if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '5px';
+        ctx.fillText('VISÍTANOS EN DIOSMASGYM.COM', w / 2, 1035);
+        ctx.restore();
 
         // Restore the 2x UHD scaling context save scope
         ctx.restore();
