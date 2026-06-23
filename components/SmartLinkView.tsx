@@ -446,6 +446,123 @@ const QrModal = ({ isOpen, onClose, url }: { isOpen: boolean, onClose: () => voi
     );
 };
 
+const BANNERS = [
+    {
+        id: 'news',
+        icon: 'fas fa-newspaper',
+        title: 'NOTICIA EXCLUSIVA',
+        text: '¡Nuevo álbum en camino! Mantente al tanto de nuestros próximos estrenos.',
+        buttonText: 'Suscribirse',
+        url: '#subscribe', 
+    },
+    {
+        id: 'merch',
+        icon: 'fas fa-tshirt',
+        title: 'MERCH OFICIAL',
+        text: 'Vístete con propósito. Descubre la nueva colección de gorras y playeras oficiales (Próximamente).',
+        buttonText: 'Ver Tienda',
+        url: 'https://musica.diosmasgym.com/', 
+    },
+    {
+        id: 'social',
+        icon: 'fab fa-instagram',
+        title: 'DETRÁS DE CÁMARAS',
+        text: 'Síguenos en Instagram y TikTok para ver cómo se hizo esta canción.',
+        buttonText: 'Seguir',
+        url: 'https://instagram.com/diosmasgym',
+    },
+    {
+        id: 'playlist',
+        icon: 'fas fa-fire',
+        title: 'PLAYLIST DESTACADA',
+        text: 'Recomendación de la semana: Escucha nuestra Playlist Oficial "Entrenamiento Espiritual".',
+        buttonText: 'Escuchar',
+        url: 'https://open.spotify.com/search/DiosMasGym', 
+    }
+];
+
+const DynamicBanner = ({ isJuan, onSubscribe }: { isJuan: boolean, onSubscribe?: () => void }) => {
+    const [banner, setBanner] = useState<typeof BANNERS[0] | null>(null);
+
+    useEffect(() => {
+        const randomIndex = Math.floor(Math.random() * BANNERS.length);
+        const selected = { ...BANNERS[randomIndex] }; // Clone to avoid modifying the global array
+        if (isJuan && selected.id === 'social') {
+            selected.url = 'https://instagram.com/juan614oficial';
+        }
+        if (isJuan && selected.id === 'merch') {
+            selected.url = 'https://juan614.diosmasgym.com/';
+        }
+        setBanner(selected);
+    }, [isJuan]);
+
+    if (!banner) return null;
+
+    const handleAction = (e: React.MouseEvent) => {
+        if (banner.url === '#subscribe') {
+            e.preventDefault();
+            if (onSubscribe) onSubscribe();
+        }
+    };
+
+    if (isJuan) {
+        return (
+            <div className="w-full max-w-6xl my-4 backdrop-blur-xl bg-[#2a221f]/70 p-6 md:p-8 rounded-2xl border border-[#8B5A2B]/40 shadow-[0_15px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group transition-all duration-500">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c89d53] to-[#8B5A2B]"></div>
+                
+                <div className="flex items-center gap-6 z-10 w-full md:w-auto">
+                    <div className="w-14 h-14 shrink-0 rounded-full bg-[#8B5A2B]/20 flex items-center justify-center border border-[#8B5A2B]/40">
+                        <i className={`${banner.icon} text-2xl text-[#c89d53]`}></i>
+                    </div>
+                    <div className="text-left flex-1">
+                        <h4 className="text-[#c89d53] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] mb-1 font-mono">{banner.title}</h4>
+                        <p className="text-[#f2ebd9] text-sm md:text-base opacity-90">{banner.text}</p>
+                    </div>
+                </div>
+
+                <a 
+                    href={banner.url}
+                    onClick={handleAction}
+                    target={banner.url.startsWith('#') ? '_self' : '_blank'}
+                    rel="noreferrer"
+                    className="z-10 shrink-0 w-full md:w-auto px-8 py-3 rounded-lg bg-[#8B5A2B]/20 border border-[#8B5A2B]/50 hover:bg-[#8B5A2B] hover:text-white text-[#c89d53] font-bold uppercase tracking-widest text-[11px] transition-all text-center font-mono"
+                >
+                    {banner.buttonText}
+                </a>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full max-w-6xl my-4 backdrop-blur-xl bg-black/60 p-6 md:p-8 rounded-3xl border border-[#c5a059]/30 shadow-[0_15px_40px_rgba(197,160,89,0.1)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group transition-all duration-500">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#c5a059]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            
+            <div className="flex items-center gap-6 z-10 w-full md:w-auto">
+                <div className="w-14 h-14 shrink-0 rounded-full bg-white/5 flex items-center justify-center border border-[#c5a059]/30 shadow-[0_0_15px_rgba(197,160,89,0.2)]">
+                    <i className={`${banner.icon} text-2xl text-[#c5a059]`}></i>
+                </div>
+                <div className="text-left flex-1">
+                    <h4 className="text-[#c5a059] text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
+                        {banner.title}
+                        {banner.id === 'news' && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>}
+                    </h4>
+                    <p className="text-white text-sm md:text-base opacity-80">{banner.text}</p>
+                </div>
+            </div>
+
+            <a 
+                href={banner.url}
+                onClick={handleAction}
+                target={banner.url.startsWith('#') ? '_self' : '_blank'}
+                rel="noreferrer"
+                className="z-10 shrink-0 w-full md:w-auto px-8 py-3 rounded-full bg-[#c5a059]/10 border border-[#c5a059]/40 hover:bg-[#c5a059] hover:text-black text-white font-black uppercase tracking-widest text-[11px] transition-all text-center shadow-[0_0_20px_rgba(197,160,89,0.2)] hover:shadow-[0_0_30px_rgba(197,160,89,0.5)]"
+            >
+                {banner.buttonText} <i className="fas fa-arrow-right ml-2 opacity-70"></i>
+            </a>
+        </div>
+    );
+};
+
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -844,6 +961,8 @@ const SmartLinkView: React.FC = () => {
                         </div>
                     </div>
 
+                    <DynamicBanner isJuan={false} onSubscribe={subscribe} />
+
                     {/* TWO-COLUMN CONTENT GRID */}
                     <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         {/* LEFT COLUMN */}
@@ -1163,6 +1282,8 @@ const SmartLinkView: React.FC = () => {
                         <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c89d53" url="https://juan614.diosmasgym.com/" isJuan={true} />
                     </div>
                 </div>
+
+                <DynamicBanner isJuan={true} onSubscribe={subscribe} />
 
                 {/* TWO-COLUMN CONTENT GRID */}
                 <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
