@@ -648,7 +648,7 @@ const SmartLinkView: React.FC = () => {
                         s.id !== found.id &&
                         !related.some(r => r.id === s.id)
                     );
-                    const randomOthers = others.sort(() => 0.5 - Math.random()).slice(0, 3);
+                    const randomOthers = others.sort(() => 0.5 - Math.random()).slice(0, 5);
                     setOtherReleases(randomOthers);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
