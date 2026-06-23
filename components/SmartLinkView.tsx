@@ -352,7 +352,7 @@ const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: stri
                 </div>
                 
                 {/* Production & Engineering */}
-                <div className="flex items-center gap-4">
+                <div className={`flex items-center gap-4 pb-4 border-b ${borderClass}`}>
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold tracking-widest text-[12px] font-serif italic"
                          style={{ backgroundColor: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
                         JB
@@ -360,6 +360,18 @@ const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: stri
                     <div>
                         <h5 className={`text-xs font-bold leading-tight tracking-wide ${textPrimary}`}>Juan Bernal</h5>
                         <p className={`text-[8.5px] font-mono uppercase tracking-wider mt-1 ${textSecondary}`}>Producción y Grabación</p>
+                    </div>
+                </div>
+
+                {/* Record Label */}
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold tracking-widest text-[12px] font-serif italic"
+                         style={{ backgroundColor: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
+                        <i className="fas fa-compact-disc text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h5 className={`text-xs font-bold leading-tight tracking-wide ${textPrimary}`}>DiosMasGym Records</h5>
+                        <p className={`text-[8.5px] font-mono uppercase tracking-wider mt-1 ${textSecondary}`}>Sello Discográfico</p>
                     </div>
                 </div>
             </div>
@@ -883,6 +895,8 @@ const SmartLinkView: React.FC = () => {
                             </div>
                         </div>
 
+                        <SongCredits isJuan={false} artistName={song.artist} />
+
                         {/* Palabra de Aliento Card */}
                         <div className="w-full backdrop-blur-xl bg-black/45 p-6 rounded-2xl border border-[#c5a059]/15 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
                             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c5a059] to-[#8c6b32]"></div>
@@ -975,8 +989,6 @@ const SmartLinkView: React.FC = () => {
                                 </div>
                             </div>
                         )}
-
-                        <SongCredits isJuan={false} artistName={song.artist} />
                     </div>
                 </div>
 
@@ -1253,6 +1265,8 @@ const SmartLinkView: React.FC = () => {
                         </div>
                     </div>
 
+                    <SongCredits isJuan={true} artistName={song.artist} />
+
                     {/* Palabra de Aliento Card */}
                     <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 rounded-2xl border border-[#8B5A2B]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c89d53] to-[#8B5A2B]"></div>
@@ -1350,8 +1364,6 @@ const SmartLinkView: React.FC = () => {
                             </div>
                         </div>
                     )}
-
-                    <SongCredits isJuan={true} artistName={song.artist} />
                 </div>
             </div>
 
