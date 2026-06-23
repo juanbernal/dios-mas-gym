@@ -401,6 +401,50 @@ const BIBLE_BOOKS: Record<string, { apiName: string; prettyName: string; chapter
 
 const DGM_FAVORITE_BOOKS = ["josue", "salmos", "proverbios", "romanos", "1-corintios", "efesios", "filipenses", "isaias", "hebreos", "santiago"];
 const JUAN_FAVORITE_BOOKS = ["salmos", "proverbios", "filipenses", "efesios", "juan", "mateo", "1-juan", "romanos"];
+const PlatformButton = ({ platform, icon, color, url, isJuan }: { platform: string, icon: string, color: string, url: string, isJuan: boolean }) => {
+    if (isJuan) {
+        return (
+            <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#1a1411]/50 border border-[#8B5A2B]/10 hover:border-[#8B5A2B]/40 hover:bg-[#8B5A2B]/10 transition-all group">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xl md:text-2xl mr-4" style={{ backgroundColor: `${color}15`, color: color }}>
+                    <i className={icon}></i>
+                </div>
+                <div className="flex-1 text-left">
+                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#e8dcc5] group-hover:text-white transition-colors font-mono">{platform}</h5>
+                    <p className="text-[8px] md:text-[9px] uppercase tracking-wider text-[#c89d53]/60 font-mono">Reproducir</p>
+                </div>
+                <i className="fas fa-chevron-right text-[#c89d53]/40 group-hover:text-[#c89d53] transition-colors"></i>
+            </a>
+        );
+    }
+    return (
+        <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all group relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ backgroundColor: color }}></div>
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-xl md:text-2xl mr-4 bg-white/5 group-hover:scale-110 transition-transform duration-300" style={{ color: color }}>
+                <i className={icon}></i>
+            </div>
+            <div className="flex-1 text-left">
+                <h5 className="text-[12px] md:text-[14px] font-bold text-white group-hover:text-[var(--hover-color)] transition-colors" style={{ '--hover-color': color } as React.CSSProperties}>{platform}</h5>
+                <p className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest text-white/40">Reproducir ahora</p>
+            </div>
+            <i className="fas fa-chevron-right text-white/20 group-hover:text-white transition-colors"></i>
+        </a>
+    );
+};
+
+const QrModal = ({ isOpen, onClose, url }: { isOpen: boolean, onClose: () => void, url: string }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in" onClick={onClose}>
+            <div className="bg-[#111] border border-[#c5a059]/30 p-8 rounded-3xl max-w-sm w-full flex flex-col items-center shadow-[0_0_50px_rgba(0,0,0,0.5)]" onClick={e => e.stopPropagation()}>
+                <h3 className="text-[#c5a059] text-[12px] font-black uppercase tracking-[0.2em] mb-6">Escanea para escuchar</h3>
+                <div className="bg-white p-4 rounded-2xl mb-6">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`} alt="QR Code" className="w-48 h-48" />
+                </div>
+                <button onClick={onClose} className="w-full py-3 rounded-full border border-white/10 hover:bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-widest transition-all">Cerrar</button>
+            </div>
+        </div>
+    );
+};
 
 const SmartLinkView: React.FC = () => {
     const { id } = useParams();
