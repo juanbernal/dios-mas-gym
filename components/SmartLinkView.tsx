@@ -322,6 +322,51 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
     );
 };
 
+const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: string }) => {
+    const accentColor = isJuan ? '#c89d53' : '#c5a059';
+    const bgClass = isJuan ? 'bg-[#2a221f]/40' : 'bg-black/30';
+    const textPrimary = isJuan ? 'text-[#e8dcc5]' : 'text-white';
+    const textSecondary = isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40';
+    const borderClass = isJuan ? 'border-[#8B5A2B]/10' : 'border-white/5';
+    const mainBorderClass = isJuan ? 'border-[#8B5A2B]/20' : 'border-[#c5a059]/15';
+    
+    return (
+        <div className={`w-full backdrop-blur-xl p-6 rounded-2xl border shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left ${bgClass} ${mainBorderClass} relative overflow-hidden group`}>
+            <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${isJuan ? 'from-[#c89d53] to-[#8B5A2B]' : 'from-[#c5a059] to-[#8c6b32]'}`}></div>
+            
+            <h4 className={`text-[8px] font-black uppercase tracking-[0.25em] mb-5 flex items-center gap-2`} style={{ color: accentColor }}>
+                <i className="fas fa-info-circle text-[9px]"></i> CRÉDITOS DE LA CANCIÓN
+            </h4>
+            
+            <div className="flex flex-col gap-4 pl-1">
+                {/* Composition & Lyrics */}
+                <div className={`flex items-center gap-4 pb-4 border-b ${borderClass}`}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold tracking-widest text-[12px] font-serif italic"
+                         style={{ backgroundColor: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
+                        JB
+                    </div>
+                    <div>
+                        <h5 className={`text-xs font-bold leading-tight tracking-wide ${textPrimary}`}>Juan Bernal</h5>
+                        <p className={`text-[8.5px] font-mono uppercase tracking-wider mt-1 ${textSecondary}`}>Composición y Letra</p>
+                    </div>
+                </div>
+                
+                {/* Production & Engineering */}
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold tracking-widest text-[12px] font-serif italic"
+                         style={{ backgroundColor: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
+                        JB
+                    </div>
+                    <div>
+                        <h5 className={`text-xs font-bold leading-tight tracking-wide ${textPrimary}`}>Juan Bernal</h5>
+                        <p className={`text-[8.5px] font-mono uppercase tracking-wider mt-1 ${textSecondary}`}>Producción y Grabación</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const BIBLE_BOOKS: Record<string, { apiName: string; prettyName: string; chapters: number }> = {
   genesis: { apiName: "genesis", prettyName: "Génesis", chapters: 50 },
   josue: { apiName: "josue", prettyName: "Josué", chapters: 24 },
@@ -930,6 +975,8 @@ const SmartLinkView: React.FC = () => {
                                 </div>
                             </div>
                         )}
+
+                        <SongCredits isJuan={false} artistName={song.artist} />
                     </div>
                 </div>
 
@@ -1303,6 +1350,8 @@ const SmartLinkView: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    <SongCredits isJuan={true} artistName={song.artist} />
                 </div>
             </div>
 
