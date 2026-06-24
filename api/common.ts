@@ -266,21 +266,21 @@ export default async function handler(
   // -------------------------------------------------------------
   if (action === 'debug-ssr') {
     const slug = (req.query.slug as string) || 'reflexion-superficial';
-    const slugWords = slug.toLowerCase().split('-').filter((w: string) => w.length > 3);
-    const searchQ = slugWords.slice(0, 4).join('+');
-    const feedUrl = `https://www.diosmasgym.com/feeds/posts/default?alt=json&max-results=5&q=${encodeURIComponent(searchQ)}`;
+    const targetSlug = slug.toLowerCase();
+    const feedUrl = `https://www.diosmasgym.com/feeds/posts/default?alt=json&max-results=50&orderby=published`;
     try {
       const feedResp = await fetch(feedUrl);
       const feedData = await feedResp.json();
-      const entries = feedData?.feed?.entry || [];
-      const results = entries.map((e: any) => ({
-        title: e.title?.$t,
-        link: (e.link || []).find((l: any) => l.rel === 'alternate')?.href,
-        thumbnail: e['media$thumbnail']?.url
-      }));
-      return res.status(200).json({ slug, searchQ, feedUrl, count: entries.length, results });
+      const entries: any[] = feedData?.feed?.entry || [];
+      const results = entries.map((e: any) => {
+        const altLink = (e.link || []).find((l: any) => l.rel === 'alternate');
+        const entrySlug = (altLink?.href?.split('/').pop()?.replace('.html', '') || '').toLowerCase();
+        return { title: e.title?.$t, slug: entrySlug, match: entrySlug === targetSlug || entrySlug.startsWith(targetSlug.slice(0, 25)) };
+      });
+      const matched = results.find(r => r.match);
+      return res.status(200).json({ slug, feedUrl, total: entries.length, matched, first5: results.slice(0, 5) });
     } catch (err: any) {
-      return res.status(200).json({ error: err.message, slug, searchQ, feedUrl });
+      return res.status(200).json({ error: err.message, feedUrl });
     }
   }
 
@@ -705,17 +705,17 @@ export default async function handler(
         return url.split('/').pop()?.replace('.html', '') || '';
       };
 
-      // Use Blogger's public JSON feed — NO API key needed, always works
+      // Use Blogger public JSON feed — fetch recent posts and match by slug locally
+      // Note: Blogger's ?q= search is unreliable; fetching all and matching locally is more robust
       const blogDomain = 'www.diosmasgym.com';
       const targetSlug = slug.toLowerCase();
       const slugWords = targetSlug.split('-').filter((w: string) => w.length > 3);
-      // Use the most distinctive words from the slug as search terms
-      const searchQ = slugWords.slice(0, 4).join('+');
-      const feedUrl = `https://${blogDomain}/feeds/posts/default?alt=json&max-results=10&q=${encodeURIComponent(searchQ)}`;
 
       let matchedPost: any = null;
 
       try {
+        // Fetch latest 50 posts from feed — no search term needed
+        const feedUrl = `https://${blogDomain}/feeds/posts/default?alt=json&max-results=50&orderby=published`;
         const feedResp = await fetch(feedUrl, { headers: { 'Accept': 'application/json' } });
         if (feedResp.ok) {
           const feedData = await feedResp.json();
@@ -724,24 +724,24 @@ export default async function handler(
           for (const entry of entries) {
             const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
             if (!altLink) continue;
-            const entrySlug = getSlugFromBloggerUrl(altLink.href).toLowerCase();
+            const entrySlug = (altLink.href.split('/').pop()?.replace('.html', '') || '').toLowerCase();
 
             // Exact match
             if (entrySlug === targetSlug) { matchedPost = entry; break; }
-            // Prefix match (Blogger truncates slugs)
-            if (entrySlug.startsWith(targetSlug.slice(0, 20)) || targetSlug.startsWith(entrySlug.slice(0, 20))) {
+            // Prefix match (Blogger sometimes truncates long slugs)
+            if (entrySlug.startsWith(targetSlug.slice(0, 25)) || targetSlug.startsWith(entrySlug.slice(0, 25))) {
               matchedPost = entry; break;
             }
           }
 
-          // Broad word match if still not found
-          if (!matchedPost) {
+          // Broad word match fallback
+          if (!matchedPost && slugWords.length >= 2) {
             for (const entry of entries) {
               const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
               if (!altLink) continue;
-              const entrySlug = getSlugFromBloggerUrl(altLink.href).toLowerCase();
+              const entrySlug = (altLink.href.split('/').pop()?.replace('.html', '') || '').toLowerCase();
               const hits = slugWords.filter((w: string) => entrySlug.includes(w));
-              if (hits.length >= Math.ceil(slugWords.length * 0.5)) { matchedPost = entry; break; }
+              if (hits.length >= Math.ceil(slugWords.length * 0.6)) { matchedPost = entry; break; }
             }
           }
         }
@@ -754,11 +754,10 @@ export default async function handler(
       let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
 
       if (matchedPost) {
-        // Feed JSON structure: title.$t, content.$t, media$thumbnail
         title = matchedPost.title?.$t || title;
         const rawContent = matchedPost.content?.$t || matchedPost.summary?.$t || '';
         description = rawContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
-        // Try media thumbnail first (Blogger feed includes this)
+        // media$thumbnail is reliable in Blogger feed JSON
         if (matchedPost['media$thumbnail']?.url) {
           image = matchedPost['media$thumbnail'].url.replace(/\/s\d+(-[a-z])?\//, '/s1200/');
         } else {
@@ -766,6 +765,7 @@ export default async function handler(
           if (imgMatch) image = imgMatch[1];
         }
       }
+
 
       // Fetch the compiled production index.html (from cache/network)
       let html = await getBaseIndexHtml();
@@ -805,22 +805,21 @@ export default async function handler(
       const safeDesc = escapeXml(description);
       const safeImage = escapeXml(image);
 
-      // Perform meta tag injections using robust regexes
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle} | El Arsenal</title>`);
-      
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="https://app.diosmasgym.com/post/${slug}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="https://app.diosmasgym.com/post/${slug}">`);
-      
-      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
+      // Helper: inject OG meta tags — uses [\s\S]*? to match across line breaks
+      const injectMeta = (h: string, property: string, value: string): string => {
+        // property="og:xxx" content="..." pattern (any order, any whitespace/newlines inside)
+        h = h.replace(new RegExp(`<meta\\s+property=["']${property}["'][\\s\\S]*?/?>`, 'i'), `<meta property="${property}" content="${value}">`);
+        // Also try content first, property second
+        h = h.replace(new RegExp(`<meta\\s+content=["'][\\s\\S]*?["']\\s+property=["']${property}["'][\\s\\S]*?/?>`, 'i'), `<meta property="${property}" content="${value}">`);
+        return h;
+      };
+
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle} | El Arsenal</title>`);
+      html = injectMeta(html, 'og:title', safeTitle);
+      html = injectMeta(html, 'og:description', safeDesc);
+      html = injectMeta(html, 'og:image', safeImage);
+      html = injectMeta(html, 'og:url', `https://app.diosmasgym.com/post/${slug}`);
+      html = html.replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
