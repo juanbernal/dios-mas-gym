@@ -676,52 +676,90 @@ export default async function handler(
     const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
     try {
-      const queryTerm = slug.replace(/-/g, ' ');
-      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?key=${apiKey}&q=${encodeURIComponent(queryTerm)}&fetchImages=true&maxResults=10`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Referer': 'https://app.diosmasgym.com',
-          'Origin': 'https://app.diosmasgym.com',
-          'Accept': 'application/json',
-          'User-Agent': 'Vercel-Server-Function'
+      // Helper: extract slug from Blogger URL
+      const getSlugFromUrl = (url: string) => {
+        if (!url) return '';
+        return url.split('/').pop()?.replace('.html', '') || '';
+      };
+
+      let matchedPost: any = null;
+
+      // STRATEGY 1: Try to fetch by direct Blogger post URL path
+      // Blogger URL pattern: /YYYY/MM/slug.html — we try multiple year/month combos
+      const tryByPath = async (path: string) => {
+        const byPathUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/bypath?key=${apiKey}&path=${encodeURIComponent(path)}&fetchImages=true`;
+        try {
+          const r = await fetch(byPathUrl, { headers: { 'Accept': 'application/json' } });
+          if (r.ok) return await r.json();
+        } catch {}
+        return null;
+      };
+
+      // Get current year/month plus a few previous months to find the post
+      const now = new Date();
+      for (let monthOffset = 0; monthOffset <= 18 && !matchedPost; monthOffset++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const result = await tryByPath(`/${yyyy}/${mm}/${slug}.html`);
+        if (result && result.id) {
+          matchedPost = result;
         }
-      });
-      
+      }
+
+      // STRATEGY 2: Search API (keyword search) with better slug matching
+      if (!matchedPost) {
+        try {
+          const queryTerm = slug.replace(/-/g, ' ');
+          const searchUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?key=${apiKey}&q=${encodeURIComponent(queryTerm)}&fetchImages=true&maxResults=20`;
+          const response = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
+
+          if (response.ok) {
+            const data = await response.json();
+            const items = data.items || [];
+            const targetSlug = slug.toLowerCase();
+
+            // Try exact slug match first
+            let match = items.find((p: any) => getSlugFromUrl(p.url).toLowerCase() === targetSlug);
+            // Then try partial slug match (Blogger truncates long slugs)
+            if (!match) {
+              match = items.find((p: any) => {
+                const pSlug = getSlugFromUrl(p.url).toLowerCase();
+                // Both slugs share at least the first 20 chars
+                return pSlug.startsWith(targetSlug.slice(0, 20)) || targetSlug.startsWith(pSlug.slice(0, 20));
+              });
+            }
+            // Broad match: slug words appear in Blogger URL
+            if (!match) {
+              const slugWords = targetSlug.split('-').filter(w => w.length > 3);
+              match = items.find((p: any) => {
+                const pSlug = getSlugFromUrl(p.url).toLowerCase();
+                const hits = slugWords.filter(w => pSlug.includes(w));
+                return hits.length >= Math.ceil(slugWords.length * 0.5);
+              });
+            }
+            if (match) matchedPost = match;
+          }
+        } catch (e) {
+          console.error('Search API fallback error:', e);
+        }
+      }
+
       let title = "Dios Mas Gym - El Arsenal de Fe";
       let description = "Reflexiones de fe, valentía y disciplina en El Arsenal.";
       let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
 
-      let matchedPost: any = null;
-
-      if (response.ok) {
-        const data = await response.json();
-        const items = data.items || [];
-        const targetSlug = slug.toLowerCase();
-        
-        const getSlugFromUrl = (url: string) => {
-          if (!url) return '';
-          return url.split('/').pop()?.replace('.html', '') || '';
-        };
-
-        const match = items.find((p: any) => {
-          const pSlug = getSlugFromUrl(p.url).toLowerCase();
-          return pSlug === targetSlug || pSlug.includes(targetSlug) || targetSlug.includes(pSlug);
-        });
-
-        if (match) {
-          matchedPost = match;
-          title = match.title || title;
-          description = (match.content || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
-          
-          if (match.images && match.images.length > 0) {
-            image = match.images[0].url;
-          } else {
-            const imgMatch = match.content?.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch) image = imgMatch[1];
-          }
+      if (matchedPost) {
+        title = matchedPost.title || title;
+        description = (matchedPost.content || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
+        if (matchedPost.images && matchedPost.images.length > 0) {
+          image = matchedPost.images[0].url;
+        } else {
+          const imgMatch = matchedPost.content?.match(/<img[^>]+src="([^">]+)"/);
+          if (imgMatch) image = imgMatch[1];
         }
       }
+
 
       // Fetch the compiled production index.html (from cache/network)
       let html = await getBaseIndexHtml();
@@ -780,7 +818,8 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
-      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
@@ -788,7 +827,8 @@ export default async function handler(
       console.error("Error in post-ssr:", err);
       try {
         const text = await getBaseIndexHtml();
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
         res.setHeader('Content-Type', 'text/html');
         return res.status(200).send(text);
       } catch {
@@ -912,7 +952,8 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
-      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
@@ -920,7 +961,8 @@ export default async function handler(
       console.error("Error in smartlink-ssr:", err);
       try {
         const text = await getBaseIndexHtml();
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
         res.setHeader('Content-Type', 'text/html');
         return res.status(200).send(text);
       } catch {
