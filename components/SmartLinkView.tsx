@@ -636,6 +636,14 @@ const SmartLinkView: React.FC = () => {
         if (id === 'custom') {
             return `https://app.diosmasgym.com/link/custom${location.search}`;
         }
+        if (id && id.startsWith('prx-') && song) {
+            const params = new URLSearchParams();
+            params.set('title', song.name);
+            params.set('artist', song.artist);
+            params.set('cover', song.cover || '');
+            params.set('url', song.url || '');
+            return `https://app.diosmasgym.com/link/custom?${params.toString()}`;
+        }
         return `https://app.diosmasgym.com/link/${id}`;
     };
 
