@@ -262,6 +262,29 @@ export default async function handler(
   const action = (req.query.action as string) || req.url?.split('?')[0].split('/').pop();
 
   // -------------------------------------------------------------
+  // ACTION: DEBUG SSR (Temporary diagnostic endpoint)
+  // -------------------------------------------------------------
+  if (action === 'debug-ssr') {
+    const slug = (req.query.slug as string) || 'reflexion-superficial';
+    const slugWords = slug.toLowerCase().split('-').filter((w: string) => w.length > 3);
+    const searchQ = slugWords.slice(0, 4).join('+');
+    const feedUrl = `https://www.diosmasgym.com/feeds/posts/default?alt=json&max-results=5&q=${encodeURIComponent(searchQ)}`;
+    try {
+      const feedResp = await fetch(feedUrl);
+      const feedData = await feedResp.json();
+      const entries = feedData?.feed?.entry || [];
+      const results = entries.map((e: any) => ({
+        title: e.title?.$t,
+        link: (e.link || []).find((l: any) => l.rel === 'alternate')?.href,
+        thumbnail: e['media$thumbnail']?.url
+      }));
+      return res.status(200).json({ slug, searchQ, feedUrl, count: entries.length, results });
+    } catch (err: any) {
+      return res.status(200).json({ error: err.message, slug, searchQ, feedUrl });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: LINKS
   // -------------------------------------------------------------
   if (action === 'links') {
