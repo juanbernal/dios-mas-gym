@@ -677,72 +677,53 @@ export default async function handler(
 
     try {
       // Helper: extract slug from Blogger URL
-      const getSlugFromUrl = (url: string) => {
+      const getSlugFromBloggerUrl = (url: string): string => {
         if (!url) return '';
         return url.split('/').pop()?.replace('.html', '') || '';
       };
 
+      // Use Blogger's public JSON feed — NO API key needed, always works
+      const blogDomain = 'www.diosmasgym.com';
+      const targetSlug = slug.toLowerCase();
+      const slugWords = targetSlug.split('-').filter((w: string) => w.length > 3);
+      // Use the most distinctive words from the slug as search terms
+      const searchQ = slugWords.slice(0, 4).join('+');
+      const feedUrl = `https://${blogDomain}/feeds/posts/default?alt=json&max-results=10&q=${encodeURIComponent(searchQ)}`;
+
       let matchedPost: any = null;
 
-      // STRATEGY 1: Try to fetch by direct Blogger post URL path
-      // Blogger URL pattern: /YYYY/MM/slug.html — we try multiple year/month combos
-      const tryByPath = async (path: string) => {
-        const byPathUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/bypath?key=${apiKey}&path=${encodeURIComponent(path)}&fetchImages=true`;
-        try {
-          const r = await fetch(byPathUrl, { headers: { 'Accept': 'application/json' } });
-          if (r.ok) return await r.json();
-        } catch {}
-        return null;
-      };
+      try {
+        const feedResp = await fetch(feedUrl, { headers: { 'Accept': 'application/json' } });
+        if (feedResp.ok) {
+          const feedData = await feedResp.json();
+          const entries: any[] = feedData?.feed?.entry || [];
 
-      // Get current year/month plus a few previous months to find the post
-      const now = new Date();
-      for (let monthOffset = 0; monthOffset <= 18 && !matchedPost; monthOffset++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const result = await tryByPath(`/${yyyy}/${mm}/${slug}.html`);
-        if (result && result.id) {
-          matchedPost = result;
-        }
-      }
+          for (const entry of entries) {
+            const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
+            if (!altLink) continue;
+            const entrySlug = getSlugFromBloggerUrl(altLink.href).toLowerCase();
 
-      // STRATEGY 2: Search API (keyword search) with better slug matching
-      if (!matchedPost) {
-        try {
-          const queryTerm = slug.replace(/-/g, ' ');
-          const searchUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?key=${apiKey}&q=${encodeURIComponent(queryTerm)}&fetchImages=true&maxResults=20`;
-          const response = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
-
-          if (response.ok) {
-            const data = await response.json();
-            const items = data.items || [];
-            const targetSlug = slug.toLowerCase();
-
-            // Try exact slug match first
-            let match = items.find((p: any) => getSlugFromUrl(p.url).toLowerCase() === targetSlug);
-            // Then try partial slug match (Blogger truncates long slugs)
-            if (!match) {
-              match = items.find((p: any) => {
-                const pSlug = getSlugFromUrl(p.url).toLowerCase();
-                // Both slugs share at least the first 20 chars
-                return pSlug.startsWith(targetSlug.slice(0, 20)) || targetSlug.startsWith(pSlug.slice(0, 20));
-              });
+            // Exact match
+            if (entrySlug === targetSlug) { matchedPost = entry; break; }
+            // Prefix match (Blogger truncates slugs)
+            if (entrySlug.startsWith(targetSlug.slice(0, 20)) || targetSlug.startsWith(entrySlug.slice(0, 20))) {
+              matchedPost = entry; break;
             }
-            // Broad match: slug words appear in Blogger URL
-            if (!match) {
-              const slugWords = targetSlug.split('-').filter(w => w.length > 3);
-              match = items.find((p: any) => {
-                const pSlug = getSlugFromUrl(p.url).toLowerCase();
-                const hits = slugWords.filter(w => pSlug.includes(w));
-                return hits.length >= Math.ceil(slugWords.length * 0.5);
-              });
-            }
-            if (match) matchedPost = match;
           }
-        } catch (e) {
-          console.error('Search API fallback error:', e);
+
+          // Broad word match if still not found
+          if (!matchedPost) {
+            for (const entry of entries) {
+              const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
+              if (!altLink) continue;
+              const entrySlug = getSlugFromBloggerUrl(altLink.href).toLowerCase();
+              const hits = slugWords.filter((w: string) => entrySlug.includes(w));
+              if (hits.length >= Math.ceil(slugWords.length * 0.5)) { matchedPost = entry; break; }
+            }
+          }
         }
+      } catch (feedErr) {
+        console.error('Blogger feed fetch error:', feedErr);
       }
 
       let title = "Dios Mas Gym - El Arsenal de Fe";
@@ -750,16 +731,18 @@ export default async function handler(
       let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
 
       if (matchedPost) {
-        title = matchedPost.title || title;
-        description = (matchedPost.content || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
-        if (matchedPost.images && matchedPost.images.length > 0) {
-          image = matchedPost.images[0].url;
+        // Feed JSON structure: title.$t, content.$t, media$thumbnail
+        title = matchedPost.title?.$t || title;
+        const rawContent = matchedPost.content?.$t || matchedPost.summary?.$t || '';
+        description = rawContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
+        // Try media thumbnail first (Blogger feed includes this)
+        if (matchedPost['media$thumbnail']?.url) {
+          image = matchedPost['media$thumbnail'].url.replace(/\/s\d+(-[a-z])?\//, '/s1200/');
         } else {
-          const imgMatch = matchedPost.content?.match(/<img[^>]+src="([^">]+)"/);
+          const imgMatch = rawContent.match(/<img[^>]+src="([^">]+)"/);
           if (imgMatch) image = imgMatch[1];
         }
       }
-
 
       // Fetch the compiled production index.html (from cache/network)
       let html = await getBaseIndexHtml();
