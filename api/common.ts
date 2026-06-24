@@ -773,8 +773,8 @@ export default async function handler(
       // Build JSON-LD structured data if post match was found
       let jsonLdBlock = '';
       if (typeof html === 'string') {
-        const publishedDate = matchedPost?.published || new Date().toISOString();
-        const modifiedDate = matchedPost?.updated || publishedDate;
+        const publishedDate = matchedPost?.published?.$t || matchedPost?.published || new Date().toISOString();
+        const modifiedDate = matchedPost?.updated?.$t || matchedPost?.updated || publishedDate;
         jsonLdBlock = `
 <script type="application/ld+json">
 {
