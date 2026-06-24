@@ -757,24 +757,28 @@ export default async function handler(
 </script>`;
       }
 
+      const safeTitle = escapeXml(title);
+      const safeDesc = escapeXml(description);
+      const safeImage = escapeXml(image);
+
       // Perform meta tag injections using robust regexes
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title} | El Arsenal</title>`);
+      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle} | El Arsenal</title>`);
       
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
+      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
       
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
+      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
       
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
       
       html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="https://app.diosmasgym.com/post/${slug}">`);
       html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="https://app.diosmasgym.com/post/${slug}">`);
       
       html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       
-      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${description}">\n</head>`);
+      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
       res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
       res.setHeader('Content-Type', 'text/html');
@@ -885,24 +889,28 @@ export default async function handler(
         shareUrl = `https://app.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`;
       }
 
-      // Perform injections using robust regexes to avoid minification discrepancies
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
+      const safeTitle = escapeXml(title);
+      const safeDesc = escapeXml(description);
+      const safeImage = escapeXml(image);
+
+      // Perform meta tag injections using robust regexes
+      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
       
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${title}">`);
+      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
       
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${description}">`);
+      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
       
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${image}">`);
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
       
       html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
       html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
       
       html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${shareUrl}" />`);
       
-      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${description}">\n</head>`);
+      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
       res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
       res.setHeader('Content-Type', 'text/html');
