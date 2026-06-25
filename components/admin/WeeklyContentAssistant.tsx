@@ -259,12 +259,22 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         <span>{copied === 'sl' ? '✓ Copiado' : 'Copiar Link'}</span>
                     </button>
                     <button 
-                        onClick={() => {
+                        onClick={async () => {
                             if (suggestion.song && navigator.share) {
                                 const url = `${window.location.origin}/link/${suggestion.song.id}`;
+                                const fullText = `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`;
+                                
+                                // Apps como Instagram o Facebook bloquean el parámetro "text" nativo.
+                                // Copiamos el texto al portapapeles primero para que el usuario solo tenga que "Pegar"
+                                try {
+                                    await navigator.clipboard.writeText(`${fullText}\n\n${url}`);
+                                } catch (e) {
+                                    console.log('Clipboard copy failed');
+                                }
+
                                 navigator.share({
                                     title: suggestion.song.name,
-                                    text: `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`,
+                                    text: fullText,
                                     url: url
                                 }).catch(() => console.log('Share canceled or failed'));
                             } else {
