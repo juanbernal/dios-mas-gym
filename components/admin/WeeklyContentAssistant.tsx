@@ -248,7 +248,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                             }
                         }} 
                         disabled={!suggestion.song}
-                        className="col-span-2 flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                        className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
                         style={{ 
                             backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
                             borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
@@ -256,7 +256,26 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         }}
                     >
                         <i className="fas fa-link text-[10px]"></i>
-                        <span>{copied === 'sl' ? '✓ Enlace Copiado' : 'Copiar Smartlink URL'}</span>
+                        <span>{copied === 'sl' ? '✓ Copiado' : 'Copiar Link'}</span>
+                    </button>
+                    <button 
+                        onClick={() => {
+                            if (suggestion.song && navigator.share) {
+                                const url = `${window.location.origin}/link/${suggestion.song.id}`;
+                                navigator.share({
+                                    title: suggestion.song.name,
+                                    text: `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`,
+                                    url: url
+                                }).catch(() => console.log('Share canceled or failed'));
+                            } else {
+                                alert('Compartir no está soportado en este navegador de escritorio. Usa el móvil o copia los textos.');
+                            }
+                        }} 
+                        disabled={!suggestion.song}
+                        className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-[1.02] transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                    >
+                        <i className="fas fa-share text-[10px]"></i>
+                        <span>Preparar P/ Redes</span>
                     </button>
                 </div>
             </div>
