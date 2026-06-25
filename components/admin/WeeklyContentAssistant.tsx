@@ -247,18 +247,18 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         </button>
                         
                         <button 
-                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags })} 
+                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags })} 
                             className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
                         >
-                            <span className="flex items-center gap-3"><i className="fas fa-square text-[#c5a059] group-hover:scale-125 transition-transform"></i> Imagen Promocional (1:1)</span>
+                            <span className="flex items-center gap-3"><i className="fas fa-mobile-screen text-[#c5a059] group-hover:scale-125 transition-transform"></i> Smartlink Creator (Story)</span>
                             <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
                         </button>
                         
                         <button 
-                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags })} 
+                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags })} 
                             className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
                         >
-                            <span className="flex items-center gap-3"><i className="fas fa-mobile-screen text-[#c5a059] group-hover:scale-125 transition-transform"></i> Video Smartlink (9:16)</span>
+                            <span className="flex items-center gap-3"><i className="fas fa-square text-[#c5a059] group-hover:scale-125 transition-transform"></i> Promo Image (Post)</span>
                             <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
                         </button>
 
