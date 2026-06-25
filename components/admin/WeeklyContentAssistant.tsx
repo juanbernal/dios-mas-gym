@@ -355,8 +355,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         const createSuggestion = (song: MusicItem, type: 'recent' | 'rotation'): Suggestion => {
             const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist);
-            const cleanTitle = song.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '').toLowerCase();
-            const dynamicHashtags = `#${cleanTitle} #musica${cleanTitle} #diosmasgym`;
+            // Extraer palabras limpias del título (sin símbolos)
+            const words = song.name.replace(/[^a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]/g, '').trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+            
+            // Convertir cada palabra en un hashtag individual
+            const titleHashtags = words.map(w => `#${w}`).join(' ');
+            
+            const dynamicHashtags = `${titleHashtags} #musica #diosmasgym`;
             const finalHashtags = `${HASHTAG_SETS[type]} ${dynamicHashtags}`;
             
             return {
