@@ -652,6 +652,13 @@ const App: React.FC = () => {
   }, [state.allPosts, readingHistory]);
   
   useEffect(() => {
+    // Redirect legacy HashRouter paths to clean paths
+    if (window.location.hash.startsWith('#/')) {
+      const cleanPath = window.location.hash.substring(1); // removes the '#'
+      window.location.replace(window.location.origin + cleanPath);
+      return;
+    }
+
     const path = location.pathname;
     const bloggerPathMatch = path.match(/\/\d{4}\/\d{2}\/(.+)\.html/);
     if (bloggerPathMatch && bloggerPathMatch[1]) { navigate(`/post/${bloggerPathMatch[1]}`, { replace: true }); return; }
