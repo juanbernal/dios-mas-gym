@@ -493,7 +493,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         suggestion={suggestions.suggestionNew} 
                         onNext={() => handleNextSlot1(suggestions.suggestionNew!)} 
                         onMarkCompleted={() => handleMarkCompletedSlot1(suggestions.suggestionNew!)}
-                        onAction={(route) => handleAction(route, suggestions.suggestionNew!)} 
+                        onAction={(route, texts) => handleAction(route, suggestions.suggestionNew!, texts)} 
                     />
                 )}
                 {suggestions.suggestionOld && (
@@ -502,7 +502,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         suggestion={suggestions.suggestionOld} 
                         onNext={() => handleNextSlot2(suggestions.suggestionOld!)} 
                         onMarkCompleted={() => handleMarkCompletedSlot2(suggestions.suggestionOld!)}
-                        onAction={(route) => handleAction(route, suggestions.suggestionOld!)} 
+                        onAction={(route, texts) => handleAction(route, suggestions.suggestionOld!, texts)} 
                     />
                 )}
             </div>
