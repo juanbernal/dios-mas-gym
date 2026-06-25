@@ -236,6 +236,10 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         <i className="fas fa-share-nodes text-[10px]"></i>
                         <span>Viral Post</span>
                     </button>
+                    <button onClick={() => onAction('/admin/smartlink-video')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                        <i className="fas fa-mobile-screen text-[10px]"></i>
+                        <span>SL Creator</span>
+                    </button>
                     <button 
                         onClick={() => {
                             if (suggestion.song) {
@@ -244,7 +248,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                             }
                         }} 
                         disabled={!suggestion.song}
-                        className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                        className="col-span-2 flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
                         style={{ 
                             backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
                             borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
@@ -252,7 +256,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         }}
                     >
                         <i className="fas fa-link text-[10px]"></i>
-                        <span>{copied === 'sl' ? '✓ Copiado' : 'Smartlink'}</span>
+                        <span>{copied === 'sl' ? '✓ Enlace Copiado' : 'Copiar Smartlink URL'}</span>
                     </button>
                 </div>
             </div>
@@ -322,13 +326,17 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         const createSuggestion = (song: MusicItem, type: 'recent' | 'rotation'): Suggestion => {
             const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist);
+            const cleanTitle = song.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '').toLowerCase();
+            const dynamicHashtags = `#${cleanTitle} #musica${cleanTitle} #diosmasgym`;
+            const finalHashtags = `${HASHTAG_SETS[type]} ${dynamicHashtags}`;
+            
             return {
                 song,
                 reason: `Recomendación aleatoria del día: "${song.name}" de ${song.artist}. Mantén tu perfil activo publicando contenido a diario.`,
                 type,
                 caption: caps.ig,
                 tiktokCaption: caps.tt,
-                hashtags: HASHTAG_SETS[type],
+                hashtags: finalHashtags,
             };
         };
 
