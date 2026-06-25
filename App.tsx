@@ -652,13 +652,13 @@ const App: React.FC = () => {
   }, [state.allPosts, readingHistory]);
   
   useEffect(() => {
-    if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
-      window.location.replace(window.location.origin + '/#/admin');
-      return;
-    }
     const path = location.pathname;
     const bloggerPathMatch = path.match(/\/\d{4}\/\d{2}\/(.+)\.html/);
     if (bloggerPathMatch && bloggerPathMatch[1]) { navigate(`/post/${bloggerPathMatch[1]}`, { replace: true }); return; }
+    
+    const bloggerPageMatch = path.match(/^\/p\/(.+)\.html$/);
+    if (bloggerPageMatch && bloggerPageMatch[1]) { navigate(`/post/${bloggerPageMatch[1]}`, { replace: true }); return; }
+
     if (location.search.includes('m=1') && path === '/') { navigate('/', { replace: true }); }
   }, [location.pathname, location.search, navigate]);
 
