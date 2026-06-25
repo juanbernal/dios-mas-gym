@@ -59,6 +59,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
     const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
+    const [showShareOptions, setShowShareOptions] = useState(false);
 
     const TYPE_LABELS: Record<Suggestion['type'], { label: string; color: string; icon: string }> = {
         new_release: { label: '🚀 Lanzamiento', color: '#ff4b2b', icon: 'fa-rocket' },
@@ -223,71 +224,97 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
 
             {/* Footer Buttons */}
             <div className="px-6 pb-6 pt-2 border-t border-white/5 bg-black/10">
-                <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => onAction('/admin/promo-image')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                        <i className="fas fa-image text-[10px]"></i>
-                        <span>Imagen</span>
-                    </button>
-                    <button onClick={() => onAction('/admin/video-snippet')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                        <i className="fas fa-video text-[10px]"></i>
-                        <span>Video</span>
-                    </button>
-                    <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                        <i className="fas fa-share-nodes text-[10px]"></i>
-                        <span>Viral Post</span>
-                    </button>
-                    <button onClick={() => onAction('/admin/smartlink-video')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                        <i className="fas fa-mobile-screen text-[10px]"></i>
-                        <span>SL Creator</span>
-                    </button>
-                    <button 
-                        onClick={() => {
-                            if (suggestion.song) {
-                                const url = `${window.location.origin}/link/${suggestion.song.id}`;
-                                copyText(url, 'sl');
-                            }
-                        }} 
-                        disabled={!suggestion.song}
-                        className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
-                        style={{ 
-                            backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
-                            borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
-                            color: copied === 'sl' ? '#fff' : 'rgba(255,255,255,0.6)' 
-                        }}
-                    >
-                        <i className="fas fa-link text-[10px]"></i>
-                        <span>{copied === 'sl' ? '✓ Copiado' : 'Copiar Link'}</span>
-                    </button>
-                    <button 
-                        onClick={async () => {
-                            if (suggestion.song && navigator.share) {
-                                const url = `${window.location.origin}/link/${suggestion.song.id}`;
-                                const fullText = `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`;
-                                
-                                // Apps como Instagram o Facebook bloquean el parámetro "text" nativo.
-                                // Copiamos el texto al portapapeles primero para que el usuario solo tenga que "Pegar"
-                                try {
-                                    await navigator.clipboard.writeText(`${fullText}\n\n${url}`);
-                                } catch (e) {
-                                    console.log('Clipboard copy failed');
+                {showShareOptions ? (
+                    <div className="grid grid-cols-1 gap-2 p-5 rounded-2xl bg-[#0f111a] border border-[#c5a059]/30 shadow-2xl animate-fade-in">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-center text-[#c5a059] mb-3">¿Qué formato deseas compartir?</p>
+                        
+                        <button 
+                            onClick={async () => {
+                                if (suggestion.song && navigator.share) {
+                                    const url = `${window.location.origin}/link/${suggestion.song.id}`;
+                                    const fullText = `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`;
+                                    try { await navigator.clipboard.writeText(`${fullText}\n\n${url}`); } catch (e) { }
+                                    navigator.share({ title: suggestion.song.name, text: fullText, url }).catch(() => {});
+                                    setShowShareOptions(false);
+                                } else {
+                                    alert('Tu navegador no soporta compartir nativo.');
                                 }
+                            }}
+                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
+                        >
+                            <span className="flex items-center gap-3"><i className="fas fa-link text-[#c5a059] group-hover:scale-125 transition-transform"></i> Solo Texto y Enlace</span>
+                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                        </button>
+                        
+                        <button 
+                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags })} 
+                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
+                        >
+                            <span className="flex items-center gap-3"><i className="fas fa-square text-[#c5a059] group-hover:scale-125 transition-transform"></i> Imagen Promocional (1:1)</span>
+                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                        </button>
+                        
+                        <button 
+                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags })} 
+                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
+                        >
+                            <span className="flex items-center gap-3"><i className="fas fa-mobile-screen text-[#c5a059] group-hover:scale-125 transition-transform"></i> Video Smartlink (9:16)</span>
+                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                        </button>
 
-                                navigator.share({
-                                    title: suggestion.song.name,
-                                    text: fullText,
-                                    url: url
-                                }).catch(() => console.log('Share canceled or failed'));
-                            } else {
-                                alert('Compartir no está soportado en este navegador de escritorio. Usa el móvil o copia los textos.');
-                            }
-                        }} 
-                        disabled={!suggestion.song}
-                        className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-[1.02] transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
-                    >
-                        <i className="fas fa-share text-[10px]"></i>
-                        <span>Preparar P/ Redes</span>
-                    </button>
-                </div>
+                        <button 
+                            onClick={() => setShowShareOptions(false)} 
+                            className="mt-3 text-[9px] text-white/30 uppercase font-black tracking-[0.3em] hover:text-white transition-colors"
+                        >
+                            [ Cancelar ]
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => onAction('/admin/promo-image')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                            <i className="fas fa-image text-[10px]"></i>
+                            <span>Imagen</span>
+                        </button>
+                        <button onClick={() => onAction('/admin/video-snippet')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                            <i className="fas fa-video text-[10px]"></i>
+                            <span>Video</span>
+                        </button>
+                        <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                            <i className="fas fa-share-nodes text-[10px]"></i>
+                            <span>Viral Post</span>
+                        </button>
+                        <button onClick={() => onAction('/admin/smartlink-video')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
+                            <i className="fas fa-mobile-screen text-[10px]"></i>
+                            <span>SL Creator</span>
+                        </button>
+                        <button 
+                            onClick={() => {
+                                if (suggestion.song) {
+                                    const url = `${window.location.origin}/link/${suggestion.song.id}`;
+                                    copyText(url, 'sl');
+                                }
+                            }} 
+                            disabled={!suggestion.song}
+                            className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                            style={{ 
+                                backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
+                                borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                color: copied === 'sl' ? '#fff' : 'rgba(255,255,255,0.6)' 
+                            }}
+                        >
+                            <i className="fas fa-link text-[10px]"></i>
+                            <span>{copied === 'sl' ? '✓ Copiado' : 'Copiar Link'}</span>
+                        </button>
+                        <button 
+                            onClick={() => setShowShareOptions(true)} 
+                            disabled={!suggestion.song}
+                            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-[1.02] transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                        >
+                            <i className="fas fa-share text-[10px]"></i>
+                            <span>Preparar P/ Redes</span>
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -418,9 +445,9 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         localStorage.setItem('content_assistant_slot2_skips', nextSkips.toString());
     };
 
-    const handleAction = (route: string, suggestion: Suggestion) => {
+    const handleAction = (route: string, suggestion: Suggestion, texts?: any) => {
         if (suggestion.song) {
-            navigate(route, { state: { song: suggestion.song } });
+            navigate(route, { state: { song: suggestion.song, presetCaption: texts?.caption, presetHashtags: texts?.hashtags } });
         } else {
             navigate(route);
         }
