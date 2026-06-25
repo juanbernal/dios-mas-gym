@@ -165,7 +165,20 @@ const SmartLinkVideoGenerator: React.FC = () => {
                 setCustomArtist(incomingSong.artist || "Dios Mas Gym");
             }
         });
-    }, [location.state]);
+    }, [location.state?.song]);
+
+    useEffect(() => {
+        if (location.state?.autoShare && selectedSong && isImageLoaded) {
+            downloadImage();
+            if (location.state?.presetCaption || location.state?.presetHashtags) {
+                const url = `${window.location.origin}/link/${selectedSong.id}`;
+                const text = `${location.state.presetCaption || ''}\n\n${url}\n\n${location.state.presetHashtags || ''}`;
+                navigator.clipboard.writeText(text).catch(() => {});
+                setTimeout(() => alert("¡Imagen generada! Los textos y hashtags también se han copiado al portapapeles. ¡Listos para pegar!"), 500);
+            }
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state?.autoShare, selectedSong, isImageLoaded]);
 
     const getRelatedTracks = () => {
         if (!selectedSong) return [];

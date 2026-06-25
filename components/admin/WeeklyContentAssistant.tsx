@@ -247,7 +247,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         </button>
                         
                         <button 
-                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags })} 
+                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags, autoShare: true })} 
                             className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
                         >
                             <span className="flex items-center gap-3"><i className="fas fa-mobile-screen text-[#c5a059] group-hover:scale-125 transition-transform"></i> Smartlink Creator (Story)</span>
@@ -255,7 +255,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onM
                         </button>
                         
                         <button 
-                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags })} 
+                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags, autoShare: true })} 
                             className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
                         >
                             <span className="flex items-center gap-3"><i className="fas fa-square text-[#c5a059] group-hover:scale-125 transition-transform"></i> Promo Image (Post)</span>
@@ -447,7 +447,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
     const handleAction = (route: string, suggestion: Suggestion, texts?: any) => {
         if (suggestion.song) {
-            navigate(route, { state: { song: suggestion.song, presetCaption: texts?.caption, presetHashtags: texts?.hashtags } });
+            navigate(route, { state: { song: suggestion.song, presetCaption: texts?.caption, presetHashtags: texts?.hashtags, autoShare: texts?.autoShare } });
         } else {
             navigate(route);
         }

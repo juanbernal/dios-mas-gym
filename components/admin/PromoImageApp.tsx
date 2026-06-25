@@ -133,7 +133,14 @@ const PromoImageApp: React.FC = () => {
       }
     };
     loadCatalog();
-  }, [location.state]);
+  }, [location.state?.song]);
+
+  useEffect(() => {
+    if (location.state?.autoShare && title !== "CARGANDO CANCIÓN..." && !showSharePanel) {
+      handleOpenSharePanel();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.autoShare, title, showSharePanel]);
 
   const handleSelectSong = (song: MusicItem) => {
     let normalizedArtist = song.artist;
@@ -382,25 +389,30 @@ const PromoImageApp: React.FC = () => {
   // OPEN SOCIAL SHARE PANEL
   const handleOpenSharePanel = async () => {
     setShowSharePanel(true);
-    setAiCaption("");
-    setAiHashtags("");
+    setAiCaption(location.state?.presetCaption || "");
+    setAiHashtags(location.state?.presetHashtags || "");
     setShareImageBlob(null);
     setIsGeneratingCaption(true);
     try {
+      const skipAi = !!(location.state?.presetCaption && location.state?.presetHashtags);
       // Generate image blob and AI caption in parallel
       const [result, canvas] = await Promise.all([
-        generateSocialCaption(title, artist, getSmartLink()),
+        skipAi ? Promise.resolve({ caption: location.state.presetCaption, hashtags: location.state.presetHashtags }) : generateSocialCaption(title, artist, getSmartLink()),
         prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share)
       ]);
-      setAiCaption(result.caption);
-      setAiHashtags(result.hashtags);
+      if (!skipAi) {
+        setAiCaption(result.caption);
+        setAiHashtags(result.hashtags);
+      }
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
       if (blob) setShareImageBlob(blob);
     } catch (err) {
       console.error("Share panel error:", err);
       // Fallback caption
-      setAiCaption(`🎵 "${title}" de ${artist} ya disponible!\n\n¡Escúchala ahora! 🎧\n👉 ${getSmartLink()}`);
-      setAiHashtags(`#${title.replace(/\s+/g,'')} #${artist.replace(/\s+/g,'')} #DiosMasGym #NuevaMusica #Corridos #MusicaCristiana`);
+      if (!location.state?.presetCaption) {
+        setAiCaption(`🎵 "${title}" de ${artist} ya disponible!\n\n¡Escúchala ahora! 🎧\n👉 ${getSmartLink()}`);
+        setAiHashtags(`#${title.replace(/\s+/g,'')} #${artist.replace(/\s+/g,'')} #DiosMasGym #NuevaMusica #Corridos #MusicaCristiana`);
+      }
     } finally {
       setIsGeneratingCaption(false);
     }
