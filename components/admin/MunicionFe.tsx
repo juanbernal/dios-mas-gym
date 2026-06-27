@@ -529,23 +529,26 @@ const MunicionFe: React.FC = () => {
 
                 {/* Watermark Watermark background overlay */}
                 {styleFondo.watermark && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none p-6">
                     <img 
                       src={styleFondo.watermark} 
                       alt="watermark" 
-                      style={{ width: '75%', height: 'auto', maxHeight: '75%' }}
-                      className="object-contain"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 )}
 
                 {/* Header (Logo small top) */}
-                <div className="w-full flex justify-center pt-2">
+                <div className="w-full flex justify-center pt-2 shrink-0">
                   {styleFondo.watermark ? (
                     <img 
                       src={styleFondo.watermark} 
                       alt="logo header" 
-                      style={{ width: `${logoSize}px`, height: 'auto' }}
+                      style={{ 
+                        width: `${logoSize}px`, 
+                        height: 'auto',
+                        maxHeight: format === 'story' ? '120px' : '65px' 
+                      }}
                       className="object-contain"
                     />
                   ) : (
