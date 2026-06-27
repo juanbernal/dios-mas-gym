@@ -514,7 +514,9 @@ const MunicionFe: React.FC = () => {
                   width: '100%',
                   aspectRatio: format === 'story' ? '9/16' : format === 'ig_portrait' ? '4/5' : '1/1'
                 }}
-                className={`relative flex flex-col items-center justify-between p-10 md:p-12 ${styleFondo.bgClass} overflow-hidden select-none`}
+                className={`relative flex flex-col items-center justify-between ${
+                  format === 'story' ? 'p-10' : format === 'ig_portrait' ? 'p-8' : 'p-6'
+                } ${styleFondo.bgClass} overflow-hidden select-none`}
               >
                 
                 {/* Grain Effect */}
@@ -557,31 +559,39 @@ const MunicionFe: React.FC = () => {
                 </div>
 
                 {/* Center Content: The quote text */}
-                <div className="w-full flex-1 flex flex-col justify-center py-8">
+                <div className={`w-full flex-1 flex flex-col justify-center ${
+                  format === 'story' ? 'py-8' : format === 'ig_portrait' ? 'py-4' : 'py-2'
+                }`}>
                   
                   {/* Decorative quotes icons */}
-                  <div className="text-white/10 text-4xl mb-4 font-serif text-left">
+                  <div className={`text-white/10 ${
+                    format === 'story' ? 'text-4xl mb-4' : format === 'ig_portrait' ? 'text-3xl mb-3' : 'text-2xl mb-2'
+                  } font-serif text-left`}>
                     <i className="fas fa-quote-left"></i>
                   </div>
 
                   <p
                     style={{ 
                       fontSize: `${fontSize}px`,
-                      lineHeight: '1.5',
+                      lineHeight: format === 'story' ? '1.5' : '1.3',
                       color: '#ffffff'
                     }}
-                    className="font-serif italic font-bold leading-relaxed break-words"
+                    className="font-serif italic font-bold break-words"
                   >
                     {texto || 'Escribe algo...'}
                   </p>
 
-                  <div className="text-right text-white/10 text-4xl mt-4 font-serif">
+                  <div className={`text-right text-white/10 ${
+                    format === 'story' ? 'text-4xl mt-4' : format === 'ig_portrait' ? 'text-3xl mt-3' : 'text-2xl mt-2'
+                  } font-serif`}>
                     <i className="fas fa-quote-right"></i>
                   </div>
                 </div>
 
                 {/* Footer details (Cita references) */}
-                <div className="w-full border-t border-white/5 pt-6 pb-2 flex flex-col items-center gap-1.5">
+                <div className={`w-full border-t border-white/5 ${
+                  format === 'story' ? 'pt-6 pb-2' : format === 'ig_portrait' ? 'pt-4 pb-1' : 'pt-3 pb-0'
+                } flex flex-col items-center gap-1.5`}>
                   <span 
                     style={{ color: colorAccent }}
                     className="text-[10px] font-black uppercase tracking-[0.25em] drop-shadow-[0_0_10px_rgba(197,160,89,0.15)]"
