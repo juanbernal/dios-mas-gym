@@ -130,7 +130,7 @@ const MunicionFe: React.FC = () => {
   const [texto, setTexto] = useState(VERSICULOS_PREDEFINIDOS[initialIndex.current].versiculo);
   const [cita, setCita] = useState(VERSICULOS_PREDEFINIDOS[initialIndex.current].cita);
   const [styleFondo, setStyleFondo] = useState(FONDO_ESTILOS[0]);
-  const [format, setFormat] = useState<'story' | 'post'>('story');
+  const [format, setFormat] = useState<'story' | 'post' | 'ig_portrait'>('ig_portrait');
   const [colorAccent, setColorAccent] = useState('#c5a059'); // Gold
   const [fontSize, setFontSize] = useState(24);
   const [align, setAlign] = useState<'left' | 'center' | 'right'>('center');
@@ -205,6 +205,10 @@ const MunicionFe: React.FC = () => {
     if (format === 'story') {
       element.style.width = '360px';
       element.style.height = '640px';
+      element.style.maxWidth = 'none';
+    } else if (format === 'ig_portrait') {
+      element.style.width = '360px';
+      element.style.height = '450px';
       element.style.maxWidth = 'none';
     } else {
       element.style.width = '360px';
@@ -340,7 +344,7 @@ const MunicionFe: React.FC = () => {
               {/* Format Select */}
               <div className="flex flex-col gap-2">
                 <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Formato de Redes</label>
-                <div className="flex bg-[#05070a] p-1 rounded-2xl border border-white/10">
+                <div className="flex bg-[#05070a] p-1 rounded-2xl border border-white/10 flex-col md:flex-row gap-1 md:gap-0">
                   <button
                     type="button"
                     onClick={() => setFormat('story')}
@@ -348,7 +352,16 @@ const MunicionFe: React.FC = () => {
                       format === 'story' ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'
                     }`}
                   >
-                    📱 Story (9:16)
+                    📱 Reels (9:16)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat('ig_portrait')}
+                    className={`flex-1 py-3 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${
+                      format === 'ig_portrait' ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    📸 IG Post (4:5)
                   </button>
                   <button
                     type="button"
@@ -357,7 +370,7 @@ const MunicionFe: React.FC = () => {
                       format === 'post' ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'
                     }`}
                   >
-                    🖼️ Post (1:1)
+                    🖼️ Cuadrado (1:1)
                   </button>
                 </div>
               </div>
@@ -499,7 +512,7 @@ const MunicionFe: React.FC = () => {
                 style={{ 
                   textAlign: align,
                   width: '100%',
-                  aspectRatio: format === 'story' ? '9/16' : '1/1'
+                  aspectRatio: format === 'story' ? '9/16' : format === 'ig_portrait' ? '4/5' : '1/1'
                 }}
                 className={`relative flex flex-col items-center justify-between p-10 md:p-12 ${styleFondo.bgClass} overflow-hidden select-none`}
               >
