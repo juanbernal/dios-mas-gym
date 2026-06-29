@@ -1195,7 +1195,7 @@ const AntiAIWatermark: React.FC = () => {
             const containerWidth = canvas.parentElement?.clientWidth || 800;
             const containerHeight = canvas.parentElement?.clientHeight || 600;
             const scale = Math.min(containerWidth / originalSize.width, containerHeight / originalSize.height, 1);
-            const hasFooter = showText || showSocials;
+            const hasFooter = (showText && textPosition === 'bottom') || (showSocials && socialPosition.startsWith('bottom'));
             const footerRatio = hasFooter ? 0.08 : 0; // 8% of the image height for footer
 
             canvas.width = originalSize.width * scale;
@@ -1225,7 +1225,7 @@ const AntiAIWatermark: React.FC = () => {
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const hasFooter = showText || showSocials;
+            const hasFooter = (showText && textPosition === 'bottom') || (showSocials && socialPosition.startsWith('bottom'));
             const footerRatio = hasFooter ? 0.08 : 0;
             
             canvas.width = originalSize.width;
@@ -1348,7 +1348,7 @@ const AntiAIWatermark: React.FC = () => {
                             <i className="fas fa-shield-halved text-[#c5a059] text-xl"></i>
                             <div className="flex flex-col">
                                 <h1 className="text-xl md:text-2xl font-serif italic text-white leading-none">Mando Ejecutivo</h1>
-                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.5 PRO PREMIUM</span>
+                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.5.1 PRO PREMIUM</span>
                             </div>
                         </div>
                         <p className="text-white/40 text-[11px] leading-relaxed">
