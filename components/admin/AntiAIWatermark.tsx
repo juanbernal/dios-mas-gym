@@ -14,6 +14,7 @@ const AntiAIWatermark: React.FC = () => {
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [showText, setShowText] = useState<boolean>(true);
+    const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'left' | 'right'>('bottom');
     
     // Ribbon / Banner States
     const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left' | 'diagonal-right'>('none');
@@ -1057,17 +1058,11 @@ const AntiAIWatermark: React.FC = () => {
             ctx.restore();
         }
 
-        // 5. Add Default Brand Text at the bottom if enabled
+        // 5. Add Default Brand Text if enabled
         if (showText) {
+            ctx.save();
             ctx.globalAlpha = logoOpacity / 100;
             
-            const gradientHeight = Math.max(150, height * 0.15);
-            const grad = ctx.createLinearGradient(0, height - gradientHeight, 0, height);
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, height - gradientHeight, width, gradientHeight);
-
             const fontSize = Math.max(16, width * 0.018); 
             ctx.font = `400 ${fontSize}px Montserrat, Inter, sans-serif`;
             if ('letterSpacing' in ctx) {
@@ -1082,25 +1077,107 @@ const AntiAIWatermark: React.FC = () => {
             ctx.shadowBlur = fontSize * 1.5;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 4;
-            
-            const textY = height - (margin * 0.6);
-            ctx.fillText('DIOSMASGYM.COM', width / 2, textY);
-            
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            const textMetrics = ctx.measureText('DIOSMASGYM.COM');
+
+            const textToDraw = 'DIOSMASGYM.COM';
+            const textMetrics = ctx.measureText(textToDraw);
             const actualWidth = textMetrics.width;
-            
-            ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
-            ctx.lineWidth = Math.max(1, fontSize * 0.1);
-            ctx.beginPath();
-            ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
-            ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
-            ctx.stroke();
-            
+
+            if (textPosition === 'bottom') {
+                const gradientHeight = Math.max(150, height * 0.15);
+                const grad = ctx.createLinearGradient(0, height - gradientHeight, 0, height);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, height - gradientHeight, width, gradientHeight);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                const textY = height - (margin * 0.6);
+                ctx.fillText(textToDraw, width / 2, textY);
+                
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
+                ctx.lineWidth = Math.max(1, fontSize * 0.1);
+                ctx.beginPath();
+                ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
+                ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
+                ctx.stroke();
+            } else if (textPosition === 'top') {
+                const gradientHeight = Math.max(150, height * 0.15);
+                const grad = ctx.createLinearGradient(0, 0, 0, gradientHeight);
+                grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, gradientHeight);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                const textY = margin * 0.6 + fontSize;
+                ctx.fillText(textToDraw, width / 2, textY);
+                
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
+                ctx.lineWidth = Math.max(1, fontSize * 0.1);
+                ctx.beginPath();
+                ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
+                ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
+                ctx.stroke();
+            } else if (textPosition === 'left') {
+                const gradientWidth = Math.max(150, width * 0.15);
+                const grad = ctx.createLinearGradient(0, 0, gradientWidth, 0);
+                grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, gradientWidth, height);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                const textX = margin * 0.6 + fontSize;
+                
+                ctx.save();
+                ctx.translate(textX, height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText(textToDraw, 0, 0);
+                
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
+                ctx.lineWidth = Math.max(1, fontSize * 0.1);
+                ctx.beginPath();
+                ctx.moveTo(- (actualWidth / 3), fontSize * 1.2);
+                ctx.lineTo(+ (actualWidth / 3), fontSize * 1.2);
+                ctx.stroke();
+                ctx.restore();
+            } else if (textPosition === 'right') {
+                const gradientWidth = Math.max(150, width * 0.15);
+                const grad = ctx.createLinearGradient(width - gradientWidth, 0, width, 0);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(width - gradientWidth, 0, gradientWidth, height);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                const textX = width - (margin * 0.6) - fontSize;
+                
+                ctx.save();
+                ctx.translate(textX, height / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.fillText(textToDraw, 0, 0);
+                
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
+                ctx.lineWidth = Math.max(1, fontSize * 0.1);
+                ctx.beginPath();
+                ctx.moveTo(- (actualWidth / 3), fontSize * 1.2);
+                ctx.lineTo(+ (actualWidth / 3), fontSize * 1.2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
             if ('letterSpacing' in ctx) {
                 (ctx as any).letterSpacing = '0px';
             }
+            ctx.restore();
         }
 
         ctx.globalAlpha = 1.0;
@@ -1130,7 +1207,7 @@ const AntiAIWatermark: React.FC = () => {
         img.src = imageSrc;
 
     }, [
-        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText,
+        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText, textPosition,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
         showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle, socialLayout,
         showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube, musicAmazon, musicTidal, musicDeezer, musicAudiomack,
@@ -1271,7 +1348,7 @@ const AntiAIWatermark: React.FC = () => {
                             <i className="fas fa-shield-halved text-[#c5a059] text-xl"></i>
                             <div className="flex flex-col">
                                 <h1 className="text-xl md:text-2xl font-serif italic text-white leading-none">Mando Ejecutivo</h1>
-                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.4 PRO PREMIUM</span>
+                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.5 PRO PREMIUM</span>
                             </div>
                         </div>
                         <p className="text-white/40 text-[11px] leading-relaxed">
@@ -1960,14 +2037,28 @@ const AntiAIWatermark: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between bg-black/20 p-2.5 rounded-lg border border-white/5">
-                                <label className="text-[10px] font-bold text-white/70">Texto "DIOSMASGYM.COM" al pie</label>
-                                <input 
-                                    type="checkbox" 
-                                    checked={showText} 
-                                    onChange={(e) => setShowText(e.target.checked)}
-                                    className="accent-[#c5a059] w-4 h-4 cursor-pointer"
-                                />
+                            <div className="flex flex-col gap-2 bg-black/20 p-2.5 rounded-lg border border-white/5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-white/70">Texto "DIOSMASGYM.COM"</label>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={showText} 
+                                        onChange={(e) => setShowText(e.target.checked)}
+                                        className="accent-[#c5a059] w-4 h-4 cursor-pointer"
+                                    />
+                                </div>
+                                {showText && (
+                                    <select 
+                                        value={textPosition}
+                                        onChange={(e) => setTextPosition(e.target.value as any)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-[10px] text-white/80 outline-none focus:border-[#c5a059] mt-1"
+                                    >
+                                        <option value="bottom">Abajo (Pie de Imagen)</option>
+                                        <option value="top">Arriba</option>
+                                        <option value="left">Izquierda (Lateral)</option>
+                                        <option value="right">Derecha (Lateral)</option>
+                                    </select>
+                                )}
                             </div>
                         </div>
                     </div>
