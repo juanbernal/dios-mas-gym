@@ -340,7 +340,15 @@ const Top5SocialGenerator: React.FC = () => {
                                             <div className="text-6xl font-serif italic text-[#c5a059] w-16 text-center drop-shadow-lg opacity-90 shrink-0">
                                                 {index + 1}
                                             </div>
-                                            <img src={getCorsFriendlyUrl(song.cover)} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 shrink-0 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
+                                            <div 
+                                                className="w-28 h-28 shrink-0 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" 
+                                                style={{
+                                                    backgroundImage: `url(${getCorsFriendlyUrl(song.cover)})`,
+                                                    backgroundSize: 'cover',
+                                                    backgroundPosition: 'center',
+                                                    backgroundColor: '#000'
+                                                }}
+                                            />
                                             <div className="flex-1 z-10 min-w-0 pr-4">
                                                 <h3 className="text-3xl font-bold text-white mb-2 uppercase tracking-wide leading-tight">{song.name}</h3>
                                                 <p className="text-xl font-medium text-[#c5a059] uppercase tracking-widest leading-normal pb-1">{song.artist}</p>
