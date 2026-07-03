@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
+import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const Top5SocialGenerator: React.FC = () => {
     const navigate = useNavigate();
@@ -131,8 +132,12 @@ const Top5SocialGenerator: React.FC = () => {
             // Esperar un momento para que las fuentes e imágenes se rendericen
             await new Promise(r => setTimeout(r, 1000));
             
-            // Fix cutoff issue
+            // Fix cutoff issue and CSS scale
             window.scrollTo(0, 0);
+            if (containerRef.current) {
+                containerRef.current.style.transform = 'scale(1)';
+                containerRef.current.style.marginBottom = '0px';
+            }
 
             const canvas = await html2canvas(captureRef.current, {
                 scale: 2, // High resolution
@@ -141,10 +146,23 @@ const Top5SocialGenerator: React.FC = () => {
                 backgroundColor: '#000000',
                 scrollX: 0,
                 scrollY: 0,
-                windowWidth: document.documentElement.offsetWidth,
-                windowHeight: document.documentElement.offsetHeight,
+                windowWidth: 1080,
+                windowHeight: 1350,
+                onclone: (clonedDoc) => {
+                    const captureEl = clonedDoc.querySelector('div[style*="1080px"]') as HTMLElement;
+                    if (captureEl) {
+                        captureEl.style.transform = 'none';
+                    }
+                }
             });
-            const url = canvas.toDataURL("image/png", 0.9);
+            
+            // Restore styles
+            if (containerRef.current) {
+                containerRef.current.style.transform = '';
+                containerRef.current.style.marginBottom = '';
+            }
+
+            const url = canvas.toDataURL("image/png", 1.0);
             const link = document.createElement("a");
             link.download = `TOP-5-SONGS-${new Date().getTime()}.png`;
             link.href = url;
@@ -296,7 +314,7 @@ const Top5SocialGenerator: React.FC = () => {
                             {topSongs[0] && (
                                 <div 
                                     className="absolute inset-0 opacity-20 blur-3xl scale-110" 
-                                    style={{ backgroundImage: `url(${topSongs[0].cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                                    style={{ backgroundImage: `url(${getCorsFriendlyUrl(topSongs[0].cover)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                                 />
                             )}
                             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/95"></div>
@@ -322,7 +340,7 @@ const Top5SocialGenerator: React.FC = () => {
                                             <div className="text-6xl font-serif italic text-[#c5a059] w-16 text-center drop-shadow-lg opacity-90">
                                                 {index + 1}
                                             </div>
-                                            <img src={song.cover} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
+                                            <img src={getCorsFriendlyUrl(song.cover)} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
                                             <div className="flex-1 z-10">
                                                 <h3 className="text-[34px] font-bold text-white mb-1 uppercase tracking-wide truncate">{song.name}</h3>
                                                 <p className="text-[20px] font-medium text-[#c5a059] uppercase tracking-widest">{song.artist}</p>
