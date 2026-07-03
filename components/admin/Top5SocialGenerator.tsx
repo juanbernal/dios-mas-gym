@@ -333,7 +333,7 @@ const Top5SocialGenerator: React.FC = () => {
                                 </div>
 
                                 {/* List */}
-                                <div className="w-full max-w-4xl space-y-5 flex-1 flex flex-col justify-center mb-8">
+                                <div className="w-full max-w-4xl space-y-4 flex-1 flex flex-col justify-center mb-6">
                                     {topSongs.map((song, index) => (
                                         <div key={song.id} className="flex items-center gap-8 bg-gradient-to-r from-white/10 to-transparent backdrop-blur-md p-5 rounded-3xl border-l-4 border-[#c5a059] shadow-2xl relative overflow-hidden">
                                             <div className="absolute top-0 right-0 bottom-0 w-1/3 bg-gradient-to-l from-black/60 to-transparent pointer-events-none"></div>
@@ -341,32 +341,31 @@ const Top5SocialGenerator: React.FC = () => {
                                                 {index + 1}
                                             </div>
                                             <img src={getCorsFriendlyUrl(song.cover)} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 shrink-0 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
-                                            <div className="flex-1 z-10 min-w-0">
-                                                <h3 className="text-[34px] font-bold text-white mb-1 uppercase tracking-wide truncate">{song.name}</h3>
-                                                <p className="text-[20px] font-medium text-[#c5a059] uppercase tracking-widest truncate">{song.artist}</p>
+                                            <div className="flex-1 z-10 min-w-0 pr-4">
+                                                <h3 className="text-3xl font-bold text-white mb-2 uppercase tracking-wide leading-tight">{song.name}</h3>
+                                                <p className="text-xl font-medium text-[#c5a059] uppercase tracking-widest leading-normal pb-1">{song.artist}</p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                                 
                                 {/* Footer */}
-                                <div className="w-full mt-auto flex flex-col items-center">
-                                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10"></div>
+                                <div className="w-full mt-auto flex flex-col items-center pb-6">
+                                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6"></div>
                                     
                                     <div className="flex items-center justify-between w-full max-w-4xl px-8">
-                                        <div className="flex items-center gap-5 opacity-80">
-                                            <img src="/logo-diosmasgym.png" crossOrigin="anonymous" className="w-[70px] h-[70px] grayscale brightness-200" alt="Logo" />
-                                            <div className="text-left">
-                                                <span className="text-2xl font-black uppercase tracking-[0.4em] text-white block leading-tight">DIOSMASGYM</span>
-                                                <span className="text-sm font-bold uppercase tracking-[0.6em] text-[#c5a059] block">Network</span>
+                                        <div className="flex items-center gap-5 opacity-90">
+                                            <img src="/logo-diosmasgym.png" crossOrigin="anonymous" className="w-[70px] h-[70px] grayscale brightness-200 shrink-0" alt="Logo" />
+                                            <div className="text-left flex flex-col justify-center">
+                                                <span className="text-[26px] font-black uppercase tracking-[0.4em] text-white leading-normal pb-1">DIOSMASGYM</span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-10 opacity-70">
-                                            <span className="text-lg font-bold tracking-[0.3em] uppercase text-white/50 mr-2">ESCUCHA EN</span>
-                                            <div className="w-10 h-10" dangerouslySetInnerHTML={{__html: spotifySvg}} />
-                                            <div className="w-12 h-10" dangerouslySetInnerHTML={{__html: youtubeSvg}} />
-                                            <div className="w-9 h-10" dangerouslySetInnerHTML={{__html: appleSvg}} />
+                                        <div className="flex items-center gap-8 opacity-80">
+                                            <span className="text-lg font-bold tracking-[0.3em] uppercase text-white/50 mr-2 leading-normal">ESCUCHA EN</span>
+                                            <div className="w-10 h-10 shrink-0" dangerouslySetInnerHTML={{__html: spotifySvg}} />
+                                            <div className="w-12 h-10 shrink-0" dangerouslySetInnerHTML={{__html: youtubeSvg}} />
+                                            <div className="w-9 h-10 shrink-0" dangerouslySetInnerHTML={{__html: appleSvg}} />
                                         </div>
                                     </div>
                                 </div>
