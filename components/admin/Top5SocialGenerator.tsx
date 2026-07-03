@@ -307,7 +307,7 @@ const Top5SocialGenerator: React.FC = () => {
                     <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10" style={{ width: '1080px', maxWidth: '100%', aspectRatio: '4/5', transformOrigin: 'top center' }} ref={containerRef}>
                         <div 
                             ref={captureRef}
-                            className="absolute inset-0 bg-[#020202] flex flex-col items-center justify-between py-24 px-16 overflow-hidden"
+                            className="absolute inset-0 bg-[#020202] flex flex-col items-center justify-between py-12 px-16 overflow-hidden"
                             style={{ width: '1080px', height: '1350px', transform: 'scale(1)', transformOrigin: 'top left' }}
                         >
                             {/* Background decoration */}
@@ -321,29 +321,29 @@ const Top5SocialGenerator: React.FC = () => {
                             
                             <div className="relative z-10 w-full flex flex-col items-center flex-1">
                                 {/* Header */}
-                                <div className="text-center mb-16">
-                                    <h1 className="text-[140px] font-serif italic text-white leading-none tracking-tighter drop-shadow-2xl">
+                                <div className="text-center mb-10">
+                                    <h1 className="text-[140px] font-serif italic text-white leading-[1] tracking-tighter drop-shadow-2xl">
                                         TOP <span className="text-[#c5a059]">5</span>
                                     </h1>
                                     {subtitle && (
-                                        <p className="text-4xl font-black uppercase tracking-[0.4em] text-white/70 mt-4 bg-[#c5a059]/10 py-3 px-8 rounded-full border border-[#c5a059]/30 inline-block backdrop-blur-md">
+                                        <p className="text-4xl font-black uppercase tracking-[0.4em] text-white/70 mt-6 bg-[#c5a059]/10 py-3 px-8 rounded-full border border-[#c5a059]/30 inline-block backdrop-blur-md">
                                             {subtitle}
                                         </p>
                                     )}
                                 </div>
 
                                 {/* List */}
-                                <div className="w-full max-w-4xl space-y-6 flex-1 flex flex-col justify-center mb-10">
+                                <div className="w-full max-w-4xl space-y-5 flex-1 flex flex-col justify-center mb-8">
                                     {topSongs.map((song, index) => (
                                         <div key={song.id} className="flex items-center gap-8 bg-gradient-to-r from-white/10 to-transparent backdrop-blur-md p-5 rounded-3xl border-l-4 border-[#c5a059] shadow-2xl relative overflow-hidden">
                                             <div className="absolute top-0 right-0 bottom-0 w-1/3 bg-gradient-to-l from-black/60 to-transparent pointer-events-none"></div>
-                                            <div className="text-6xl font-serif italic text-[#c5a059] w-16 text-center drop-shadow-lg opacity-90">
+                                            <div className="text-6xl font-serif italic text-[#c5a059] w-16 text-center drop-shadow-lg opacity-90 shrink-0">
                                                 {index + 1}
                                             </div>
-                                            <img src={getCorsFriendlyUrl(song.cover)} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
-                                            <div className="flex-1 z-10">
+                                            <img src={getCorsFriendlyUrl(song.cover)} alt={song.name} crossOrigin="anonymous" className="w-28 h-28 shrink-0 rounded-2xl object-cover shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10" />
+                                            <div className="flex-1 z-10 min-w-0">
                                                 <h3 className="text-[34px] font-bold text-white mb-1 uppercase tracking-wide truncate">{song.name}</h3>
-                                                <p className="text-[20px] font-medium text-[#c5a059] uppercase tracking-widest">{song.artist}</p>
+                                                <p className="text-[20px] font-medium text-[#c5a059] uppercase tracking-widest truncate">{song.artist}</p>
                                             </div>
                                         </div>
                                     ))}
