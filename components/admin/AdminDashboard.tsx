@@ -256,6 +256,15 @@ const AdminDashboard: React.FC = () => {
             color: '#c5a059',
             route: '/admin/municion-fe',
             category: 'Contenido Audiovisual'
+        },
+        {
+            id: 'top5-social',
+            title: 'Top 5 Canciones',
+            description: 'Genera una imagen atractiva con el Top 5 de canciones para compartir en redes sociales.',
+            icon: 'fa-list-ol',
+            color: '#38bdf8',
+            route: '/admin/top5-social',
+            category: 'Marketing & Social'
         }
     ];
 
