@@ -42,6 +42,43 @@ const Top5SocialGenerator: React.FC = () => {
         loadCatalog();
     }, []);
 
+    const handleAutoFill = async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/sheet-proxy?script=analytics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'getAnalytics' })
+            });
+            if (res.ok) {
+                const json = await res.json();
+                if (json?.data?.topSongs?.length > 0) {
+                    const newTop: MusicItem[] = [];
+                    // Intentar buscar los top 5 reales (hasta llenar 5)
+                    for (const stat of json.data.topSongs) {
+                        if (newTop.length >= 5) break;
+                        const match = catalog.find(c => c.name.toLowerCase() === stat.title.toLowerCase() || (c.name.toLowerCase().includes(stat.title.toLowerCase())));
+                        if (match && !newTop.find(s => s.id === match.id)) {
+                            newTop.push(match);
+                        }
+                    }
+                    if (newTop.length > 0) {
+                        setTopSongs(newTop);
+                    } else {
+                        alert("No se encontraron coincidencias en el catálogo.");
+                    }
+                } else {
+                    alert("No hay suficientes datos en las analíticas aún.");
+                }
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Error al obtener las analíticas reales.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const filteredCatalog = catalog.filter(song => 
         song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.artist.toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,12 +130,19 @@ const Top5SocialGenerator: React.FC = () => {
 
             // Esperar un momento para que las fuentes e imágenes se rendericen
             await new Promise(r => setTimeout(r, 1000));
+            
+            // Fix cutoff issue
+            window.scrollTo(0, 0);
 
             const canvas = await html2canvas(captureRef.current, {
                 scale: 2, // High resolution
                 useCORS: true,
                 allowTaint: false,
                 backgroundColor: '#000000',
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight,
             });
             const url = canvas.toDataURL("image/png", 0.9);
             const link = document.createElement("a");
@@ -152,6 +196,14 @@ const Top5SocialGenerator: React.FC = () => {
                                     onChange={(e)=>setSubtitle(e.target.value.toUpperCase())} 
                                 />
                             </div>
+
+                            <button 
+                                onClick={handleAutoFill}
+                                disabled={isLoading || catalog.length === 0}
+                                className="w-full py-3 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-xl text-[10px] font-bold text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-colors flex items-center justify-center gap-2"
+                            >
+                                <i className={`fas ${isLoading ? 'fa-spinner fa-spin' : 'fa-magic'}`}></i> Autocompletar con Visitas Reales (Google Analytics)
+                            </button>
 
                             {/* Song Search */}
                             <div className="relative">
