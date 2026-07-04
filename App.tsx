@@ -712,87 +712,12 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={
             <>
-              <Hero verse={verse} onEntrenar={() => changeView('reflexiones')} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
+              <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
               <section id="arsenal-content"><UpcomingReleases /></section>
 
               <div className="px-4 md:px-0">
                   <InlineSocialBanner />
               </div>
-
-              {/* CONTINUAR LEYENDO */}
-              {continueReading.length > 0 && (
-                <section className="py-24 bg-[#05070a] border-b border-white/5">
-                  <div className="section-container">
-                    <div className="flex items-center gap-4 mb-12">
-                      <div className="w-10 h-10 rounded-full bg-[#c5a059]/20 flex items-center justify-center text-[#c5a059]">
-                        <i className="fas fa-book-open text-sm"></i>
-                      </div>
-                      <h2 className="font-serif italic text-3xl text-white">Continuar Leyendo</h2>
-                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
-                    </div>
-                    <div className="grid grid-cols-12 gap-8">
-                      {continueReading.map(p => (
-                        <div key={p.id} className="col-span-12 md:col-span-4">
-                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={true} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* INSPIRACIÓN DIARIA */}
-              <section className="py-28 bg-[#0a0c14]">
-                <div className="section-container">
-                  <div className="flex items-center gap-6 mb-16">
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
-                    <div className="flex items-center gap-4">
-                      <h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2>
-                      <button onClick={refreshRandomPosts} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/30 hover:text-[#c5a059] hover:border-[#c5a059]/30 transition-all text-xs" title="Refrescar">
-                        <i className="fas fa-shuffle"></i>
-                      </button>
-                    </div>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[#c5a059]/20 via-transparent to-transparent"></div>
-                  </div>
-                  <div className="grid grid-cols-12 gap-8">
-                    {randomPosts.length > 0 ? randomPosts.slice(0, 3).map((p, idx) => (
-                      <div key={p.id} className={`col-span-12 ${idx === 0 ? 'md:col-span-6' : 'md:col-span-3'} transition-all hover:scale-[1.02] duration-300`}>
-                        <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size={idx === 0 ? 'lg' : 'md'} />
-                      </div>
-                    )) : (
-                      <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">
-                        Cargando arsenal...
-                        <DiagnosticConsole appError={state.error} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* RECIÉN LLEGADOS */}
-              {recentPosts.length > 0 && (
-                <section className="py-28 bg-[#05070a] border-y border-white/5">
-                  <div className="section-container">
-                    <div className="flex items-center gap-4 mb-16">
-                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
-                        <i className="fas fa-clock text-sm"></i>
-                      </div>
-                      <h2 className="font-serif italic text-3xl md:text-4xl text-white">Recién Llegados</h2>
-                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
-                      <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8 flex-shrink-0">
-                        Ver Todo
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-12 gap-8">
-                      {recentPosts.map(p => (
-                        <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-3">
-                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
 
               {/* RECOMENDACIÓN DIARIA DE MÚSICA */}
               {dailyRecommendations && (
@@ -890,7 +815,33 @@ const App: React.FC = () => {
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
 
-              {/* ÚLTIMA INSPIRACIÓN */}
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="h-10"></div>
+            </>
+          } />
+          <Route path="/reflexiones" element={
+            <section className="py-32 min-h-screen bg-[#05070a]">
+              <div className="section-container">
+                <div className="mb-32 flex flex-col md:flex-row justify-between items-start md:items-end gap-16 border-b border-white/5 pb-16">
+                   <h1 className="font-serif text-6xl md:text-8xl leading-none">Arsenal <br /> <span className="italic text-[#c5a059]">Completo</span></h1>
+                   <div className="w-full md:w-96 relative group">
+                      <input 
+                         type="text" value={state.searchTerm} onChange={e => setState(p => ({ ...p, searchTerm: e.target.value }))}
+                         placeholder="IDENTIFICAR OBJETIVO..." 
+                         className="w-full bg-[#0f111a] border border-white/10 p-6 text-[10px] font-black tracking-[0.4em] outline-none focus:border-[#c5a059] transition-all rounded-sm uppercase"
+                      />
+                      <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#c5a059] group-focus-within:w-full transition-all duration-500"></div>
+                   </div>
+                </div>
+                {state.mainNextPageToken && !state.searchTerm && (
+                   <div className="mb-8 flex items-center gap-3 text-[8px] font-black uppercase tracking-widest text-[#c5a059]/40 animate-pulse">
+                      <div className="w-2 h-2 rounded-full bg-[#c5a059]"></div>
+                      Sincronizando archivo histórico... ({state.allPosts.length} artículos listos)
+                   </div>
+                )}
+                <div className="mb-24 px-4"><CategoryBar categories={categories} selectedCategory={state.selectedCategory} onSelect={(cat) => setState(prev => ({ ...prev, selectedCategory: cat }))} /></div>
+                
+{/* ÚLTIMA INSPIRACIÓN */}
               <section className="py-32 bg-[#05070a] border-y border-white/5">
                 <div className="section-container">
                   <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
@@ -914,7 +865,86 @@ const App: React.FC = () => {
                 </div>
               </section>
 
-              {/* LO MÁS LEÍDO */}
+              
+{/* CONTINUAR LEYENDO */}
+              {continueReading.length > 0 && (
+                <section className="py-24 bg-[#05070a] border-b border-white/5">
+                  <div className="section-container">
+                    <div className="flex items-center gap-4 mb-12">
+                      <div className="w-10 h-10 rounded-full bg-[#c5a059]/20 flex items-center justify-center text-[#c5a059]">
+                        <i className="fas fa-book-open text-sm"></i>
+                      </div>
+                      <h2 className="font-serif italic text-3xl text-white">Continuar Leyendo</h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-12 gap-8">
+                      {continueReading.map(p => (
+                        <div key={p.id} className="col-span-12 md:col-span-4">
+                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={true} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              
+{/* INSPIRACIÓN DIARIA */}
+              <section className="py-28 bg-[#0a0c14]">
+                <div className="section-container">
+                  <div className="flex items-center gap-6 mb-16">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
+                    <div className="flex items-center gap-4">
+                      <h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2>
+                      <button onClick={refreshRandomPosts} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/30 hover:text-[#c5a059] hover:border-[#c5a059]/30 transition-all text-xs" title="Refrescar">
+                        <i className="fas fa-shuffle"></i>
+                      </button>
+                    </div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#c5a059]/20 via-transparent to-transparent"></div>
+                  </div>
+                  <div className="grid grid-cols-12 gap-8">
+                    {randomPosts.length > 0 ? randomPosts.slice(0, 3).map((p, idx) => (
+                      <div key={p.id} className={`col-span-12 ${idx === 0 ? 'md:col-span-6' : 'md:col-span-3'} transition-all hover:scale-[1.02] duration-300`}>
+                        <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size={idx === 0 ? 'lg' : 'md'} />
+                      </div>
+                    )) : (
+                      <div className="col-span-12 py-20 text-center text-white/20 font-serif italic text-2xl">
+                        Cargando arsenal...
+                        <DiagnosticConsole appError={state.error} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              
+{/* RECIÉN LLEGADOS */}
+              {recentPosts.length > 0 && (
+                <section className="py-28 bg-[#05070a] border-y border-white/5">
+                  <div className="section-container">
+                    <div className="flex items-center gap-4 mb-16">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                        <i className="fas fa-clock text-sm"></i>
+                      </div>
+                      <h2 className="font-serif italic text-3xl md:text-4xl text-white">Recién Llegados</h2>
+                      <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                      <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8 flex-shrink-0">
+                        Ver Todo
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-8">
+                      {recentPosts.map(p => (
+                        <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-3">
+                          <PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState((prev: any) => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter((id: string) => id !== p.id) : [...prev.favorites, p.id] })); }} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              
+{/* LO MÁS LEÍDO */}
               {popularPosts.length > 0 && (
                 <section className="py-28 bg-[#0a0c14]">
                   <div className="section-container">
@@ -936,7 +966,8 @@ const App: React.FC = () => {
                 </section>
               )}
 
-              {/* CATEGORÍAS */}
+              
+{/* CATEGORÍAS */}
               {categories.slice(1, 6).map((tag, sIdx) => {
                  const tagPosts = state.allPosts.filter(p => p.labels?.includes(tag));
                  const sample: ContentPost[] = getRandomSample(tagPosts, 3);
@@ -969,31 +1000,8 @@ const App: React.FC = () => {
                  );
                })}
 
-              {/* Infinite scroll sentinel */}
-              <div ref={sentinelRef} className="h-10"></div>
-            </>
-          } />
-          <Route path="/reflexiones" element={
-            <section className="py-32 min-h-screen bg-[#05070a]">
-              <div className="section-container">
-                <div className="mb-32 flex flex-col md:flex-row justify-between items-start md:items-end gap-16 border-b border-white/5 pb-16">
-                   <h1 className="font-serif text-6xl md:text-8xl leading-none">Arsenal <br /> <span className="italic text-[#c5a059]">Completo</span></h1>
-                   <div className="w-full md:w-96 relative group">
-                      <input 
-                         type="text" value={state.searchTerm} onChange={e => setState(p => ({ ...p, searchTerm: e.target.value }))}
-                         placeholder="IDENTIFICAR OBJETIVO..." 
-                         className="w-full bg-[#0f111a] border border-white/10 p-6 text-[10px] font-black tracking-[0.4em] outline-none focus:border-[#c5a059] transition-all rounded-sm uppercase"
-                      />
-                      <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#c5a059] group-focus-within:w-full transition-all duration-500"></div>
-                   </div>
-                </div>
-                {state.mainNextPageToken && !state.searchTerm && (
-                   <div className="mb-8 flex items-center gap-3 text-[8px] font-black uppercase tracking-widest text-[#c5a059]/40 animate-pulse">
-                      <div className="w-2 h-2 rounded-full bg-[#c5a059]"></div>
-                      Sincronizando archivo histórico... ({state.allPosts.length} artículos listos)
-                   </div>
-                )}
-                <div className="mb-24 px-4"><CategoryBar categories={categories} selectedCategory={state.selectedCategory} onSelect={(cat) => setState(prev => ({ ...prev, selectedCategory: cat }))} /></div>
+              
+
                 <div className="magazine-grid mb-32">
                    {state.isSearching && ( <div className="col-span-12 py-20 text-center animate-pulse"><div className="inline-block w-12 h-12 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full mb-6"></div><p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Rescatando el Arsenal de Fe...</p></div> )}
                    {filteredPosts.map(p => ( <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}
