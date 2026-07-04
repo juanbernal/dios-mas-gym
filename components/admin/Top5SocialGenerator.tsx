@@ -121,9 +121,9 @@ const Top5SocialGenerator: React.FC = () => {
         try {
             // Pre-load images to avoid html2canvas issues
             const images = Array.from(captureRef.current.querySelectorAll('img'));
-            await Promise.all(images.map(img => {
+            await Promise.all(images.map((img: any) => {
                 if (img.complete) return Promise.resolve();
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve) => {
                     img.onload = resolve;
                     img.onerror = resolve;
                 });
