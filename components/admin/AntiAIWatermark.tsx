@@ -15,7 +15,7 @@ const AntiAIWatermark: React.FC = () => {
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [showText, setShowText] = useState<boolean>(true);
     const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'left' | 'right'>('bottom');
-    const [textStyle, setTextStyle] = useState<'classic' | 'neon' | 'luxury-gold' | 'cyber-box' | 'minimalist-pill' | 'bold-outline' | 'search-bar' | 'browser-tab' | 'cyber-scan'>('classic');
+    const [textStyle, setTextStyle] = useState<'classic' | 'neon' | 'luxury-gold' | 'cyber-box' | 'minimalist-pill' | 'bold-outline' | 'search-bar' | 'browser-tab' | 'cyber-scan' | 'logo-stacked' | 'logo-circular'>('classic');
     
     // Ribbon / Banner States
     const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left' | 'diagonal-right'>('none');
@@ -1322,6 +1322,74 @@ const AntiAIWatermark: React.FC = () => {
                     ctx.shadowBlur = 10;
                     ctx.textAlign = 'center';
                     ctx.fillText(textToDraw, 0, 0);
+                } else if (textStyle === 'logo-stacked') {
+                    const blockPadding = fontSize * 0.8;
+                    ctx.fillStyle = '#0a0c14';
+                    ctx.beginPath();
+                    ctx.roundRect(-fontSize * 3, -fontSize * 2.5, fontSize * 6, fontSize * 5, fontSize * 0.5);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#c5a059';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.font = `900 ${fontSize * 1.4}px Montserrat, Inter, sans-serif`;
+                    ctx.fillText('DIOS', 0, -fontSize * 0.8);
+                    
+                    ctx.font = `800 ${fontSize * 1.2}px Montserrat, Inter, sans-serif`;
+                    ctx.fillStyle = '#c5a059';
+                    ctx.fillText('MAS', 0, fontSize * 0.2);
+                    
+                    ctx.font = `900 ${fontSize * 1.4}px Montserrat, Inter, sans-serif`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('GYM', 0, fontSize * 1.3);
+                    
+                    ctx.font = `400 ${fontSize * 0.4}px Montserrat, Inter, sans-serif`;
+                    if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '8px';
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillText('EST. 2024', 0, fontSize * 2.1);
+                    if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '0px';
+
+                } else if (textStyle === 'logo-circular') {
+                    const r = fontSize * 2.5;
+                    ctx.fillStyle = 'rgba(10, 12, 20, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r + fontSize * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#c5a059';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r + fontSize * 0.5, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r - fontSize * 0.5, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Inner cross
+                    ctx.lineWidth = fontSize * 0.15;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -fontSize * 0.8); ctx.lineTo(0, fontSize * 0.8);
+                    ctx.moveTo(-fontSize * 0.6, -fontSize * 0.2); ctx.lineTo(fontSize * 0.6, -fontSize * 0.2);
+                    ctx.stroke();
+
+                    // Circular text
+                    const txt = " DIOS MAS GYM • DIOS MAS GYM •";
+                    ctx.font = `800 ${fontSize * 0.7}px Montserrat, Inter, sans-serif`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const angleStep = (Math.PI * 2) / txt.length;
+                    for (let i = 0; i < txt.length; i++) {
+                        ctx.save();
+                        ctx.rotate(i * angleStep - Math.PI / 2);
+                        ctx.translate(0, -r);
+                        ctx.fillText(txt[i], 0, 0);
+                        ctx.restore();
+                    }
                 }
                 
                 ctx.restore();
@@ -2246,6 +2314,8 @@ const AntiAIWatermark: React.FC = () => {
                                             <option value="search-bar">🔍 Barra de Búsqueda Moderna</option>
                                             <option value="browser-tab">🌐 Pestaña de Navegador Web</option>
                                             <option value="cyber-scan">🤖 Escáner Cyber (Con Lector)</option>
+                                            <option value="logo-stacked">🧊 Logo Tipográfico (Bloque)</option>
+                                            <option value="logo-circular">🏅 Logo Sello Circular</option>
                                         </select>
                                     </div>
                                 )}
