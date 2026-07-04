@@ -15,7 +15,7 @@ const AntiAIWatermark: React.FC = () => {
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [showText, setShowText] = useState<boolean>(true);
     const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'left' | 'right'>('bottom');
-    const [textStyle, setTextStyle] = useState<'classic' | 'neon' | 'luxury-gold' | 'cyber-box' | 'minimalist-pill' | 'bold-outline'>('classic');
+    const [textStyle, setTextStyle] = useState<'classic' | 'neon' | 'luxury-gold' | 'cyber-box' | 'minimalist-pill' | 'bold-outline' | 'search-bar' | 'browser-tab' | 'cyber-scan'>('classic');
     
     // Ribbon / Banner States
     const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left' | 'diagonal-right'>('none');
@@ -1232,6 +1232,96 @@ const AntiAIWatermark: React.FC = () => {
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
                     ctx.lineWidth = Math.max(2, fontSize * 0.05);
                     ctx.strokeText(textToDraw, 0, 0);
+                } else if (textStyle === 'search-bar') {
+                    const iconWidth = fontSize * 1.5;
+                    const padding = fontSize * 0.8;
+                    const barWidth = actualWidth + iconWidth + padding * 2;
+                    const barHeight = textHeight + padding * 1.5;
+                    
+                    ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
+                    ctx.beginPath();
+                    ctx.roundRect(-barWidth/2, -barHeight/2, barWidth, barHeight, barHeight/2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Draw magnifying glass icon
+                    ctx.strokeStyle = '#c5a059';
+                    ctx.lineWidth = fontSize * 0.12;
+                    ctx.beginPath();
+                    const cx = -barWidth/2 + padding + fontSize/2;
+                    ctx.arc(cx, -fontSize * 0.1, fontSize * 0.35, 0, Math.PI * 2);
+                    ctx.moveTo(cx + fontSize * 0.25, -fontSize * 0.1 + fontSize * 0.25);
+                    ctx.lineTo(cx + fontSize * 0.55, -fontSize * 0.1 + fontSize * 0.55);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(textToDraw.toLowerCase(), cx + fontSize, 0);
+                } else if (textStyle === 'browser-tab') {
+                    const padding = fontSize * 0.8;
+                    const tabWidth = actualWidth + padding * 3.5;
+                    const tabHeight = textHeight + padding * 1.5;
+                    
+                    // Main tab background
+                    ctx.fillStyle = 'rgba(30, 30, 35, 0.95)';
+                    ctx.beginPath();
+                    ctx.moveTo(-tabWidth/2 - padding, tabHeight/2);
+                    ctx.bezierCurveTo(-tabWidth/2 - padding/2, tabHeight/2, -tabWidth/2, -tabHeight/2, -tabWidth/2 + padding/2, -tabHeight/2);
+                    ctx.lineTo(tabWidth/2 - padding/2, -tabHeight/2);
+                    ctx.bezierCurveTo(tabWidth/2, -tabHeight/2, tabWidth/2 + padding/2, tabHeight/2, tabWidth/2 + padding, tabHeight/2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Draw lock icon
+                    ctx.fillStyle = '#10b981'; // secure green
+                    const lx = -tabWidth/2 + padding * 1.5;
+                    ctx.fillRect(lx - fontSize*0.2, -fontSize*0.1, fontSize*0.4, fontSize*0.3);
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = fontSize * 0.08;
+                    ctx.beginPath();
+                    ctx.arc(lx, -fontSize*0.1, fontSize*0.15, Math.PI, 0);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(textToDraw.toLowerCase(), lx + fontSize * 0.6, 0);
+                } else if (textStyle === 'cyber-scan') {
+                    const padding = fontSize * 1.2;
+                    const boxW = actualWidth + padding * 2;
+                    const boxH = textHeight + padding;
+                    const edge = fontSize * 0.8;
+                    
+                    ctx.strokeStyle = '#00ffcc';
+                    ctx.lineWidth = 3;
+                    const hW = boxW/2;
+                    const hH = boxH/2;
+                    
+                    // Top Left
+                    ctx.beginPath(); ctx.moveTo(-hW, -hH + edge); ctx.lineTo(-hW, -hH); ctx.lineTo(-hW + edge, -hH); ctx.stroke();
+                    // Top Right
+                    ctx.beginPath(); ctx.moveTo(hW - edge, -hH); ctx.lineTo(hW, -hH); ctx.lineTo(hW, -hH + edge); ctx.stroke();
+                    // Bottom Left
+                    ctx.beginPath(); ctx.moveTo(-hW, hH - edge); ctx.lineTo(-hW, hH); ctx.lineTo(-hW + edge, hH); ctx.stroke();
+                    // Bottom Right
+                    ctx.beginPath(); ctx.moveTo(hW - edge, hH); ctx.lineTo(hW, hH); ctx.lineTo(hW, hH - edge); ctx.stroke();
+
+                    // Scan line
+                    ctx.fillStyle = 'rgba(0, 255, 204, 0.15)';
+                    ctx.fillRect(-hW, -hH/4, boxW, hH/2);
+                    ctx.fillStyle = '#00ffcc';
+                    ctx.fillRect(-hW, -2, boxW, 4);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = '#00ffcc';
+                    ctx.shadowBlur = 10;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(textToDraw, 0, 0);
                 }
                 
                 ctx.restore();
@@ -2153,6 +2243,9 @@ const AntiAIWatermark: React.FC = () => {
                                             <option value="cyber-box">🧊 Caja Tecnológica</option>
                                             <option value="minimalist-pill">💊 Cápsula Minimalista</option>
                                             <option value="bold-outline">🔲 Contorno Transparente</option>
+                                            <option value="search-bar">🔍 Barra de Búsqueda Moderna</option>
+                                            <option value="browser-tab">🌐 Pestaña de Navegador Web</option>
+                                            <option value="cyber-scan">🤖 Escáner Cyber (Con Lector)</option>
                                         </select>
                                     </div>
                                 )}
