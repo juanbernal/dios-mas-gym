@@ -119,7 +119,9 @@ const UpcomingReleases: React.FC = () => {
 
                 const catalogReleases: ReleaseData[] = Object.values(groupedCatalog)
                     .filter(group => {
-                        const itemDate = new Date(group[0].date);
+                        let itemDate = new Date(group[0].date.includes('T') ? group[0].date : group[0].date + 'T00:00:00');
+                        if (isNaN(itemDate.getTime())) itemDate = new Date(group[0].date);
+                        if (isNaN(itemDate.getTime())) return true; // keep invalid dates just in case so we don't lose them
                         return itemDate >= fifteenDaysAgo || itemDate > now;
                     })
                     .map(group => {
@@ -170,9 +172,15 @@ const UpcomingReleases: React.FC = () => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
+                const getSafeD = (dStr: string) => {
+                    let d = new Date(dStr.includes('T') ? dStr : dStr + 'T00:00:00');
+                    if (isNaN(d.getTime())) d = new Date(dStr);
+                    return isNaN(d.getTime()) ? new Date(0) : d; // fallback to epoch if completely invalid
+                };
+
                 const sorted = unique.sort((a, b) => {
-                    const dateA = new Date(a.releaseDate);
-                    const dateB = new Date(b.releaseDate);
+                    const dateA = getSafeD(a.releaseDate);
+                    const dateB = getSafeD(b.releaseDate);
                     
                     // Future dates first
                     const isFutureA = dateA >= today;
@@ -251,7 +259,11 @@ const UpcomingReleases: React.FC = () => {
 
                             <div className="flex-1 text-center lg:text-left">
                                 <div className="inline-block py-3 px-8 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8 shadow-[0_0_20px_rgba(197,160,89,0.1)]">
-                                    {new Date(release.releaseDate + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    {(() => {
+                                        let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
+                                        if (isNaN(d.getTime())) d = new Date(release.releaseDate);
+                                        return !isNaN(d.getTime()) ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Próximamente';
+                                    })()}
                                 </div>
 
                                 <h3 className="font-serif italic text-6xl md:text-8xl text-white mb-6 leading-tight drop-shadow-xl">
@@ -275,13 +287,21 @@ const UpcomingReleases: React.FC = () => {
                                     {release.preSaveLink && (
                                         <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#c5a059] transition-all transform hover:scale-110">
                                             <i className={`${release.preSaveLink.includes('spotify') ? 'fab fa-spotify' : 'fas fa-link'} text-xl`}></i> 
-                                            {new Date(release.releaseDate + 'T00:00:00') > currentTime ? 'Pre-Save' : 'Escuchar / Smart Link'}
+                                            {(() => {
+                                                let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
+                                                if (isNaN(d.getTime())) d = new Date(release.releaseDate);
+                                                return (!isNaN(d.getTime()) && d > currentTime) ? 'Pre-Save' : 'Escuchar / Smart Link';
+                                            })()}
                                         </a>
                                     )}
                                     {release.audioUrl && (
                                         <a href={release.audioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#ff0000] transition-all transform hover:scale-110">
                                             <i className="fab fa-youtube text-xl"></i> 
-                                            {new Date(release.releaseDate + 'T00:00:00') > currentTime ? 'Reminder' : 'Video'}
+                                            {(() => {
+                                                let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
+                                                if (isNaN(d.getTime())) d = new Date(release.releaseDate);
+                                                return (!isNaN(d.getTime()) && d > currentTime) ? 'Reminder' : 'Video';
+                                            })()}
                                         </a>
                                     )}
                                 </div>

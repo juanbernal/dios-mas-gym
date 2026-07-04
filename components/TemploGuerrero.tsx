@@ -221,7 +221,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
   };
 
 
-  const getRecommendedSong = (stateKey: string): MusicItem | null => {
+    const getRecommendedSong = (stateKey: string): MusicItem | null => {
     if (!catalog || catalog.length === 0) return null;
 
     let keywords: string[] = [];
@@ -230,23 +230,25 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
     else if (stateKey === 'escudo_fe') keywords = ['luz', 'salvacion', 'paz', 'escudo', 'ansiedad', 'victoria', 'fe', 'dios'];
     else if (stateKey === 'victoria') keywords = ['victoria', 'gloria', 'rey', 'gracias', 'ganar', 'campeon', 'nini', 'estrena'];
 
-    // Find a matching song
-    const match = catalog.find(song =>
+    // Find all matching songs and pick one randomly
+    const matches = catalog.filter(song =>
       keywords.some(kw => song.name.toLowerCase().includes(kw))
     );
 
-    if (match) return match;
+    if (matches.length > 0) {
+        return matches[Math.floor(Math.random() * matches.length)];
+    }
 
     // Fallbacks
     if (stateKey === 'bajo_fuego' || stateKey === 'fuerza_maxima') {
-      const dmSong = catalog.find(s => s.artist.toLowerCase().includes('dios'));
-      if (dmSong) return dmSong;
+      const dmSongs = catalog.filter(s => s.artist.toLowerCase().includes('dios'));
+      if (dmSongs.length > 0) return dmSongs[Math.floor(Math.random() * dmSongs.length)];
     } else {
-      const j6Song = catalog.find(s => s.artist.toLowerCase().includes('juan'));
-      if (j6Song) return j6Song;
+      const j6Songs = catalog.filter(s => s.artist.toLowerCase().includes('juan'));
+      if (j6Songs.length > 0) return j6Songs[Math.floor(Math.random() * j6Songs.length)];
     }
 
-    return catalog[0];
+    return catalog[Math.floor(Math.random() * catalog.length)];
   };
 
   const handleCopy = (text: string) => {
