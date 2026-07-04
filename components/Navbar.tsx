@@ -22,7 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
         
         <div className="hidden md:flex items-center gap-8">
           <NavLink active={currentView === 'inicio'} onClick={() => changeView('inicio')} label="Inicio" />
-          <NavLink active={currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} label="Arsenal" />
+          <NavLink active={currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} label="Reflexiones" />
           <NavLink active={currentView === 'favoritos'} onClick={() => changeView('favoritos')} label="Favoritos" />
         </div>
       </div>
@@ -46,7 +46,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
           className="hidden md:block px-7 py-3 bg-[#c5a059] text-black font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:scale-105 hover:bg-white transition-all shadow-lg"
           onClick={() => changeView('reflexiones')}
         >
-          Arsenal
+          Reflexiones
         </button>
       </div>
     </nav>

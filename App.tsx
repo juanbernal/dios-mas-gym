@@ -24,6 +24,7 @@ import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/con
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
 import SocialPopup, { InlineSocialBanner } from './components/SocialPromo';
+import { HomeMusicSections } from './components/HomeMusicSections';
 import { useAnalytics } from './hooks/useAnalytics';
 import { safeStorage } from './services/safeStorage';
 
@@ -718,6 +719,13 @@ const App: React.FC = () => {
               <div className="px-4 md:px-0">
                   <InlineSocialBanner />
               </div>
+
+              {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
+              <HomeMusicSections 
+                catalog={[...state.musicDiosmasgym, ...state.musicJuan614]} 
+                onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
+                onNavigateReflexiones={() => { changeView('reflexiones'); navigate('/reflexiones'); }} 
+              />
 
               {/* RECOMENDACIÓN DIARIA DE MÚSICA */}
               {dailyRecommendations && (
