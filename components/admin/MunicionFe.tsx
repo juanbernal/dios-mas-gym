@@ -118,7 +118,12 @@ const FONDO_ESTILOS = [
   { id: 'diosmasgym', name: '⚜️ Cruz Dios Mas Gym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
   { id: 'mando', name: '🛡️ Mando Ejecutivo', bgClass: 'bg-[#05070a]', watermark: '/logo-mando-ejecutivo.png' },
   { id: 'juan614', name: '🤠 Juan 614', bgClass: 'bg-[#05070a]', watermark: '/logo-juan614-v2.jpg' },
-  { id: 'metal', name: '⚡ Grano de Acero', bgClass: 'bg-gradient-to-b from-[#080b11] to-[#030406]', grain: true }
+  { id: 'metal', name: '⚡ Grano de Acero', bgClass: 'bg-gradient-to-b from-[#080b11] to-[#030406]', grain: true },
+  { id: 'sangre', name: '🩸 Sangre Real', bgClass: 'bg-gradient-to-br from-[#1a0505] to-[#050000]', grain: true },
+  { id: 'abismo', name: '🌊 Abismo Profundo', bgClass: 'bg-gradient-to-tr from-[#000a14] to-[#01152a]', grain: true },
+  { id: 'oro_imperial', name: '👑 Oro Imperial', bgClass: 'bg-gradient-to-br from-[#141108] to-[#050402]', grain: true },
+  { id: 'neon_cyber', name: '🟣 Neón Cyber', bgClass: 'bg-gradient-to-b from-[#0f0514] to-[#05010a]', grain: true },
+  { id: 'bosque', name: '🌲 Bosque Oscuro', bgClass: 'bg-gradient-to-b from-[#051109] to-[#020503]', grain: true }
 ];
 
 const MunicionFe: React.FC = () => {

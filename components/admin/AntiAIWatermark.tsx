@@ -35,7 +35,7 @@ const AntiAIWatermark: React.FC = () => {
     const [socialColor, setSocialColor] = useState<'white' | 'gold' | 'black' | 'green' | 'blue'>('white');
     const [socialBackground, setSocialBackground] = useState<boolean>(true);
     const [socialOpacity, setSocialOpacity] = useState<number>(90);
-    const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow' | 'cyber-hologram' | 'imperial-gold' | 'minimalist-pill'>('imperial-gold');
+    const [socialBlockStyle, setSocialBlockStyle] = useState<'glassmorphism-dark' | 'glassmorphism-light' | 'luxury-gold' | 'neon-glow' | 'cyber-hologram' | 'imperial-gold' | 'minimalist-pill' | 'crimson-velvet' | 'obsidian-edge' | 'quartz-crystal'>('imperial-gold');
     const [socialLayout, setSocialLayout] = useState<'classic-compact' | 'minimalist-strip' | 'split-inline' | 'icons-only-pill' | 'vertical-pilar' | 'dual-column'>('classic-compact');
 
     // Advanced Social badge configurations
@@ -48,7 +48,7 @@ const AntiAIWatermark: React.FC = () => {
     const [exportFormat, setExportFormat] = useState<'png' | 'jpg'>('png');
 
     // Frame / Vignette States (New Options)
-    const [frameStyle, setFrameStyle] = useState<'none' | 'cinematic' | 'luxury-gold' | 'minimalist'>('none');
+    const [frameStyle, setFrameStyle] = useState<'none' | 'cinematic' | 'luxury-gold' | 'minimalist' | 'vintage-film' | 'neon-border' | 'blood-edge'>('none');
     const [frameOpacity, setFrameOpacity] = useState<number>(100);
     const [vignetteEnabled, setVignetteEnabled] = useState<boolean>(false);
     const [vignetteStrength, setVignetteStrength] = useState<number>(50);
@@ -584,6 +584,35 @@ const AntiAIWatermark: React.FC = () => {
                     ctx.strokeStyle = drawColor;
                     ctx.lineWidth = Math.max(1, fontSize * 0.06);
                     ctx.stroke();
+                } else if (socialBlockStyle === 'crimson-velvet') {
+                    const grad = ctx.createLinearGradient(bx, by, bx, by + blockHeight);
+                    grad.addColorStop(0, '#2b0404');
+                    grad.addColorStop(1, '#110101');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.5);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ff3333';
+                    ctx.lineWidth = Math.max(1, fontSize * 0.04);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'obsidian-edge') {
+                    ctx.fillStyle = '#030305';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, 0);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = Math.max(2, fontSize * 0.1);
+                    ctx.stroke();
+                } else if (socialBlockStyle === 'quartz-crystal') {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, blockWidth, blockHeight, fontSize * 0.3);
+                    ctx.fill();
+                    ctx.shadowBlur = fontSize * 0.8;
+                    ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = Math.max(0.5, fontSize * 0.02);
+                    ctx.stroke();
                 }
                 
                 ctx.restore();
@@ -1040,6 +1069,31 @@ const AntiAIWatermark: React.FC = () => {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.lineWidth = Math.max(1, width * 0.0015);
                 ctx.strokeRect(borderOffset, borderOffset, width - borderOffset * 2, height - borderOffset * 2);
+            } else if (frameStyle === 'vintage-film') {
+                const bWidth = width * 0.04;
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, width, bWidth);
+                ctx.fillRect(0, height - bWidth, width, bWidth);
+                ctx.fillRect(0, 0, bWidth, height);
+                ctx.fillRect(width - bWidth, 0, bWidth, height);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                for (let i = bWidth; i < height - bWidth; i += height * 0.05) {
+                   ctx.strokeRect(bWidth * 0.2, i, bWidth * 0.6, height * 0.02);
+                   ctx.strokeRect(width - bWidth * 0.8, i, bWidth * 0.6, height * 0.02);
+                }
+            } else if (frameStyle === 'neon-border') {
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = Math.max(4, width * 0.005);
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 20;
+                ctx.strokeRect(0, 0, width, height);
+            } else if (frameStyle === 'blood-edge') {
+                ctx.strokeStyle = 'rgba(180, 0, 0, 0.8)';
+                ctx.lineWidth = Math.max(10, width * 0.015);
+                ctx.shadowColor = '#500000';
+                ctx.shadowBlur = 40;
+                ctx.strokeRect(0, 0, width, height);
             }
             ctx.restore();
         }
@@ -1698,6 +1752,9 @@ const AntiAIWatermark: React.FC = () => {
                                                     <option value="glassmorphism-dark">🌫️ Vidrio Esmerilado Oscuro (Efecto Glass)</option>
                                                     <option value="glassmorphism-light">❄️ Vidrio Esmerilado Claro</option>
                                                     <option value="neon-glow">⚡ Brillo de Neón (Borde Resplandeciente)</option>
+                                                    <option value="crimson-velvet">🩸 Terciopelo Carmesí</option>
+                                                    <option value="obsidian-edge">🪨 Filo de Obsidiana</option>
+                                                    <option value="quartz-crystal">💎 Cristal de Cuarzo</option>
                                                 </select>
                                             </div>
                                         )}
@@ -1883,6 +1940,9 @@ const AntiAIWatermark: React.FC = () => {
                                         <option value="cinematic">🎬 Formato Cine (Franjas Negras)</option>
                                         <option value="luxury-gold">🏆 Doble Filete Dorado</option>
                                         <option value="minimalist">🤍 Borde Blanco Minimalista</option>
+                                        <option value="vintage-film">🎞️ Película Vintage</option>
+                                        <option value="neon-border">🌟 Borde Neón</option>
+                                        <option value="blood-edge">🩸 Filo de Sangre</option>
                                     </select>
                                 </div>
 
