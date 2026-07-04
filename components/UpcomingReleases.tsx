@@ -218,8 +218,8 @@ const UpcomingReleases: React.FC = () => {
 
     return (
         <section className="relative py-20 md:py-32 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
-            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#c5a059]/10 to-transparent rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#c5a059]/5 to-transparent rounded-full blur-[100px] -ml-64 -mb-64"></div>
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#c5a059]/10 to-transparent rounded-full blur-md -mr-96 -mt-96 animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#c5a059]/5 to-transparent rounded-full blur-sm -ml-64 -mb-64"></div>
             
             <div className="section-container relative z-10 max-w-7xl mx-auto px-6">
                 <div className="text-center mb-24 md:mb-32">
@@ -241,7 +241,7 @@ const UpcomingReleases: React.FC = () => {
                     {releases.map((release, index) => (
                         <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#c5a059]/10 rounded-[2rem] overflow-hidden group hover:border-[#c5a059]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
                             <div className="relative aspect-square w-full overflow-hidden">
-                                <img 
+                                <img loading="lazy" 
                                     src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
                                     alt={release.name}
                                     className="w-full h-full object-cover grayscale opacity-60 transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"

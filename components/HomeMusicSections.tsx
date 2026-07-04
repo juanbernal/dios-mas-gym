@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MusicItem } from '../types';
 
 interface HomeMusicSectionsProps {
@@ -13,8 +13,35 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   // 1. Featured Release (Latest)
   const featured = catalog[0];
 
-  // 1.5 Top de la semana (5 items)
-  const topDeLaSemana = catalog.slice(1, 6);
+  const [topAnalytics, setTopAnalytics] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const fetchTop = async () => {
+      try {
+        const res = await fetch('/api/sheet-proxy?script=analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getAnalytics' })
+        });
+        const json = await res.json();
+        if (json?.data?.topSongs) {
+          setTopAnalytics(json.data.topSongs.map((s:any) => s.title));
+        }
+      } catch (e) {
+        console.warn('Analytics top fetch failed', e);
+      }
+    };
+    fetchTop();
+  }, []);
+
+  const topDeLaSemana = useMemo(() => {
+    if (topAnalytics.length > 0) {
+      const matched = topAnalytics.map(t => catalog.find(c => c.name.toLowerCase() === t.toLowerCase())).filter(Boolean) as MusicItem[];
+      if (matched.length >= 5) return matched.slice(0, 5);
+      return [...matched, ...catalog.filter(c => !matched.find(m => m.id === c.id))].slice(0, 5);
+    }
+    return catalog.slice(1, 6);
+  }, [catalog, topAnalytics]);
 
   // 2. Music Videos
   const musicVideos = catalog.filter(s => s.url && s.url.includes('youtube')).slice(0, 4);
@@ -47,7 +74,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       {/* FEATURED RELEASE */}
       <section className="relative w-full overflow-hidden rounded-3xl mx-auto max-w-[1400px] border border-white/10 group mt-12 px-4 md:px-0">
         <div className="absolute inset-0">
-          <img src={featured.cover} alt="Background" className="w-full h-full object-cover blur-3xl opacity-30 group-hover:scale-105 transition-transform duration-1000" />
+          <img loading="lazy" src={featured.cover} alt="Background" className="w-full h-full object-cover blur-3xl opacity-30 group-hover:scale-105 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#05070a] via-[#05070a]/80 to-transparent"></div>
         </div>
         
@@ -103,7 +130,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
           {topDeLaSemana.map((song, i) => (
             <div key={i} className="group bg-[#0f111a] border border-white/5 rounded-2xl p-4 hover:border-[#c5a059]/40 transition-colors cursor-pointer flex flex-col" onClick={() => onPlaySong(song)}>
               <div className="relative aspect-square rounded-xl overflow-hidden mb-4 border border-white/5">
-                <img src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
+                <img loading="lazy" src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
                 <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#c5a059] text-black font-black text-[10px] flex items-center justify-center shadow-lg">
                   {i + 1}
                 </div>
@@ -134,7 +161,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
               const match = catalog.find(s => pl.keywords.some(k => s.name.toLowerCase().includes(k))) || catalog[0];
               onPlaySong(match);
             }}>
-              <img src={pl.image} alt={pl.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
+              <img loading="lazy" src={pl.image} alt={pl.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
               
               <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
@@ -153,8 +180,8 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       <section className="my-12 px-4 md:px-0">
         <div className="relative rounded-[3rem] overflow-hidden border border-[#c5a059]/30 bg-[#0a0c14] group max-w-[1200px] mx-auto cursor-pointer" onClick={onNavigateReflexiones}>
           <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[#c5a059]/10 blur-[120px] rounded-full -translate-y-1/2"></div>
-            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full -translate-y-1/2"></div>
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[#c5a059]/10 blur-md rounded-full -translate-y-1/2"></div>
+            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500/10 blur-md rounded-full -translate-y-1/2"></div>
           </div>
           
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-12 md:p-20 text-center md:text-left gap-10">
@@ -194,7 +221,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                 rel="noreferrer"
                 className="group relative rounded-2xl overflow-hidden border border-white/10 aspect-video bg-[#0a0c14]"
               >
-                <img src={video.cover} alt={video.name} className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-40 transition-all duration-700" />
+                <img loading="lazy" src={video.cover} alt={video.name} className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-40 transition-all duration-700" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-14 h-14 rounded-full bg-red-600/90 text-white flex items-center justify-center text-xl shadow-[0_0_30px_rgba(220,38,38,0.5)] group-hover:scale-110 transition-transform">
                     <i className="fab fa-youtube"></i>

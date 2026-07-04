@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { useParams, useNavigate } from 'react-router-dom';
 import ArtistPromo from './ArtistPromo';
 import RecommendedSongs from './RecommendedSongs';
@@ -145,7 +146,7 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
           <div className="max-w-4xl mx-auto px-8 md:px-0">
               <div 
                 className="blogger-body text-black text-xl md:text-2xl leading-[1.8] font-light text-justify" 
-                dangerouslySetInnerHTML={{ __html: state.selectedPost.content || '' }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(state.selectedPost.content || '') }}
               ></div>
               
               <div className="my-20 opacity-90">
