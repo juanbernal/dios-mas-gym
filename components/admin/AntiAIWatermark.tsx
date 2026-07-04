@@ -15,6 +15,7 @@ const AntiAIWatermark: React.FC = () => {
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
     const [showText, setShowText] = useState<boolean>(true);
     const [textPosition, setTextPosition] = useState<'bottom' | 'top' | 'left' | 'right'>('bottom');
+    const [textStyle, setTextStyle] = useState<'classic' | 'neon' | 'luxury-gold' | 'cyber-box' | 'minimalist-pill' | 'bold-outline'>('classic');
     
     // Ribbon / Banner States
     const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left' | 'diagonal-right'>('none');
@@ -1123,109 +1124,131 @@ const AntiAIWatermark: React.FC = () => {
                 (ctx as any).letterSpacing = `${fontSize * 0.6}px`;
             }
             
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
-            ctx.shadowColor = 'rgba(0,0,0,0.9)';
-            ctx.shadowBlur = fontSize * 1.5;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 4;
 
             const textToDraw = 'DIOSMASGYM.COM';
             const textMetrics = ctx.measureText(textToDraw);
             const actualWidth = textMetrics.width;
+            const textHeight = fontSize;
+
+            // Draw Background Gradients based on position (mainly for classic readability)
+            if (textStyle === 'classic' || textStyle === 'luxury-gold' || textStyle === 'neon') {
+                if (textPosition === 'bottom') {
+                    const gradientHeight = Math.max(150, height * 0.15);
+                    const grad = ctx.createLinearGradient(0, height - gradientHeight, 0, height);
+                    grad.addColorStop(0, 'transparent');
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, height - gradientHeight, width, gradientHeight);
+                } else if (textPosition === 'top') {
+                    const gradientHeight = Math.max(150, height * 0.15);
+                    const grad = ctx.createLinearGradient(0, 0, 0, gradientHeight);
+                    grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, width, gradientHeight);
+                } else if (textPosition === 'left') {
+                    const gradientWidth = Math.max(150, width * 0.15);
+                    const grad = ctx.createLinearGradient(0, 0, gradientWidth, 0);
+                    grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, gradientWidth, height);
+                } else if (textPosition === 'right') {
+                    const gradientWidth = Math.max(150, width * 0.15);
+                    const grad = ctx.createLinearGradient(width - gradientWidth, 0, width, 0);
+                    grad.addColorStop(0, 'transparent');
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(width - gradientWidth, 0, gradientWidth, height);
+                }
+            }
+
+            const drawStyledText = (x: number, y: number, rotate: number = 0) => {
+                ctx.save();
+                ctx.translate(x, y);
+                if (rotate !== 0) ctx.rotate(rotate);
+
+                if (textStyle === 'classic') {
+                    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                    ctx.shadowBlur = fontSize * 1.5;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 4;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.fillText(textToDraw, 0, 0);
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
+                    ctx.lineWidth = Math.max(1, fontSize * 0.1);
+                    ctx.beginPath();
+                    ctx.moveTo(- (actualWidth / 3), fontSize * 1.2);
+                    ctx.lineTo(+ (actualWidth / 3), fontSize * 1.2);
+                    ctx.stroke();
+                } else if (textStyle === 'neon') {
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 15;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(textToDraw, 0, 0);
+                    ctx.strokeStyle = '#ff00ff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeText(textToDraw, 0, 0);
+                } else if (textStyle === 'luxury-gold') {
+                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetY = 3;
+                    const grad = ctx.createLinearGradient(-actualWidth/2, 0, actualWidth/2, 0);
+                    grad.addColorStop(0, '#c5a059');
+                    grad.addColorStop(0.5, '#f0d99c');
+                    grad.addColorStop(1, '#c5a059');
+                    ctx.fillStyle = grad;
+                    ctx.fillText(textToDraw, 0, 0);
+                } else if (textStyle === 'cyber-box') {
+                    const padding = fontSize * 0.6;
+                    ctx.fillStyle = 'rgba(10, 15, 30, 0.8)';
+                    ctx.beginPath();
+                    ctx.roundRect(-actualWidth/2 - padding, -textHeight/2 - padding, actualWidth + padding*2, textHeight + padding*2, 4);
+                    ctx.fill();
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = '#00ffff';
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 5;
+                    ctx.fillText(textToDraw, 0, 0);
+                } else if (textStyle === 'minimalist-pill') {
+                    const paddingH = fontSize;
+                    const paddingV = fontSize * 0.5;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.beginPath();
+                    ctx.roundRect(-actualWidth/2 - paddingH, -textHeight/2 - paddingV, actualWidth + paddingH*2, textHeight + paddingV*2, 100);
+                    ctx.fill();
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#111111';
+                    ctx.fillText(textToDraw, 0, 0);
+                } else if (textStyle === 'bold-outline') {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.lineWidth = Math.max(2, fontSize * 0.05);
+                    ctx.strokeText(textToDraw, 0, 0);
+                }
+                
+                ctx.restore();
+            };
 
             if (textPosition === 'bottom') {
-                const gradientHeight = Math.max(150, height * 0.15);
-                const grad = ctx.createLinearGradient(0, height - gradientHeight, 0, height);
-                grad.addColorStop(0, 'transparent');
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, height - gradientHeight, width, gradientHeight);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const textY = height - (margin * 0.6);
-                ctx.fillText(textToDraw, width / 2, textY);
-                
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
-                ctx.lineWidth = Math.max(1, fontSize * 0.1);
-                ctx.beginPath();
-                ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
-                ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
-                ctx.stroke();
+                drawStyledText(width / 2, textY);
             } else if (textPosition === 'top') {
-                const gradientHeight = Math.max(150, height * 0.15);
-                const grad = ctx.createLinearGradient(0, 0, 0, gradientHeight);
-                grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, width, gradientHeight);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const textY = margin * 0.6 + fontSize;
-                ctx.fillText(textToDraw, width / 2, textY);
-                
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
-                ctx.lineWidth = Math.max(1, fontSize * 0.1);
-                ctx.beginPath();
-                ctx.moveTo((width / 2) - (actualWidth / 3), textY + fontSize * 1.2);
-                ctx.lineTo((width / 2) + (actualWidth / 3), textY + fontSize * 1.2);
-                ctx.stroke();
+                drawStyledText(width / 2, textY);
             } else if (textPosition === 'left') {
-                const gradientWidth = Math.max(150, width * 0.15);
-                const grad = ctx.createLinearGradient(0, 0, gradientWidth, 0);
-                grad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, gradientWidth, height);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const textX = margin * 0.6 + fontSize;
-                
-                ctx.save();
-                ctx.translate(textX, height / 2);
-                ctx.rotate(-Math.PI / 2);
-                ctx.fillText(textToDraw, 0, 0);
-                
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
-                ctx.lineWidth = Math.max(1, fontSize * 0.1);
-                ctx.beginPath();
-                ctx.moveTo(- (actualWidth / 3), fontSize * 1.2);
-                ctx.lineTo(+ (actualWidth / 3), fontSize * 1.2);
-                ctx.stroke();
-                ctx.restore();
+                drawStyledText(textX, height / 2, -Math.PI / 2);
             } else if (textPosition === 'right') {
-                const gradientWidth = Math.max(150, width * 0.15);
-                const grad = ctx.createLinearGradient(width - gradientWidth, 0, width, 0);
-                grad.addColorStop(0, 'transparent');
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(width - gradientWidth, 0, gradientWidth, height);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const textX = width - (margin * 0.6) - fontSize;
-                
-                ctx.save();
-                ctx.translate(textX, height / 2);
-                ctx.rotate(Math.PI / 2);
-                ctx.fillText(textToDraw, 0, 0);
-                
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = 'rgba(197, 160, 89, 0.7)';
-                ctx.lineWidth = Math.max(1, fontSize * 0.1);
-                ctx.beginPath();
-                ctx.moveTo(- (actualWidth / 3), fontSize * 1.2);
-                ctx.lineTo(+ (actualWidth / 3), fontSize * 1.2);
-                ctx.stroke();
-                ctx.restore();
+                drawStyledText(textX, height / 2, Math.PI / 2);
             }
 
             if ('letterSpacing' in ctx) {
@@ -1261,7 +1284,7 @@ const AntiAIWatermark: React.FC = () => {
         img.src = imageSrc;
 
     }, [
-        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText, textPosition,
+        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText, textPosition, textStyle,
         ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
         showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle, socialLayout,
         showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube, musicAmazon, musicTidal, musicDeezer, musicAudiomack,
@@ -2108,16 +2131,30 @@ const AntiAIWatermark: React.FC = () => {
                                     />
                                 </div>
                                 {showText && (
-                                    <select 
-                                        value={textPosition}
-                                        onChange={(e) => setTextPosition(e.target.value as any)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-[10px] text-white/80 outline-none focus:border-[#c5a059] mt-1"
-                                    >
-                                        <option value="bottom">Abajo (Pie de Imagen)</option>
-                                        <option value="top">Arriba</option>
-                                        <option value="left">Izquierda (Lateral)</option>
-                                        <option value="right">Derecha (Lateral)</option>
-                                    </select>
+                                    <div className="space-y-2 mt-1">
+                                        <select 
+                                            value={textPosition}
+                                            onChange={(e) => setTextPosition(e.target.value as any)}
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-[10px] text-white/80 outline-none focus:border-[#c5a059]"
+                                        >
+                                            <option value="bottom">Abajo (Pie de Imagen)</option>
+                                            <option value="top">Arriba</option>
+                                            <option value="left">Izquierda (Lateral)</option>
+                                            <option value="right">Derecha (Lateral)</option>
+                                        </select>
+                                        <select 
+                                            value={textStyle}
+                                            onChange={(e) => setTextStyle(e.target.value as any)}
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-[10px] text-white/80 outline-none focus:border-[#c5a059]"
+                                        >
+                                            <option value="classic">Clásico (Limpio + Sombra)</option>
+                                            <option value="neon">⚡ Neón Cyberpunk</option>
+                                            <option value="luxury-gold">🏆 Dorado Lujoso</option>
+                                            <option value="cyber-box">🧊 Caja Tecnológica</option>
+                                            <option value="minimalist-pill">💊 Cápsula Minimalista</option>
+                                            <option value="bold-outline">🔲 Contorno Transparente</option>
+                                        </select>
+                                    </div>
                                 )}
                             </div>
                         </div>
