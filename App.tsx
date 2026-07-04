@@ -714,11 +714,14 @@ const App: React.FC = () => {
           <Route path="/" element={
             <>
               <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
+
+              {/* TEMPLO DEL GUERRERO */}
+              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name && s.url)} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
+
+              
               <section id="arsenal-content"><UpcomingReleases /></section>
 
-              <div className="px-4 md:px-0">
-                  <InlineSocialBanner />
-              </div>
+              
 
               {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
               <HomeMusicSections 
@@ -726,98 +729,6 @@ const App: React.FC = () => {
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
                 onNavigateReflexiones={() => { changeView('reflexiones'); navigate('/reflexiones'); }} 
               />
-
-              {/* RECOMENDACIÓN DIARIA DE MÚSICA */}
-              {dailyRecommendations && (
-                <section className="py-24 bg-[#0a0c14] border-t border-white/5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#c5a059]/3 blur-[140px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-                  <div className="section-container relative z-10">
-                    <div className="flex flex-col items-center mb-14 text-center">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
-                        <h2 className="font-serif italic text-4xl text-[#c5a059]">Las Recomendaciones de Hoy</h2>
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
-                      </div>
-                      <p className="text-[10px] text-white/45 font-black uppercase tracking-[0.4em] max-w-2xl leading-relaxed">
-                        Lo nuevo y lo clásico de cada artista. Una selección diaria rotativa para difundir todo nuestro arsenal.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {[
-                        { song: dailyRecommendations.dmNew, isNew: true, label: "Dios Mas Gym" },
-                        { song: dailyRecommendations.dmOld, isNew: false, label: "Dios Mas Gym" },
-                        { song: dailyRecommendations.j6New, isNew: true, label: "Juan614" },
-                        { song: dailyRecommendations.j6Old, isNew: false, label: "Juan614" }
-                      ].map(({ song, isNew, label }) => {
-                        if (!song) return null;
-                        const isJuan = song.artist.toLowerCase().includes('juan');
-                        return (
-                          <div 
-                            key={`${song.id}-${isNew ? 'new' : 'old'}`} 
-                            className="group relative bg-[#0f111a]/85 border border-white/5 rounded-[2rem] p-5 hover:border-[#c5a059]/40 transition-all duration-500 overflow-hidden gold-border-glow flex flex-col justify-between h-full"
-                          >
-                            <div className="absolute -top-24 -right-24 w-56 h-56 blur-[90px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: isJuan ? '#8B5A2B22' : '#c5a05922' }}></div>
-                            
-                            <div>
-                              <div className="flex items-center justify-between mb-4 gap-2">
-                                <span className={`px-3 py-1 rounded-full text-[7.5px] font-black uppercase tracking-[0.2em] ${isNew ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059]'}`}>
-                                  {isNew ? '🚀 LO NUEVO' : '💎 CLÁSICO / TBT'}
-                                </span>
-                                <span className="text-[7.5px] font-black uppercase tracking-widest text-white/20">
-                                  {label}
-                                </span>
-                              </div>
-                              
-                              <div 
-                                className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-[0_15px_35px_rgba(0,0,0,0.4)] group-hover:scale-[1.02] transition-transform duration-700 cursor-pointer mb-5"
-                                onClick={() => setState((p: any) => ({ ...p, activeSong: song }))}
-                              >
-                                <img src={song.cover} alt={song.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/45 group-hover:bg-black/25 transition-colors"></div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <div className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(197,160,89,0.6)]">
-                                    <i className="fas fa-play text-black text-xs ml-0.5"></i>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <h4 className="font-serif text-xl font-bold text-white mb-1 truncate group-hover:text-[#c5a059] transition-colors leading-tight">
-                                {song.name}
-                              </h4>
-                              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-5">
-                                {song.artist}
-                              </p>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <button 
-                                onClick={() => setState((p: any) => ({ ...p, activeSong: song }))}
-                                className="flex-1 py-3 rounded-full bg-[#c5a059] text-black text-[8.5px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white hover:scale-102 active:scale-95 transition-all shadow-md"
-                              >
-                                <i className="fas fa-play"></i>
-                                Escuchar
-                              </button>
-                              <a 
-                                href={`/link/${song.id}`} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-3 rounded-full border border-white/10 text-white/50 hover:bg-white hover:text-black transition-all flex items-center justify-center"
-                                title="Smart Link"
-                              >
-                                <i className="fas fa-link text-[10px]"></i>
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* TEMPLO DEL GUERRERO */}
-              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name && s.url)} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
 
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}

@@ -27,13 +27,13 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     {
       title: "Adoración y Fe",
       description: "Momentos de intimidad y fortaleza espiritual.",
-      image: "https://images.unsplash.com/photo-1438283173091-5dbf5c5a3206?q=80&w=1974&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=2070&auto=format&fit=crop",
       keywords: ["dios", "luz", "paz", "salvacion"]
     },
     {
       title: "Combate Espiritual",
       description: "Para cuando la batalla arrecia y necesitas fe.",
-      image: "https://images.unsplash.com/photo-1514050566906-8fb53106d3bb?q=80&w=2074&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1525268323446-0b8d28e75e11?q=80&w=2070&auto=format&fit=crop",
       keywords: ["batalla", "espada", "guerra", "fuego"]
     }
   ];

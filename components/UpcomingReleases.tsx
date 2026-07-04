@@ -217,7 +217,7 @@ const UpcomingReleases: React.FC = () => {
     ];
 
     return (
-        <section className="relative py-32 md:py-48 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
+        <section className="relative py-20 md:py-32 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#c5a059]/10 to-transparent rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#c5a059]/5 to-transparent rounded-full blur-[100px] -ml-64 -mb-64"></div>
             
@@ -237,10 +237,10 @@ const UpcomingReleases: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="space-y-32">
+                <div className="space-y-16">
                     {releases.map((release, index) => (
-                        <div key={index} className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-16 md:gap-24 opacity-0 animate-fade-in-up`} style={{ animationDelay: `${index * 200}ms`, animationFillMode: 'forwards' }}>
-                            <div className="flex-1 w-full max-w-xl">
+                        <div key={index} className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-12 md:gap-16 opacity-0 animate-fade-in-up`} style={{ animationDelay: `${index * 200}ms`, animationFillMode: 'forwards' }}>
+                            <div className="flex-1 w-full max-w-md">
                                 <div className="relative group perspective-1000">
                                     <div className="absolute -inset-2 bg-gradient-to-r from-[#c5a059] to-transparent opacity-20 blur-xl group-hover:opacity-40 transition duration-1000 rounded-3xl"></div>
                                     <div className="relative aspect-square rounded-3xl overflow-hidden bg-[#0a0c14] border border-[#c5a059]/20 shadow-[0_30px_60px_rgba(0,0,0,0.6)] transform group-hover:-translate-y-4 group-hover:rotate-x-12 transition-all duration-700">
@@ -266,7 +266,7 @@ const UpcomingReleases: React.FC = () => {
                                     })()}
                                 </div>
 
-                                <h3 className="font-serif italic text-6xl md:text-8xl text-white mb-6 leading-tight drop-shadow-xl">
+                                <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-6 leading-tight drop-shadow-xl">
                                     {release.name}
                                 </h3>
                                 
