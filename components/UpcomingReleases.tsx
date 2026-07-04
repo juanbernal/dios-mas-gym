@@ -209,17 +209,23 @@ const UpcomingReleases: React.FC = () => {
     ];
 
     return (
-        <section className="relative py-32 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
-            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#c5a059]/5 rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse"></div>
+        <section className="relative py-32 md:py-48 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#c5a059]/10 to-transparent rounded-full blur-[120px] -mr-96 -mt-96 animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#c5a059]/5 to-transparent rounded-full blur-[100px] -ml-64 -mb-64"></div>
             
-            <div className="section-container relative z-10">
-                <div className="flex items-center justify-between mb-20">
-                    <div>
-                        <div className="flex items-center gap-4 mb-4">
-                            <span className="w-12 h-px bg-[#c5a059]"></span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">PRÓXIMOS ESTRENOS GLOBALES</span>
-                        </div>
-                        <h2 className="font-serif italic text-5xl md:text-7xl text-white">Próxima <span className="text-[#c5a059]">Artillería</span> <span className="text-[10px] font-black tracking-widest text-white/10 ml-4 not-italic">v3.3</span></h2>
+            <div className="section-container relative z-10 max-w-7xl mx-auto px-6">
+                <div className="text-center mb-24 md:mb-32">
+                    <div className="inline-flex items-center gap-4 mb-6 px-8 py-3 rounded-full border border-[#c5a059]/30 bg-[#c5a059]/10 backdrop-blur-md shadow-[0_0_30px_rgba(197,160,89,0.15)]">
+                        <i className="fas fa-satellite-dish text-[#c5a059] animate-ping"></i>
+                        <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#c5a059]">Próximos Estrenos Globales</span>
+                    </div>
+                    <h2 className="font-serif italic text-6xl md:text-8xl text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                        Próxima <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-yellow-400 to-[#c5a059] animate-gradient-x">Artillería</span>
+                    </h2>
+                    <div className="mt-8 flex justify-center items-center gap-4 text-white/30 text-[10px] md:text-xs uppercase tracking-[0.3em] font-black">
+                        <span className="w-16 h-px bg-white/20"></span>
+                        Radar de Inteligencia Activado
+                        <span className="w-16 h-px bg-white/20"></span>
                     </div>
                 </div>
 
@@ -227,16 +233,16 @@ const UpcomingReleases: React.FC = () => {
                     {releases.map((release, index) => (
                         <div key={index} className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-16 md:gap-24 opacity-0 animate-fade-in-up`} style={{ animationDelay: `${index * 200}ms`, animationFillMode: 'forwards' }}>
                             <div className="flex-1 w-full max-w-xl">
-                                <div className="relative group">
-                                    <div className="absolute -inset-1 bg-gradient-to-r from-[#c5a059] to-transparent opacity-10 blur group-hover:opacity-30 transition duration-1000"></div>
-                                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#0a0c14] border border-white/5 shadow-2xl">
+                                <div className="relative group perspective-1000">
+                                    <div className="absolute -inset-2 bg-gradient-to-r from-[#c5a059] to-transparent opacity-20 blur-xl group-hover:opacity-40 transition duration-1000 rounded-3xl"></div>
+                                    <div className="relative aspect-square rounded-3xl overflow-hidden bg-[#0a0c14] border border-[#c5a059]/20 shadow-[0_30px_60px_rgba(0,0,0,0.6)] transform group-hover:-translate-y-4 group-hover:rotate-x-12 transition-all duration-700">
                                         <img 
                                             src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
                                             alt={release.name}
-                                            className="w-full h-full object-cover grayscale opacity-40 transition-all duration-1000 group-hover:scale-105 group-hover:grayscale-0 group-hover:opacity-100"
+                                            className="w-full h-full object-cover grayscale opacity-50 transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent"></div>
-                                        <div className="absolute bottom-0 left-0 right-0 p-8">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-[#05070a]/50 to-transparent"></div>
+                                        <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-700">
                                             <CountdownUnit targetDate={release.releaseDate} currentTime={currentTime} />
                                         </div>
                                     </div>
@@ -244,19 +250,19 @@ const UpcomingReleases: React.FC = () => {
                             </div>
 
                             <div className="flex-1 text-center lg:text-left">
-                                <div className="inline-block py-2 px-6 bg-[#c5a059]/10 border border-[#c5a059]/20 rounded-full text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8">
+                                <div className="inline-block py-3 px-8 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8 shadow-[0_0_20px_rgba(197,160,89,0.1)]">
                                     {new Date(release.releaseDate + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                                 </div>
 
-                                <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-6 leading-tight">
+                                <h3 className="font-serif italic text-6xl md:text-8xl text-white mb-6 leading-tight drop-shadow-xl">
                                     {release.name}
                                 </h3>
                                 
-                                <div className="text-xl md:text-2xl font-light text-white/40 mb-12 uppercase tracking-[0.3em]">
+                                <div className="text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white/80 to-white/30 mb-12 uppercase tracking-[0.4em]">
                                     {release.Artista}
                                 </div>
 
-                                <div className="grid grid-cols-3 md:grid-cols-5 gap-6 mb-16 p-6 border-y border-white/5 bg-white/low-opacity">
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6 mb-16 p-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm">
                                     {timeZones.map((tz, i) => (
                                         <div key={i} className="text-center">
                                             <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-1">{tz.city}</div>

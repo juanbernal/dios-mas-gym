@@ -23,37 +23,40 @@ export const SocialPopup: React.FC = () => {
     if (!showPopup) return null;
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-            <div className="bg-[#05070a] border border-[#c5a059]/40 rounded-3xl max-w-sm w-full p-8 shadow-[0_0_80px_rgba(197,160,89,0.15)] relative overflow-hidden text-center">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
+            <div className="bg-gradient-to-br from-[#12141c] to-[#05070a] border border-[#c5a059]/30 rounded-[2.5rem] max-w-sm w-full p-8 md:p-10 shadow-[0_30px_100px_rgba(197,160,89,0.2)] relative overflow-hidden text-center group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#c5a059] to-transparent opacity-50"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none group-hover:bg-[#c5a059]/20 transition-all duration-700"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none group-hover:bg-[#c5a059]/10 transition-all duration-700"></div>
                 
-                <button onClick={dismissPopup} className="absolute top-4 right-4 text-white/30 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/5">
+                <button onClick={dismissPopup} className="absolute top-5 right-5 text-white/30 hover:text-white hover:bg-white/10 transition-all w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/5 z-10">
                     <i className="fas fa-times text-xs"></i>
                 </button>
 
-                <div className="w-16 h-16 mx-auto bg-transparent border border-[#c5a059]/30 rounded-2xl flex items-center justify-center shadow-xl mb-6 relative">
-                    <div className="absolute inset-0 bg-[#c5a059]/10 rounded-2xl blur-md"></div>
-                    <i className="fas fa-crown text-[#c5a059] text-2xl relative z-10"></i>
+                <div className="relative w-24 h-24 mx-auto mb-8">
+                    <div className="absolute inset-0 bg-[#c5a059]/20 rounded-[2rem] blur-xl animate-pulse"></div>
+                    <img src="/logo-diosmasgym.png" alt="Logo" className="w-full h-full object-cover rounded-[2rem] border border-[#c5a059]/50 shadow-2xl relative z-10" />
                 </div>
 
-                <h3 className="font-serif italic text-3xl text-white mb-2">Comunidad <span className="text-[#c5a059]">Exclusiva</span></h3>
-                <p className="text-white/40 text-[11px] leading-relaxed mb-8 uppercase tracking-widest font-black">
-                    Acceso anticipado a música y material reservado.
+                <h3 className="font-serif italic text-3xl md:text-4xl text-white mb-3">Comunidad <span className="text-[#c5a059] block mt-1">Exclusiva</span></h3>
+                <p className="text-white/50 text-[10px] md:text-[11px] leading-relaxed mb-8 uppercase tracking-[0.2em] font-black">
+                    Acceso anticipado a música, lanzamientos y material reservado.
                 </p>
 
-                <div className="flex flex-col gap-3">
-                    <a href="https://t.me/Diosmasgymbot" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="w-full py-4 rounded-xl flex items-center justify-center gap-3 bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/30 font-black text-[10px] uppercase tracking-widest hover:bg-[#c5a059] hover:text-black transition-all">
-                        <i className="fab fa-telegram text-lg"></i>
-                        Telegram VIP
+                <div className="flex flex-col gap-4 relative z-10">
+                    <a href="https://t.me/Diosmasgymbot" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="relative group/btn w-full py-4 rounded-2xl flex items-center justify-center gap-3 bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/40 font-black text-[11px] uppercase tracking-widest hover:bg-[#c5a059] hover:text-black hover:shadow-[0_0_30px_rgba(197,160,89,0.4)] transition-all overflow-hidden">
+                        <div className="absolute inset-0 w-0 bg-[#c5a059] group-hover/btn:w-full transition-all duration-500 ease-out"></div>
+                        <i className="fab fa-telegram text-lg relative z-10"></i>
+                        <span className="relative z-10">Telegram VIP</span>
                     </a>
-                    <a href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="w-full py-4 rounded-xl flex items-center justify-center gap-3 bg-white/5 text-white/60 border border-white/10 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">
+                    <a href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 bg-white/5 text-white/70 border border-white/10 font-black text-[11px] uppercase tracking-widest hover:bg-white/10 hover:text-white hover:border-white/20 transition-all">
                         <i className="fab fa-whatsapp text-lg"></i>
                         WhatsApp
                     </a>
                 </div>
                 
-                <button onClick={dismissPopup} className="mt-8 text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-white/50 transition-colors border-b border-white/10 pb-1">
-                    Cerrar y continuar
+                <button onClick={dismissPopup} className="mt-8 text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors border-b border-white/10 hover:border-white/30 pb-1 relative z-10">
+                    No por ahora
                 </button>
             </div>
         </div>

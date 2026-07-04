@@ -681,9 +681,25 @@ const App: React.FC = () => {
 
   if (showSplash && !isBioRoute && !isSmartLinkRoute) {
     return (
-      <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden">
-        <div className="relative"><div className="text-[#c5a059] font-serif italic text-8xl md:text-9xl opacity-20 animate-pulse">Reflections</div><div className="absolute inset-0 flex items-center justify-center"><div className="h-px w-32 bg-gradient-to-r from-transparent via-[#c5a059]/40 to-transparent"></div></div></div>
-        <div className="mt-12 text-[9px] font-black uppercase tracking-[1em] text-[#c5a059]/40 animate-fade-in">Cargando el Arsenal</div>
+      <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl">
+        <div className="relative animate-pulse flex flex-col items-center">
+           <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-40 h-40 md:w-56 md:h-56 rounded-3xl object-cover shadow-[0_0_100px_rgba(197,160,89,0.25)] ring-1 ring-[#c5a059]/30" />
+           <div className="absolute inset-0 rounded-3xl ring-2 ring-[#c5a059]/10 animate-ping opacity-20"></div>
+        </div>
+        <div className="mt-16 flex flex-col items-center gap-6">
+            <div className="w-64 h-[1px] bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-transparent via-[#c5a059] to-transparent w-1/2 animate-[progress_2s_ease-in-out_infinite]"></div>
+            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.8em] text-[#c5a059] animate-pulse drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]">
+              Entrando al Templo
+            </div>
+        </div>
+        <style>{`
+            @keyframes progress {
+                0% { transform: translateX(-150%); }
+                100% { transform: translateX(250%); }
+            }
+        `}</style>
       </div>
     );
   }
