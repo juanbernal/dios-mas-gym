@@ -13,6 +13,9 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   // 1. Featured Release (Latest)
   const featured = catalog[0];
 
+  // 1.5 Top de la semana (5 items)
+  const topDeLaSemana = catalog.slice(1, 6);
+
   // 2. Music Videos
   const musicVideos = catalog.filter(s => s.url && s.url.includes('youtube')).slice(0, 4);
 
@@ -86,6 +89,34 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
               </a>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* TOP DE LA SEMANA */}
+      <section className="py-12 section-container">
+        <div className="flex items-center gap-4 mb-12">
+          <h2 className="font-serif italic text-4xl text-[#c5a059]">Top de la Semana</h2>
+          <div className="h-px flex-1 bg-gradient-to-r from-[#c5a059]/20 to-transparent"></div>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {topDeLaSemana.map((song, i) => (
+            <div key={i} className="group bg-[#0f111a] border border-white/5 rounded-2xl p-4 hover:border-[#c5a059]/40 transition-colors cursor-pointer flex flex-col" onClick={() => onPlaySong(song)}>
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-4 border border-white/5">
+                <img src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#c5a059] text-black font-black text-[10px] flex items-center justify-center shadow-lg">
+                  {i + 1}
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <div className="w-10 h-10 rounded-full bg-[#c5a059] flex items-center justify-center shadow-[0_0_20px_rgba(197,160,89,0.5)]">
+                    <i className="fas fa-play text-black ml-1"></i>
+                  </div>
+                </div>
+              </div>
+              <h4 className="font-serif text-lg text-white mb-1 truncate group-hover:text-[#c5a059] transition-colors">{song.name}</h4>
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 truncate">{song.artist}</p>
+            </div>
+          ))}
         </div>
       </section>
 

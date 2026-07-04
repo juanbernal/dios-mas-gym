@@ -237,71 +237,47 @@ const UpcomingReleases: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="space-y-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {releases.map((release, index) => (
-                        <div key={index} className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-12 md:gap-16 opacity-0 animate-fade-in-up`} style={{ animationDelay: `${index * 200}ms`, animationFillMode: 'forwards' }}>
-                            <div className="flex-1 w-full max-w-md">
-                                <div className="relative group perspective-1000">
-                                    <div className="absolute -inset-2 bg-gradient-to-r from-[#c5a059] to-transparent opacity-20 blur-xl group-hover:opacity-40 transition duration-1000 rounded-3xl"></div>
-                                    <div className="relative aspect-square rounded-3xl overflow-hidden bg-[#0a0c14] border border-[#c5a059]/20 shadow-[0_30px_60px_rgba(0,0,0,0.6)] transform group-hover:-translate-y-4 group-hover:rotate-x-12 transition-all duration-700">
-                                        <img 
-                                            src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
-                                            alt={release.name}
-                                            className="w-full h-full object-cover grayscale opacity-50 transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-[#05070a]/50 to-transparent"></div>
-                                        <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-700">
-                                            <CountdownUnit targetDate={release.releaseDate} currentTime={currentTime} />
-                                        </div>
+                        <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#c5a059]/10 rounded-[2rem] overflow-hidden group hover:border-[#c5a059]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
+                            <div className="relative aspect-square w-full overflow-hidden">
+                                <img 
+                                    src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
+                                    alt={release.name}
+                                    className="w-full h-full object-cover grayscale opacity-60 transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-transparent"></div>
+                                <div className="absolute top-4 left-4">
+                                    <div className="inline-block py-1.5 px-4 bg-[#c5a059]/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-[0.2em] text-black shadow-lg">
+                                        {(() => {
+                                            let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
+                                            if (isNaN(d.getTime())) d = new Date(release.releaseDate);
+                                            return !isNaN(d.getTime()) ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Próximamente';
+                                        })()}
                                     </div>
+                                </div>
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <CountdownUnit targetDate={release.releaseDate} currentTime={currentTime} />
                                 </div>
                             </div>
 
-                            <div className="flex-1 text-center lg:text-left">
-                                <div className="inline-block py-3 px-8 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-8 shadow-[0_0_20px_rgba(197,160,89,0.1)]">
-                                    {(() => {
-                                        let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
-                                        if (isNaN(d.getTime())) d = new Date(release.releaseDate);
-                                        return !isNaN(d.getTime()) ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Próximamente';
-                                    })()}
-                                </div>
-
-                                <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-6 leading-tight drop-shadow-xl">
+                            <div className="p-6 flex flex-col flex-1">
+                                <h3 className="font-serif italic text-2xl text-white mb-1 line-clamp-1 group-hover:text-[#c5a059] transition-colors">
                                     {release.name}
                                 </h3>
-                                
-                                <div className="text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white/80 to-white/30 mb-12 uppercase tracking-[0.4em]">
+                                <div className="text-[10px] font-black text-white/40 mb-4 uppercase tracking-[0.2em] line-clamp-1">
                                     {release.Artista}
                                 </div>
 
-                                <div className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6 mb-16 p-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm">
-                                    {timeZones.map((tz, i) => (
-                                        <div key={i} className="text-center">
-                                            <div className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] mb-1">{tz.city}</div>
-                                            <div className="text-sm font-bold text-white/60">{tz.time}</div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="flex flex-wrap justify-center lg:justify-start gap-10">
-                                    {release.preSaveLink && (
-                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#c5a059] transition-all transform hover:scale-110">
-                                            <i className={`${release.preSaveLink.includes('spotify') ? 'fab fa-spotify' : 'fas fa-link'} text-xl`}></i> 
-                                            {(() => {
-                                                let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
-                                                if (isNaN(d.getTime())) d = new Date(release.releaseDate);
-                                                return (!isNaN(d.getTime()) && d > currentTime) ? 'Pre-Save' : 'Escuchar / Smart Link';
-                                            })()}
+                                <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
+                                    {release.preSaveLink ? (
+                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c5a059] hover:text-white transition-colors">
+                                            <i className="fas fa-link mr-1"></i> Pre-Save
                                         </a>
-                                    )}
+                                    ) : <span></span>}
                                     {release.audioUrl && (
-                                        <a href={release.audioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-[#ff0000] transition-all transform hover:scale-110">
-                                            <i className="fab fa-youtube text-xl"></i> 
-                                            {(() => {
-                                                let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
-                                                if (isNaN(d.getTime())) d = new Date(release.releaseDate);
-                                                return (!isNaN(d.getTime()) && d > currentTime) ? 'Reminder' : 'Video';
-                                            })()}
+                                        <a href={release.audioUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-red-500 transition-colors">
+                                            <i className="fab fa-youtube text-lg"></i>
                                         </a>
                                     )}
                                 </div>
@@ -309,6 +285,7 @@ const UpcomingReleases: React.FC = () => {
                         </div>
                     ))}
                 </div>
+
             </div>
             <style>{`
                 @keyframes fade-in-up {
