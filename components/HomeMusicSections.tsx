@@ -18,11 +18,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   useEffect(() => {
     const fetchTop = async () => {
       try {
-        const res = await fetch('/api/sheet-proxy?script=analytics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getAnalytics' })
-        });
+        const res = await fetch('/api/analytics');
         const json = await res.json();
         if (json?.data?.topSongs) {
           setTopAnalytics(json.data.topSongs.map((s:any) => s.title));

@@ -46,11 +46,7 @@ const Top5SocialGenerator: React.FC = () => {
     const handleAutoFill = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/sheet-proxy?script=analytics', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'getAnalytics' })
-            });
+            const res = await fetch('/api/analytics');
             if (res.ok) {
                 const json = await res.json();
                 if (json?.data?.topSongs?.length > 0) {
