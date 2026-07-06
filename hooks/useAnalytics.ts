@@ -15,6 +15,11 @@ export const useAnalytics = () => {
             // Local dev / debugging
             console.log(`[Analytics] Track: ${eventName}`, eventData);
 
+            // Send to Google Analytics 4 (GA4)
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', eventName, eventData);
+            }
+
             const hostname = window.location.hostname;
             const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
             const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');

@@ -35,20 +35,36 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
     if (songKey !== prevSongRef.current) {
       setIsPlaying(true);
       prevSongRef.current = songKey;
+      
+      // Track song play
+      if (typeof window !== 'undefined' && (window as any).gtag && activeSong) {
+        (window as any).gtag('event', 'play_song', {
+          song_title: activeSong.name,
+          song_artist: activeSong.artist
+        });
+      }
     }
-  }, [activeSong?.id]);
+  }, [activeSong?.id, activeSong]);
 
   const togglePlay = () => {
-    setIsPlaying(p => !p);
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
     try {
       const player = document.getElementById('yt-player-iframe') as HTMLIFrameElement;
       if (player?.contentWindow) {
         player.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: isPlaying ? 'pauseVideo' : 'playVideo' }),
+          JSON.stringify({ event: 'command', func: nextState ? 'playVideo' : 'pauseVideo' }),
           '*'
         );
       }
     } catch {}
+    
+    if (nextState && typeof window !== 'undefined' && (window as any).gtag && activeSong) {
+        (window as any).gtag('event', 'play_song', {
+            song_title: activeSong.name,
+            song_artist: activeSong.artist
+        });
+    }
   };
 
   if (!activeSong) return null;

@@ -88,7 +88,7 @@ const AnalyticsDashboard: React.FC = () => {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const res = await fetch('/api/sheet-proxy?script=analytics', {
+                const res = await fetch('/api/analytics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'getAnalytics' })
