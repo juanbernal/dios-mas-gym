@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DOMPurify from 'dompurify';
+import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import ArtistPromo from './ArtistPromo';
 import RecommendedSongs from './RecommendedSongs';
@@ -125,6 +126,14 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
 
   return (
     <div className="bg-[#05070a] animate-fade-in-up">
+      <Helmet>
+        <title>{state.selectedPost.title} | Reflexiones | Dios Mas Gym</title>
+        <meta name="description" content={state.selectedPost.content.substring(0, 150).replace(/<[^>]+>/g, '') + '...'} />
+        <meta property="og:title" content={`${state.selectedPost.title} | Dios Mas Gym`} />
+        <meta property="og:description" content={state.selectedPost.content.substring(0, 150).replace(/<[^>]+>/g, '') + '...'} />
+        <meta property="og:type" content="article" />
+        <meta property="og:image" content={state.selectedPost.images?.[0]?.url || 'https://app.diosmasgym.com/logo-diosmasgym.png'} />
+      </Helmet>
       <div className="relative min-h-[70vh] flex items-center overflow-hidden">
         <img src={state.selectedPost.images?.[0]?.url || ''} className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 scale-105" alt="" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#05070a]"></div>
