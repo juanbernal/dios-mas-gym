@@ -23,9 +23,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   if (!propertyId || !clientEmail || !privateKey) {
+    const missing = [];
+    if (!propertyId) missing.push('GA_PROPERTY_ID');
+    if (!clientEmail) missing.push('GOOGLE_CLIENT_EMAIL');
+    if (!privateKey) missing.push('GOOGLE_PRIVATE_KEY');
+    
     return res.status(200).json({ 
       status: 'error', 
-      message: 'Faltan credenciales de Google Analytics en el servidor (.env).' 
+      message: `Faltan credenciales: ${missing.join(', ')}` 
     });
   }
 
