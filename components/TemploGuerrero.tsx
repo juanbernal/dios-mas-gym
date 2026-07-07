@@ -251,6 +251,11 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
     return catalog[Math.floor(Math.random() * catalog.length)];
   };
 
+  const currentRecommendedSong = React.useMemo(() => {
+    if (!selectedEstado) return null;
+    return getRecommendedSong(selectedEstado.key);
+  }, [selectedEstado?.key, catalog]);
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -364,23 +369,23 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
             </div>
 
             {/* Footer with Song Recommendation */}
-            {getRecommendedSong(selectedEstado.key) && (
+            {currentRecommendedSong && (
               <div className="bg-[#05070a]/80 rounded-3xl p-5 border border-white/5 flex flex-col sm:flex-row items-center gap-5 justify-between">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-lg">
                     <img 
-                      src={getRecommendedSong(selectedEstado.key)!.cover} 
-                      alt={getRecommendedSong(selectedEstado.key)!.name} 
+                      src={currentRecommendedSong.cover} 
+                      alt={currentRecommendedSong.name} 
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="text-left truncate">
                     <span className="text-[7.5px] font-black uppercase tracking-widest text-white/20">Música de Combate</span>
                     <h4 className="font-serif text-md font-bold text-white truncate leading-snug">
-                      {getRecommendedSong(selectedEstado.key)!.name}
+                      {currentRecommendedSong.name}
                     </h4>
                     <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-0.5">
-                      {getRecommendedSong(selectedEstado.key)!.artist}
+                      {currentRecommendedSong.artist}
                     </p>
                   </div>
                 </div>
@@ -388,7 +393,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => {
-                      onPlaySong(getRecommendedSong(selectedEstado.key)!);
+                      onPlaySong(currentRecommendedSong);
                       setSelectedEstado(null);
                     }}
                     className="flex-1 sm:flex-initial px-6 py-3 rounded-full bg-[#c5a059] text-black text-[8px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white transition-all shadow-md"
@@ -397,7 +402,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                     Escuchar
                   </button>
                   <a
-                    href={`/link/${getRecommendedSong(selectedEstado.key)!.id}`}
+                    href={`/link/${currentRecommendedSong.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-3 rounded-full border border-white/10 text-white/40 hover:bg-white hover:text-black transition-all flex items-center justify-center"
