@@ -48,6 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
       dimensions: [{ name: 'date' }],
       metrics: [{ name: 'screenPageViews' }],
+      orderBys: [{ dimension: { dimensionName: 'date' } }],
     });
 
     // 2. Obtener Top Canciones (Evento: play_song)
