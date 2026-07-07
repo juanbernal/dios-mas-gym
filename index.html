@@ -58,6 +58,12 @@
             userAgent: navigator.userAgent
           };
 
+          try {
+            if (localStorage.getItem('pwa_admin_user') === 'true' || document.cookie.includes('is_admin_user=true')) {
+              return;
+            }
+          } catch(e) {}
+
           fetch(ANALYTICS_URL, {
             method: "POST",
             mode: "no-cors",
