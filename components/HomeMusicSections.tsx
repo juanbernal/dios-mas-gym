@@ -20,8 +20,12 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       try {
         const res = await fetch('/api/analytics');
         const json = await res.json();
-        if (json?.data?.topSongs) {
-          setTopAnalytics(json.data.topSongs.map((s:any) => s.title));
+        if (json?.data) {
+          const songs = json.data.topSongs ? json.data.topSongs.map((s:any) => s.title) : [];
+          const pages = json.data.topPages ? json.data.topPages.map((p:any) => p.title) : [];
+          // Combinar ambas listas, dando prioridad a las reproducciones, y quitar duplicados
+          const combined = Array.from(new Set([...songs, ...pages]));
+          setTopAnalytics(combined);
         }
       } catch (e) {
         console.warn('Analytics top fetch failed', e);
