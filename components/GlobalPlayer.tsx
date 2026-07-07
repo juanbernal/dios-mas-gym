@@ -70,7 +70,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
   if (!activeSong) return null;
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-[3000] p-3 md:p-5 transition-transform duration-500 ${isMinimized ? 'translate-y-[calc(100%-10px)]' : 'translate-y-0'}`}>
+    <div className={`fixed bottom-[4.5rem] md:bottom-0 left-0 right-0 z-[3000] p-3 md:p-5 transition-transform duration-500 ${isMinimized ? 'translate-y-[calc(100%-10px)]' : 'translate-y-0'}`}>
       <div className="max-w-5xl mx-auto bg-[#0f111a]/95 backdrop-blur-2xl border border-[#c5a059]/20 rounded-[1.75rem] shadow-[0_-25px_80px_rgba(0,0,0,0.55)] overflow-hidden relative">
         <div className={`absolute inset-0 opacity-20 bg-gradient-to-r ${isJuan ? 'from-[#8B5A2B]/30' : 'from-[#c5a059]/30'} via-transparent to-transparent`}></div>
         

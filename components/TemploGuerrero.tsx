@@ -294,10 +294,10 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
 
       {/* Modal View */}
       {selectedEstado && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] p-8 md:p-12 max-w-2xl w-full relative overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
             <div 
-              className="absolute -top-32 -right-32 w-64 h-64 blur-[90px] opacity-15"
+              className="absolute -top-32 -right-32 w-64 h-64 blur-[90px] opacity-15 pointer-events-none"
               style={{ backgroundColor: selectedEstado.color }}
             ></div>
 
