@@ -29,18 +29,36 @@ const AnalyticsDashboard: React.FC = () => {
 
     const getFilteredData = () => {
         if (!rawData) return null;
+
+        if (!rawData.isMock) {
+            let filteredHistory = rawData.history || [];
+            let currentTotal = rawData.totalViews;
+            
+            if (timeframeFilter === 'week') {
+                filteredHistory = filteredHistory.slice(-7);
+                currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
+            } else if (timeframeFilter === 'day') {
+                filteredHistory = filteredHistory.slice(-1);
+                currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
+            }
+
+            return {
+                ...rawData,
+                history: filteredHistory,
+                totalViews: currentTotal
+            };
+        }
         
-        // 1. Aplicar filtro de origen (samplingFilter)
+        // Lógica para datos de prueba (Mock Data)
         let sourceMultiplier = 1;
         if (samplingFilter === 'main') sourceMultiplier = 0.65;
         if (samplingFilter === 'external') sourceMultiplier = 0.35;
         
-        // 2. Aplicar filtro de período de tiempo (timeframeFilter)
         let timeMultiplier = 1;
         let filteredHistory = [];
         
         if (timeframeFilter === 'day') {
-            timeMultiplier = 0.07; // Menor cantidad (visitas diarias)
+            timeMultiplier = 0.07;
             filteredHistory = [
                 { date: '08:00 AM', views: Math.round(180 * sourceMultiplier) },
                 { date: '12:00 PM', views: Math.round(350 * sourceMultiplier) },
@@ -48,7 +66,7 @@ const AnalyticsDashboard: React.FC = () => {
                 { date: '08:00 PM', views: Math.round(420 * sourceMultiplier) },
             ];
         } else if (timeframeFilter === 'month') {
-            timeMultiplier = 4.3; // Mayor cantidad (acumulado de 30 días)
+            timeMultiplier = 4.3;
             filteredHistory = [
                 { date: 'Semana 1', views: Math.round(2800 * sourceMultiplier) },
                 { date: 'Semana 2', views: Math.round(3400 * sourceMultiplier) },
@@ -56,7 +74,6 @@ const AnalyticsDashboard: React.FC = () => {
                 { date: 'Semana 4', views: Math.round(6200 * sourceMultiplier) },
             ];
         } else {
-            // week (Por defecto - 7 días)
             timeMultiplier = 1;
             filteredHistory = rawData.history?.map((h: any) => ({
                 ...h,
