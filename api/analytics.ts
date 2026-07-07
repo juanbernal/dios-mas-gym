@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const [postsResponse] = await analyticsDataClient.runReport({
       property: `properties/${propertyId}`,
       dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-      dimensions: [{ name: 'pageTitle' }], // Usamos pageTitle que es estándar
+      dimensions: [{ name: 'customEvent:title' }],
       metrics: [{ name: 'eventCount' }],
       dimensionFilter: {
         filter: {
