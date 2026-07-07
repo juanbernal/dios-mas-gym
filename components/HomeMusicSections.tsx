@@ -124,7 +124,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {topDeLaSemana.map((song, i) => (
-            <div key={i} className="group bg-[#0f111a] border border-white/5 rounded-2xl p-4 hover:border-[#c5a059]/40 transition-colors cursor-pointer flex flex-col" onClick={() => onPlaySong(song)}>
+            <div key={song.id || song.name || i} className="group bg-[#0f111a] border border-white/5 rounded-2xl p-4 hover:border-[#c5a059]/40 transition-colors cursor-pointer flex flex-col" onClick={() => onPlaySong(song)}>
               <div className="relative aspect-square rounded-xl overflow-hidden mb-4 border border-white/5">
                 <img loading="lazy" src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
                 <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#c5a059] text-black font-black text-[10px] flex items-center justify-center shadow-lg">
