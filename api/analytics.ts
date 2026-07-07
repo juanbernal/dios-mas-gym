@@ -85,6 +85,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       limit: 10,
     });
 
+    // 4. Obtener Top Páginas (Page Views estándar)
+    const [pagesResponse] = await analyticsDataClient.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+      dimensions: [{ name: 'pageTitle' }],
+      metrics: [{ name: 'screenPageViews' }],
+      orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+      limit: 10,
+    });
+
     // --- Formatear Resultados ---
 
     // Historial
@@ -111,8 +121,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Reflexiones
     const topPosts = (postsResponse.rows || []).map(row => {
-      // Limpiar el title (remover ' | El Arsenal' o similar si lo deseas)
       let rawTitle = row.dimensionValues?.[0].value || 'Desconocido';
+      rawTitle = rawTitle.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
+      return {
+        title: rawTitle,
+        views: parseInt(row.metricValues?.[0].value || '0', 10),
+      };
+    }).filter(p => p.title !== '(not set)');
+
+    // Páginas
+    const topPages = (pagesResponse.rows || []).map(row => {
+      let rawTitle = row.dimensionValues?.[0].value || 'Desconocida';
       rawTitle = rawTitle.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
       return {
         title: rawTitle,
@@ -127,9 +146,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         history,
         topSongs,
         topPosts,
+        topPages,
         distribution: [
            { name: 'Canciones', value: topSongs.reduce((sum, s) => sum + s.plays, 0) },
-           { name: 'Reflexiones', value: topPosts.reduce((sum, p) => sum + p.views, 0) }
+           { name: 'Reflexiones', value: topPosts.reduce((sum, p) => sum + p.views, 0) },
+           { name: 'Páginas', value: topPages.reduce((sum, p) => sum + p.views, 0) }
         ],
         isMock: false
       }

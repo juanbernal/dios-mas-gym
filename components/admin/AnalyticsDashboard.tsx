@@ -364,11 +364,11 @@ const AnalyticsDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Lista de Top Canciones */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#0088cc]/5 rounded-full blur-[40px] pointer-events-none"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-headphones mr-2"></i> Top Canciones Más Escuchadas</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-headphones mr-2"></i> Top Canciones (Plays)</p>
                         
                         <div className="flex flex-col gap-3 relative z-10">
                             {data?.topSongs?.length > 0 ? data.topSongs.map((song: any, i: number) => (
@@ -387,7 +387,7 @@ const AnalyticsDashboard: React.FC = () => {
 
                     {/* Lista de Top Reflexiones */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-book-open mr-2"></i> Top Reflexiones Más Leídas</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-book-open mr-2"></i> Top Reflexiones (Lecturas)</p>
                         
                         <div className="flex flex-col gap-3 relative z-10">
                             {data?.topPosts?.length > 0 ? data.topPosts.map((post: any, i: number) => (
@@ -397,7 +397,27 @@ const AnalyticsDashboard: React.FC = () => {
                                         <span className="text-white text-sm font-serif truncate">{post.title}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-white/50 font-mono text-xs shrink-0">
-                                        {post.views} <i className="fas fa-eye text-[8px]"></i>
+                                        {post.views} <i className="fas fa-book-reader text-[8px]"></i>
+                                    </div>
+                                </div>
+                            )) : <div className="text-white/30 text-xs">No hay datos suficientes.</div>}
+                        </div>
+                    </div>
+
+                    {/* Lista de Top Páginas (Page Views) */}
+                    <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ffcc]/5 rounded-full blur-[40px] pointer-events-none"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-8"><i className="fas fa-mouse-pointer mr-2"></i> Páginas Más Visitadas (Clics)</p>
+                        
+                        <div className="flex flex-col gap-3 relative z-10">
+                            {data?.topPages?.length > 0 ? data.topPages.map((page: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/5 hover:border-[#00ffcc]/30 transition-colors">
+                                    <div className="flex items-center gap-3 truncate pr-4">
+                                        <span className="text-[#00ffcc] font-black text-xs w-4">{i+1}.</span>
+                                        <span className="text-white text-sm font-sans truncate">{page.title}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[#00ffcc]/70 font-mono text-xs shrink-0 bg-[#00ffcc]/10 px-2 py-1 rounded">
+                                        {page.views} <i className="fas fa-eye text-[8px]"></i>
                                     </div>
                                 </div>
                             )) : <div className="text-white/30 text-xs">No hay datos suficientes.</div>}
