@@ -262,7 +262,8 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
+  return (
+    <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
       {/* Background lights */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#c5a059]/3 blur-[120px] rounded-full pointer-events-none"></div>
 
