@@ -1,6 +1,17 @@
 User-agent: *
 Allow: /
+Allow: /link/
+Allow: /bio/
+Allow: /reflexiones/
+Allow: /post/
 Disallow: /admin/
 Disallow: /admin
+
+# Bots de motores de búsqueda
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
 
 Sitemap: https://app.diosmasgym.com/sitemap.xml

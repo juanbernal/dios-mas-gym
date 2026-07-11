@@ -860,7 +860,17 @@ export default async function handler(
 
     try {
       const songs = await fetchAllMusic();
-      const song = songs.find(s => s.id === id || (s.url && s.url.includes(id)));
+      const normalizeId = (str: string) =>
+        str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const song = songs.find(s => {
+        if (s.id === id) return true;
+        if (s.url && s.url.includes(id)) return true;
+        if (s.id && normalizeId(s.id) === normalizeId(id)) return true;
+        const slugName = normalizeId(`${s.artist}-${s.name}`);
+        const slugOnly = normalizeId(s.name);
+        if (normalizeId(id) === slugName || normalizeId(id) === slugOnly) return true;
+        return false;
+      });
 
       let title = "Dios Mas Gym - Smart Link";
       let description = "Escucha los últimos lanzamientos de música cristiana y de motivación.";

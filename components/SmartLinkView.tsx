@@ -732,11 +732,62 @@ const SmartLinkView: React.FC = () => {
                     }
                 }
 
-                const found = fullCatalog.find(s => s.id === id || (s.url && s.url.includes(id || '')));
+                // Helper to normalize text for comparison (remove accents, lowercase, replace spaces with hyphens)
+                const normalize = (str: string) =>
+                    str.toLowerCase()
+                       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                       .replace(/[^a-z0-9]+/g, '-')
+                       .replace(/(^-|-$)+/g, '');
+
+                // 1. Exact ID match
+                // 2. URL contains the id fragment
+                // 3. Normalized ID match (handles accent differences in slugs)
+                // 4. Slug built from artist+name matches the id
+                const found = fullCatalog.find(s => {
+                    if (s.id === id) return true;
+                    if (s.url && id && s.url.includes(id)) return true;
+                    if (id && s.id && normalize(s.id) === normalize(id)) return true;
+                    const slugFromName = normalize(`${s.artist}-${s.name}`);
+                    const slugFromNameOnly = normalize(s.name);
+                    if (id && (normalize(id) === slugFromName || normalize(id) === slugFromNameOnly)) return true;
+                    return false;
+                });
+
                 if (found) {
                     setSong(found);
-                    document.title = `${found.name} - ${found.artist}`;
-                    
+                    // === SEO: Dynamic meta tags for Google / Social ===
+                    const songTitle = `${found.name} - ${found.artist}`;
+                    const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Dios Más Gym`;
+                    const songImg  = found.cover || 'https://app.diosmasgym.com/logo-diosmasgym.png';
+                    const songUrl  = `https://app.diosmasgym.com/link/${found.id}`;
+
+                    document.title = songTitle;
+
+                    const setMeta = (selector: string, attr: string, val: string) => {
+                        let el = document.querySelector(selector) as HTMLMetaElement;
+                        if (!el) { el = document.createElement('meta'); document.head.appendChild(el); }
+                        (el as any)[attr] = val;
+                    };
+
+                    // Standard
+                    setMeta('meta[name="description"]',         'content', songDesc);
+                    setMeta('meta[name="keywords"]',            'content', `${found.name}, ${found.artist}, diosmasgym, juan614, musica cristiana, corridos tumbados, fe, gym`);
+                    setMeta('link[rel="canonical"]',            'href',    songUrl);
+
+                    // Open Graph (WhatsApp, Facebook)
+                    setMeta('meta[property="og:title"]',        'content', songTitle);
+                    setMeta('meta[property="og:description"]',  'content', songDesc);
+                    setMeta('meta[property="og:image"]',        'content', songImg);
+                    setMeta('meta[property="og:url"]',          'content', songUrl);
+                    setMeta('meta[property="og:type"]',         'content', 'music.song');
+
+                    // Twitter Card
+                    setMeta('meta[name="twitter:card"]',        'content', 'summary_large_image');
+                    setMeta('meta[name="twitter:title"]',       'content', songTitle);
+                    setMeta('meta[name="twitter:description"]', 'content', songDesc);
+                    setMeta('meta[name="twitter:image"]',       'content', songImg);
+
+
                     // Buscar canciones del mismo álbum
                     let related = fullCatalog.filter(s => {
                         if (s.artist.toLowerCase() !== found.artist.toLowerCase()) return false;
