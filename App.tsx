@@ -14,6 +14,7 @@ import LinkBioPublic from "./components/LinkBioPublic";
 import UpcomingReleases from "./components/UpcomingReleases";
 import TemploGuerrero from "./components/TemploGuerrero";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import ArmaduraPromo from "./components/ArmaduraPromo";
 import Footer from './components/Footer';
 import CommentSection from './components/CommentSection';
 import RecommendedSongs from './components/RecommendedSongs';
@@ -733,6 +734,8 @@ const App: React.FC = () => {
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
+
+              <ArmaduraPromo />
 
               {/* Infinite scroll sentinel */}
               <div ref={sentinelRef} className="h-10"></div>
