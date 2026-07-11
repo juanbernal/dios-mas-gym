@@ -40,6 +40,14 @@
       "destination": "/api/common?action=smartlink-ssr&id=:id"
     },
     {
+      "source": "/api/image-proxy",
+      "destination": "/api/common?action=image-proxy"
+    },
+    {
+      "source": "/api/sheet-proxy",
+      "destination": "/api/common?action=sheet-proxy"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
