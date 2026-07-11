@@ -544,139 +544,100 @@ export default async function handler(
   if (action === 'sitemap' || action === 'sitemap.xml') {
     const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
     const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
+    const BASE = 'https://app.diosmasgym.com';
+    const today = new Date().toISOString().split('T')[0];
 
-    if (!apiKey) {
-      console.error("Missing BLOGGER_API_KEY");
-      res.setHeader('Content-Type', 'application/xml');
-      return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://app.diosmasgym.com/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://app.diosmasgym.com/bio</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-</urlset>`);
-    }
+    const urlBlock = (loc: string, lastmod: string, changefreq: string, priority: string) =>
+      `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ''}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>\n`;
 
-    try {
-      const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=150&status=LIVE&fields=items(url,updated,published)`;
-      const response = await fetch(url, {
-        headers: {
-          'Referer': 'https://app.diosmasgym.com',
-          'Origin': 'https://app.diosmasgym.com',
-          'Accept': 'application/json',
-          'User-Agent': 'Vercel-Server-Function'
-        }
-      });
+    const sub = req.query.sub as string | undefined;
 
-      if (!response.ok) {
-        throw new Error(`Blogger API responded with ${response.status}`);
-      }
-
-      const data = await response.json();
-      const items = data.items || [];
-
-      // Fetch all music tracks dynamically for sitemap expansion
+    // --- SUB-SITEMAP: SONGS ---
+    if (sub === 'songs') {
       let songs: MusicItem[] = [];
-      try {
-        songs = await fetchAllMusic();
-      } catch (err) {
-        console.error("Error fetching music for sitemap:", err);
-      }
+      try { songs = await fetchAllMusic(); } catch (e) { console.error('songs fetch error', e); }
 
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      
+      // Also add static pages to the songs sitemap just to be safe
+      xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
+      xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
 
-      // 1. Home
-      xml += `  <url>\n`;
-      xml += `    <loc>https://app.diosmasgym.com/</loc>\n`;
-      xml += `    <changefreq>daily</changefreq>\n`;
-      xml += `    <priority>1.0</priority>\n`;
-      xml += `  </url>\n`;
-
-      // 2. Bio Page
-      xml += `  <url>\n`;
-      xml += `    <loc>https://app.diosmasgym.com/bio</loc>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.8</priority>\n`;
-      xml += `  </url>\n`;
-
-      // 3. Dynamic posts from Blogger API
-      items.forEach((item: any) => {
-        const bloggerUrl = item.url || '';
-        const slug = bloggerUrl.split('/').pop()?.replace('.html', '') || '';
-        if (slug) {
-          const postUrl = `https://app.diosmasgym.com/post/${slug}`;
-          const lastMod = item.updated ? item.updated.split('T')[0] : (item.published ? item.published.split('T')[0] : '');
-          
-          xml += `  <url>\n`;
-          xml += `    <loc>${postUrl}</loc>\n`;
-          if (lastMod) {
-            xml += `    <lastmod>${lastMod}</lastmod>\n`;
-          }
-          xml += `    <changefreq>monthly</changefreq>\n`;
-          xml += `    <priority>0.7</priority>\n`;
-          xml += `  </url>\n`;
-        }
+      songs.forEach(song => {
+        if (!song.id) return;
+        const lastmod = song.date ? song.date.split('T')[0] : today;
+        xml += urlBlock(`${BASE}/link/${song.id}`, lastmod, 'weekly', '0.8');
       });
-
-      // 4. Dynamic Smart Links for Songs
-      songs.forEach((song) => {
-        const songUrl = `https://app.diosmasgym.com/link/${song.id}`;
-        const lastMod = song.date ? song.date.split('T')[0] : '';
-        
-        xml += `  <url>\n`;
-        xml += `    <loc>${songUrl}</loc>\n`;
-        if (lastMod) {
-          xml += `    <lastmod>${lastMod}</lastmod>\n`;
-        }
-        xml += `    <changefreq>weekly</changefreq>\n`;
-        xml += `    <priority>0.7</priority>\n`;
-        xml += `  </url>\n`;
-      });
-
       xml += `</urlset>`;
-
       res.setHeader('Content-Type', 'application/xml');
-      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
       return res.status(200).send(xml);
-    } catch (error) {
-      console.error("Error generating dynamic sitemap:", error);
-      
-      let songs: MusicItem[] = [];
-      try {
-        songs = await fetchAllMusic();
-      } catch (err) {}
-
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-      xml += `  <url>\n`;
-      xml += `    <loc>https://app.diosmasgym.com/</loc>\n`;
-      xml += `    <changefreq>daily</changefreq>\n`;
-      xml += `    <priority>1.0</priority>\n`;
-      xml += `  </url>\n`;
-      xml += `  <url>\n`;
-      xml += `    <loc>https://app.diosmasgym.com/bio</loc>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.8</priority>\n`;
-      xml += `  </url>\n`;
-
-      songs.forEach((song) => {
-        xml += `  <url>\n`;
-        xml += `    <loc>https://app.diosmasgym.com/link/${song.id}</loc>\n`;
-        xml += `    <changefreq>weekly</changefreq>\n`;
-        xml += `    <priority>0.7</priority>\n`;
-        xml += `  </url>\n`;
-      });
-
-      xml += `</urlset>`;
-      
     }
+
+    // --- SUB-SITEMAP: POSTS (paginated through ALL Blogger posts) ---
+    if (sub === 'posts') {
+      if (!apiKey) {
+        res.setHeader('Content-Type', 'application/xml');
+        return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`);
+      }
+
+      const allItems: any[] = [];
+      let pageToken: string | null = null;
+      let page = 0;
+      const MAX_PAGES = 20;
+
+      do {
+        try {
+          const pageUrl = new URL(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`);
+          pageUrl.searchParams.set('key', apiKey);
+          pageUrl.searchParams.set('maxResults', '150');
+          pageUrl.searchParams.set('status', 'LIVE');
+          pageUrl.searchParams.set('fields', 'items(url,updated,published),nextPageToken');
+          if (pageToken) pageUrl.searchParams.set('pageToken', pageToken);
+
+          const resp = await fetch(pageUrl.toString(), {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'Vercel-Server-Function' }
+          });
+          if (!resp.ok) break;
+          const data = await resp.json();
+          allItems.push(...(data.items || []));
+          pageToken = data.nextPageToken || null;
+          page++;
+        } catch (e) {
+          console.error('Blogger pagination error', e);
+          break;
+        }
+      } while (pageToken && page < MAX_PAGES);
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      allItems.forEach((item: any) => {
+        const slug = (item.url || '').split('/').pop()?.replace('.html', '') || '';
+        if (!slug) return;
+        const lastmod = item.updated ? item.updated.split('T')[0] : (item.published ? item.published.split('T')[0] : today);
+        xml += urlBlock(`${BASE}/post/${slug}`, lastmod, 'monthly', '0.7');
+      });
+      xml += `</urlset>`;
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+      return res.status(200).send(xml);
+    }
+
+    // --- SITEMAP INDEX (main /sitemap.xml) ---
+    const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${BASE}/api/common?action=sitemap&amp;sub=posts</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${BASE}/api/common?action=sitemap&amp;sub=songs</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    return res.status(200).send(sitemapIndex);
   }
 
   // -------------------------------------------------------------
