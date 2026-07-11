@@ -727,7 +727,7 @@ const App: React.FC = () => {
 
               {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
               <HomeMusicSections 
-                catalog={[...state.musicDiosmasgym, ...state.musicJuan614]} 
+                catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name)} 
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
                 onNavigateReflexiones={() => { changeView('reflexiones'); navigate('/reflexiones'); }} 
               />

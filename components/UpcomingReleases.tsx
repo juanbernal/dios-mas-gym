@@ -90,8 +90,8 @@ const UpcomingReleases: React.FC = () => {
                         // Añadimos a la lista si no existen ya en el catálogo principal (por nombre y artista)
                         extraReleases.forEach(extra => {
                             const exists = combinedCatalog.some(c => 
-                                c.name.toLowerCase() === extra.name.toLowerCase() && 
-                                c.artist.toLowerCase() === extra.artist.toLowerCase()
+                                c.name?.toLowerCase() === extra.name.toLowerCase() && 
+                                c.artist?.toLowerCase() === extra.artist.toLowerCase()
                             );
                             if (!exists) {
                                 combinedCatalog.push(extra);
@@ -119,13 +119,14 @@ const UpcomingReleases: React.FC = () => {
 
                 const catalogReleases: ReleaseData[] = Object.values(groupedCatalog)
                     .filter(group => {
-                        let itemDate = new Date(group[0].date.includes('T') ? group[0].date : group[0].date + 'T00:00:00');
-                        if (isNaN(itemDate.getTime())) itemDate = new Date(group[0].date);
+                        const dateStr = group[0]?.date || '';
+                        let itemDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00');
+                        if (isNaN(itemDate.getTime())) itemDate = new Date(dateStr);
                         if (isNaN(itemDate.getTime())) return true; // keep invalid dates just in case so we don't lose them
                         return itemDate >= fifteenDaysAgo || itemDate > now;
                     })
                     .map(group => {
-                        const isAlbum = group.length > 1 || group[0].type?.toLowerCase().includes('album');
+                        const isAlbum = group.length > 1 || group[0]?.type?.toLowerCase().includes('album');
                         const mainItem = group.find(i => i.type?.toLowerCase().includes('album')) || group[0];
                         
                         return {
@@ -143,10 +144,10 @@ const UpcomingReleases: React.FC = () => {
                 // Ensure we have at least one from each artist if they aren't already there
                 ['Diosmasgym', 'Juan 614'].forEach(artistName => {
                     const artistKey = artistName.toLowerCase();
-                    const alreadyPresent = catalogReleases.some(r => r.Artista.toLowerCase().includes(artistKey));
+                    const alreadyPresent = catalogReleases.some(r => r.Artista?.toLowerCase().includes(artistKey));
                     
                     if (!alreadyPresent) {
-                        const latest = combinedCatalog.find(item => item.artist.toLowerCase().includes(artistKey));
+                        const latest = combinedCatalog.find(item => item.artist?.toLowerCase().includes(artistKey));
                         if (latest) {
                             catalogReleases.push({
                                 Artista: latest.artist,

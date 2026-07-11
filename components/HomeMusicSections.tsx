@@ -36,7 +36,11 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
   const topDeLaSemana = useMemo(() => {
     if (topAnalytics.length > 0) {
-      const matched = topAnalytics.map(t => catalog.find(c => c.name.toLowerCase() === t.toLowerCase())).filter(Boolean) as MusicItem[];
+      const matched = topAnalytics.map(t => {
+        if (!t) return null;
+        return catalog.find(c => c.name && c.name.toLowerCase() === t.toLowerCase());
+      }).filter(Boolean) as MusicItem[];
+      
       if (matched.length >= 5) return matched.slice(0, 5);
       return [...matched, ...catalog.filter(c => !matched.find(m => m.id === c.id))].slice(0, 5);
     }
