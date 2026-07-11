@@ -15,7 +15,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
       <div className="flex items-center gap-8 lg:gap-12 min-w-0">
         <img 
           src={LOGO_URL} 
-          className="h-7 md:h-8 cursor-pointer hover:scale-105 transition-transform drop-shadow-[0_0_25px_rgba(197,160,89,0.25)]" 
+          className="h-7 md:h-8 cursor-pointer hover:scale-105 transition-transform drop-shadow-[0_0_25px_rgba(37,99,168,0.25)]" 
           alt="Logo" 
           onClick={() => changeView('inicio')} 
         />
@@ -30,7 +30,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
       <div className="flex items-center gap-3 md:gap-5">
         <button 
           onClick={onSearch} 
-          className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 text-white/45 hover:text-[#c5a059] hover:border-[#c5a059]/30 transition-colors"
+          className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 text-white/45 hover:text-[#4a90d9] hover:border-[#4a90d9]/30 transition-colors"
         >
           <i className="fas fa-search"></i>
         </button>
@@ -38,12 +38,12 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
           href="https://musica.diosmasgym.com/"
           target="_blank"
           rel="noreferrer"
-          className="hidden lg:flex px-6 py-3 border border-[#c5a059]/25 bg-[#c5a059]/10 text-[#c5a059] font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:bg-[#c5a059] hover:text-black transition-all"
+          className="hidden lg:flex px-6 py-3 border border-[#4a90d9]/25 bg-[#4a90d9]/10 text-[#4a90d9] font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:bg-[#4a90d9] hover:text-black transition-all"
         >
           Música
         </a>
         <button 
-          className="hidden md:block px-7 py-3 bg-[#c5a059] text-black font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:scale-105 hover:bg-white transition-all shadow-lg"
+          className="hidden md:block px-7 py-3 bg-[#4a90d9] text-black font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:scale-105 hover:bg-white transition-all shadow-lg"
           onClick={() => changeView('reflexiones')}
         >
           Reflexiones
@@ -56,13 +56,13 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
 const NavLink: React.FC<{ active: boolean, onClick: () => void, label: string }> = ({ active, onClick, label }) => (
   <button 
     onClick={onClick} 
-    className={`text-[10px] font-bold uppercase tracking-[0.25em] transition-all hover:text-[#c5a059] relative py-2 ${
-      active ? 'text-[#c5a059]' : 'text-white/40'
+    className={`text-[10px] font-bold uppercase tracking-[0.25em] transition-all hover:text-[#4a90d9] relative py-2 ${
+      active ? 'text-[#4a90d9]' : 'text-white/40'
     }`}
   >
     {label}
     {active && (
-      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#c5a059] shadow-[0_0_10px_#c5a059]" />
+      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#4a90d9] shadow-[0_0_10px_#4a90d9]" />
     )}
   </button>
 );

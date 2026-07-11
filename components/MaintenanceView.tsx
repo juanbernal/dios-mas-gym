@@ -27,12 +27,12 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
         <div className="flex items-center gap-4">
           <img 
             src="/logo-diosmasgym.png" 
-            className="w-12 h-12 grayscale opacity-70 drop-shadow-[0_0_15px_rgba(197,160,89,0.3)] animate-pulse" 
+            className="w-12 h-12 grayscale opacity-70 drop-shadow-[0_0_15px_rgba(37,99,168,0.3)] animate-pulse" 
             alt="Logo Dios Más Gym" 
           />
           <div>
             <p className="text-white text-xs font-black uppercase tracking-[0.2em]">Dios Más Gym</p>
-            <p className="text-[#c5a059] text-[8px] font-black uppercase tracking-widest">El Arsenal de Fe</p>
+            <p className="text-[#4a90d9] text-[8px] font-black uppercase tracking-widest">El Arsenal de Fe</p>
           </div>
         </div>
       </div>
@@ -40,19 +40,19 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
       {/* Middle Section - Core Content (Cinematic Presentation) */}
       <div className="relative z-10 text-center max-w-3xl px-4 my-auto flex flex-col items-center justify-center animate-scale-up">
         {/* Decorative Glowing Shield/Dumbbell Icon */}
-        <div className="w-20 h-20 bg-gradient-to-br from-[#c5a059] to-[#8B5A2B] rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(197,160,89,0.3)] rotate-3 mb-8 animate-bounce" style={{ animationDuration: '3s' }}>
+        <div className="w-20 h-20 bg-gradient-to-br from-[#4a90d9] to-[#1e4a7a] rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(37,99,168,0.3)] rotate-3 mb-8 animate-bounce" style={{ animationDuration: '3s' }}>
           <i className="fas fa-dumbbell text-black text-3xl"></i>
         </div>
 
         {/* Tagline */}
-        <h1 className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.5em] text-[#c5a059] mb-4 flex items-center gap-4">
-          <span className="w-8 h-px bg-[#c5a059]/30"></span> Mantenimiento del Templo <span className="w-8 h-px bg-[#c5a059]/30"></span>
+        <h1 className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.5em] text-[#4a90d9] mb-4 flex items-center gap-4">
+          <span className="w-8 h-px bg-[#4a90d9]/30"></span> Mantenimiento del Templo <span className="w-8 h-px bg-[#4a90d9]/30"></span>
         </h1>
 
         {/* Headings */}
         <h2 className="font-serif italic text-4xl md:text-7xl text-white leading-tight mb-6">
           Esculpiendo una <br />
-          <span className="text-[#c5a059] drop-shadow-[0_0_30px_rgba(197,160,89,0.25)]">Mejor Versión</span>
+          <span className="text-[#4a90d9] drop-shadow-[0_0_30px_rgba(37,99,168,0.25)]">Mejor Versión</span>
         </h2>
 
         {/* Narrative Description */}
@@ -62,13 +62,13 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
 
         {/* Glowing Loading Pulse indicator */}
         <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 px-6 py-3 rounded-full backdrop-blur-md mb-8">
-          <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-ping"></div>
+          <div className="w-2 h-2 rounded-full bg-[#4a90d9] animate-ping"></div>
           <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/50">Forjando el Templo en Silencio...</span>
         </div>
 
         {/* Social Networks & Music Channels */}
         <div className="flex flex-col items-center gap-3 w-full">
-          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#c5a059] mb-1">Únete a Nuestra Comunidad • Escucha la Música</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-1">Únete a Nuestra Comunidad • Escucha la Música</p>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <a 
               href="https://open.spotify.com/artist/2vP29zO3zP1Mv1T3w2y5B1" 
@@ -115,7 +115,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
         <p className="font-serif italic text-xs md:text-sm text-white/70 mb-2">
           "Todo lo puedo en Cristo que me fortalece."
         </p>
-        <p className="text-[8px] font-black uppercase tracking-widest text-[#c5a059]">
+        <p className="text-[8px] font-black uppercase tracking-widest text-[#4a90d9]">
           Filipenses 4:13 • © {new Date().getFullYear()} Dios Más Gym
         </p>
       </div>

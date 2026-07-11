@@ -17,8 +17,8 @@ const CountdownUnit: React.FC<{ targetDate: string, currentTime: Date }> = ({ ta
     const diff = target.getTime() - currentTime.getTime();
     
     if (diff <= 0) return (
-        <div className="col-span-4 bg-[#c5a059]/20 backdrop-blur-md border border-[#c5a059]/30 p-4 rounded-xl text-center">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059]">YA DISPONIBLE</span>
+        <div className="col-span-4 bg-[#4a90d9]/20 backdrop-blur-md border border-[#4a90d9]/30 p-4 rounded-xl text-center">
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4a90d9]">YA DISPONIBLE</span>
         </div>
     );
 
@@ -34,7 +34,7 @@ const CountdownUnit: React.FC<{ targetDate: string, currentTime: Date }> = ({ ta
             {units.map((unit, i) => (
                 <div key={i} className="bg-[#05070a]/60 backdrop-blur-md border border-white/10 p-4 rounded-xl">
                     <div className="font-serif text-2xl md:text-4xl text-white font-black mb-1">{unit.val.toString().padStart(2, '0')}</div>
-                    <div className="text-[7px] font-black uppercase tracking-[0.3em] text-[#c5a059]">{unit.label}</div>
+                    <div className="text-[7px] font-black uppercase tracking-[0.3em] text-[#4a90d9]">{unit.label}</div>
                 </div>
             ))}
         </div>
@@ -218,17 +218,17 @@ const UpcomingReleases: React.FC = () => {
 
     return (
         <section className="relative py-20 md:py-32 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
-            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#c5a059]/10 to-transparent rounded-full blur-md -mr-96 -mt-96 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#c5a059]/5 to-transparent rounded-full blur-sm -ml-64 -mb-64"></div>
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#4a90d9]/10 to-transparent rounded-full blur-md -mr-96 -mt-96 animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#4a90d9]/5 to-transparent rounded-full blur-sm -ml-64 -mb-64"></div>
             
             <div className="section-container relative z-10 max-w-7xl mx-auto px-6">
                 <div className="text-center mb-24 md:mb-32">
-                    <div className="inline-flex items-center gap-4 mb-6 px-8 py-3 rounded-full border border-[#c5a059]/30 bg-[#c5a059]/10 backdrop-blur-md shadow-[0_0_30px_rgba(197,160,89,0.15)]">
-                        <i className="fas fa-satellite-dish text-[#c5a059] animate-ping"></i>
-                        <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#c5a059]">Próximos Estrenos Globales</span>
+                    <div className="inline-flex items-center gap-4 mb-6 px-8 py-3 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 backdrop-blur-md shadow-[0_0_30px_rgba(37,99,168,0.15)]">
+                        <i className="fas fa-satellite-dish text-[#4a90d9] animate-ping"></i>
+                        <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#4a90d9]">Próximos Estrenos Globales</span>
                     </div>
                     <h2 className="font-serif italic text-6xl md:text-8xl text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-                        Próxima <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-yellow-400 to-[#c5a059] animate-gradient-x">Artillería</span>
+                        Próxima <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] via-yellow-400 to-[#4a90d9] animate-gradient-x">Artillería</span>
                     </h2>
                     <div className="mt-8 flex justify-center items-center gap-4 text-white/30 text-[10px] md:text-xs uppercase tracking-[0.3em] font-black">
                         <span className="w-16 h-px bg-white/20"></span>
@@ -239,7 +239,7 @@ const UpcomingReleases: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {releases.map((release, index) => (
-                        <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#c5a059]/10 rounded-[2rem] overflow-hidden group hover:border-[#c5a059]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
+                        <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#4a90d9]/10 rounded-[2rem] overflow-hidden group hover:border-[#4a90d9]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
                             <div className="relative aspect-square w-full overflow-hidden">
                                 <img loading="lazy" 
                                     src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
@@ -248,7 +248,7 @@ const UpcomingReleases: React.FC = () => {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-transparent"></div>
                                 <div className="absolute top-4 left-4">
-                                    <div className="inline-block py-1.5 px-4 bg-[#c5a059]/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-[0.2em] text-black shadow-lg">
+                                    <div className="inline-block py-1.5 px-4 bg-[#4a90d9]/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-[0.2em] text-black shadow-lg">
                                         {(() => {
                                             let d = new Date(release.releaseDate.includes('T') ? release.releaseDate : release.releaseDate + 'T00:00:00');
                                             if (isNaN(d.getTime())) d = new Date(release.releaseDate);
@@ -262,7 +262,7 @@ const UpcomingReleases: React.FC = () => {
                             </div>
 
                             <div className="p-6 flex flex-col flex-1">
-                                <h3 className="font-serif italic text-2xl text-white mb-1 line-clamp-1 group-hover:text-[#c5a059] transition-colors">
+                                <h3 className="font-serif italic text-2xl text-white mb-1 line-clamp-1 group-hover:text-[#4a90d9] transition-colors">
                                     {release.name}
                                 </h3>
                                 <div className="text-[10px] font-black text-white/40 mb-4 uppercase tracking-[0.2em] line-clamp-1">
@@ -271,7 +271,7 @@ const UpcomingReleases: React.FC = () => {
 
                                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
                                     {release.preSaveLink ? (
-                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c5a059] hover:text-white transition-colors">
+                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4a90d9] hover:text-white transition-colors">
                                             <i className="fas fa-link mr-1"></i> Pre-Save
                                         </a>
                                     ) : <span></span>}

@@ -46,8 +46,8 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
     return (
       <div className="my-16">
         <div className="text-center mb-10">
-          <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059] mb-4">Conecta con el Artista</h4>
-          <h3 className="font-serif italic text-4xl text-black">Únete a la familia <span className="text-[#c5a059]">{name}</span></h3>
+          <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#4a90d9] mb-4">Conecta con el Artista</h4>
+          <h3 className="font-serif italic text-4xl text-black">Únete a la familia <span className="text-[#4a90d9]">{name}</span></h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -86,7 +86,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
   }
 
   return (
-    <div className="my-24 p-8 md:p-16 bg-[#0a0c14] border border-[#c5a059]/10 rounded-xl relative overflow-hidden group shadow-2xl">
+    <div className="my-24 p-8 md:p-16 bg-[#0a0c14] border border-[#4a90d9]/10 rounded-xl relative overflow-hidden group shadow-2xl">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none transition-transform duration-1000 group-hover:rotate-12 translate-x-1/4 -translate-y-1/4">
         <div className="text-[240px] font-black">{isDios ? 'URBAN' : 'BELICO'}</div>
@@ -96,14 +96,14 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
         {/* Left Side: Info & Socials */}
         <div className="text-center lg:text-left flex-1">
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-6">
-             <span className="px-4 py-1 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+             <span className="px-4 py-1 bg-[#4a90d9] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                {genre}
              </span>
              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 text-black">Promoción Oficial</span>
           </div>
 
           <h3 className="font-serif italic text-5xl md:text-7xl text-white mb-8 leading-tight">
-            Escucha a <br /> <span className="text-[#c5a059]">{name}</span>
+            Escucha a <br /> <span className="text-[#4a90d9]">{name}</span>
           </h3>
           
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-12">
@@ -129,7 +129,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
               href={isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/'} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-block px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.4em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_40px_rgba(197,160,89,0.2)] rounded-full text-center"
+              className="inline-block px-12 py-5 bg-[#4a90d9] text-black font-black uppercase text-[10px] tracking-[0.4em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_40px_rgba(37,99,168,0.2)] rounded-full text-center"
             >
               Portal de {name}
             </a>
@@ -140,7 +140,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
         <div className="w-full lg:w-96">
            {recommendedSong ? (
              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative group/card">
-                <div className="absolute -top-4 -left-4 px-4 py-2 bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest shadow-xl">
+                <div className="absolute -top-4 -left-4 px-4 py-2 bg-[#4a90d9] text-black text-[9px] font-black uppercase tracking-widest shadow-xl">
                    Recomendación
                 </div>
                 
@@ -150,28 +150,28 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                          <button 
                             onClick={() => onPlaySong?.(recommendedSong)}
-                            className="w-12 h-12 bg-[#c5a059] rounded-full flex items-center justify-center transform scale-75 group-hover/img:scale-100 transition-transform"
+                            className="w-12 h-12 bg-[#4a90d9] rounded-full flex items-center justify-center transform scale-75 group-hover/img:scale-100 transition-transform"
                          >
                             <i className="fas fa-play text-black"></i>
                          </button>
                       </div>
                    </div>
                    
-                   <h4 className="font-serif text-xl font-bold text-white text-center mb-1 group-hover/card:text-[#c5a059] transition-colors">{recommendedSong.name}</h4>
+                   <h4 className="font-serif text-xl font-bold text-white text-center mb-1 group-hover/card:text-[#4a90d9] transition-colors">{recommendedSong.name}</h4>
                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6 text-center">Escucha esta canción ahora</p>
                    
                    <button 
                       onClick={() => onPlaySong?.(recommendedSong)}
-                      className="w-full py-4 bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all"
+                      className="w-full py-4 bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.3em] hover:bg-[#4a90d9] hover:text-black transition-all"
                    >
                       Reproducir en el Hub
                    </button>
                 </div>
              </div>
            ) : (
-             <div className="w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-[#c5a059]/20 to-transparent border border-[#c5a059]/10 rounded-full flex items-center justify-center relative mx-auto">
+             <div className="w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-[#4a90d9]/20 to-transparent border border-[#4a90d9]/10 rounded-full flex items-center justify-center relative mx-auto">
                 <div className="absolute inset-4 border border-white/5 rounded-full animate-spin-slow"></div>
-                <i className={`fas ${isDios ? 'fa-headphones' : 'fa-music'} text-5xl text-[#c5a059]`}></i>
+                <i className={`fas ${isDios ? 'fa-headphones' : 'fa-music'} text-5xl text-[#4a90d9]`}></i>
              </div>
            )}
         </div>

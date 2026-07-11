@@ -22,7 +22,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, changeView }) => {
             onClick={() => changeView(item.view)}
             className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
               currentView === item.view
-                ? 'text-[#c5a059]'
+                ? 'text-[#4a90d9]'
                 : 'text-white/35 hover:text-white/60'
             }`}
           >

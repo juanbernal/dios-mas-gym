@@ -102,7 +102,7 @@ const LinkBioPublic: React.FC = () => {
     if (!data || !data.profile) return (
         <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-8 text-center font-['Poppins']">
             <div>
-                <i className="fas fa-spinner fa-spin text-[#c5a059] text-4xl mb-4"></i>
+                <i className="fas fa-spinner fa-spin text-[#4a90d9] text-4xl mb-4"></i>
                 <h1 className="text-xl font-bold mb-2">Cargando Bio...</h1>
                 <p className="text-white/40 text-sm">Si esto tarda mucho, refresca la página.</p>
                 <div className="mt-8 text-[8px] text-white/10 uppercase tracking-widest">v1.6 PRODUCTION FALLBACK</div>
@@ -113,12 +113,12 @@ const LinkBioPublic: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] relative overflow-x-hidden">
             {/* Background elements */}
-            <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#c5a059]/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#4a90d9]/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <div className="max-w-[480px] mx-auto px-6 py-16 relative z-10 flex flex-col items-center min-h-screen">
                 {/* Profile Section */}
-                <div className="w-24 h-24 rounded-full border-2 border-[#c5a059] p-1 mb-6 shadow-[0_0_30px_rgba(197,160,89,0.2)]">
+                <div className="w-24 h-24 rounded-full border-2 border-[#4a90d9] p-1 mb-6 shadow-[0_0_30px_rgba(37,99,168,0.2)]">
                     <img src={data.profile.avatar} alt="Profile" className="w-full h-full object-cover rounded-full" />
                 </div>
                 
@@ -133,18 +133,18 @@ const LinkBioPublic: React.FC = () => {
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                             <i className="fas fa-headphones text-8xl"></i>
                         </div>
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c5a059] mb-6 text-center flex items-center justify-center gap-3">
-                            <div className="w-4 h-px bg-[#c5a059]"></div>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#4a90d9] mb-6 text-center flex items-center justify-center gap-3">
+                            <div className="w-4 h-px bg-[#4a90d9]"></div>
                             Prueba un poco de mi música
-                            <div className="w-4 h-px bg-[#c5a059]"></div>
+                            <div className="w-4 h-px bg-[#4a90d9]"></div>
                         </h3>
                         
                         <div className="flex items-center gap-4 mb-6 relative z-10">
-                            <div className="w-20 h-20 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group-hover:border-[#c5a059]/40 transition-colors">
+                            <div className="w-20 h-20 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group-hover:border-[#4a90d9]/40 transition-colors">
                                 <img src={randomSong.cover} alt={randomSong.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-white text-base leading-tight mb-1 truncate group-hover:text-[#c5a059] transition-colors">{randomSong.name}</h4>
+                                <h4 className="font-bold text-white text-base leading-tight mb-1 truncate group-hover:text-[#4a90d9] transition-colors">{randomSong.name}</h4>
                                 <p className="text-[9px] font-black uppercase tracking-widest text-white/40 truncate">{randomSong.artist}</p>
                             </div>
                         </div>
@@ -158,7 +158,7 @@ const LinkBioPublic: React.FC = () => {
                                 href={artist === 'juan614' ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-[#c5a059] transition-colors border-b border-transparent hover:border-[#c5a059]/50 pb-1"
+                                className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-[#4a90d9] transition-colors border-b border-transparent hover:border-[#4a90d9]/50 pb-1"
                             >
                                 Ver catálogo completo
                             </a>
@@ -184,14 +184,14 @@ const LinkBioPublic: React.FC = () => {
                             className={`
                                 w-full py-5 px-6 rounded-2xl flex items-center gap-4 transition-all duration-300 border backdrop-blur-md group
                                 ${link.type === 'special' 
-                                    ? 'bg-gradient-to-r from-[#c5a059] to-[#d6b06a] text-black border-[#c5a059] shadow-[0_10px_30px_rgba(197,160,89,0.3)] hover:scale-[1.03] scale-[1.01]' 
+                                    ? 'bg-gradient-to-r from-[#4a90d9] to-[#d6b06a] text-black border-[#4a90d9] shadow-[0_10px_30px_rgba(37,99,168,0.3)] hover:scale-[1.03] scale-[1.01]' 
                                     : link.type === 'primary'
                                         ? 'bg-white/5 text-white border-white/10 hover:bg-white/10 hover:border-white/20'
                                         : 'bg-transparent text-white/70 border-white/5 hover:bg-white/5 hover:text-white'}
                             `}
                         >
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${link.type === 'special' ? 'bg-black/10' : 'bg-white/5 group-hover:bg-[#c5a059]/10 transition-colors'}`}>
-                                <i className={`${link.icon} ${link.type === 'special' ? 'text-black' : 'text-[#c5a059]'} text-lg`}></i>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${link.type === 'special' ? 'bg-black/10' : 'bg-white/5 group-hover:bg-[#4a90d9]/10 transition-colors'}`}>
+                                <i className={`${link.icon} ${link.type === 'special' ? 'text-black' : 'text-[#4a90d9]'} text-lg`}></i>
                             </div>
                             <span className={`text-[11px] font-black uppercase tracking-[0.2em] flex-1 text-center pr-10 ${link.type === 'special' ? 'text-black' : 'text-white'}`}>
                                 {link.title}
@@ -210,9 +210,9 @@ const LinkBioPublic: React.FC = () => {
                                 setIsSubscribed(optedIn || false);
                             }
                         }}
-                        className={`w-full py-6 px-6 rounded-2xl border transition-all flex items-center justify-center gap-4 group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/[0.03] border-white/10 hover:border-[#c5a059]/50'}`}
+                        className={`w-full py-6 px-6 rounded-2xl border transition-all flex items-center justify-center gap-4 group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/[0.03] border-white/10 hover:border-[#4a90d9]/50'}`}
                     >
-                        <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#c5a059] group-hover:animate-bounce'}`}></i>
+                        <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell text-[#4a90d9] group-hover:animate-bounce'}`}></i>
                         <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${isSubscribed ? 'text-green-500' : 'text-white/60 group-hover:text-white'}`}>
                             {isSubscribed ? '¡Suscrito! Pronto música nueva' : 'Avísame de nuevos estrenos'}
                         </span>

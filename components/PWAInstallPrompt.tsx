@@ -75,9 +75,9 @@ const PWAInstallPrompt: React.FC = () => {
 
     return (
         <div className="fixed bottom-32 left-6 right-6 md:left-auto md:right-12 md:max-w-sm z-[2000] animate-in slide-in-from-bottom-10 duration-700">
-            <div className="bg-[#0f111a]/95 backdrop-blur-2xl border border-[#c5a059]/30 p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+            <div className="bg-[#0f111a]/95 backdrop-blur-2xl border border-[#4a90d9]/30 p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
                 {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#4a90d9]/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
                 
                 <button 
                     onClick={() => setIsVisible(false)}
@@ -87,12 +87,12 @@ const PWAInstallPrompt: React.FC = () => {
                 </button>
 
                 <div className="flex items-start gap-5 relative z-10">
-                    <div className="w-14 h-14 bg-[#c5a059] rounded-2xl flex items-center justify-center shrink-0 shadow-[0_10px_20px_rgba(197,160,89,0.3)]">
+                    <div className="w-14 h-14 bg-[#4a90d9] rounded-2xl flex items-center justify-center shrink-0 shadow-[0_10px_20px_rgba(37,99,168,0.3)]">
                         <i className="fas fa-download text-black text-xl"></i>
                     </div>
                     
                     <div className="flex-1">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c5a059] mb-1">App Oficial</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4a90d9] mb-1">App Oficial</h3>
                         <p className="text-sm font-bold text-white mb-4 leading-tight">Instala Diosmasgym Records en tu dispositivo</p>
                         
                         {isIOS ? (
@@ -105,7 +105,7 @@ const PWAInstallPrompt: React.FC = () => {
                         ) : deferredPrompt ? (
                             <button 
                                 onClick={handleInstall}
-                                className="w-full py-3 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-white transition-all shadow-lg active:scale-95"
+                                className="w-full py-3 bg-[#4a90d9] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-white transition-all shadow-lg active:scale-95"
                             >
                                 Descargar Ahora
                             </button>
@@ -121,8 +121,8 @@ const PWAInstallPrompt: React.FC = () => {
                 </div>
 
                 {/* Progress bar-like accent */}
-                <div className="absolute bottom-0 left-0 h-1 bg-[#c5a059]/20 w-full overflow-hidden">
-                    <div className="h-full bg-[#c5a059] w-1/3 animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 h-1 bg-[#4a90d9]/20 w-full overflow-hidden">
+                    <div className="h-full bg-[#4a90d9] w-1/3 animate-pulse"></div>
                 </div>
             </div>
         </div>

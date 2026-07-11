@@ -25,14 +25,14 @@ const RelatedPosts: React.FC<RelatedPostsProps> = ({ currentPost, allPosts, favo
   if (related.length === 0) return null;
 
   return (
-    <section className="py-24 bg-[#0a0c14] border-t border-[#c5a059]/10">
+    <section className="py-24 bg-[#0a0c14] border-t border-[#4a90d9]/10">
       <div className="section-container">
         <div className="flex items-center gap-6 mb-16">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
-          <h3 className="font-serif italic text-3xl md:text-4xl text-[#c5a059] text-center">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#4a90d9]/20 to-transparent"></div>
+          <h3 className="font-serif italic text-3xl md:text-4xl text-[#4a90d9] text-center">
             Relacionado
           </h3>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#4a90d9]/20 to-transparent"></div>
         </div>
         <div className="grid grid-cols-12 gap-8">
           {related.map(p => (

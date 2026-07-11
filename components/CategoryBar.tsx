@@ -34,7 +34,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ categories, selectedCategory,
             onClick={() => onSelect(null)}
             className={`text-[10px] font-black uppercase tracking-[0.4em] transition-all whitespace-nowrap px-4 py-2 rounded-full ${
               !selectedCategory
-                ? 'text-[#c5a059] bg-[#c5a059]/10 shadow-[0_0_20px_rgba(197,160,89,0.1)]'
+                ? 'text-[#4a90d9] bg-[#4a90d9]/10 shadow-[0_0_20px_rgba(37,99,168,0.1)]'
                 : 'text-white/30 hover:text-white'
             }`}
           >
@@ -46,7 +46,7 @@ const CategoryBar: React.FC<CategoryBarProps> = ({ categories, selectedCategory,
               onClick={() => onSelect(cat)}
               className={`text-[10px] font-black uppercase tracking-[0.4em] transition-all whitespace-nowrap px-4 py-2 rounded-full ${
                 selectedCategory === cat
-                  ? 'text-[#c5a059] bg-[#c5a059]/10 shadow-[0_0_20px_rgba(197,160,89,0.1)]'
+                  ? 'text-[#4a90d9] bg-[#4a90d9]/10 shadow-[0_0_20px_rgba(37,99,168,0.1)]'
                   : 'text-white/30 hover:text-white'
               }`}
             >

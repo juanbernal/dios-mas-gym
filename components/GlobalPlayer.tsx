@@ -71,10 +71,10 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
   return (
     <div className={`fixed bottom-[4.5rem] md:bottom-0 left-0 right-0 z-[3000] p-3 md:p-5 transition-transform duration-500 ${isMinimized ? 'translate-y-[calc(100%-10px)]' : 'translate-y-0'}`}>
-      <div className="max-w-5xl mx-auto bg-[#0f111a]/95 backdrop-blur-2xl border border-[#c5a059]/20 rounded-[1.75rem] shadow-[0_-25px_80px_rgba(0,0,0,0.55)] overflow-hidden relative">
-        <div className={`absolute inset-0 opacity-20 bg-gradient-to-r ${isJuan ? 'from-[#8B5A2B]/30' : 'from-[#c5a059]/30'} via-transparent to-transparent`}></div>
+      <div className="max-w-5xl mx-auto bg-[#0f111a]/95 backdrop-blur-2xl border border-[#4a90d9]/20 rounded-[1.75rem] shadow-[0_-25px_80px_rgba(0,0,0,0.55)] overflow-hidden relative">
+        <div className={`absolute inset-0 opacity-20 bg-gradient-to-r ${isJuan ? 'from-[#1e4a7a]/30' : 'from-[#4a90d9]/30'} via-transparent to-transparent`}></div>
         
-        <div className="relative z-10 h-2 bg-white/5 cursor-pointer hover:bg-[#c5a059]/40 transition-colors" onClick={() => setIsMinimized(!isMinimized)}></div>
+        <div className="relative z-10 h-2 bg-white/5 cursor-pointer hover:bg-[#4a90d9]/40 transition-colors" onClick={() => setIsMinimized(!isMinimized)}></div>
 
         <div className="relative z-10 p-4 md:p-6 flex items-center justify-between gap-4 md:gap-6">
           <div className="absolute opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
@@ -94,9 +94,9 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
           <div className="flex items-center gap-6 flex-1 min-w-0">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group cursor-pointer" onClick={togglePlay}>
               <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
-              <div className="absolute inset-0 bg-[#c5a059]/20 mix-blend-overlay"></div>
+              <div className="absolute inset-0 bg-[#4a90d9]/20 mix-blend-overlay"></div>
               <div className="absolute inset-0 flex items-center justify-center transition-all group-hover:scale-110">
-                <div className="w-8 h-8 rounded-full bg-[#c5a059] text-black flex items-center justify-center shadow-lg">
+                <div className="w-8 h-8 rounded-full bg-[#4a90d9] text-black flex items-center justify-center shadow-lg">
                   <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-[10px] ${isPlaying ? '' : 'ml-0.5'}`}></i>
                 </div>
               </div>
@@ -105,7 +105,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             <div className="flex-1 min-w-0 flex items-center gap-8">
               <div>
                 <p className="text-[8px] font-black uppercase tracking-[0.35em] text-white/25 mb-1">Reproduciendo ahora</p>
-                <h5 className="text-[#c5a059] font-serif text-lg md:text-2xl font-bold truncate tracking-tight">{activeSong.name}</h5>
+                <h5 className="text-[#4a90d9] font-serif text-lg md:text-2xl font-bold truncate tracking-tight">{activeSong.name}</h5>
                 <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-black mt-1">{activeSong.artist}</p>
               </div>
 
@@ -123,7 +123,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                 {visualizerBars.map((bar, i) => (
                   <div 
                     key={i} 
-                    className="w-[3px] h-full bg-gradient-to-t from-[#c5a059]/20 to-[#c5a059] rounded-t-sm visualizer-bar"
+                    className="w-[3px] h-full bg-gradient-to-t from-[#4a90d9]/20 to-[#4a90d9] rounded-t-sm visualizer-bar"
                     style={{
                       animationDelay: bar.delay,
                       animationDuration: bar.duration,
@@ -138,7 +138,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
           <div className="flex items-center gap-4">
              <button 
                 onClick={togglePlay}
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#c5a059]/20 hover:text-[#c5a059] transition-all border border-white/10"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#4a90d9]/20 hover:text-[#4a90d9] transition-all border border-white/10"
                 title={isPlaying ? 'Pausar' : 'Reproducir'}
              >
                 <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ${isPlaying ? '' : 'ml-0.5'}`}></i>
@@ -147,7 +147,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                 href={isJuan ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
                 target="_blank"
                 rel="noopener noreferrer"
-                 className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.2em] hover:bg-[#c5a059] hover:text-black transition-all"
+                 className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.2em] hover:bg-[#4a90d9] hover:text-black transition-all"
              >
                 Ver más de {activeSong.artist}
              </a>
@@ -162,7 +162,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
         <div className="relative z-10 h-1 bg-white/5 overflow-hidden">
            <div 
-              className="absolute inset-0 bg-gradient-to-r from-[#c5a059] to-[#c5a059]/30"
+              className="absolute inset-0 bg-gradient-to-r from-[#4a90d9] to-[#4a90d9]/30"
               style={{
                 animation: isPlaying ? 'progressBar 30s linear' : 'none',
                 width: isPlaying ? '100%' : '0%',

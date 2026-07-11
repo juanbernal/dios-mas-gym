@@ -13,7 +13,7 @@ interface InlineAudioPlayerProps {
 }
 
 const InlineAudioPlayer: React.FC<InlineAudioPlayerProps> = ({ url, isJuan }) => {
-    const accentColor = isJuan ? '#c89d53' : '#c5a059';
+    const accentColor = isJuan ? '#c89d53' : '#4a90d9';
 
     const getEmbedData = () => {
         if (!url) return null;
@@ -59,7 +59,7 @@ const InlineAudioPlayer: React.FC<InlineAudioPlayerProps> = ({ url, isJuan }) =>
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-4 bg-[#c5a059] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-[0_10px_30px_rgba(197,160,89,0.2)] active:scale-95"
+            className="w-full py-4 bg-[#4a90d9] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-[0_10px_30px_rgba(37,99,168,0.2)] active:scale-95"
             style={{ backgroundColor: accentColor }}
         >
             <i className="fas fa-play text-xs"></i>

@@ -14,11 +14,11 @@ const RecommendedSongs: React.FC<RecommendedSongsProps> = ({ songs, onPlay }) =>
     <section className="mt-20 py-20 border-t border-white/5 animate-fade-in">
       <div className="flex flex-col items-center mb-12">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.6em] text-[#c5a059]">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#4a90d9] animate-pulse"></div>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.6em] text-[#4a90d9]">
             Lo Que Se Recomienda Escuchar
           </h3>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#4a90d9] animate-pulse"></div>
         </div>
         <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.2em]">
           Banda Sonora para tu Espíritu

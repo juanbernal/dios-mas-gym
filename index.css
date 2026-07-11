@@ -1,132 +1,200 @@
-/* DiosMasGym - Reflections Hub (v5.0) Magazine Design System */
+/* DiosMasGym - Corridos Tumbados x Gym - v6.0 */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Pirata+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Pirata+One&family=Oswald:wght@400;600;700&display=swap');
 
 :root {
-  --bg-deep: #000000; /* Pure black */
-  --bg-accent: #0a0000; /* Dark blood red tint */
-  --bg-surface: rgba(255, 0, 0, 0.02);
-  --accent-gold: #b91c1c; /* Changed gold to Blood Red for that aggressive look */
-  --accent-gold-glow: rgba(185, 28, 28, 0.4);
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-dim: rgba(248, 250, 252, 0.4);
-  --font-serif: 'Pirata One', system-ui; /* Corridos Tumbados Gothic Font */
-  --font-sans: 'Inter', sans-serif;
-  --section-spacing: clamp(5rem, 12vw, 12rem);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(10, 11, 15, 0.8);
+  /* Core Blues from Logo */
+  --blue-deep:    #0b1929;
+  --blue-mid:     #1e3a5f;
+  --blue-bright:  #2563a8;
+  --blue-steel:   #4a90d9;
+  --blue-light:   #7eb8f7;
+  
+  /* Accent */
+  --accent-silver: #c8cdd4;
+  --accent-white:  #f1f5f9;
+
+  /* Backgrounds */
+  --bg-deep:   #020d1a;
+  --bg-accent: #071325;
+  --bg-card:   rgba(8, 24, 48, 0.8);
+  
+  /* Typography */
+  --font-gothic: 'Pirata One', system-ui;
+  --font-bold:   'Oswald', sans-serif;
+  --font-body:   'Inter', sans-serif;
+
+  --section-spacing: clamp(5rem, 10vw, 10rem);
+  --glass-border: rgba(37, 99, 168, 0.2);
 }
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   background-color: var(--bg-deep);
-  color: var(--text-primary);
-  margin: 0; padding: 0;
+  color: var(--accent-white);
   overflow-x: hidden;
-  line-height: 1.7;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Subtle blue grain overlay */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.18;
-  background-image: radial-gradient(rgba(255,255,255,0.18) 0.7px, transparent 0.7px);
-  background-size: 4px 4px;
-  mix-blend-mode: overlay;
+  opacity: 0.06;
+  background-image: radial-gradient(rgba(74,144,217,0.4) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
 }
 
 #root { position: relative; z-index: 2; }
 
-/* --- Sectioning --- */
-.section-wrapper {
-  padding: var(--section-spacing) 0;
-  position: relative;
-}
-
-.section-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
+/* --- Layout --- */
+.section-wrapper { padding: var(--section-spacing) 0; position: relative; }
+.section-container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
 
 /* --- Typography --- */
+.h1-gothic {
+  font-family: var(--font-gothic);
+  font-size: clamp(4.5rem, 14vw, 13rem);
+  line-height: 0.85;
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-shadow: 0 0 60px rgba(37,99,168,0.5);
+}
+
 .h1-display {
-  font-family: var(--font-serif);
-  font-size: clamp(4rem, 14vw, 12rem); /* Slightly larger for the gothic impact */
+  font-family: var(--font-gothic);
+  font-size: clamp(4rem, 12vw, 11rem);
   line-height: 0.9;
   letter-spacing: 0.02em;
 }
 
 .h2-display {
-  font-family: var(--font-serif);
+  font-family: var(--font-gothic);
   font-size: clamp(3rem, 7vw, 6rem);
   line-height: 1;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
-/* We drop the italic for Pirata One because gothic fonts usually look better straight, but we keep the class name for compatibility */
-.serif-italic { 
-  font-family: var(--font-serif); 
-  font-style: normal; 
+.label-tag {
+  font-family: var(--font-bold);
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-weight: 700;
 }
 
-/* --- Special Effects --- */
-.magazine-card {
-  background: var(--bg-accent);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.serif-italic { font-family: var(--font-gothic); }
+
+/* --- Blue gradient text --- */
+.text-blue-gradient {
+  background: linear-gradient(135deg, var(--blue-steel) 0%, var(--blue-light) 50%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.magazine-card:hover {
-  transform: translateY(-10px);
+/* --- Cards --- */
+.card-street {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-street::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue-bright), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.card-street:hover::before { opacity: 1; }
+.card-street:hover { border-color: rgba(37,99,168,0.5); transform: translateY(-4px); }
+
+/* --- Glow effects --- */
+.glow-blue {
+  box-shadow: 0 0 60px rgba(37,99,168,0.25), 0 20px 40px rgba(0,0,0,0.5);
 }
 
 .gradient-glow {
   position: absolute;
-  filter: blur(120px);
+  filter: blur(100px);
   z-index: 0;
   pointer-events: none;
+  border-radius: 50%;
 }
 
-.cinematic-grain::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.15;
-  background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
-  mix-blend-mode: overlay;
+/* --- Button styles --- */
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue-bright), var(--blue-steel));
+  color: white;
+  font-family: var(--font-bold);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  padding: 1.1rem 2.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 8px 30px rgba(37,99,168,0.4);
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
 }
 
-/* Aggressive borders */
-.gold-border-glow {
-  box-shadow: inset 0 0 0 2px var(--accent-gold), 0 20px 50px rgba(185,28,28,0.2);
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(37,99,168,0.6);
+  background: linear-gradient(135deg, var(--blue-steel), var(--blue-light));
 }
 
-.corridos-border {
-  border: 1px solid var(--accent-gold);
-  box-shadow: 4px 4px 0px var(--accent-gold);
+.btn-secondary {
+  background: transparent;
+  color: var(--blue-light);
+  font-family: var(--font-bold);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  padding: 1.1rem 2.5rem;
+  border: 1px solid var(--blue-bright);
+  cursor: pointer;
+  transition: all 0.3s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
 }
 
-/* Navbar */
+.btn-secondary:hover {
+  background: rgba(37,99,168,0.15);
+  border-color: var(--blue-light);
+  transform: translateY(-2px);
+}
+
+/* --- Dividers --- */
+.section-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37,99,168,0.4), transparent);
+}
+
+/* --- Navbar --- */
 .nav-blur {
-  background: rgba(2, 4, 10, 0.7);
-  backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(2, 13, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(37,99,168,0.15);
 }
 
-/* Grid Magazine Layout */
-.magazine-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 2.5rem;
-}
-
+/* --- Grid --- */
+.magazine-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; }
 .grid-col-8 { grid-column: span 8; }
 .grid-col-4 { grid-column: span 4; }
 .grid-col-6 { grid-column: span 6; }
@@ -136,13 +204,58 @@ body::before {
   .grid-col-8, .grid-col-4, .grid-col-6 { grid-column: span 12; }
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* --- Angled stripe decoration --- */
+.stripe-accent {
+  position: absolute;
+  top: 0; right: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent 30%, rgba(37,99,168,0.04) 100%);
+  pointer-events: none;
 }
-.animate-spin-slow {
-  animation: spin-slow 12s linear infinite;
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--blue-mid); }
+::-webkit-scrollbar-thumb:hover { background: var(--blue-bright); }
+
+/* --- Animations --- */
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 12s linear infinite; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fade-in-up 0.7s ease both; }
+
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,168,0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(37,99,168,0); }
+}
+.pulse-blue { animation: pulse-blue 2s infinite; }
+
+/* --- Gold-border (legacy compat) --- */
+.gold-border-glow { box-shadow: inset 0 0 0 1px rgba(37,99,168,0.2), 0 30px 80px rgba(0,0,0,0.3); }
+
+/* --- Cinematic grain --- */
+.cinematic-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E');
+  mix-blend-mode: overlay;
+}
+
+/* --- Magazine card (legacy compat) --- */
+.magazine-card { background: var(--bg-accent); border: 1px solid rgba(37,99,168,0.1); transition: transform 0.5s ease; }
+.magazine-card:hover { transform: translateY(-8px); }
+
+/* --- Corridos border (legacy compat) --- */
+.corridos-border {
+  border: 1px solid var(--blue-bright);
+  box-shadow: 3px 3px 0px var(--blue-mid);
 }

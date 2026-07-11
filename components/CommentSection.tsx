@@ -114,14 +114,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
       {/* SHARING ACTIONS */}
       <div className="mb-20">
         <div className="text-center mb-10">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] mb-8">Viralizar Reflexión</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.6em] text-[#4a90d9] mb-8">Viralizar Reflexión</h4>
             
             <div className="flex flex-col items-center gap-8">
                 {/* PRIMARY NATIVE SHARE BUTTON (Only if supported) */}
                 {canNativeShare && (
                     <button 
                         onClick={handleNativeShare}
-                        className="group relative px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[11px] tracking-[0.5em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_50px_rgba(197,160,89,0.2)] rounded-sm flex items-center gap-4 overflow-hidden"
+                        className="group relative px-12 py-5 bg-[#4a90d9] text-black font-black uppercase text-[11px] tracking-[0.5em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_50px_rgba(37,99,168,0.2)] rounded-sm flex items-center gap-4 overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                         <i className="fas fa-share-alt text-lg"></i>
@@ -140,22 +140,22 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
                     <button onClick={() => handleManualShare('twitter')} title="Compartir en X" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/40 transition-all hover:scale-110 bg-[#0a0c14]">
                         <i className="fab fa-x-twitter text-lg"></i>
                     </button>
-                    <button onClick={() => handleManualShare('copy')} title="Copiar Enlace" className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all hover:scale-110 bg-[#0a0c14] ${copied ? 'text-[#c5a059] border-[#c5a059]' : 'text-white/40 hover:text-[#c5a059] hover:border-[#c5a059]/40'}`}>
+                    <button onClick={() => handleManualShare('copy')} title="Copiar Enlace" className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all hover:scale-110 bg-[#0a0c14] ${copied ? 'text-[#4a90d9] border-[#4a90d9]' : 'text-white/40 hover:text-[#4a90d9] hover:border-[#4a90d9]/40'}`}>
                         <i className="fas fa-link text-lg"></i>
                     </button>
                 </div>
             </div>
             
-            {copied && <p className="mt-4 text-[8px] font-black uppercase tracking-[0.3em] text-[#c5a059] animate-bounce">¡Enlace Copiado al Portapapeles!</p>}
+            {copied && <p className="mt-4 text-[8px] font-black uppercase tracking-[0.3em] text-[#4a90d9] animate-bounce">¡Enlace Copiado al Portapapeles!</p>}
         </div>
       </div>
 
       {/* COMMUNITY HEADER */}
       <div className="mb-12 flex flex-col items-center">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.6em] text-[#c5a059]">Reflexiones de la Comunidad</h3>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#4a90d9] animate-pulse"></div>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.6em] text-[#4a90d9]">Reflexiones de la Comunidad</h3>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#4a90d9] animate-pulse"></div>
         </div>
         <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.2em]">Poder por Disqus</p>
       </div>
