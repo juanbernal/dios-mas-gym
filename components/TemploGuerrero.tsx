@@ -36,7 +36,7 @@ const ESTADOS: EstadoCombate[] = [
     mensaje: 'El entrenamiento físico es el templo de tu espíritu. La disciplina edifica el carácter de un soldado de fe. ¡Es hora de empujar la barra para la gloria de Dios!',
     versiculo: 'Todo lo puedo en Cristo que me fortalece.',
     cita: 'FILIPENSES 4:13',
-    color: '#c5a059'
+    color: '#b91c1c'
   },
   {
     key: 'escudo_fe',
@@ -265,13 +265,13 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
   return (
     <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
       {/* Background lights */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#c5a059]/3 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#b91c1c]/3 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="section-container relative z-10 px-4 md:px-0">
         {/* Title */}
         <div className="flex flex-col items-center mb-16 text-center">
-          <h2 className="font-serif text-5xl text-[#c5a059] mb-3">El Templo del Guerrero</h2>
-          <div className="w-16 h-px bg-[#c5a059]/40 mb-4"></div>
+          <h2 className="font-serif text-5xl text-[#b91c1c] mb-3">El Templo del Guerrero</h2>
+          <div className="w-16 h-px bg-[#b91c1c]/40 mb-4"></div>
           <p className="text-[9px] text-white/50 font-black uppercase tracking-[0.4em] max-w-2xl leading-relaxed">
             Reporta tu estado de batalla espiritual para recibir munición de fe y música de combate personalizada.
           </p>
@@ -283,9 +283,9 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
             <button
               key={estado.key}
               onClick={() => handleSelectEstado(estado)}
-              className={`relative group bg-[#0a0c10] border rounded-sm p-6 flex flex-col items-center text-center transition-all duration-300 ${
+              className={`relative group bg-[#0a0c10] border-none p-6 flex flex-col items-center text-center transition-all duration-300 ${
                 selectedEstado === estado 
-                  ? 'border-[#c5a059] shadow-[0_0_30px_rgba(197,160,89,0.3)]' 
+                  ? 'corridos-border' 
                   : 'border-white/5 hover:border-white/20'
               }`}
             >
@@ -294,7 +294,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                 style={{ backgroundColor: estado.color }}
               ></div>
               <div className="text-3xl mb-4">{estado.emoji}</div>
-              <h3 className="font-serif text-xl text-white mb-2 group-hover:text-[#c5a059] transition-colors">{estado.titulo}</h3>
+              <h3 className="font-serif text-xl text-white mb-2 group-hover:text-[#b91c1c] transition-colors">{estado.titulo}</h3>
               <p className="text-white/40 text-[10px] leading-relaxed uppercase tracking-wider">{estado.descripcion}</p>
             </button>
           ))}
@@ -304,7 +304,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
       {/* Modal View */}
       {selectedEstado && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-sm p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
+          <div className="bg-[#0f111a] corridos-border border border-[#b91c1c]/20 rounded-sm p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
             <div 
               className="absolute -top-32 -right-32 w-64 h-64 blur-[90px] opacity-15 pointer-events-none"
               style={{ backgroundColor: selectedEstado.color }}
@@ -322,23 +322,23 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
             <div className="flex items-center gap-4 mb-8">
               <span className="text-4xl">{selectedEstado.emoji}</span>
               <div>
-                <span className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#c5a059]">ORDEN DE COMBATE</span>
+                <span className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#b91c1c]">ORDEN DE COMBATE</span>
                 <h3 className="font-serif text-3xl text-white mt-1">{selectedEstado.titulo}</h3>
               </div>
             </div>
 
             {/* Body */}
             <div className="flex flex-col gap-6 mb-10">
-              <div className="border-l-2 border-[#c5a059] pl-6 py-1">
+              <div className="border-l-2 border-[#b91c1c] pl-6 py-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Instrucción Táctica</p>
                 <p className="text-white/80 text-sm leading-relaxed">{selectedEstado.mensaje}</p>
               </div>
 
               <div className="bg-black/35 rounded-sm p-6 border border-white/5 relative group">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]/60 mb-3">Versículo de Cobertura</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#b91c1c]/60 mb-3">Versículo de Cobertura</p>
                 {loadingVersiculo ? (
                   <div className="flex flex-col items-center justify-center py-6">
-                    <i className="fas fa-spinner fa-spin text-[#c5a059] text-2xl mb-2"></i>
+                    <i className="fas fa-spinner fa-spin text-[#b91c1c] text-2xl mb-2"></i>
                     <p className="text-[10px] text-white/30 font-black uppercase tracking-widest animate-pulse">Cargando munición de fe...</p>
                   </div>
                 ) : (
@@ -354,7 +354,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                     <button
                       onClick={() => fetchRandomVerseForState(selectedEstado.key)}
                       disabled={loadingVersiculo}
-                      className="text-[8px] font-black uppercase tracking-wider text-white/60 hover:text-[#c5a059] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      className="text-[8px] font-black uppercase tracking-wider text-white/60 hover:text-[#b91c1c] transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <i className={`fas fa-dice ${loadingVersiculo ? 'fa-spin' : ''}`}></i>
                       {loadingVersiculo ? 'Buscando...' : 'Otro Versículo'}
@@ -362,7 +362,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                     <button
                       onClick={() => activeVersiculo && handleCopy(`"${activeVersiculo.versiculo}" - ${activeVersiculo.cita}`)}
                       disabled={loadingVersiculo || !activeVersiculo}
-                      className="text-[8px] font-black uppercase tracking-wider text-[#c5a059] hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      className="text-[8px] font-black uppercase tracking-wider text-[#b91c1c] hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`}></i>
                       {copied ? 'Copiado' : 'Copiar Versículo'}
@@ -400,7 +400,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                       onPlaySong(currentRecommendedSong);
                       setSelectedEstado(null);
                     }}
-                    className="flex-1 sm:flex-initial px-6 py-3 rounded-full bg-[#c5a059] text-black text-[8px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white transition-all shadow-md"
+                    className="flex-1 sm:flex-initial px-6 py-3 rounded-full bg-[#b91c1c] text-black text-[8px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white transition-all shadow-md"
                   >
                     <i className="fas fa-play"></i>
                     Escuchar

@@ -3,12 +3,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Pirata+One&display=swap');
 
 :root {
-  --bg-deep: #030406; /* Darker, harsher background */
-  --bg-accent: #0f111a;
-  --bg-surface: rgba(255, 255, 255, 0.02);
-  --accent-gold: #c5a059;
-  --accent-gold-glow: rgba(197, 160, 89, 0.4);
-  --text-primary: #f1f5f9;
+  --bg-deep: #000000; /* Pure black */
+  --bg-accent: #0a0000; /* Dark blood red tint */
+  --bg-surface: rgba(255, 0, 0, 0.02);
+  --accent-gold: #b91c1c; /* Changed gold to Blood Red for that aggressive look */
+  --accent-gold-glow: rgba(185, 28, 28, 0.4);
+  --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-dim: rgba(248, 250, 252, 0.4);
   --font-serif: 'Pirata One', system-ui; /* Corridos Tumbados Gothic Font */
@@ -103,8 +103,14 @@ body::before {
   mix-blend-mode: overlay;
 }
 
+/* Aggressive borders */
 .gold-border-glow {
-  box-shadow: inset 0 0 0 1px rgba(197,160,89,0.12), 0 30px 80px rgba(0,0,0,0.28);
+  box-shadow: inset 0 0 0 2px var(--accent-gold), 0 20px 50px rgba(185,28,28,0.2);
+}
+
+.corridos-border {
+  border: 1px solid var(--accent-gold);
+  box-shadow: 4px 4px 0px var(--accent-gold);
 }
 
 /* Navbar */

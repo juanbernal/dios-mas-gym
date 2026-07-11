@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
           Dios Más Gym
         </h2>
         
-        <div className="flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.6em] text-[#c5a059] uppercase opacity-60 mb-20">
+        <div className="flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.6em] text-[#b91c1c] uppercase opacity-60 mb-20">
           <span className="hover:text-white transition-colors cursor-default">Fe</span>
           <span className="hover:text-white transition-colors cursor-default">Valentía</span>
           <span className="hover:text-white transition-colors cursor-default">Disciplina</span>
@@ -26,20 +26,20 @@ const Footer: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-16 w-full max-w-4xl text-center md:text-left mb-20 border-y border-white/5 py-16">
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Misión</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#b91c1c] mb-6">Misión</h4>
             <p className="text-white/40 text-xs leading-relaxed font-medium">
               Fortaleciendo el cuerpo y el espíritu a través de la fe y la disciplina diaria.
             </p>
           </div>
           <div className="flex flex-col items-center md:items-start">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Música</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#b91c1c] mb-6">Música</h4>
             <div className="flex flex-col gap-3 text-white/40 text-xs font-bold font-black tracking-widest uppercase">
               <a href="https://musica.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Diosmasgym</a>
               <a href="https://juan614.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Juan 614</a>
             </div>
           </div>
           <div className="flex flex-col items-center md:items-start">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Link Bio</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#b91c1c] mb-6">Link Bio</h4>
             <div className="flex flex-col gap-3 text-white/40 text-xs font-bold font-black tracking-widest uppercase">
               <a href="/bio/diosmasgym" className="hover:text-white transition-colors">Diosmasgym</a>
               <a href="/bio/juan614" className="hover:text-white transition-colors">Juan 614</a>
@@ -48,7 +48,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="text-center">
-          <div className="h-px w-24 bg-gradient-to-r from-transparent via-[#c5a059]/40 to-transparent mx-auto mb-10"></div>
+          <div className="h-px w-24 bg-gradient-to-r from-transparent via-[#b91c1c]/40 to-transparent mx-auto mb-10"></div>
           <p className="text-[9px] font-black tracking-[0.5em] text-white/20 uppercase mb-4">
             &copy; {new Date().getFullYear()} REFLECTIONS HUB PRO
           </p>

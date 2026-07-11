@@ -49,9 +49,9 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
   return (
     <header className="relative min-h-[96vh] flex flex-col items-center justify-center overflow-hidden cinematic-grain">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(197,160,89,0.16),transparent_34%),linear-gradient(180deg,rgba(5,7,10,0.2),#05070a_92%)]"></div>
-      <div className="absolute inset-0 opacity-[0.08] bg-[linear-gradient(90deg,#c5a059_1px,transparent_1px),linear-gradient(#c5a059_1px,transparent_1px)] bg-[size:80px_80px]"></div>
-      <div className="gradient-glow w-[900px] h-[900px] bg-[#c5a059]/10 top-[-360px] left-[-260px]"></div>
-      <div className="gradient-glow w-[700px] h-[700px] bg-[#8B5A2B]/10 bottom-[-260px] right-[-220px]"></div>
+      <div className="absolute inset-0 opacity-[0.08] bg-[linear-gradient(90deg,#b91c1c_1px,transparent_1px),linear-gradient(#b91c1c_1px,transparent_1px)] bg-[size:80px_80px]"></div>
+      <div className="gradient-glow w-[900px] h-[900px] bg-[#b91c1c]/10 top-[-360px] left-[-260px]"></div>
+      <div className="gradient-glow w-[700px] h-[700px] bg-[#7f1d1d]/10 bottom-[-260px] right-[-220px]"></div>
 
       <div className="absolute left-4 md:left-14 top-32 bottom-20 hidden lg:flex flex-col justify-between text-[9px] font-black uppercase tracking-[0.5em] text-white/15">
         <span className="[writing-mode:vertical-rl]">Diosmasgym</span>
@@ -59,28 +59,28 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
       </div>
 
       <div className="absolute right-6 md:right-20 top-32 hidden lg:grid gap-4 w-36">
-        <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-36 h-36 rounded-md object-cover border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(0,0,0,0.45)] rotate-3 opacity-90 grayscale-[20%]" />
+        <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-36 h-36 rounded-md object-cover border border-[#b91c1c]/20 shadow-[0_30px_80px_rgba(0,0,0,0.45)] rotate-3 opacity-90 grayscale-[20%]" />
         <img src="/logo-juan614-v2.jpg" alt="Juan 614" className="w-28 h-28 ml-auto rounded-sm object-cover border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] -rotate-6 opacity-90 grayscale-[20%]" />
       </div>
 
       <div className="section-container relative z-10 animate-zen px-4 text-center pt-20">
-        <div className="inline-flex items-center gap-4 mb-8 px-5 py-3 rounded-full border border-[#c5a059]/20 bg-black/20 backdrop-blur-xl text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059] opacity-90">
-           <span className="w-2 h-2 rounded-full bg-[#c5a059] shadow-[0_0_20px_#c5a059] animate-pulse"></span> Faith · Music · Discipline
+        <div className="inline-flex items-center gap-4 mb-8 px-5 py-3 border border-[#b91c1c] bg-black/60 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.5em] text-[#b91c1c] shadow-[4px_4px_0_#b91c1c]">
+           <span className="text-sm">✝</span> Faith · Muscle · Street <span className="text-sm">✝</span>
         </div>
         
-        <h1 className="h1-display mb-10 text-white drop-shadow-2xl max-w-6xl mx-auto">
+        <h1 className="h1-display mb-10 text-white drop-shadow-[0_0_20px_rgba(185,28,28,0.5)] max-w-6xl mx-auto uppercase">
           Puro Señor <br />
-          <span className="serif-italic pr-4 text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-white to-[#8B5A2B] drop-shadow-[0_0_40px_rgba(197,160,89,0.28)]">Jesucristo</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d]">Jesucristo</span>
         </h1>
         
         <div className="max-w-4xl mx-auto mb-12 transition-all duration-700" key={verse.r}>
-             <div className="relative group bg-gradient-to-br from-[#0a0c10] to-[#030406] border border-white/5 rounded-sm p-8 md:p-12 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-fade-in-up hover:border-white/10 transition-all duration-500 overflow-hidden">
+             <div className="relative group bg-gradient-to-br from-[#0a0c10] to-[#030406] corridos-border p-8 md:p-12 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-fade-in-up transition-all duration-500 overflow-hidden">
                {/* Glow effect */}
                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(197,160,89,0.15),transparent_50%)] pointer-events-none transition-all group-hover:opacity-100 opacity-60"></div>
 
                <div className="flex justify-between items-start mb-6 relative z-10">
-                 <span className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059]">
-                   <i className="fas fa-fire text-[#c5a059] animate-pulse"></i> Motivación Diaria
+                 <span className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.5em] text-[#b91c1c]">
+                   <i className="fas fa-fire text-[#b91c1c] animate-pulse"></i> Motivación Diaria
                  </span>
                  <span className="text-[7px] text-white/30 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-sm border border-white/10">Puro Señor Jesucristo</span>
                </div>
@@ -93,7 +93,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                  <p className="text-xs md:text-sm font-medium text-white/50 leading-relaxed max-w-lg">
                     {verse.m}
                  </p>
-                 <span className="inline-block px-5 py-2.5 border border-[#c5a059]/30 bg-[#c5a059]/10 text-[9px] font-black tracking-[0.4em] text-[#c5a059] uppercase rounded-sm whitespace-nowrap shadow-[0_0_15px_rgba(197,160,89,0.1)]">
+                 <span className="inline-block px-5 py-2.5 border border-[#b91c1c]/30 bg-[#b91c1c]/10 text-[9px] font-black tracking-[0.4em] text-[#b91c1c] uppercase rounded-sm whitespace-nowrap shadow-[0_0_15px_rgba(197,160,89,0.1)]">
                     {verse.r}
                  </span>
                </div>
@@ -103,7 +103,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
         <div className="flex flex-wrap justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
           <button 
             onClick={() => { onEntrenar(); scrollToSection('#arsenal-content'); }} 
-            className="px-12 py-5 bg-[#c5a059] text-black font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(197,160,89,0.2)] rounded-sm"
+            className="px-12 py-5 bg-[#b91c1c] text-black font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(197,160,89,0.2)] rounded-sm"
           >
             Explorar el Arsenal
           </button>
@@ -111,7 +111,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
             href="https://musica.diosmasgym.com/"
             target="_blank"
             rel="noreferrer"
-            className="px-12 py-5 border border-[#c5a059]/30 bg-[#c5a059]/10 text-[#c5a059] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-[#c5a059] hover:text-black transition-all backdrop-blur-md"
+            className="px-12 py-5 border border-[#b91c1c]/30 bg-[#b91c1c]/10 text-[#b91c1c] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-[#b91c1c] hover:text-black transition-all backdrop-blur-md"
           >
             Escuchar Música
           </a>
