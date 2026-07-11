@@ -82,7 +82,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                  <span className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059]">
                    <i className="fas fa-fire text-[#c5a059] animate-pulse"></i> Motivación Diaria
                  </span>
-                 <span className="text-[7px] text-white/30 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-sm border border-white/10">Guerreros de Luz</span>
+                 <span className="text-[7px] text-white/30 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-sm border border-white/10">Puro Señor Jesucristo</span>
                </div>
                
                <p className="text-2xl md:text-3xl font-serif italic text-white/95 leading-relaxed mb-8 drop-shadow-lg relative z-10 transition-all">

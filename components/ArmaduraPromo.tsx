@@ -34,7 +34,7 @@ const ArmaduraPromo: React.FC = () => {
             </h2>
             
             <p className="text-white/50 text-sm leading-relaxed mb-10 max-w-md font-medium">
-              Equipamiento oficial diseñado para los verdaderos Guerreros de Luz. Ropa y accesorios para templar el cuerpo y el espíritu. Únete a la lista de espera para tener acceso anticipado.
+              Equipamiento oficial. Puro Señor Jesucristo compa. Ropa y accesorios para templar el cuerpo y el espíritu. Únete a la lista de espera para tener acceso anticipado.
             </p>
 
             {subscribed ? (

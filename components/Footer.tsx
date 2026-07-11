@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
             &copy; {new Date().getFullYear()} REFLECTIONS HUB PRO
           </p>
           <div className="text-[8px] font-bold tracking-[0.3em] text-white/10 uppercase mb-8">
-             Armando guerreros de luz
+             Puro Señor Jesucristo compa
           </div>
         </div>
       </div>
