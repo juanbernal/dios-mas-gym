@@ -7,10 +7,26 @@ interface HeroProps {
 }
 
 const VERSES = [
-  { t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", r: "JOSUÉ 1:9" },
-  { t: "NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.", r: "ISAÍAS 41:10" },
-  { t: "TODO LO PUEDO EN CRISTO QUE ME FORTALECE.", r: "FILIPENSES 4:13" },
-  { t: "JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?", r: "SALMOS 27:1" }
+  { 
+    t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", 
+    r: "JOSUÉ 1:9",
+    m: "Cada repetición, cada gota de sudor, es una prueba de tu valentía. El miedo no entrena aquí." 
+  },
+  { 
+    t: "NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.", 
+    r: "ISAÍAS 41:10",
+    m: "Tu fuerza no viene solo del músculo, viene del Espíritu. Levanta ese peso sabiendo quién te respalda." 
+  },
+  { 
+    t: "TODO LO PUEDO EN CRISTO QUE ME FORTALECE.", 
+    r: "FILIPENSES 4:13",
+    m: "Cuando tu cuerpo diga 'no puedo más', tu fe dirá 'una más'. La verdadera fuerza es inagotable." 
+  },
+  { 
+    t: "JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?", 
+    r: "SALMOS 27:1",
+    m: "Entrena con la confianza de que ninguna barrera es indestructible cuando caminas en la luz." 
+  }
 ];
 
 const scrollToSection = (sectionId: string) => {
@@ -24,7 +40,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
   useEffect(() => {
     const timer = setInterval(() => {
       setVerseIndex(i => (i + 1) % VERSES.length);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(timer);
   }, []);
 
@@ -58,17 +74,29 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
         </h1>
         
         <div className="max-w-4xl mx-auto mb-12 transition-all duration-700" key={verse.r}>
-            <div className="relative group bg-white/[0.03] border border-white/10 rounded-[2rem] p-7 md:p-10 backdrop-blur-md shadow-[0_30px_100px_rgba(0,0,0,0.25)] animate-fade-in-up">
-               <div className="flex justify-between items-start mb-4">
-                 <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/15">Versículo del día</span>
-                 <span className="text-[7px] text-white/20">v3.3</span>
+             <div className="relative group bg-gradient-to-br from-[#0a0c10] to-[#05070a] border border-[#c5a059]/20 rounded-[2rem] p-8 md:p-12 backdrop-blur-xl shadow-[0_0_50px_rgba(197,160,89,0.15)] animate-fade-in-up hover:border-[#c5a059]/40 transition-all duration-500 overflow-hidden">
+               {/* Glow effect */}
+               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(197,160,89,0.15),transparent_50%)] pointer-events-none transition-all group-hover:opacity-100 opacity-60"></div>
+
+               <div className="flex justify-between items-start mb-6 relative z-10">
+                 <span className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.5em] text-[#c5a059]">
+                   <i className="fas fa-fire text-[#c5a059] animate-pulse"></i> Motivación Diaria
+                 </span>
+                 <span className="text-[7px] text-white/30 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-sm border border-white/10">Guerreros de Luz</span>
                </div>
-               <p className="text-2xl md:text-4xl font-serif italic text-white/95 leading-tight mb-8 drop-shadow-lg transition-all">
+               
+               <p className="text-2xl md:text-3xl font-serif italic text-white/95 leading-relaxed mb-8 drop-shadow-lg relative z-10 transition-all">
                   "{verse.t}"
                </p>
-               <span className="inline-block px-4 py-1.5 border-l-2 border-[#c5a059] text-[10px] font-black tracking-[0.5em] text-[#c5a059] uppercase">
-                  {verse.r}
-               </span>
+               
+               <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between relative z-10 border-t border-white/5 pt-6 text-left">
+                 <p className="text-xs md:text-sm font-medium text-white/50 leading-relaxed max-w-lg">
+                    {verse.m}
+                 </p>
+                 <span className="inline-block px-5 py-2.5 border border-[#c5a059]/30 bg-[#c5a059]/10 text-[9px] font-black tracking-[0.4em] text-[#c5a059] uppercase rounded-sm whitespace-nowrap shadow-[0_0_15px_rgba(197,160,89,0.1)]">
+                    {verse.r}
+                 </span>
+               </div>
              </div>
         </div>
 
