@@ -707,7 +707,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black">
+    <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black cinematic-grain relative">
+      <div className="stripe-accent"></div>
       {!hideGlobalUI && <SocialPopup />}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
       <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
