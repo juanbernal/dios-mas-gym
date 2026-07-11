@@ -69,8 +69,8 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
         </div>
         
         <h1 className="h1-display mb-10 text-white drop-shadow-2xl max-w-6xl mx-auto">
-          Templando el <br />
-          <span className="serif-italic pr-4 text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-white to-[#8B5A2B] drop-shadow-[0_0_40px_rgba(197,160,89,0.28)]">Espíritu</span>
+          Puro Señor <br />
+          <span className="serif-italic pr-4 text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] via-white to-[#8B5A2B] drop-shadow-[0_0_40px_rgba(197,160,89,0.28)]">Jesucristo</span>
         </h1>
         
         <div className="max-w-4xl mx-auto mb-12 transition-all duration-700" key={verse.r}>
