@@ -8,71 +8,76 @@ interface MusicCardProps {
 
 const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
   const isJuan = item.artist.toLowerCase().includes('juan');
-  const artistUrl = isJuan ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/';
-  const accent = isJuan ? '#1e4a7a' : '#4a90d9';
+  const accentColor = isJuan ? '#1e3a5f' : '#2563a8';
 
   return (
-    <div className="group relative bg-[#0f111a]/80 border border-white/5 rounded-[1.75rem] p-4 hover:border-[#4a90d9]/40 transition-all duration-500 overflow-hidden gold-border-glow">
-      <div className="absolute -top-24 -right-24 w-56 h-56 blur-[90px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: `${accent}22` }}></div>
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4a90d9]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      
-      <div className="flex gap-5 md:gap-6 items-center">
-        <div 
-          className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-700 cursor-pointer rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
-          onClick={onPlay}
-        >
-          <img 
-            src={item.cover} 
-            alt={item.name} 
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent group-hover:from-black/25 transition-colors"></div>
-          
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="w-12 h-12 bg-[#4a90d9] rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(37,99,168,0.5)]">
-              <i className="fas fa-play text-black text-xs ml-0.5"></i>
+    <div className="group relative overflow-hidden transition-all duration-400 hover:-translate-y-1"
+      style={{
+        background: 'linear-gradient(135deg, rgba(8,24,48,0.9) 0%, rgba(5,15,30,0.95) 100%)',
+        border: '1px solid rgba(37,99,168,0.15)',
+        borderRadius: '3px',
+        borderLeft: `3px solid ${accentColor}`,
+      }}
+    >
+      {/* Hover top glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: 'linear-gradient(90deg, transparent, #4a90d9, transparent)' }}>
+      </div>
+
+      <div className="flex gap-4 p-4">
+        {/* Cover art */}
+        <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden cursor-pointer" style={{ borderRadius: '2px' }} onClick={onPlay}>
+          <img src={item.cover} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+          <div className="absolute inset-0 transition-all duration-300" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}></div>
+          {/* Play overlay */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{ background: 'rgba(0,0,0,0.4)' }}>
+            <div className="w-10 h-10 flex items-center justify-center"
+              style={{ background: '#2563a8', borderRadius: '2px', boxShadow: '0 0 20px rgba(37,99,168,0.6)' }}>
+              <i className="fas fa-play text-white text-xs ml-0.5"></i>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-             <span className="px-2 py-1 rounded-full bg-[#4a90d9]/10 border border-[#4a90d9]/15 text-[8px] font-black uppercase tracking-[0.2em] text-[#4a90d9]">
-               {item.type || 'Single'}
+        {/* Info */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+          <div>
+            {/* Type badge */}
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="label-tag px-2 py-0.5" style={{
+                background: 'rgba(37,99,168,0.12)',
+                border: '1px solid rgba(37,99,168,0.2)',
+                color: '#4a90d9',
+                borderRadius: '2px',
+                fontSize: '0.5rem'
+              }}>
+                {item.type || 'Single'}
               </span>
               {item.date && (
-                 <span className="text-[8px] font-black uppercase tracking-widest text-white/25">
-                   {new Date(item.date).getFullYear()}
-                 </span>
+                <span className="label-tag" style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.5rem' }}>
+                  {new Date(item.date).getFullYear()}
+                </span>
               )}
+            </div>
+
+            {/* Title */}
+            <h4 className="text-white font-bold truncate mb-1 transition-colors group-hover:text-blue-300"
+              style={{ fontFamily: 'var(--font-gothic)', fontSize: '1.15rem', lineHeight: 1.2 }}>
+              {item.name}
+            </h4>
+
+            {/* Artist */}
+            <p className="label-tag" style={{ color: 'rgba(200,205,212,0.35)', fontSize: '0.5rem' }}>{item.artist}</p>
           </div>
-          
-          <h4 className="font-serif text-2xl font-bold text-white/95 truncate group-hover:text-[#4a90d9] transition-colors leading-tight">
-            {item.name}
-          </h4>
-          
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
-            {item.artist}
-          </p>
-          
-          <div className="flex items-center gap-4 mt-5">
-            <button 
-              onClick={onPlay}
-              className="px-4 py-2 rounded-full bg-[#4a90d9] text-black text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-white transition-colors"
-            >
-              <i className="fas fa-play text-[10px]"></i>
-              Reproducir
+
+          {/* Buttons */}
+          <div className="flex items-center gap-2 mt-3">
+            <button onClick={onPlay} className="btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px' }}>
+              <i className="fas fa-play mr-1.5"></i>Reproducir
             </button>
-            
-            <a 
-              href={`/link/${item.id}`} 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-full border border-white/10 text-white/50 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-white hover:text-black transition-all"
-            >
-              <i className="fas fa-link text-[10px]"></i>
-              Smart Link
+            <a href={`/link/${item.id}`} target="_blank" rel="noopener noreferrer"
+              className="btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px', textDecoration: 'none' }}>
+              <i className="fas fa-link mr-1.5"></i>Link
             </a>
           </div>
         </div>

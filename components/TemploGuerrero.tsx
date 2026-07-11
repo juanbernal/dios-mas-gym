@@ -263,156 +263,163 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
   };
 
   return (
-    <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
-      {/* Background lights */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#2563a8]/3 blur-[120px] rounded-full pointer-events-none"></div>
+    <section className="relative overflow-hidden py-24" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 60%, #0b1929 100%)' }}>
 
-      <div className="section-container relative z-10 px-4 md:px-0">
-        {/* Title */}
-        <div className="flex flex-col items-center mb-16 text-center">
-          <h2 className="font-serif text-5xl text-[#2563a8] mb-3">El Templo del Guerrero</h2>
-          <div className="w-16 h-px bg-[#2563a8]/40 mb-4"></div>
-          <p className="text-[9px] text-white/50 font-black uppercase tracking-[0.4em] max-w-2xl leading-relaxed">
-            Reporta tu estado de batalla espiritual para recibir munición de fe y música de combate personalizada.
+      {/* Top line */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,#2563a8,transparent)' }}></div>
+
+      {/* BG Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.07) 0%, transparent 70%)', filter: 'blur(60px)' }}>
+      </div>
+
+      <div className="section-container relative z-10">
+
+        {/* === HEADER === */}
+        <div className="flex flex-col items-start mb-16">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-px" style={{ background: '#2563a8' }}></div>
+            <span className="label-tag" style={{ color: '#4a90d9' }}>Estado de Combate Espiritual</span>
+          </div>
+          <h2 className="h2-display text-white">El Templo del <span className="text-blue-gradient">Guerrero</span></h2>
+          <p className="label-tag mt-3" style={{ color: 'rgba(200,205,212,0.4)', letterSpacing: '0.2em', maxWidth: '500px', lineHeight: 1.8 }}>
+            Reporta tu estado y recibe munición de fe y música personalizada.
           </p>
         </div>
 
-        {/* States grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {ESTADOS.map((estado) => (
-            <button
-              key={estado.key}
-              onClick={() => handleSelectEstado(estado)}
-              className={`relative group bg-[#0a0c10] border-none p-6 flex flex-col items-center text-center transition-all duration-300 ${
-                selectedEstado === estado 
-                  ? 'corridos-border' 
-                  : 'border-white/5 hover:border-white/20'
-              }`}
-            >
-              <div 
-                className="absolute top-0 right-0 w-24 h-24 blur-[40px] opacity-10 group-hover:opacity-20 transition-opacity" 
-                style={{ backgroundColor: estado.color }}
-              ></div>
-              <div className="text-3xl mb-4">{estado.emoji}</div>
-              <h3 className="font-serif text-xl text-white mb-2 group-hover:text-[#2563a8] transition-colors">{estado.titulo}</h3>
-              <p className="text-white/40 text-[10px] leading-relaxed uppercase tracking-wider">{estado.descripcion}</p>
-            </button>
-          ))}
+        {/* === STATES GRID === */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {ESTADOS.map((estado) => {
+            const isActive = selectedEstado?.key === estado.key;
+            return (
+              <button
+                key={estado.key}
+                onClick={() => handleSelectEstado(estado)}
+                className="text-left transition-all duration-300 group"
+                style={{
+                  background: isActive ? 'rgba(37,99,168,0.1)' : 'rgba(8,24,48,0.6)',
+                  border: isActive ? `1px solid #2563a8` : '1px solid rgba(37,99,168,0.1)',
+                  borderLeft: isActive ? `3px solid #2563a8` : `3px solid rgba(37,99,168,0.2)`,
+                  borderRadius: '3px',
+                  padding: '1.5rem',
+                  boxShadow: isActive ? '0 0 30px rgba(37,99,168,0.2)' : 'none'
+                }}
+              >
+                <div className="text-3xl mb-4">{estado.emoji}</div>
+                <h3 className="text-white font-bold mb-2 group-hover:text-blue-300 transition-colors"
+                  style={{ fontFamily: 'var(--font-gothic)', fontSize: '1.2rem' }}>
+                  {estado.titulo}
+                </h3>
+                <p className="label-tag" style={{ color: 'rgba(200,205,212,0.35)', fontSize: '0.5rem', lineHeight: 1.8 }}>
+                  {estado.descripcion}
+                </p>
+                {isActive && (
+                  <div className="mt-4 h-px w-full" style={{ background: 'linear-gradient(90deg, #2563a8, transparent)' }}></div>
+                )}
+              </button>
+            );
+          })}
         </div>
+
       </div>
 
-      {/* Modal View */}
+      {/* === MODAL === */}
       {selectedEstado && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="bg-[#0f111a] corridos-border border border-[#2563a8]/20 rounded-sm p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
-            <div 
-              className="absolute -top-32 -right-32 w-64 h-64 blur-[90px] opacity-15 pointer-events-none"
-              style={{ backgroundColor: selectedEstado.color }}
-            ></div>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-y-auto"
+          style={{ background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)' }}>
 
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedEstado(null)}
-              className="absolute top-6 right-6 w-10 h-10 rounded-sm border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all flex items-center justify-center text-xs"
+          <div className="relative w-full max-w-2xl my-auto p-6 md:p-10"
+            style={{
+              background: 'linear-gradient(135deg, #071325 0%, #020d1a 100%)',
+              border: '1px solid rgba(37,99,168,0.3)',
+              borderTop: '3px solid #2563a8',
+              borderRadius: '3px',
+              boxShadow: '0 40px 80px rgba(0,0,0,0.8)'
+            }}>
+
+            {/* Background glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none"
+              style={{ background: `radial-gradient(circle, ${selectedEstado.color}22 0%, transparent 70%)`, filter: 'blur(60px)' }}>
+            </div>
+
+            {/* Close */}
+            <button onClick={() => setSelectedEstado(null)}
+              className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center transition-all"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '2px', color: 'rgba(255,255,255,0.4)' }}
             >
-              <i className="fas fa-xmark"></i>
+              <i className="fas fa-xmark text-sm"></i>
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8 pb-6" style={{ borderBottom: '1px solid rgba(37,99,168,0.15)' }}>
               <span className="text-4xl">{selectedEstado.emoji}</span>
               <div>
-                <span className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#2563a8]">ORDEN DE COMBATE</span>
-                <h3 className="font-serif text-3xl text-white mt-1">{selectedEstado.titulo}</h3>
+                <span className="label-tag block mb-1" style={{ color: '#4a90d9', fontSize: '0.5rem' }}>ORDEN DE COMBATE</span>
+                <h3 className="text-white" style={{ fontFamily: 'var(--font-gothic)', fontSize: '2rem' }}>{selectedEstado.titulo}</h3>
               </div>
             </div>
 
             {/* Body */}
-            <div className="flex flex-col gap-6 mb-10">
-              <div className="border-l-2 border-[#2563a8] pl-6 py-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Instrucción Táctica</p>
-                <p className="text-white/80 text-sm leading-relaxed">{selectedEstado.mensaje}</p>
+            <div className="flex flex-col gap-5 mb-8">
+              {/* Message */}
+              <div className="p-5" style={{ borderLeft: '3px solid #2563a8', background: 'rgba(37,99,168,0.06)', borderRadius: '0 3px 3px 0' }}>
+                <span className="label-tag block mb-2" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>Instrucción Táctica</span>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{selectedEstado.mensaje}</p>
               </div>
 
-              <div className="bg-black/35 rounded-sm p-6 border border-white/5 relative group">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#2563a8]/60 mb-3">Versículo de Cobertura</p>
+              {/* Verse */}
+              <div className="p-5" style={{ background: 'rgba(8,24,48,0.8)', border: '1px solid rgba(37,99,168,0.15)', borderRadius: '3px' }}>
+                <span className="label-tag block mb-3" style={{ color: '#4a90d9', fontSize: '0.5rem' }}>Versículo de Cobertura</span>
                 {loadingVersiculo ? (
-                  <div className="flex flex-col items-center justify-center py-6">
-                    <i className="fas fa-spinner fa-spin text-[#2563a8] text-2xl mb-2"></i>
-                    <p className="text-[10px] text-white/30 font-black uppercase tracking-widest animate-pulse">Cargando munición de fe...</p>
+                  <div className="flex items-center gap-3 py-4">
+                    <i className="fas fa-spinner fa-spin" style={{ color: '#2563a8' }}></i>
+                    <span className="label-tag" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>Cargando munición de fe...</span>
                   </div>
                 ) : (
-                  <h3 className="font-serif text-3xl md:text-4xl text-white mb-6 leading-relaxed max-w-3xl">
-                  "{activeVersiculo?.versiculo}"
-                </h3>
+                  <p className="leading-relaxed mb-4" style={{ fontFamily: 'var(--font-gothic)', fontSize: 'clamp(1.1rem,2.5vw,1.4rem)', color: 'rgba(255,255,255,0.85)' }}>
+                    "{activeVersiculo?.versiculo}"
+                  </p>
                 )}
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <span className="text-[9px] font-black tracking-widest text-white/40">
-                    {loadingVersiculo ? 'Buscando cita...' : activeVersiculo?.cita}
+                  <span className="label-tag" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.55rem' }}>
+                    {loadingVersiculo ? 'Buscando...' : activeVersiculo?.cita}
                   </span>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => fetchRandomVerseForState(selectedEstado.key)}
-                      disabled={loadingVersiculo}
-                      className="text-[8px] font-black uppercase tracking-wider text-white/60 hover:text-[#2563a8] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  <div className="flex gap-4">
+                    <button onClick={() => fetchRandomVerseForState(selectedEstado.key)} disabled={loadingVersiculo}
+                      className="label-tag transition-colors" style={{ background: 'none', border: 'none', color: 'rgba(200,205,212,0.4)', cursor: 'pointer', fontSize: '0.5rem' }}
                     >
-                      <i className={`fas fa-dice ${loadingVersiculo ? 'fa-spin' : ''}`}></i>
-                      {loadingVersiculo ? 'Buscando...' : 'Otro Versículo'}
+                      <i className={`fas fa-dice mr-1 ${loadingVersiculo ? 'fa-spin' : ''}`}></i>Otro Versículo
                     </button>
-                    <button
-                      onClick={() => activeVersiculo && handleCopy(`"${activeVersiculo.versiculo}" - ${activeVersiculo.cita}`)}
-                      disabled={loadingVersiculo || !activeVersiculo}
-                      className="text-[8px] font-black uppercase tracking-wider text-[#2563a8] hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    <button onClick={() => activeVersiculo && handleCopy(`"${activeVersiculo.versiculo}" - ${activeVersiculo.cita}`)} disabled={loadingVersiculo || !activeVersiculo}
+                      className="label-tag transition-colors" style={{ background: 'none', border: 'none', color: '#4a90d9', cursor: 'pointer', fontSize: '0.5rem' }}
                     >
-                      <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`}></i>
-                      {copied ? 'Copiado' : 'Copiar Versículo'}
+                      <i className={`fas ${copied ? 'fa-check' : 'fa-copy'} mr-1`}></i>{copied ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Footer with Song Recommendation */}
+            {/* Song Recommendation */}
             {currentRecommendedSong && (
-              <div className="bg-[#05070a]/80 rounded-3xl p-5 border border-white/5 flex flex-col sm:flex-row items-center gap-5 justify-between">
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-lg">
-                    <img 
-                      src={currentRecommendedSong.cover} 
-                      alt={currentRecommendedSong.name} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="text-left truncate">
-                    <span className="text-[7.5px] font-black uppercase tracking-widest text-white/20">Música de Combate</span>
-                    <h4 className="font-serif text-md font-bold text-white truncate leading-snug">
-                      {currentRecommendedSong.name}
-                    </h4>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-0.5">
-                      {currentRecommendedSong.artist}
-                    </p>
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-4"
+                style={{ background: 'rgba(8,24,48,0.6)', border: '1px solid rgba(37,99,168,0.15)', borderRadius: '3px' }}>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <img src={currentRecommendedSong.cover} alt={currentRecommendedSong.name}
+                    className="w-12 h-12 object-cover flex-shrink-0" style={{ borderRadius: '2px', border: '1px solid rgba(37,99,168,0.3)' }} />
+                  <div className="min-w-0">
+                    <span className="label-tag block" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>Música de Combate</span>
+                    <p className="text-white font-bold truncate" style={{ fontFamily: 'var(--font-gothic)', fontSize: '1rem' }}>{currentRecommendedSong.name}</p>
+                    <p className="label-tag" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>{currentRecommendedSong.artist}</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <button
-                    onClick={() => {
-                      onPlaySong(currentRecommendedSong);
-                      setSelectedEstado(null);
-                    }}
-                    className="flex-1 sm:flex-initial px-6 py-3 rounded-full bg-[#2563a8] text-black text-[8px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white transition-all shadow-md"
-                  >
-                    <i className="fas fa-play"></i>
-                    Escuchar
+                <div className="flex gap-2 flex-shrink-0">
+                  <button onClick={() => { onPlaySong(currentRecommendedSong); setSelectedEstado(null); }} className="btn-primary" style={{ clipPath: 'none', borderRadius: '2px', padding: '0.6rem 1.2rem', fontSize: '0.55rem' }}>
+                    <i className="fas fa-play mr-1"></i>Escuchar
                   </button>
-                  <a
-                    href={`/link/${currentRecommendedSong.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-full border border-white/10 text-white/40 hover:bg-white hover:text-black transition-all flex items-center justify-center"
-                    title="Smart Link"
-                  >
-                    <i className="fas fa-link text-[10px]"></i>
+                  <a href={`/link/${currentRecommendedSong.id}`} target="_blank" rel="noopener noreferrer"
+                    className="btn-secondary" style={{ clipPath: 'none', borderRadius: '2px', padding: '0.6rem 1rem', fontSize: '0.55rem', textDecoration: 'none' }}>
+                    <i className="fas fa-link"></i>
                   </a>
                 </div>
               </div>
