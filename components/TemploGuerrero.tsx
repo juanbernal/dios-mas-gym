@@ -262,15 +262,14 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
+  return <section className="py-24 bg-[#05070a] border-t border-white/5 relative overflow-hidden">
       {/* Background lights */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#c5a059]/3 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="section-container relative z-10 px-4 md:px-0">
         {/* Title */}
         <div className="flex flex-col items-center mb-16 text-center">
-          <h2 className="font-serif italic text-4xl text-[#c5a059] mb-3">El Templo del Guerrero</h2>
+          <h2 className="font-serif text-5xl text-[#c5a059] mb-3">El Templo del Guerrero</h2>
           <div className="w-16 h-px bg-[#c5a059]/40 mb-4"></div>
           <p className="text-[9px] text-white/50 font-black uppercase tracking-[0.4em] max-w-2xl leading-relaxed">
             Reporta tu estado de batalla espiritual para recibir munición de fe y música de combate personalizada.
@@ -283,7 +282,11 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
             <button
               key={estado.key}
               onClick={() => handleSelectEstado(estado)}
-              className="bg-[#0f111a]/60 backdrop-blur-md border border-white/5 rounded-[2rem] p-6 text-left hover:border-[#c5a059]/40 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
+              className={`relative group bg-[#0a0c10] border rounded-sm p-6 flex flex-col items-center text-center transition-all duration-300 ${
+                selectedEstado === estado 
+                  ? 'border-[#c5a059] shadow-[0_0_30px_rgba(197,160,89,0.3)]' 
+                  : 'border-white/5 hover:border-white/20'
+              }`}
             >
               <div 
                 className="absolute top-0 right-0 w-24 h-24 blur-[40px] opacity-10 group-hover:opacity-20 transition-opacity" 
@@ -300,7 +303,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
       {/* Modal View */}
       {selectedEstado && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
+          <div className="bg-[#0f111a] border border-[#c5a059]/20 rounded-sm p-6 md:p-12 max-w-2xl w-full relative overflow-y-auto max-h-[90vh] shadow-2xl my-auto">
             <div 
               className="absolute -top-32 -right-32 w-64 h-64 blur-[90px] opacity-15 pointer-events-none"
               style={{ backgroundColor: selectedEstado.color }}
@@ -309,7 +312,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
             {/* Close Button */}
             <button
               onClick={() => setSelectedEstado(null)}
-              className="absolute top-6 right-6 w-10 h-10 rounded-full border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all flex items-center justify-center text-xs"
+              className="absolute top-6 right-6 w-10 h-10 rounded-sm border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all flex items-center justify-center text-xs"
             >
               <i className="fas fa-xmark"></i>
             </button>
@@ -319,7 +322,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
               <span className="text-4xl">{selectedEstado.emoji}</span>
               <div>
                 <span className="text-[7.5px] font-black uppercase tracking-[0.3em] text-[#c5a059]">ORDEN DE COMBATE</span>
-                <h3 className="font-serif italic text-3xl text-white mt-1">{selectedEstado.titulo}</h3>
+                <h3 className="font-serif text-3xl text-white mt-1">{selectedEstado.titulo}</h3>
               </div>
             </div>
 
@@ -330,7 +333,7 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                 <p className="text-white/80 text-sm leading-relaxed">{selectedEstado.mensaje}</p>
               </div>
 
-              <div className="bg-black/35 rounded-3xl p-6 border border-white/5 relative group">
+              <div className="bg-black/35 rounded-sm p-6 border border-white/5 relative group">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]/60 mb-3">Versículo de Cobertura</p>
                 {loadingVersiculo ? (
                   <div className="flex flex-col items-center justify-center py-6">
@@ -338,9 +341,9 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
                     <p className="text-[10px] text-white/30 font-black uppercase tracking-widest animate-pulse">Cargando munición de fe...</p>
                   </div>
                 ) : (
-                  <p className="font-serif italic text-lg text-white leading-relaxed mb-4">
-                    "{activeVersiculo?.versiculo}"
-                  </p>
+                  <h3 className="font-serif text-3xl md:text-4xl text-white mb-6 leading-relaxed max-w-3xl">
+                  "{activeVersiculo?.versiculo}"
+                </h3>
                 )}
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <span className="text-[9px] font-black tracking-widest text-white/40">

@@ -30,7 +30,7 @@ const ArmaduraPromo: React.FC = () => {
             </div>
             
             <h2 className="font-serif text-5xl md:text-7xl leading-none mb-6 text-white drop-shadow-lg">
-              La <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] to-[#8B5A2B]">Armadura</span>
+              La <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c5a059] to-[#8B5A2B]">Armadura</span>
             </h2>
             
             <p className="text-white/50 text-sm leading-relaxed mb-10 max-w-md font-medium">
@@ -70,7 +70,7 @@ const ArmaduraPromo: React.FC = () => {
             <div className="absolute w-[300px] h-[300px] bg-[#c5a059]/10 rounded-full blur-[100px] group-hover:bg-[#c5a059]/20 transition-all duration-700"></div>
             
             {/* The Silhouette Mockup */}
-            <div className="relative w-72 h-80 bg-gradient-to-br from-white/5 to-black border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex items-center justify-center overflow-hidden transform transition-all duration-700 group-hover:rotate-y-12 group-hover:scale-105">
+            <div className="relative w-72 h-80 bg-gradient-to-br from-white/5 to-black border border-white/10 rounded-sm shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex items-center justify-center overflow-hidden transform transition-all duration-700 group-hover:rotate-y-12 group-hover:scale-105">
               
               <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.03)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] animate-[shine_5s_linear_infinite]"></div>
 

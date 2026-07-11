@@ -59,8 +59,8 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
       </div>
 
       <div className="absolute right-6 md:right-20 top-32 hidden lg:grid gap-4 w-36">
-        <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-36 h-36 rounded-[2rem] object-cover border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(0,0,0,0.45)] rotate-3 opacity-90" />
-        <img src="/logo-juan614-v2.jpg" alt="Juan 614" className="w-28 h-28 ml-auto rounded-[1.5rem] object-cover border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] -rotate-6 opacity-90" />
+        <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-36 h-36 rounded-md object-cover border border-[#c5a059]/20 shadow-[0_30px_80px_rgba(0,0,0,0.45)] rotate-3 opacity-90 grayscale-[20%]" />
+        <img src="/logo-juan614-v2.jpg" alt="Juan 614" className="w-28 h-28 ml-auto rounded-sm object-cover border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] -rotate-6 opacity-90 grayscale-[20%]" />
       </div>
 
       <div className="section-container relative z-10 animate-zen px-4 text-center pt-20">
@@ -74,7 +74,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
         </h1>
         
         <div className="max-w-4xl mx-auto mb-12 transition-all duration-700" key={verse.r}>
-             <div className="relative group bg-gradient-to-br from-[#0a0c10] to-[#05070a] border border-[#c5a059]/20 rounded-[2rem] p-8 md:p-12 backdrop-blur-xl shadow-[0_0_50px_rgba(197,160,89,0.15)] animate-fade-in-up hover:border-[#c5a059]/40 transition-all duration-500 overflow-hidden">
+             <div className="relative group bg-gradient-to-br from-[#0a0c10] to-[#030406] border border-white/5 rounded-sm p-8 md:p-12 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-fade-in-up hover:border-white/10 transition-all duration-500 overflow-hidden">
                {/* Glow effect */}
                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(197,160,89,0.15),transparent_50%)] pointer-events-none transition-all group-hover:opacity-100 opacity-60"></div>
 
