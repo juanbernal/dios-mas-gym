@@ -41,8 +41,8 @@ const Footer: React.FC = () => {
           <div className="flex flex-col items-center md:items-start">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Link Bio</h4>
             <div className="flex flex-col gap-3 text-white/40 text-xs font-bold font-black tracking-widest uppercase">
-              <a href="https://musica.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Diosmasgym</a>
-              <a href="https://juan614.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Juan 614</a>
+              <a href="/bio/diosmasgym" className="hover:text-white transition-colors">Diosmasgym</a>
+              <a href="/bio/juan614" className="hover:text-white transition-colors">Juan 614</a>
             </div>
           </div>
         </div>
