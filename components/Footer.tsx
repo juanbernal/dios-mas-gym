@@ -39,12 +39,10 @@ const Footer: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col items-center md:items-start">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Plataformas</h4>
-            <div className="flex gap-6 text-white/40 text-xl">
-              <a href="https://www.youtube.com/@Diosmasgym" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-youtube"></i></a>
-              <a href="https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-spotify"></i></a>
-              <a href="https://music.apple.com/us/artist/diosmasgym/1789494422" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-apple"></i></a>
-              <a href="https://www.tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><i className="fab fa-tiktok"></i></a>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mb-6">Link Bio</h4>
+            <div className="flex flex-col gap-3 text-white/40 text-xs font-bold font-black tracking-widest uppercase">
+              <a href="https://musica.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Diosmasgym</a>
+              <a href="https://juan614.diosmasgym.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Juan 614</a>
             </div>
           </div>
         </div>
