@@ -1360,7 +1360,7 @@ const PromoTemplate: React.FC<any> = ({
             
             img {
               image-rendering: -webkit-optimize-contrast;
-              image-rendering: high-quality;
+              image-rendering: crisp-edges;
             }
             
             .noise-layer {

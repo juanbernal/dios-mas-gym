@@ -2942,7 +2942,7 @@ const PromoCard: React.FC<{
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            imageRendering: 'high-quality'
+            imageRendering: "crisp-edges" as any
           }} 
         />
       )}
