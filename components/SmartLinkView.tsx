@@ -841,7 +841,7 @@ const SmartLinkView: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center">
                 <div className="w-12 h-12 border-2 border-[#4a90d9] border-t-transparent animate-spin rounded-full"></div>
             </div>
         );
@@ -849,7 +849,7 @@ const SmartLinkView: React.FC = () => {
 
     if (errorMsg) {
         return (
-            <div className="min-h-screen bg-[#05070a] text-white flex flex-col items-center justify-center p-8">
+            <div className="min-h-screen bg-transparent text-white flex flex-col items-center justify-center p-8">
                 <i className="fas fa-exclamation-triangle text-4xl text-[#4a90d9] mb-4"></i>
                 <h1 className="text-2xl font-serif italic mb-2 text-center">Enlace no disponible</h1>
                 <p className="text-white/50 text-xs mb-8 text-center">{errorMsg}</p>
@@ -921,7 +921,7 @@ const SmartLinkView: React.FC = () => {
         // === TEMA DIOSMASGYM (Urbano / Oscuro / Dorado) ===
     if (!isJuan) {
         return (
-            <div className="min-h-screen bg-[#05070a] text-white font-['Poppins'] flex flex-col relative overflow-hidden">
+            <div className="min-h-screen bg-transparent text-white font-['Poppins'] flex flex-col relative overflow-hidden">
                 <style>{`
                   @keyframes wave-bounce {
                     0%, 100% { height: 5px; }
@@ -1228,7 +1228,7 @@ const SmartLinkView: React.FC = () => {
 
     // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
     return (
-        <div className="min-h-screen bg-[#110e0c] text-[#e8dcc5] font-['Outfit'] flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-transparent text-[#e8dcc5] font-['Outfit'] flex flex-col relative overflow-hidden">
             <style>{`
               @keyframes dust-float {
                 0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.1; }

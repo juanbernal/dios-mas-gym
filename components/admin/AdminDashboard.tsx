@@ -307,7 +307,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#05070a] pt-32 pb-40 px-6 md:px-8 font-['Poppins']">
+        <div className="min-h-screen bg-transparent pt-32 pb-40 px-6 md:px-8 font-['Poppins'] relative z-10">
             <div className="max-w-7xl mx-auto">
                 {/* Header / Saludo Premium */}
                 <div className="mb-12 md:mb-20 flex flex-col lg:flex-row lg:items-end justify-between gap-8 md:gap-10">
