@@ -968,7 +968,7 @@ const SmartLinkView: React.FC = () => {
                         </div>
                         
                         <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                            <h1 className="font-serif italic text-4xl md:text-6xl mb-2 md:mb-4 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold tracking-wide text-white">{song.name}</h1>
+                            <h1 className="h1-gothic text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold tracking-wide text-white">{song.name}</h1>
                             <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.5em] mb-6 md:mb-8">{song.artist}</p>
 
                             <ReleaseCountdown releaseDate={song.date} isJuan={false} />
@@ -1293,7 +1293,7 @@ const SmartLinkView: React.FC = () => {
                     </div>
                     
                     <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                        <h1 className="font-serif text-4xl md:text-6xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
+                        <h1 className="h1-gothic text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
                         <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-6 md:mb-8 font-mono">{song.artist}</p>
 
                         <ReleaseCountdown releaseDate={song.date} isJuan={true} />

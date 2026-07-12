@@ -315,7 +315,7 @@ const AdminDashboard: React.FC = () => {
                         <h1 className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] text-[#4a90d9] mb-3 md:mb-4 flex items-center gap-2 md:gap-4">
                             <span className="w-6 md:w-12 h-px bg-[#4a90d9]/30"></span> Mando Ejecutivo
                         </h1>
-                        <h2 className="font-serif italic text-3xl md:text-7xl text-white leading-tight">
+                        <h2 className="h1-gothic text-5xl md:text-8xl text-white leading-tight">
                             Hola, <span className="text-[#4a90d9] drop-shadow-[0_0_30px_rgba(197,160,89,0.2)]">Juan</span>
                         </h2>
                     </div>
