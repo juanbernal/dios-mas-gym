@@ -152,15 +152,15 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         }
     };
 
-    const accentColor = isJuan ? '#c89d53' : '#4a90d9';
+    const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
     const waveBarCount = 16;
     const delays = [0.1, 0.4, 0.2, 0.6, 0.3, 0.8, 0.5, 0.2, 0.7, 0.4, 0.9, 0.3, 0.6, 0.1, 0.5, 0.8];
 
     return (
-        <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-300 ${isJuan ? 'bg-[#2a221f]/90 border-[#1e4a7a]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
+        <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-300 ${isJuan ? 'bg-[#081830]/90 border-[#1e4a7a]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
             <div id={`yt-player-${videoId}`} className="hidden"></div>
             
-            <HUDCorners color={isJuan ? '#c89d53' : '#4a90d9'} />
+            <HUDCorners color={isJuan ? '#4a90d9' : '#4a90d9'} />
 
             {/* scanline overlay */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,6px_100%] pointer-events-none opacity-[0.07]"></div>
@@ -170,7 +170,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
                     VISTA PREVIA DE AUDIO (60s)
                 </span>
-                <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40'}`}>
+                <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#f1f5f9]/40' : 'text-white/40'}`}>
                     {Math.floor(progress * 0.6)}s / 60s
                 </span>
             </div>
@@ -189,7 +189,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} group-hover:scale-110 transition-transform ${!isPlaying ? 'ml-0.5' : ''}`}></i>
                 </button>
                 <div className="flex-1 pr-1 text-left">
-                    <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#e8dcc5]/60' : 'text-white/60'}`}>
+                    <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#f1f5f9]/60' : 'text-white/60'}`}>
                         <span>{isPlaying ? 'REPRODUCIENDO PREVIA' : 'LISTO PARA REPRODUCIR'}</span>
                         <span className="font-mono">{isPlaying ? 'AVANCE ACTIVO' : 'STANDBY'}</span>
                     </div>
@@ -263,16 +263,16 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
         return () => clearInterval(interval);
     }, [releaseDate]);
 
-    const accentColor = isJuan ? '#c89d53' : '#4a90d9';
+    const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
 
     if (isReleased) {
         return (
             <div className={`w-full max-w-sm flex items-center justify-center gap-2 mb-6 py-2.5 px-4 rounded-xl border text-[9px] uppercase font-black tracking-widest font-mono ${
                 isJuan 
-                ? 'bg-[#c89d53]/5 border-[#c89d53]/25 text-[#c89d53]'
+                ? 'bg-[#4a90d9]/5 border-[#4a90d9]/25 text-[#4a90d9]'
                 : 'bg-green-500/5 border-green-500/20 text-green-400'
             }`}>
-                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isJuan ? 'bg-[#c89d53]' : 'bg-green-500'}`}></span>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isJuan ? 'bg-[#4a90d9]' : 'bg-green-500'}`}></span>
                 ¡Ya Disponible en Plataformas!
             </div>
         );
@@ -283,7 +283,7 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
     return (
         <div className={`w-full max-w-sm rounded-2xl p-4 mb-6 border text-center font-mono ${
             isJuan 
-            ? 'bg-[#2a221f]/40 border-[#1e4a7a]/20 text-[#e8dcc5]' 
+            ? 'bg-[#081830]/40 border-[#1e4a7a]/20 text-[#f1f5f9]' 
             : 'bg-black/40 border-white/5 text-white'
         }`}>
             <div className="text-[8px] uppercase tracking-[0.25em] mb-2.5 font-black" style={{ color: accentColor }}>
@@ -323,16 +323,16 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
 };
 
 const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: string }) => {
-    const accentColor = isJuan ? '#c89d53' : '#4a90d9';
-    const bgClass = isJuan ? 'bg-[#2a221f]/40' : 'bg-black/30';
-    const textPrimary = isJuan ? 'text-[#e8dcc5]' : 'text-white';
-    const textSecondary = isJuan ? 'text-[#e8dcc5]/40' : 'text-white/40';
+    const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
+    const bgClass = isJuan ? 'bg-[#081830]/40' : 'bg-black/30';
+    const textPrimary = isJuan ? 'text-[#f1f5f9]' : 'text-white';
+    const textSecondary = isJuan ? 'text-[#f1f5f9]/40' : 'text-white/40';
     const borderClass = isJuan ? 'border-[#1e4a7a]/10' : 'border-white/5';
     const mainBorderClass = isJuan ? 'border-[#1e4a7a]/20' : 'border-[#4a90d9]/15';
     
     return (
         <div className={`w-full backdrop-blur-xl p-6 rounded-2xl border shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left ${bgClass} ${mainBorderClass} relative overflow-hidden group`}>
-            <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${isJuan ? 'from-[#c89d53] to-[#1e4a7a]' : 'from-[#4a90d9] to-[#8c6b32]'}`}></div>
+            <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${isJuan ? 'from-[#4a90d9] to-[#1e4a7a]' : 'from-[#4a90d9] to-[#8c6b32]'}`}></div>
             
             <h4 className={`text-[8px] font-black uppercase tracking-[0.25em] mb-5 flex items-center gap-2`} style={{ color: accentColor }}>
                 <i className="fas fa-info-circle text-[9px]"></i> CRÉDITOS DE LA CANCIÓN
@@ -404,15 +404,15 @@ const JUAN_FAVORITE_BOOKS = ["salmos", "proverbios", "filipenses", "efesios", "j
 const PlatformButton = ({ platform, icon, color, url, isJuan }: { platform: string, icon: string, color: string, url: string, isJuan: boolean }) => {
     if (isJuan) {
         return (
-            <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#1a1411]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/40 hover:bg-[#1e4a7a]/10 transition-all group">
+            <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/40 hover:bg-[#1e4a7a]/10 transition-all group">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xl md:text-2xl mr-4" style={{ backgroundColor: `${color}15`, color: color }}>
                     <i className={icon}></i>
                 </div>
                 <div className="flex-1 text-left">
-                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#e8dcc5] group-hover:text-white transition-colors font-mono">{platform}</h5>
-                    <p className="text-[8px] md:text-[9px] uppercase tracking-wider text-[#c89d53]/60 font-mono">Reproducir</p>
+                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#f1f5f9] group-hover:text-white transition-colors font-mono">{platform}</h5>
+                    <p className="text-[8px] md:text-[9px] uppercase tracking-wider text-[#4a90d9]/60 font-mono">Reproducir</p>
                 </div>
-                <i className="fas fa-chevron-right text-[#c89d53]/40 group-hover:text-[#c89d53] transition-colors"></i>
+                <i className="fas fa-chevron-right text-[#4a90d9]/40 group-hover:text-[#4a90d9] transition-colors"></i>
             </a>
         );
     }
@@ -507,15 +507,15 @@ const DynamicBanner = ({ isJuan, onSubscribe }: { isJuan: boolean, onSubscribe?:
 
     if (isJuan) {
         return (
-            <div className="w-full max-w-6xl my-4 backdrop-blur-xl bg-[#2a221f]/70 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/40 shadow-[0_15px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group transition-all duration-500">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c89d53] to-[#1e4a7a]"></div>
+            <div className="w-full max-w-6xl my-4 backdrop-blur-xl bg-[#081830]/70 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/40 shadow-[0_15px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group transition-all duration-500">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#4a90d9] to-[#1e4a7a]"></div>
                 
                 <div className="flex items-center gap-6 z-10 w-full md:w-auto">
                     <div className="w-14 h-14 shrink-0 rounded-full bg-[#1e4a7a]/20 flex items-center justify-center border border-[#1e4a7a]/40">
-                        <i className={`${banner.icon} text-2xl text-[#c89d53]`}></i>
+                        <i className={`${banner.icon} text-2xl text-[#4a90d9]`}></i>
                     </div>
                     <div className="text-left flex-1">
-                        <h4 className="text-[#c89d53] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] mb-1 font-mono">{banner.title}</h4>
+                        <h4 className="text-[#4a90d9] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] mb-1 font-mono">{banner.title}</h4>
                         <p className="text-[#f2ebd9] text-sm md:text-base opacity-90">{banner.text}</p>
                     </div>
                 </div>
@@ -525,7 +525,7 @@ const DynamicBanner = ({ isJuan, onSubscribe }: { isJuan: boolean, onSubscribe?:
                     onClick={handleAction}
                     target={banner.url.startsWith('#') ? '_self' : '_blank'}
                     rel="noreferrer"
-                    className="z-10 shrink-0 w-full md:w-auto px-8 py-3 rounded-lg bg-[#1e4a7a]/20 border border-[#1e4a7a]/50 hover:bg-[#1e4a7a] hover:text-white text-[#c89d53] font-bold uppercase tracking-widest text-[11px] transition-all text-center font-mono"
+                    className="z-10 shrink-0 w-full md:w-auto px-8 py-3 rounded-lg bg-[#1e4a7a]/20 border border-[#1e4a7a]/50 hover:bg-[#1e4a7a] hover:text-white text-[#4a90d9] font-bold uppercase tracking-widest text-[11px] transition-all text-center font-mono"
                 >
                     {banner.buttonText}
                 </a>
@@ -1228,7 +1228,7 @@ const SmartLinkView: React.FC = () => {
 
     // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
     return (
-        <div className="min-h-screen bg-transparent text-[#e8dcc5] font-['Outfit'] flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-transparent text-[#f1f5f9] font-sans flex flex-col relative overflow-hidden">
             <style>{`
               @keyframes dust-float {
                 0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.1; }
@@ -1247,7 +1247,7 @@ const SmartLinkView: React.FC = () => {
             `}</style>
 
             {/* Rustic Ambience Background */}
-            <div className="absolute inset-0 bg-[#1a1411] opacity-60"></div>
+            <div className="absolute inset-0 bg-[#0b1929] opacity-60"></div>
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_#3a2820_0%,_transparent_60%)] pointer-events-none opacity-50"></div>
             
             {/* Background Blur Image */}
@@ -1261,7 +1261,7 @@ const SmartLinkView: React.FC = () => {
                 {[...Array(15)].map((_, i) => (
                     <div 
                         key={i}
-                        className="absolute w-1 h-1 bg-[#c89d53] rounded-full animate-dust"
+                        className="absolute w-1 h-1 bg-[#4a90d9] rounded-full animate-dust"
                         style={{
                             left: `${Math.random() * 100}%`,
                             top: `${Math.random() * 100}%`,
@@ -1282,7 +1282,7 @@ const SmartLinkView: React.FC = () => {
                             className="absolute -inset-6 bg-cover bg-center rounded-[20px] blur-2xl opacity-20 group-hover:opacity-40 transition duration-700 pointer-events-none"
                             style={{ backgroundImage: `url(${song.cover})` }}
                         ></div>
-                        <div className="absolute -inset-2 bg-gradient-to-tr from-[#c89d53]/30 to-transparent rounded-[16px] opacity-20 group-hover:opacity-50 transition duration-700 pointer-events-none animate-rustic-glow"></div>
+                        <div className="absolute -inset-2 bg-gradient-to-tr from-[#4a90d9]/30 to-transparent rounded-[16px] opacity-20 group-hover:opacity-50 transition duration-700 pointer-events-none animate-rustic-glow"></div>
                         <div className="relative w-64 h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[12px] border-2 border-[#1e4a7a]/40 shadow-[0_20px_50px_rgba(20,10,5,0.8)] transition-transform duration-500 group-hover:scale-[1.02]">
                             <img 
                                 src={song.cover} 
@@ -1294,7 +1294,7 @@ const SmartLinkView: React.FC = () => {
                     
                     <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
                         <h1 className="font-serif text-4xl md:text-6xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
-                        <p className="text-[#c89d53] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-6 md:mb-8 font-mono">{song.artist}</p>
+                        <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-6 md:mb-8 font-mono">{song.artist}</p>
 
                         <ReleaseCountdown releaseDate={song.date} isJuan={true} />
 
@@ -1303,9 +1303,9 @@ const SmartLinkView: React.FC = () => {
                         )}
                         
                         {embedData?.type === 'spotify' && (
-                            <div className="w-full max-w-md mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.6)] border border-[#1e4a7a]/30 bg-[#2a221f]/60 p-2 backdrop-blur-md">
+                            <div className="w-full max-w-md mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.6)] border border-[#1e4a7a]/30 bg-[#081830]/60 p-2 backdrop-blur-md">
                                 <div className="flex items-center justify-between mb-3 px-2 pt-2">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#c89d53] flex items-center gap-2 font-mono">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4a90d9] flex items-center gap-2 font-mono">
                                         <div className="w-2 h-2 rounded-full bg-[#1DB954]"></div>
                                         Previa Spotify
                                     </span>
@@ -1325,8 +1325,8 @@ const SmartLinkView: React.FC = () => {
                 </div>
 
                 {/* PLATFORMS SECTION */}
-                <div className="w-full max-w-6xl relative z-20 backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.5)] transition-all hover:border-[#1e4a7a]/40 duration-500">
-                    <h3 className="text-[#c89d53] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
+                <div className="w-full max-w-6xl relative z-20 backdrop-blur-xl bg-[#081830]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.5)] transition-all hover:border-[#1e4a7a]/40 duration-500">
+                    <h3 className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
                         <i className="fas fa-headphones"></i> DÓNDE ESCUCHAR
                     </h3>
 
@@ -1338,7 +1338,7 @@ const SmartLinkView: React.FC = () => {
                         <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={true} />
                         <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={true} />
                         <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} />
-                        <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#c89d53" url="https://juan614.diosmasgym.com/" isJuan={true} />
+                        <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#4a90d9" url="https://juan614.diosmasgym.com/" isJuan={true} />
                     </div>
                 </div>
 
@@ -1351,17 +1351,17 @@ const SmartLinkView: React.FC = () => {
                         <SongCredits isJuan={true} artistName={song.artist} />
                         
                         {/* Palabra de Aliento Card */}
-                        <div className="w-full h-full backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#c89d53] to-[#1e4a7a]"></div>
+                        <div className="w-full h-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#4a90d9] to-[#1e4a7a]"></div>
                             
                             <div className="flex justify-between items-center mb-6">
-                                <h4 className="text-[#c89d53] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 font-mono">
-                                    <i className="fas fa-book-bible text-[#c89d53]"></i> PALABRA DE ESPERANZA
+                                <h4 className="text-[#4a90d9] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 font-mono">
+                                    <i className="fas fa-book-bible text-[#4a90d9]"></i> PALABRA DE ESPERANZA
                                 </h4>
                                 <button 
                                     onClick={() => fetchBibleVerse(true)} 
                                     disabled={loadingVerse}
-                                    className="text-[#c89d53] hover:text-[#f2ebd9] transition-colors p-2 flex items-center justify-center font-bold uppercase tracking-widest disabled:opacity-40"
+                                    className="text-[#4a90d9] hover:text-[#f2ebd9] transition-colors p-2 flex items-center justify-center font-bold uppercase tracking-widest disabled:opacity-40"
                                 >
                                     <i className={`fas fa-dice text-lg ${loadingVerse ? 'animate-spin' : ''}`}></i>
                                 </button>
@@ -1369,7 +1369,7 @@ const SmartLinkView: React.FC = () => {
                             
                             {loadingVerse ? (
                                 <div className="py-8 flex justify-center items-center">
-                                    <div className="w-6 h-6 border-2 border-[#c89d53] border-t-transparent animate-spin rounded-full"></div>
+                                    <div className="w-6 h-6 border-2 border-[#4a90d9] border-t-transparent animate-spin rounded-full"></div>
                                 </div>
                             ) : (
                                 <p className="text-[#f2ebd9]/90 text-sm md:text-base font-serif italic leading-relaxed tracking-wide mb-6">
@@ -1378,7 +1378,7 @@ const SmartLinkView: React.FC = () => {
                             )}
 
                             <div className="flex justify-between items-center border-t border-[#1e4a7a]/20 pt-4 mt-auto">
-                                <span className="text-[9px] md:text-[10px] font-mono text-[#c89d53]/60 uppercase tracking-wider font-bold">{loadingVerse ? 'Cargando...' : devotional?.reference}</span>
+                                <span className="text-[9px] md:text-[10px] font-mono text-[#4a90d9]/60 uppercase tracking-wider font-bold">{loadingVerse ? 'Cargando...' : devotional?.reference}</span>
                             </div>
                         </div>
                     </div>
@@ -1386,8 +1386,8 @@ const SmartLinkView: React.FC = () => {
                     {/* RIGHT COLUMN */}
                     <div className="flex flex-col gap-6 md:gap-8">
                         {/* Compartir & Redes */}
-                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#c89d53] mb-6 text-left flex items-center gap-2 font-mono">
+                        <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-6 text-left flex items-center gap-2 font-mono">
                                 <i className="fas fa-share-nodes"></i> Compartir
                             </h3>
                             <div className="flex flex-wrap gap-4 justify-center mb-6">
@@ -1421,7 +1421,7 @@ const SmartLinkView: React.FC = () => {
                                 >
                                     <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
                                     {copied && (
-                                        <span className="absolute -top-12 bg-black text-[#c89d53] text-[10px] px-3 py-1.5 rounded border border-[#1e4a7a] animate-bounce whitespace-nowrap z-50">
+                                        <span className="absolute -top-12 bg-black text-[#4a90d9] text-[10px] px-3 py-1.5 rounded border border-[#1e4a7a] animate-bounce whitespace-nowrap z-50">
                                             ¡Copiado!
                                         </span>
                                     )}
@@ -1430,21 +1430,21 @@ const SmartLinkView: React.FC = () => {
                         </div>
 
                         {/* Avísame Card */}
-                        <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center text-center">
-                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#c89d53] mb-4 font-mono">Próximos Estrenos</h3>
+                        <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center text-center">
+                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-4 font-mono">Próximos Estrenos</h3>
                             <button 
                                 onClick={subscribe}
                                 className={`flex items-center gap-3 px-8 py-4 rounded-lg border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1e4a7a]/10 border-[#1e4a7a]/30 hover:bg-[#1e4a7a]/20'}`}
                             >
-                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500 text-lg' : 'fa-bell text-[#c89d53] text-lg'}`}></i>
-                                <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-widest font-mono ${isSubscribed ? 'text-green-500' : 'text-[#c89d53]'}`}>
+                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500 text-lg' : 'fa-bell text-[#4a90d9] text-lg'}`}></i>
+                                <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-widest font-mono ${isSubscribed ? 'text-green-500' : 'text-[#4a90d9]'}`}>
                                     {isSubscribed ? '¡Suscrito!' : 'Avísame'}
                                 </span>
                             </button>
                             {isSubscribed && (
                                 <button 
                                     onClick={unsubscribe}
-                                    className="mt-4 text-[8px] font-bold uppercase tracking-widest text-[#c89d53]/50 hover:text-red-400 transition-all underline underline-offset-4"
+                                    className="mt-4 text-[8px] font-bold uppercase tracking-widest text-[#4a90d9]/50 hover:text-red-400 transition-all underline underline-offset-4"
                                 >
                                     Darse de baja
                                 </button>
@@ -1452,8 +1452,8 @@ const SmartLinkView: React.FC = () => {
                         </div>
 
                         {relatedSongs.length > 0 && (
-                            <div className="w-full backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                                <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#c89d53] mb-6 flex items-center gap-3 text-left font-mono">
+                            <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                                <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-6 flex items-center gap-3 text-left font-mono">
                                     <i className="fas fa-list-ul"></i>
                                     Canciones del Álbum
                                 </h3>
@@ -1462,13 +1462,13 @@ const SmartLinkView: React.FC = () => {
                                         <button 
                                             key={i} 
                                             onClick={() => navigate(`/link/${track.id}`)}
-                                            className="w-full flex items-center justify-between p-4 bg-[#1a1411]/50 rounded-lg border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all group"
+                                            className="w-full flex items-center justify-between p-4 bg-[#0b1929]/50 rounded-lg border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all group"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <span className="text-[11px] md:text-[12px] font-mono text-[#c89d53]/50">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
-                                                <span className="text-sm md:text-base font-bold text-[#e8dcc5]/80 group-hover:text-[#e8dcc5] transition-colors">{track.name}</span>
+                                                <span className="text-[11px] md:text-[12px] font-mono text-[#4a90d9]/50">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                <span className="text-sm md:text-base font-bold text-[#f1f5f9]/80 group-hover:text-[#f1f5f9] transition-colors">{track.name}</span>
                                             </div>
-                                            <i className="fas fa-chevron-right text-[12px] text-[#c89d53]/40 group-hover:text-[#c89d53] transition-colors"></i>
+                                            <i className="fas fa-chevron-right text-[12px] text-[#4a90d9]/40 group-hover:text-[#4a90d9] transition-colors"></i>
                                         </button>
                                     ))}
                                 </div>
@@ -1479,8 +1479,8 @@ const SmartLinkView: React.FC = () => {
 
                 {/* OTROS LANZAMIENTOS (FULL WIDTH GRID) */}
                 {otherReleases.length > 0 && (
-                    <div className="w-full max-w-6xl backdrop-blur-xl bg-[#2a221f]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-center">
-                        <h4 className="text-[#c89d53] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
+                    <div className="w-full max-w-6xl backdrop-blur-xl bg-[#081830]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-center">
+                        <h4 className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
                             <i className="fas fa-compact-disc"></i> MÁS DE {song.artist.toUpperCase()}
                         </h4>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
@@ -1488,7 +1488,7 @@ const SmartLinkView: React.FC = () => {
                                 <button 
                                     key={idx}
                                     onClick={() => navigate(`/link/${other.id}`)}
-                                    className="w-full flex flex-col items-center p-3 md:p-4 rounded-xl bg-[#1a1411]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all duration-300 group"
+                                    className="w-full flex flex-col items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all duration-300 group"
                                 >
                                     <div className="w-full aspect-square mb-3 md:mb-4 overflow-hidden rounded-lg">
                                         <img 
@@ -1497,7 +1497,7 @@ const SmartLinkView: React.FC = () => {
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     </div>
-                                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#e8dcc5] leading-snug group-hover:text-[#c89d53] transition-colors line-clamp-1">{other.name}</h5>
+                                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#f1f5f9] leading-snug group-hover:text-[#4a90d9] transition-colors line-clamp-1">{other.name}</h5>
                                 </button>
                             ))}
                         </div>
@@ -1507,12 +1507,12 @@ const SmartLinkView: React.FC = () => {
 
             {/* Footer */}
             <div className="mt-8 text-center w-full border-t border-[#1e4a7a]/20 pb-8 pt-8 relative z-20 max-w-7xl mx-auto px-4">
-                <h3 className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-[#c89d53]/70 mb-6 font-mono">Sígueme</h3>
+                <h3 className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-[#4a90d9]/70 mb-6 font-mono">Sígueme</h3>
                 <div className="flex justify-center gap-6">
-                    <a href="https://instagram.com/juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-instagram text-xl md:text-2xl text-[#c89d53]"></i></a>
-                    <a href="https://tiktok.com/@juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-tiktok text-xl md:text-2xl text-[#c89d53]"></i></a>
+                    <a href="https://instagram.com/juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-instagram text-xl md:text-2xl text-[#4a90d9]"></i></a>
+                    <a href="https://tiktok.com/@juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-tiktok text-xl md:text-2xl text-[#4a90d9]"></i></a>
                 </div>
-                <p className="text-[#c89d53]/40 text-[8px] md:text-[9px] mt-8 tracking-widest uppercase font-mono">&copy; {new Date().getFullYear()} Juan 614.</p>
+                <p className="text-[#4a90d9]/40 text-[8px] md:text-[9px] mt-8 tracking-widest uppercase font-mono">&copy; {new Date().getFullYear()} Juan 614.</p>
             </div>
 
             {/* Modals */}

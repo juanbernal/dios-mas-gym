@@ -118,7 +118,7 @@ const AdminDashboard: React.FC = () => {
             title: 'Promo Image Generator',
             description: 'Crea imágenes promocionales para Instagram, Stories y más desde el catálogo de canciones.',
             icon: 'fa-image',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/promo-image',
             category: 'Contenido Audiovisual'
         },
@@ -190,7 +190,7 @@ const AdminDashboard: React.FC = () => {
             title: 'Link-in-Bio Manager',
             description: 'Gestiona tu página de enlaces para Instagram y TikTok con el diseño premium de la marca.',
             icon: 'fa-user-astronaut',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/links',
             category: 'Marketing & Social'
         },
@@ -199,7 +199,7 @@ const AdminDashboard: React.FC = () => {
             title: 'SmartLink Image Creator',
             description: 'Genera imágenes verticales (9:16) en alta resolución con el diseño real de tu SmartLink, listas para compartir en tus Stories y Estados.',
             icon: 'fa-mobile-screen',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/smartlink-video',
             category: 'Contenido Audiovisual'
         },
@@ -217,7 +217,7 @@ const AdminDashboard: React.FC = () => {
             title: 'Mando Ejecutivo - Marca',
             description: 'Aplica el logo oficial Mando Ejecutivo, listones de fe y tus redes de Diosmasgym a tus fotos sin perder calidad.',
             icon: 'fa-shield-halved',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/watermark',
             category: 'Contenido Audiovisual'
         },
@@ -235,7 +235,7 @@ const AdminDashboard: React.FC = () => {
             title: 'Centro de Análisis',
             description: 'Métricas en tiempo real: descubre qué reflexiones y canciones están impactando más.',
             icon: 'fa-chart-pie',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/analytics',
             category: 'Métricas & Audiencia'
         },
@@ -253,7 +253,7 @@ const AdminDashboard: React.FC = () => {
             title: 'Centro de Munición de Fe',
             description: 'Generador de imágenes y tarjetas motivadoras en alta resolución con versículos o citas personalizadas.',
             icon: 'fa-quote-left',
-            color: '#c5a059',
+            color: '#4a90d9',
             route: '/admin/municion-fe',
             category: 'Contenido Audiovisual'
         },
@@ -307,16 +307,16 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-transparent pt-32 pb-40 px-6 md:px-8 font-['Poppins'] relative z-10">
+        <div className="min-h-screen bg-transparent pt-32 pb-40 px-6 md:px-8 font-sans relative z-10">
             <div className="max-w-7xl mx-auto">
                 {/* Header / Saludo Premium */}
                 <div className="mb-12 md:mb-20 flex flex-col lg:flex-row lg:items-end justify-between gap-8 md:gap-10">
                     <div className="text-left">
-                        <h1 className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] text-[#c5a059] mb-3 md:mb-4 flex items-center gap-2 md:gap-4">
-                            <span className="w-6 md:w-12 h-px bg-[#c5a059]/30"></span> Mando Ejecutivo
+                        <h1 className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] text-[#4a90d9] mb-3 md:mb-4 flex items-center gap-2 md:gap-4">
+                            <span className="w-6 md:w-12 h-px bg-[#4a90d9]/30"></span> Mando Ejecutivo
                         </h1>
                         <h2 className="font-serif italic text-3xl md:text-7xl text-white leading-tight">
-                            Hola, <span className="text-[#c5a059] drop-shadow-[0_0_30px_rgba(197,160,89,0.2)]">Juan</span>
+                            Hola, <span className="text-[#4a90d9] drop-shadow-[0_0_30px_rgba(197,160,89,0.2)]">Juan</span>
                         </h2>
                     </div>
 
@@ -329,7 +329,7 @@ const AdminDashboard: React.FC = () => {
                         <div className="text-left">
                             <p className="text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-1 md:mb-2">Estado</p>
                             <div className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full animate-pulse ${isInstalled ? 'bg-green-500' : 'bg-[#c5a059]'}`}></div>
+                                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full animate-pulse ${isInstalled ? 'bg-green-500' : 'bg-[#4a90d9]'}`}></div>
                                 <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/80">
                                     {isInstalled ? 'Instalado' : 'Navegador'}
                                 </p>
@@ -347,10 +347,10 @@ const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
                     {/* Tarjeta de Instalación (si no está instalada) */}
                     {!isInstalled && (
-                        <div className="lg:col-span-8 bg-[#0f111a] border border-[#c5a059]/20 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+                        <div className="lg:col-span-8 bg-[#0f111a] border border-[#4a90d9]/20 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#4a90d9]/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
                             <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
-                                <div className="w-20 h-20 bg-gradient-to-br from-[#c5a059] to-[#8B5A2B] rounded-3xl flex items-center justify-center shrink-0 shadow-2xl rotate-3 group-hover:rotate-0 transition-all duration-500">
+                                <div className="w-20 h-20 bg-gradient-to-br from-[#4a90d9] to-[#8B5A2B] rounded-3xl flex items-center justify-center shrink-0 shadow-2xl rotate-3 group-hover:rotate-0 transition-all duration-500">
                                     <i className="fas fa-rocket text-black text-3xl"></i>
                                 </div>
                                 <div className="flex-1 text-center md:text-left">
@@ -359,7 +359,7 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                                 <button 
                                     onClick={handleInstall}
-                                    className="px-10 py-5 bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white transition-all transform active:scale-95 shadow-xl"
+                                    className="px-10 py-5 bg-[#4a90d9] text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-white transition-all transform active:scale-95 shadow-xl"
                                 >
                                     Instalar App
                                 </button>
@@ -370,7 +370,7 @@ const AdminDashboard: React.FC = () => {
                     {/* Stats Compactos (Bento Style) */}
                     <div className={`${isInstalled ? 'lg:col-span-12' : 'lg:col-span-4'} grid grid-cols-2 gap-4 h-full`}>
                         <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between">
-                            <i className="fas fa-compact-disc text-[#c5a059] text-xl"></i>
+                            <i className="fas fa-compact-disc text-[#4a90d9] text-xl"></i>
                             <div>
                                 <p className="text-3xl font-serif italic text-white">{musicStats.total}</p>
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/20">Catálogo Total</p>
@@ -396,10 +396,10 @@ const AdminDashboard: React.FC = () => {
                         <button
                             key={action.label}
                             onClick={() => navigate(action.route)}
-                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-5 text-left hover:-translate-y-1 hover:border-[#c5a059]/30 transition-all group"
+                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-5 text-left hover:-translate-y-1 hover:border-[#4a90d9]/30 transition-all group"
                         >
                             <i className={`fas ${action.icon} text-xl mb-6`} style={{ color: action.color }}></i>
-                            <p className="text-white text-xs font-black uppercase tracking-widest group-hover:text-[#c5a059] transition-colors">{action.label}</p>
+                            <p className="text-white text-xs font-black uppercase tracking-widest group-hover:text-[#4a90d9] transition-colors">{action.label}</p>
                         </button>
                     ))}
                 </div>
@@ -415,14 +415,14 @@ const AdminDashboard: React.FC = () => {
                                 value={toolSearch}
                                 onChange={e => setToolSearch(e.target.value)}
                                 placeholder="Buscar herramienta..."
-                                className="w-full bg-[#0f111a] border border-white/10 rounded-full pl-11 pr-5 py-3 text-xs text-white outline-none focus:border-[#c5a059]/40"
+                                className="w-full bg-[#0f111a] border border-white/10 rounded-full pl-11 pr-5 py-3 text-xs text-white outline-none focus:border-[#4a90d9]/40"
                             />
                         </div>
                         {push.isSupported && (
                             <button 
                                 onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
                                 className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-3 px-5 py-2.5 rounded-full border transition-all ${
-                                    push.isSubscribed ? 'border-[#c5a059]/40 text-[#c5a059]' : 'border-white/10 text-white/30'
+                                    push.isSubscribed ? 'border-[#4a90d9]/40 text-[#4a90d9]' : 'border-white/10 text-white/30'
                                 }`}
                             >
                                 <i className={`fas ${push.isSubscribed ? 'fa-bell' : 'fa-bell-slash'}`}></i>
@@ -436,7 +436,7 @@ const AdminDashboard: React.FC = () => {
                             <button
                                 key={category}
                                 onClick={() => setActiveCategory(category)}
-                                className={`px-5 py-2.5 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${activeCategory === category ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 text-white/35 border-white/10 hover:text-white'}`}
+                                className={`px-5 py-2.5 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${activeCategory === category ? 'bg-[#4a90d9] text-black border-[#4a90d9]' : 'bg-white/5 text-white/35 border-white/10 hover:text-white'}`}
                             >
                                 {category}
                             </button>
@@ -451,7 +451,7 @@ const AdminDashboard: React.FC = () => {
                                     <button
                                         key={tool.id}
                                         onClick={() => openTool(tool)}
-                                        className="shrink-0 bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 flex items-center gap-3 hover:border-[#c5a059]/30 transition-all"
+                                        className="shrink-0 bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 flex items-center gap-3 hover:border-[#4a90d9]/30 transition-all"
                                     >
                                         <i className={`fas ${tool.icon}`} style={{ color: tool.color }}></i>
                                         <span className="text-[10px] font-bold text-white/70">{tool.title}</span>
@@ -466,7 +466,7 @@ const AdminDashboard: React.FC = () => {
                             <div 
                                 key={tool.id}
                                 onClick={() => openTool(tool)}
-                                className="group bg-[#0f111a] border border-white/5 p-8 rounded-[2rem] cursor-pointer hover:border-[#c5a059]/40 transition-all hover:-translate-y-2 relative overflow-hidden flex flex-col"
+                                className="group bg-[#0f111a] border border-white/5 p-8 rounded-[2rem] cursor-pointer hover:border-[#4a90d9]/40 transition-all hover:-translate-y-2 relative overflow-hidden flex flex-col"
                             >
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <button
@@ -474,20 +474,20 @@ const AdminDashboard: React.FC = () => {
                                         event.stopPropagation();
                                         toggleFavorite(tool.id);
                                     }}
-                                    className={`absolute top-5 right-5 z-10 w-8 h-8 rounded-full border transition-all ${favoriteToolIds.includes(tool.id) ? 'bg-[#c5a059] border-[#c5a059] text-black' : 'bg-white/5 border-white/10 text-white/20 hover:text-[#c5a059]'}`}
+                                    className={`absolute top-5 right-5 z-10 w-8 h-8 rounded-full border transition-all ${favoriteToolIds.includes(tool.id) ? 'bg-[#4a90d9] border-[#4a90d9] text-black' : 'bg-white/5 border-white/10 text-white/20 hover:text-[#4a90d9]'}`}
                                     title="Marcar como favorito"
                                 >
                                     <i className="fas fa-star text-[10px]"></i>
                                 </button>
                                  
                                 <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner border border-white/5 group-hover:border-[#c5a059]/30 transition-all"
+                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner border border-white/5 group-hover:border-[#4a90d9]/30 transition-all"
                                          style={{ backgroundColor: `${tool.color}10`, color: tool.color }}>
                                         <i className={`fas ${tool.icon} text-lg`}></i>
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-[8px] font-black uppercase tracking-widest text-white/20 mb-0.5">{tool.category}</p>
-                                        <h4 className="text-white font-bold text-sm truncate group-hover:text-[#c5a059] transition-colors">{tool.title}</h4>
+                                        <h4 className="text-white font-bold text-sm truncate group-hover:text-[#4a90d9] transition-colors">{tool.title}</h4>
                                     </div>
                                 </div>
 
@@ -497,7 +497,7 @@ const AdminDashboard: React.FC = () => {
 
                                 <div className="flex items-center justify-between opacity-40 group-hover:opacity-100 transition-opacity">
                                     <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">Ejecutar</span>
-                                    <i className="fas fa-arrow-right text-[10px] text-[#c5a059]"></i>
+                                    <i className="fas fa-arrow-right text-[10px] text-[#4a90d9]"></i>
                                 </div>
                             </div>
                         ))}
@@ -518,7 +518,7 @@ const AdminDashboard: React.FC = () => {
                             <button 
                                 onClick={() => loadMusicCatalog(true)}
                                 disabled={isSyncingMusic}
-                                className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-[#c5a059] transition-all flex items-center gap-3"
+                                className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-[#4a90d9] transition-all flex items-center gap-3"
                             >
                                 <i className={`fas ${isSyncingMusic ? 'fa-spinner fa-spin' : 'fa-rotate'}`}></i>
                                 Sincronizar Catálogo

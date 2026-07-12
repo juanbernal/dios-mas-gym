@@ -685,14 +685,14 @@ const App: React.FC = () => {
     return (
       <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl">
         <div className="relative animate-pulse flex flex-col items-center">
-           <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-40 h-40 md:w-56 md:h-56 rounded-3xl object-cover shadow-[0_0_100px_rgba(197,160,89,0.25)] ring-1 ring-[#c5a059]/30" />
-           <div className="absolute inset-0 rounded-3xl ring-2 ring-[#c5a059]/10 animate-ping opacity-20"></div>
+           <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-40 h-40 md:w-56 md:h-56 rounded-3xl object-cover shadow-[0_0_100px_rgba(197,160,89,0.25)] ring-1 ring-[#4a90d9]/30" />
+           <div className="absolute inset-0 rounded-3xl ring-2 ring-[#4a90d9]/10 animate-ping opacity-20"></div>
         </div>
         <div className="mt-16 flex flex-col items-center gap-6">
             <div className="w-64 h-[1px] bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-transparent via-[#c5a059] to-transparent w-1/2 animate-[progress_2s_ease-in-out_infinite]"></div>
+                <div className="h-full bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent w-1/2 animate-[progress_2s_ease-in-out_infinite]"></div>
             </div>
-            <div className="text-[11px] font-black uppercase tracking-[0.8em] text-[#c5a059] animate-pulse drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]">
+            <div className="text-[11px] font-black uppercase tracking-[0.8em] text-[#4a90d9] animate-pulse drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]">
               Entrando al Templo
             </div>
         </div>
@@ -707,7 +707,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#c5a059] selection:text-black cinematic-grain relative">
+    <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#4a90d9] selection:text-black cinematic-grain relative">
       <div className="stripe-accent"></div>
       {!hideGlobalUI && <SocialPopup />}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} onSearch={() => setIsSearchOpen(true)} />}
@@ -746,19 +746,19 @@ const App: React.FC = () => {
             <section className="py-32 min-h-screen bg-[#05070a]">
               <div className="section-container">
                 <div className="mb-32 flex flex-col md:flex-row justify-between items-start md:items-end gap-16 border-b border-white/5 pb-16">
-                   <h1 className="font-serif text-6xl md:text-8xl leading-none">Arsenal <br /> <span className="italic text-[#c5a059]">Completo</span></h1>
+                   <h1 className="font-serif text-6xl md:text-8xl leading-none">Arsenal <br /> <span className="italic text-[#4a90d9]">Completo</span></h1>
                    <div className="w-full md:w-96 relative group">
                       <input 
                          type="text" value={state.searchTerm} onChange={e => setState(p => ({ ...p, searchTerm: e.target.value }))}
                          placeholder="IDENTIFICAR OBJETIVO..." 
-                         className="w-full bg-[#0f111a] border border-white/10 p-6 text-[10px] font-black tracking-[0.4em] outline-none focus:border-[#c5a059] transition-all rounded-sm uppercase"
+                         className="w-full bg-[#0f111a] border border-white/10 p-6 text-[10px] font-black tracking-[0.4em] outline-none focus:border-[#4a90d9] transition-all rounded-sm uppercase"
                       />
-                      <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#c5a059] group-focus-within:w-full transition-all duration-500"></div>
+                      <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#4a90d9] group-focus-within:w-full transition-all duration-500"></div>
                    </div>
                 </div>
                 {state.mainNextPageToken && !state.searchTerm && (
-                   <div className="mb-8 flex items-center gap-3 text-[8px] font-black uppercase tracking-widest text-[#c5a059]/40 animate-pulse">
-                      <div className="w-2 h-2 rounded-full bg-[#c5a059]"></div>
+                   <div className="mb-8 flex items-center gap-3 text-[8px] font-black uppercase tracking-widest text-[#4a90d9]/40 animate-pulse">
+                      <div className="w-2 h-2 rounded-full bg-[#4a90d9]"></div>
                       Sincronizando archivo histórico... ({state.allPosts.length} artículos listos)
                    </div>
                 )}
@@ -768,7 +768,7 @@ const App: React.FC = () => {
               <section className="py-32 bg-[#05070a] border-y border-white/5">
                 <div className="section-container">
                   <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
-                    <h2 className="font-serif text-5xl md:text-7xl leading-tight">Última <br /> <span className="italic text-[#c5a059]">Inspiración</span></h2>
+                    <h2 className="font-serif text-5xl md:text-7xl leading-tight">Última <br /> <span className="italic text-[#4a90d9]">Inspiración</span></h2>
                     <p className="text-[#94a3b8] max-w-sm pb-4 font-bold uppercase tracking-[0.3em] text-[10px] leading-relaxed">Artillería pesada para el espíritu guerrero.</p>
                   </div>
                   {state.allPosts[0] && (
@@ -794,7 +794,7 @@ const App: React.FC = () => {
                 <section className="py-24 bg-[#05070a] border-b border-white/5">
                   <div className="section-container">
                     <div className="flex items-center gap-4 mb-12">
-                      <div className="w-10 h-10 rounded-full bg-[#c5a059]/20 flex items-center justify-center text-[#c5a059]">
+                      <div className="w-10 h-10 rounded-full bg-[#4a90d9]/20 flex items-center justify-center text-[#4a90d9]">
                         <i className="fas fa-book-open text-sm"></i>
                       </div>
                       <h2 className="font-serif italic text-3xl text-white">Continuar Leyendo</h2>
@@ -816,14 +816,14 @@ const App: React.FC = () => {
               <section className="py-28 bg-[#0a0c14]">
                 <div className="section-container">
                   <div className="flex items-center gap-6 mb-16">
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#c5a059]/20 to-transparent"></div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#4a90d9]/20 to-transparent"></div>
                     <div className="flex items-center gap-4">
-                      <h2 className="font-serif italic text-4xl text-[#c5a059]">Inspiración Diaria</h2>
-                      <button onClick={refreshRandomPosts} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/30 hover:text-[#c5a059] hover:border-[#c5a059]/30 transition-all text-xs" title="Refrescar">
+                      <h2 className="font-serif italic text-4xl text-[#4a90d9]">Inspiración Diaria</h2>
+                      <button onClick={refreshRandomPosts} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/30 hover:text-[#4a90d9] hover:border-[#4a90d9]/30 transition-all text-xs" title="Refrescar">
                         <i className="fas fa-shuffle"></i>
                       </button>
                     </div>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[#c5a059]/20 via-transparent to-transparent"></div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#4a90d9]/20 via-transparent to-transparent"></div>
                   </div>
                   <div className="grid grid-cols-12 gap-8">
                     {randomPosts.length > 0 ? randomPosts.slice(0, 3).map((p, idx) => (
@@ -851,7 +851,7 @@ const App: React.FC = () => {
                       </div>
                       <h2 className="font-serif italic text-3xl md:text-4xl text-white">Recién Llegados</h2>
                       <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
-                      <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8 flex-shrink-0">
+                      <button onClick={() => changeView('reflexiones')} className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4a90d9] hover:text-white transition-all underline decoration-[#4a90d9]/30 underline-offset-8 flex-shrink-0">
                         Ver Todo
                       </button>
                     </div>
@@ -897,14 +897,14 @@ const App: React.FC = () => {
                  return (
                    <section key={tag} className={`py-28 ${sIdx % 2 === 0 ? 'bg-[#0a0c14]' : 'bg-[#05070a]'}`}>
                      <div className="section-container">
-                       <div className="flex items-center justify-between mb-16 px-4 border-l-4 border-[#c5a059]">
+                       <div className="flex items-center justify-between mb-16 px-4 border-l-4 border-[#4a90d9]">
                          <div className="flex items-center gap-4">
                            <h3 className="font-serif italic text-3xl md:text-5xl text-white">{tag}</h3>
                            <span className="text-[9px] font-black text-white/20 bg-white/5 px-3 py-1 rounded-full">{tagPosts.length} posts</span>
                          </div>
                          <button 
                            onClick={() => { setState((p: any) => ({ ...p, selectedCategory: tag })); navigate('/reflexiones'); }} 
-                           className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059] hover:text-white transition-all underline decoration-[#c5a059]/30 underline-offset-8"
+                           className="text-[10px] font-black uppercase tracking-[0.3em] text-[#4a90d9] hover:text-white transition-all underline decoration-[#4a90d9]/30 underline-offset-8"
                          >
                            Material Completo
                          </button>
@@ -926,24 +926,24 @@ const App: React.FC = () => {
               
 
                 <div className="magazine-grid mb-32">
-                   {state.isSearching && ( <div className="col-span-12 py-20 text-center animate-pulse"><div className="inline-block w-12 h-12 border-2 border-[#c5a059] border-t-transparent animate-spin rounded-full mb-6"></div><p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#c5a059]">Rescatando el Arsenal de Fe...</p></div> )}
+                   {state.isSearching && ( <div className="col-span-12 py-20 text-center animate-pulse"><div className="inline-block w-12 h-12 border-2 border-[#4a90d9] border-t-transparent animate-spin rounded-full mb-6"></div><p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#4a90d9]">Rescatando el Arsenal de Fe...</p></div> )}
                    {filteredPosts.map(p => ( <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}
                    {filteredPosts.length === 0 && !state.isSearching && (
-                      <div className="col-span-12 py-40 text-center"><p className="font-serif italic text-4xl opacity-20 text-white mb-8">Objetivo no localizado.</p><button onClick={() => setState(p => ({ ...p, searchTerm: '' }))} className="text-[#c5a059] text-[10px] font-black uppercase tracking-widest border-b border-[#c5a059] pb-1">Resetear Rastreador</button></div>
+                      <div className="col-span-12 py-40 text-center"><p className="font-serif italic text-4xl opacity-20 text-white mb-8">Objetivo no localizado.</p><button onClick={() => setState(p => ({ ...p, searchTerm: '' }))} className="text-[#4a90d9] text-[10px] font-black uppercase tracking-widest border-b border-[#4a90d9] pb-1">Resetear Rastreador</button></div>
                    )}
                 </div>
                 {(state.searchTerm ? state.searchNextPageToken : state.nextPageToken) && (
-                  <div className="text-center py-20 border-t border-white/5"><button onClick={loadMore} disabled={state.loading} className="group relative px-12 py-6 bg-transparent border border-[#c5a059] overflow-hidden transition-all hover:bg-[#c5a059] duration-500 disabled:opacity-30"><div className="absolute inset-0 w-0 bg-[#c5a059] group-hover:w-full transition-all duration-500"></div><span className="relative z-10 text-[10px] font-black uppercase tracking-[0.6em] text-[#c5a059] group-hover:text-black transition-colors">{state.loading ? 'Sincronizando...' : 'Cargar Más Material'}</span></button></div>
+                  <div className="text-center py-20 border-t border-white/5"><button onClick={loadMore} disabled={state.loading} className="group relative px-12 py-6 bg-transparent border border-[#4a90d9] overflow-hidden transition-all hover:bg-[#4a90d9] duration-500 disabled:opacity-30"><div className="absolute inset-0 w-0 bg-[#4a90d9] group-hover:w-full transition-all duration-500"></div><span className="relative z-10 text-[10px] font-black uppercase tracking-[0.6em] text-[#4a90d9] group-hover:text-black transition-colors">{state.loading ? 'Sincronizando...' : 'Cargar Más Material'}</span></button></div>
                 )}
               </div>
             </section>
           } />
-          <Route path="/favoritos" element={ <section className="py-32 min-h-screen bg-[#05070a]"><div className="section-container"><h1 className="font-serif text-7xl md:text-9xl mb-32 italic text-[#c5a059]">Mis Favoritos</h1><div className="magazine-grid">{filteredPosts.map(p => ( <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}{filteredPosts.length === 0 && <div className="col-span-12 py-40 text-center font-serif italic text-4xl opacity-20 text-white">Archivo vacío.</div>}</div></div></section> } />
+          <Route path="/favoritos" element={ <section className="py-32 min-h-screen bg-[#05070a]"><div className="section-container"><h1 className="font-serif text-7xl md:text-9xl mb-32 italic text-[#4a90d9]">Mis Favoritos</h1><div className="magazine-grid">{filteredPosts.map(p => ( <div key={p.id} className="col-span-12 md:col-span-6 lg:col-span-4 transition-all duration-500"><PostCard post={p} onClick={() => navigate(`/post/${getSlugFromUrl(p.url)}`)} isFav={state.favorites.includes(p.id)} isRead={readingHistory.includes(p.id)} onFav={(e) => { e.stopPropagation(); setState(prev => ({ ...prev, favorites: prev.favorites.includes(p.id) ? prev.favorites.filter(id => id !== p.id) : [...prev.favorites, p.id] })); }} /></div> ))}{filteredPosts.length === 0 && <div className="col-span-12 py-40 text-center font-serif italic text-4xl opacity-20 text-white">Archivo vacío.</div>}</div></div></section> } />
           <Route path="/post/:slug" element={<PostView state={state} setState={setState} getSlugFromUrl={getSlugFromUrl} readingHistory={readingHistory} setReadingHistory={setReadingHistory} />} />
           
           {/* Admin Routes with Lazy Loading and Suspense */}
           <Route path="/admin/*" element={
-            <React.Suspense fallback={<div className="min-h-screen bg-[#05070a] flex items-center justify-center text-[#c5a059] font-serif italic text-4xl animate-pulse">Cargando Módulo...</div>}>
+            <React.Suspense fallback={<div className="min-h-screen bg-[#05070a] flex items-center justify-center text-[#4a90d9] font-serif italic text-4xl animate-pulse">Cargando Módulo...</div>}>
               <Routes>
                 <Route path="" element={<AdminAuthWrapper><AdminDashboard/></AdminAuthWrapper>} />
                 <Route path="promo-image" element={<AdminAuthWrapper><PromoImageApp/></AdminAuthWrapper>} />
@@ -984,7 +984,7 @@ const App: React.FC = () => {
       {!hideGlobalUI && state.allPosts.length > 0 && (
         <button
           onClick={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }}
-          className="fixed bottom-28 md:bottom-8 right-6 z-[100] w-14 h-14 rounded-full bg-[#c5a059] text-black shadow-xl hover:bg-white transition-all hover:scale-110 flex items-center justify-center"
+          className="fixed bottom-28 md:bottom-8 right-6 z-[100] w-14 h-14 rounded-full bg-[#4a90d9] text-black shadow-xl hover:bg-white transition-all hover:scale-110 flex items-center justify-center"
           title="Post Aleatorio"
         >
           <i className="fas fa-shuffle text-lg"></i>
@@ -1009,14 +1009,14 @@ const App: React.FC = () => {
                 }
               }}
               placeholder="IDENTIFIQUE OBJETIVO..." 
-              className="w-full bg-transparent border-b-2 border-[#c5a059] py-8 md:py-12 text-3xl md:text-7xl font-serif italic text-white focus:outline-none placeholder-white/5 uppercase" 
+              className="w-full bg-transparent border-b-2 border-[#4a90d9] py-8 md:py-12 text-3xl md:text-7xl font-serif italic text-white focus:outline-none placeholder-white/5 uppercase" 
             />
             
             {/* Live Search Results Grid (Real-time cards with images) */}
             {state.searchTerm.trim().length >= 2 && (
               <div className="mt-12 text-left w-full animate-fade-in">
                 <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-3">
-                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059]">
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4a90d9]">
                     Objetivos Localizados ({filteredPosts.length})
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-widest text-white/30 font-mono">
@@ -1058,7 +1058,7 @@ const App: React.FC = () => {
 
             <button 
               onClick={() => setIsSearchOpen(false)} 
-              className="mt-16 px-8 py-3.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:bg-[#c5a059] hover:text-black hover:border-transparent transition-all active:scale-95"
+              className="mt-16 px-8 py-3.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.4em] text-[#4a90d9] hover:bg-[#4a90d9] hover:text-black hover:border-transparent transition-all active:scale-95"
             >
               [ CERRAR BUSCADOR ]
             </button>
