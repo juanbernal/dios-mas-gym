@@ -152,6 +152,15 @@ const AnalyticsDashboard: React.FC = () => {
                         { name: 'Canciones', value: 7500 },
                         { name: 'Reflexiones', value: 4950 }
                     ],
+                    avgSessionDuration: '04:32',
+                    bounceRate: '32%',
+                    newVsReturning: { new: 65, returning: 35 },
+                    deviceBreakdown: { mobile: 85, desktop: 12, tablet: 3 },
+                    trafficSources: [
+                        { source: 'Instagram', value: 45 },
+                        { source: 'Directo', value: 30 },
+                        { source: 'Google', value: 25 }
+                    ],
                     isMock: true
                 });
             } finally {
@@ -299,6 +308,64 @@ const AnalyticsDashboard: React.FC = () => {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-[50px] pointer-events-none"></div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-chart-line mr-2"></i> Tráfico Total ({timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'month' ? 'Mes' : 'Semana'})</p>
                         <h3 className="text-5xl font-bold text-white">{data?.totalViews?.toLocaleString() || '0'}</h3>
+                    </div>
+
+                    {/* Tarjeta de Retención */}
+                    <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-center lg:col-span-1">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#0088cc]/10 rounded-full blur-[50px] pointer-events-none"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-clock mr-2"></i> Tiempo Promedio</p>
+                        <h3 className="text-4xl font-bold text-white">{data?.avgSessionDuration || '00:00'} <span className="text-sm text-white/30 font-normal">min</span></h3>
+                    </div>
+
+                    {/* Tarjeta de Tasa de Rebote */}
+                    <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-center lg:col-span-1">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#f43f5e]/10 rounded-full blur-[50px] pointer-events-none"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-door-open mr-2"></i> Tasa de Rebote</p>
+                        <h3 className="text-4xl font-bold text-white">{data?.bounceRate || '0%'}</h3>
+                    </div>
+
+                    {/* Tarjeta de Usuarios Nuevos vs Recurrentes */}
+                    <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-center lg:col-span-1">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ffcc]/10 rounded-full blur-[50px] pointer-events-none"></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4"><i className="fas fa-users mr-2"></i> Fidelidad</p>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-white">Nuevos ({data?.newVsReturning?.new || 0}%)</span>
+                            <span className="text-white/50">Recurrentes ({data?.newVsReturning?.returning || 0}%)</span>
+                        </div>
+                        <div className="w-full bg-white/5 rounded-full h-2 flex overflow-hidden">
+                            <div className="bg-[#00ffcc] h-full" style={{ width: `${data?.newVsReturning?.new || 0}%` }}></div>
+                            <div className="bg-white/20 h-full" style={{ width: `${data?.newVsReturning?.returning || 0}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+                    {/* Gráfica de Dispositivos */}
+                    <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 relative flex flex-col lg:col-span-1 h-48">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-mobile-alt mr-2"></i> Dispositivos</p>
+                        <div className="flex flex-col gap-4 mt-2">
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-mobile-alt text-white/50 w-4"></i>
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-white">Móvil</span><span className="text-white/50">{data?.deviceBreakdown?.mobile || 0}%</span></div>
+                                    <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-[#c5a059] h-full rounded-full" style={{ width: `${data?.deviceBreakdown?.mobile || 0}%` }}></div></div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-desktop text-white/50 w-4"></i>
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-white">Desktop</span><span className="text-white/50">{data?.deviceBreakdown?.desktop || 0}%</span></div>
+                                    <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-white/30 h-full rounded-full" style={{ width: `${data?.deviceBreakdown?.desktop || 0}%` }}></div></div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <i className="fas fa-tablet-alt text-white/50 w-4"></i>
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-white">Tablet</span><span className="text-white/50">{data?.deviceBreakdown?.tablet || 0}%</span></div>
+                                    <div className="w-full bg-white/5 rounded-full h-1.5"><div className="bg-white/20 h-full rounded-full" style={{ width: `${data?.deviceBreakdown?.tablet || 0}%` }}></div></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Gráfica de Distribución (Pastel) */}
