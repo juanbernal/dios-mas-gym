@@ -136,13 +136,25 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
           </div>
 
           <div className="flex items-center gap-4">
-             <button 
-                onClick={togglePlay}
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#4a90d9]/20 hover:text-[#4a90d9] transition-all border border-white/10"
-                title={isPlaying ? 'Pausar' : 'Reproducir'}
-             >
-                <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ${isPlaying ? '' : 'ml-0.5'}`}></i>
-             </button>
+             {videoId ? (
+                 <button 
+                    onClick={togglePlay}
+                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#4a90d9]/20 hover:text-[#4a90d9] transition-all border border-white/10"
+                    title={isPlaying ? 'Pausar' : 'Reproducir'}
+                 >
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ${isPlaying ? '' : 'ml-0.5'}`}></i>
+                 </button>
+             ) : (
+                 <a 
+                    href={activeSong.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 flex items-center justify-center rounded-full bg-[#c5a059]/20 hover:bg-[#c5a059] text-[#c5a059] hover:text-black transition-all border border-[#c5a059]/30"
+                    title="Escuchar"
+                 >
+                    <i className="fas fa-external-link-alt text-sm"></i>
+                 </a>
+             )}
              <a 
                 href={isJuan ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
                 target="_blank"

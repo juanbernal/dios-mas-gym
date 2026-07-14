@@ -72,9 +72,15 @@ const MusicCard: React.FC<MusicCardProps> = ({ item, onPlay }) => {
 
           {/* Buttons */}
           <div className="flex items-center gap-2 mt-3">
-            <button onClick={onPlay} className="btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px' }}>
-              <i className="fas fa-play mr-1.5"></i>Reproducir
-            </button>
+            {item.url.includes('youtube.com') || item.url.includes('youtu.be') ? (
+                <button onClick={onPlay} className="btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px' }}>
+                  <i className="fas fa-play mr-1.5"></i>Reproducir
+                </button>
+            ) : (
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ background: '#c5a059', padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px', textDecoration: 'none' }}>
+                  <i className="fab fa-apple mr-1.5"></i>Escuchar
+                </a>
+            )}
             <a href={`/link/${item.id}`} target="_blank" rel="noopener noreferrer"
               className="btn-secondary" style={{ padding: '0.45rem 1rem', fontSize: '0.5rem', clipPath: 'none', borderRadius: '2px', textDecoration: 'none' }}>
               <i className="fas fa-link mr-1.5"></i>Link

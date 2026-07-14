@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import WeeklyContentAssistant from './WeeklyContentAssistant';
+import AppleMusicImporter from './AppleMusicImporter';
 import { useOneSignal } from '../../services/useOneSignal';
 
 const AdminDashboard: React.FC = () => {
@@ -265,6 +266,15 @@ const AdminDashboard: React.FC = () => {
             color: '#38bdf8',
             route: '/admin/top5-social',
             category: 'Marketing & Social'
+        },
+        {
+            id: 'apple-music',
+            title: 'Apple Music Importer',
+            description: 'Encuentra y extrae el catálogo faltante directamente desde Apple Music.',
+            icon: 'fab fa-apple',
+            color: '#111111',
+            route: '/admin/apple-music',
+            category: 'Gestión y Utilidades'
         }
     ];
 

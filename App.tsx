@@ -54,6 +54,7 @@ const SplitSheetGenerator = React.lazy(() => import('./components/admin/SplitShe
 const MaintenanceAdmin = React.lazy(() => import('./components/admin/MaintenanceAdmin'));
 const MunicionFe = React.lazy(() => import('./components/admin/MunicionFe'));
 const Top5SocialGenerator = React.lazy(() => import('./components/admin/Top5SocialGenerator'));
+const AppleMusicImporter = React.lazy(() => import('./components/admin/AppleMusicImporter'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -969,6 +970,7 @@ const App: React.FC = () => {
                 <Route path="maintenance" element={<AdminAuthWrapper><MaintenanceAdmin/></AdminAuthWrapper>} />
                 <Route path="municion-fe" element={<AdminAuthWrapper><MunicionFe/></AdminAuthWrapper>} />
                 <Route path="top5-social" element={<AdminAuthWrapper><Top5SocialGenerator/></AdminAuthWrapper>} />
+                <Route path="apple-music" element={<AdminAuthWrapper><AppleMusicImporter/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
