@@ -519,29 +519,51 @@ export default async function handler(
         url = GS_ANALYTICS_URL;
       }
 
-      if (req.method === 'GET') {
-        const q = { ...req.query } as Record<string, string>;
-        delete q.script;
-        delete q.action;
+      // Build query params from the incoming query (for GET reads)
+      const q = { ...req.query } as Record<string, string>;
+      delete q.script;
+      delete q.action;
+
+      if (req.method === 'POST') {
+        // Merge body fields into query params so Apps Script can read via e.parameter
+        let bodyData: Record<string, string> = {};
+        if (typeof req.body === 'string') {
+          try { bodyData = JSON.parse(req.body); } catch {}
+        } else if (req.body && typeof req.body === 'object') {
+          bodyData = req.body as Record<string, string>;
+        }
+        const merged = { ...q, ...bodyData };
+        if (!merged.action) merged.action = 'add';
+        const qs = new URLSearchParams(merged).toString();
+        url += `?${qs}`;
+        // Apps Script Web Apps are deployed as GET-only most of the time;
+        // send as GET with all data in query string
+        const resp = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          redirect: 'follow',
+        });
+        const ct = resp.headers.get('content-type');
+        if (ct?.includes('application/json')) {
+          return res.status(200).json(await resp.json());
+        } else {
+          return res.status(200).send(await resp.text());
+        }
+      } else {
+        // GET read: pass query params as-is
         const qs = new URLSearchParams(q).toString();
         if (qs) url += `?${qs}`;
-      }
-
-      const opts: RequestInit = {
-        method: req.method,
-        headers: { 'Content-Type': 'application/json' },
-      };
-      
-      if (req.method === 'POST') {
-         opts.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-      }
-
-      const resp = await fetch(url, opts);
-      const ct = resp.headers.get('content-type');
-      if (ct?.includes('application/json')) {
-        return res.status(200).json(await resp.json());
-      } else {
-        return res.status(200).send(await resp.text());
+        const resp = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          redirect: 'follow',
+        });
+        const ct = resp.headers.get('content-type');
+        if (ct?.includes('application/json')) {
+          return res.status(200).json(await resp.json());
+        } else {
+          return res.status(200).send(await resp.text());
+        }
       }
     } catch (err: any) {
       console.error('[sheet-proxy] Error:', err);

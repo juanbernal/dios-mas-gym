@@ -273,7 +273,7 @@ const ProximosLanzamientos: React.FC = () => {
         const originalItems = itemsToSync || pendingSync;
         if (originalItems.length === 0) return;
         
-        // Reverse to sync oldest first, so if the script inserts at the top, the newest ends up at the top.
+        // Reverse to sync oldest first, so the newest ends up at the top after insert.
         const items = [...originalItems].reverse();
         
         setIsSyncing(true);
@@ -290,8 +290,8 @@ const ProximosLanzamientos: React.FC = () => {
                     audioUrl: release.audioUrl || '',
                     coverImageUrl: release.coverImageUrl || ''
                 };
-                const queryString = new URLSearchParams(payload as any).toString();
-                const res = await fetch(`/api/sheet-proxy?${queryString}`, {
+                // Send data ONLY in the JSON body — the sheet-proxy forwards this to Google Apps Script
+                const res = await fetch(`/api/sheet-proxy`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -307,9 +307,7 @@ const ProximosLanzamientos: React.FC = () => {
         if (failed.length === 0) {
             setPendingSync([]);
             setStatus({ type: 'success', message: `¡Sincronización completa! Verificando catálogo...` });
-            // Reset the guard so checkCatalogSync runs fresh on re-fetch
             syncStartedRef.current = false;
-            // Wait a bit for the Google Sheet to propagate, then re-fetch without reload
             setTimeout(() => {
                 setStatus({ type: 'idle' });
                 fetchCurrentReleases(true);
@@ -350,8 +348,8 @@ const ProximosLanzamientos: React.FC = () => {
                 audioUrl: formData.youtube,
                 coverImageUrl: formData.imagen
             };
-            const queryString = new URLSearchParams(payload as any).toString();
-            await fetch(`/api/sheet-proxy?${queryString}`, {
+            // Send data ONLY in the JSON body
+            await fetch(`/api/sheet-proxy`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
