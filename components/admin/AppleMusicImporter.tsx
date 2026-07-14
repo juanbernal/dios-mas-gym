@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchMusicCatalog } from '../../services/musicService';
 
 export default function AppleMusicImporter() {
     const [results, setResults] = useState<any[]>([]);
@@ -13,21 +14,33 @@ export default function AppleMusicImporter() {
         setCsvOutput('');
         
         try {
+            // Fetch current catalog to prevent duplicates
+            const currentCatalog = await fetchMusicCatalog(artist === 'Diosmasgym' ? 'diosmasgym' : 'juan614');
+            const existingNames = currentCatalog.map(item => item.name.toLowerCase().trim());
+
             // Using iTunes Search API for Apple Music tracks
-            const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=song&limit=100`);
+            const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=song&limit=200`);
             const data = await response.json();
             
-            // Filter precisely to match artist name loosely
-            const tracks = (data.results || []).filter((track: any) => 
-                track.artistName.toLowerCase().includes(artist.toLowerCase()) || 
-                artist.toLowerCase().includes(track.artistName.toLowerCase())
-            );
+            // Filter precisely to match artist name loosely AND check for duplicates
+            const tracks = (data.results || []).filter((track: any) => {
+                const isCorrectArtist = track.artistName.toLowerCase().includes(artist.toLowerCase()) || artist.toLowerCase().includes(track.artistName.toLowerCase());
+                const cleanTrackName = track.trackName.toLowerCase().replace(/,/g, '').trim();
+                
+                // Compare with existing catalog (simple fuzzy matching)
+                const isDuplicate = existingNames.some(name => name.includes(cleanTrackName) || cleanTrackName.includes(name));
+                
+                return isCorrectArtist && !isDuplicate;
+            });
             
             // Sort by release date descending
             tracks.sort((a: any, b: any) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
             
-            setResults(tracks);
-            generateCsv(tracks, artist);
+            // Remove duplicates within the results array itself (same track name)
+            const uniqueTracks = Array.from(new Map(tracks.map((t: any) => [t.trackName, t])).values());
+            
+            setResults(uniqueTracks);
+            generateCsv(uniqueTracks, artist);
         } catch (error) {
             console.error("Error fetching from Apple Music:", error);
             alert("Hubo un error al conectar con Apple Music.");
@@ -76,7 +89,8 @@ export default function AppleMusicImporter() {
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 backdrop-blur-md">
                 <p className="text-white/60 text-sm mb-6">
-                    Selecciona tu perfil para buscar todo tu catálogo en Apple Music. La herramienta generará el código CSV listo para pegar en tu base de datos de Google Sheets.
+                    Selecciona tu perfil para buscar todo tu catálogo en Apple Music. La herramienta <strong>filtrará automáticamente</strong> las canciones que ya tienes registradas y solo te mostrará las nuevas. <br/><br/>
+                    <em>¿Por qué copiar y pegar el CSV?</em> Porque la conexión actual de tu catálogo musical con Google Sheets es de "Solo Lectura". Para poder subirlo automáticamente, se requeriría configurar un script avanzado en tu cuenta de Google. Por seguridad y rapidez, copiar y pegar los resultados directamente en tu Google Sheet es la mejor opción.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
