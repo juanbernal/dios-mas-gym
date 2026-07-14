@@ -93,10 +93,11 @@ export default function AppleMusicImporter() {
     const generateCsv = (tracks: any[], targetArtist: string) => {
         if (tracks.length === 0) return;
         
-        let csv = "";
+        // TSV format (tab-separated) — pastes directly into Google Sheets columns
+        let tsv = "";
         
         tracks.forEach(track => {
-            const nombre = track.trackName.replace(/"/g, "'").replace(/,/g, '');
+            const nombre = track.trackName.replace(/\t/g, ' ');
             const artista = targetArtist === 'Diosmasgym' ? 'Diosmasgym' : 'Juan 614';
             const url = track.trackViewUrl;
             const portada = (track.artworkUrl100 || '').replace('100x100bb', '600x600bb');
@@ -104,10 +105,10 @@ export default function AppleMusicImporter() {
             const tipo = isSingle ? 'Sencillo' : 'Álbum';
             const fecha = track.releaseDate ? track.releaseDate.substring(0, 10) : '';
             
-            csv += `"${nombre}","${artista}","${url}","${portada}","${tipo}","${fecha}"\n`;
+            tsv += `${nombre}\t${artista}\t${url}\t${portada}\t${tipo}\t${fecha}\n`;
         });
         
-        setCsvOutput(csv.trim());
+        setCsvOutput(tsv.trim());
     };
 
     const showToast = (msg: string) => {
@@ -216,7 +217,7 @@ export default function AppleMusicImporter() {
                         </div>
 
                         <div className="bg-black/60 rounded-xl p-4 border border-white/10 mb-6">
-                            <p className="text-white/30 text-[10px] uppercase tracking-widest mb-2 font-bold">Vista previa del CSV — pégalo en tu Google Sheet</p>
+                            <p className="text-white/30 text-[10px] uppercase tracking-widest mb-2 font-bold">Vista previa — copia y pega directo en Google Sheets (se divide en columnas automáticamente)</p>
                             <textarea 
                                 readOnly
                                 value={csvOutput}
