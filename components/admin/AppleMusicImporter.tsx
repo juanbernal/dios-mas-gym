@@ -27,6 +27,7 @@ const areSimilar = (a: string, b: string): boolean => {
 
 export default function AppleMusicImporter() {
     const [results, setResults] = useState<any[]>([]);
+    const [toast, setToast] = useState<string | null>(null);
     const [skipped, setSkipped] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [csvOutput, setCsvOutput] = useState('');
@@ -109,13 +110,32 @@ export default function AppleMusicImporter() {
         setCsvOutput(csv.trim());
     };
 
+    const showToast = (msg: string) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 3500);
+    };
+
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(csvOutput);
-        alert("¡CSV copiado al portapapeles! Pégalo en tu Google Sheet.");
+        navigator.clipboard.writeText(csvOutput).then(() => {
+            showToast('¡CSV copiado! Pégalo al final de tu Google Sheet.');
+        }).catch(() => {
+            showToast('Error al copiar. Selecciona el texto manualmente.');
+        });
     };
 
     return (
         <div className="w-full max-w-4xl mx-auto pb-24">
+
+            {/* Custom Toast */}
+            {toast && (
+                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-[#0f1420]/95 border border-[#c5a059]/40 text-white px-6 py-4 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl animate-fade-in" style={{ minWidth: '300px' }}>
+                    <div className="w-8 h-8 rounded-full bg-[#c5a059]/20 flex items-center justify-center flex-shrink-0">
+                        <i className="fas fa-check text-[#c5a059] text-xs"></i>
+                    </div>
+                    <p className="text-sm font-semibold">{toast}</p>
+                </div>
+            )}
+
             <div className="flex items-center gap-4 mb-8">
                 <i className="fab fa-apple text-4xl text-[#c5a059]"></i>
                 <div>
