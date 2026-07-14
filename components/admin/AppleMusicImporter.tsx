@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 
 // Normalizes a string: lowercase, remove accents, strip non-alphanumeric
@@ -26,6 +27,7 @@ const areSimilar = (a: string, b: string): boolean => {
 };
 
 export default function AppleMusicImporter() {
+    const navigate = useNavigate();
     const [results, setResults] = useState<any[]>([]);
     const [toast, setToast] = useState<string | null>(null);
     const [skipped, setSkipped] = useState<number>(0);
@@ -136,6 +138,17 @@ export default function AppleMusicImporter() {
                     <p className="text-sm font-semibold">{toast}</p>
                 </div>
             )}
+
+            {/* Back button */}
+            <button
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 text-white/40 hover:text-white mb-8 transition-colors group"
+            >
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#c5a059]/20 group-hover:border-[#c5a059]/40 transition-all">
+                    <i className="fas fa-arrow-left text-xs"></i>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest">Panel Admin</span>
+            </button>
 
             <div className="flex items-center gap-4 mb-8">
                 <i className="fab fa-apple text-4xl text-[#c5a059]"></i>
