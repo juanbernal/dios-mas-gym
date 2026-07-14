@@ -304,12 +304,16 @@ const ProximosLanzamientos: React.FC = () => {
             }
         }
         setIsSyncing(false);
-        // Do NOT reset syncStartedRef.current here to avoid infinite loops.
-        // It will be reset if the user clicks "Rastrear de nuevo" manually.
         if (failed.length === 0) {
             setPendingSync([]);
-            setStatus({ type: 'success', message: `¡Sincronización completa! Recargando...` });
-            setTimeout(() => window.location.reload(), 2000);
+            setStatus({ type: 'success', message: `¡Sincronización completa! Verificando catálogo...` });
+            // Reset the guard so checkCatalogSync runs fresh on re-fetch
+            syncStartedRef.current = false;
+            // Wait a bit for the Google Sheet to propagate, then re-fetch without reload
+            setTimeout(() => {
+                setStatus({ type: 'idle' });
+                fetchCurrentReleases(true);
+            }, 2500);
         } else {
             setPendingSync(failed);
             setStatus({ type: 'error', message: `${failed.length} lanzamientos fallaron. Reintenta manualmente.` });
