@@ -13,7 +13,6 @@ import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import LinkBioPublic from "./components/LinkBioPublic";
 import UpcomingReleases from "./components/UpcomingReleases";
 import TemploGuerrero from "./components/TemploGuerrero";
-import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import ArmaduraPromo from "./components/ArmaduraPromo";
 import Footer from './components/Footer';
 import CommentSection from './components/CommentSection';
@@ -990,7 +989,6 @@ const App: React.FC = () => {
           <i className="fas fa-shuffle text-lg"></i>
         </button>
       )}
-      {location.pathname.startsWith('/admin') && <PWAInstallPrompt />}
       {!hideGlobalUI && <Footer />}
       {isSearchOpen && !hideGlobalUI && (
         <div className="fixed inset-0 z-[2000] bg-[#05070a]/98 backdrop-blur-2xl flex flex-col items-center justify-start p-6 md:p-24 overflow-y-auto animate-fade-in">

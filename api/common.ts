@@ -503,6 +503,53 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: SHEET PROXY
+  // -------------------------------------------------------------
+  if (action === 'sheet-proxy') {
+    try {
+      const script = (req.query.script as string) || 'main';
+      const GS_MAIN_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+      const GS_LYRICS_URL = 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+      const GS_ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec';
+
+      let url = GS_MAIN_URL;
+      if (script === 'lyrics') {
+        url = GS_LYRICS_URL;
+      } else if (script === 'analytics') {
+        url = GS_ANALYTICS_URL;
+      }
+
+      if (req.method === 'GET') {
+        const q = { ...req.query } as Record<string, string>;
+        delete q.script;
+        delete q.action;
+        const qs = new URLSearchParams(q).toString();
+        if (qs) url += `?${qs}`;
+      }
+
+      const opts: RequestInit = {
+        method: req.method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      
+      if (req.method === 'POST') {
+         opts.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      }
+
+      const resp = await fetch(url, opts);
+      const ct = resp.headers.get('content-type');
+      if (ct?.includes('application/json')) {
+        return res.status(200).json(await resp.json());
+      } else {
+        return res.status(200).send(await resp.text());
+      }
+    } catch (err: any) {
+      console.error('[sheet-proxy] Error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: VERIFY PASSWORD
   // -------------------------------------------------------------
   if (action === 'verify-password') {
