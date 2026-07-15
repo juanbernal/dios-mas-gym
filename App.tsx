@@ -274,6 +274,13 @@ const App: React.FC = () => {
       j6Old: j6Songs.oldSong,
     };
   }, [state.musicDiosmasgym, state.musicJuan614]);
+
+  // Memoizar el catálogo combinado para evitar recrearlo en cada render
+  // (evita que topDeLaSemana recalcule con Math.random() y cambie canciones)
+  const combinedCatalog = useMemo(() =>
+    [...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name && s.url),
+    [state.musicDiosmasgym, state.musicJuan614]
+  );
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -718,7 +725,7 @@ const App: React.FC = () => {
               <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }} />
 
               {/* TEMPLO DEL GUERRERO */}
-              <TemploGuerrero catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name && s.url)} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
+              <TemploGuerrero catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
 
               
               <section id="arsenal-content"><UpcomingReleases /></section>
@@ -727,7 +734,7 @@ const App: React.FC = () => {
 
               {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
               <HomeMusicSections 
-                catalog={[...state.musicDiosmasgym, ...state.musicJuan614].filter(s => s && typeof s === 'object' && s.name)} 
+                catalog={combinedCatalog} 
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
                 onNavigateReflexiones={() => { changeView('reflexiones'); navigate('/reflexiones'); }} 
               />
