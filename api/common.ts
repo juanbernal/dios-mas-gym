@@ -851,8 +851,7 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
@@ -995,8 +994,7 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
 
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
 
