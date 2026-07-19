@@ -525,18 +525,24 @@ export default async function handler(
           bodyData = req.body as Record<string, string>;
         }
 
-        // Build URLSearchParams — Apps Script reads this via e.postData.contents / e.parameter
-        const params = new URLSearchParams();
-        Object.entries(bodyData).forEach(([k, v]) => params.append(k, String(v ?? '')));
-
-        console.log('[sheet-proxy] POSTing to Apps Script with params:', params.toString());
-
-        const resp = await fetch(url, {
+        let fetchOptions: RequestInit = {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString(),
           redirect: 'follow',
-        });
+        };
+
+        if (script === 'lyrics') {
+          fetchOptions.headers = { 'Content-Type': 'text/plain' };
+          fetchOptions.body = JSON.stringify(bodyData);
+          console.log('[sheet-proxy] POSTing JSON payload to Apps Script (text/plain)');
+        } else {
+          const params = new URLSearchParams();
+          Object.entries(bodyData).forEach(([k, v]) => params.append(k, String(v ?? '')));
+          fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+          fetchOptions.body = params.toString();
+          console.log('[sheet-proxy] POSTing to Apps Script with params:', params.toString());
+        }
+
+        const resp = await fetch(url, fetchOptions);
 
         console.log('[sheet-proxy] Apps Script response status:', resp.status);
         const respText = await resp.text();
