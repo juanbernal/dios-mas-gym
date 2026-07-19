@@ -46,6 +46,8 @@ const LyricsManager: React.FC = () => {
     const [storyPreviewMode, setStoryPreviewMode] = useState<'preview' | 'html' | 'edit'>('preview');
     const [storyEditHtml, setStoryEditHtml] = useState('');
     const [showCloudExplorer, setShowCloudExplorer] = useState(false);
+    const [showNewLyricModal, setShowNewLyricModal] = useState(false);
+    const [newLyricTitle, setNewLyricTitle] = useState('');
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -725,14 +727,8 @@ ${cleanedLyrics}`;
                             </button>
                             <button 
                                 onClick={() => {
-                                    const title = prompt("Título de la nueva canción:");
-                                    if (title) {
-                                        const newLyric = { id: 'new', title, artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
-                                        setSelectedLyric(newLyric);
-                                        setSavedSignature(getSignature(newLyric));
-                                        setPreviewMode(false);
-                                        setViewMode('editor');
-                                    }
+                                    setNewLyricTitle('');
+                                    setShowNewLyricModal(true);
                                 }}
                                 className="p-2.5 md:px-6 md:py-2 bg-[#00ffcc] text-black rounded-full hover:bg-white transition-all shadow-lg shadow-[#00ffcc]/10"
                             >
@@ -1333,6 +1329,75 @@ ${cleanedLyrics}`;
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* NEW LYRIC MODAL */}
+        {showNewLyricModal && (
+            <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+                <div className="bg-[#0a0c14] border border-white/10 rounded-3xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+                    <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-gradient-to-r from-[#00ffcc]/10 to-transparent">
+                        <div className="w-12 h-12 bg-[#00ffcc]/10 rounded-2xl flex items-center justify-center text-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.1)]">
+                            <i className="fas fa-music text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-white">Nueva <span className="text-[#00ffcc]">Letra</span></h3>
+                            <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/40">Crear un borrador local</p>
+                        </div>
+                    </div>
+                    <div className="p-8">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">
+                            Título de la Canción
+                        </label>
+                        <div className="relative">
+                            <i className="fas fa-pen-nib absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Ej: Fuerte y Valiente..."
+                                value={newLyricTitle}
+                                onChange={(e) => setNewLyricTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newLyricTitle.trim()) {
+                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                        setSelectedLyric(newLyric);
+                                        setSavedSignature(getSignature(newLyric));
+                                        setPreviewMode(false);
+                                        setViewMode('editor');
+                                        setShowNewLyricModal(false);
+                                    } else if (e.key === 'Escape') {
+                                        setShowNewLyricModal(false);
+                                    }
+                                }}
+                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#00ffcc]/50 focus:ring-1 focus:ring-[#00ffcc]/30 transition-all font-medium"
+                            />
+                        </div>
+                    </div>
+                    <div className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3">
+                        <button
+                            onClick={() => setShowNewLyricModal(false)}
+                            className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (newLyricTitle.trim()) {
+                                    const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                    setSelectedLyric(newLyric);
+                                    setSavedSignature(getSignature(newLyric));
+                                    setPreviewMode(false);
+                                    setViewMode('editor');
+                                    setShowNewLyricModal(false);
+                                }
+                            }}
+                            disabled={!newLyricTitle.trim()}
+                            className="px-8 py-3 bg-[#00ffcc] text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.2)]"
+                        >
+                            Crear
+                        </button>
                     </div>
                 </div>
             </div>
