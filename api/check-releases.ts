@@ -213,6 +213,47 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
     return await response.json();
 }
 
+async function sendAdminNotification(items: any[]): Promise<any> {
+    const APP_ID = process.env.ONESIGNAL_APP_ID;
+    const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+
+    if (!APP_ID || !API_KEY) return { error: 'Missing environment variables' };
+    if (!items || items.length === 0) return;
+
+    const titles = items.map(i => i.name).join(', ');
+
+    const payload: any = {
+        app_id: APP_ID,
+        target_channel: "push",
+        filters: [
+            { field: "tag", key: "admin", relation: "=", value: "true" }
+        ],
+        headings: { 
+            en: `⚠️ Nueva Música Cargada`,
+            es: `⚠️ Nueva Música Cargada`
+        },
+        contents: {
+            en: `Se han detectado y cargado en el sistema: ${titles}`,
+            es: `Se han detectado y cargado en el sistema: ${titles}`,
+        },
+        url: 'https://app.diosmasgym.com/admin'
+    };
+
+    try {
+        const response = await fetch('https://onesignal.com/api/v1/notifications', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Basic ${API_KEY}`,
+            },
+            body: JSON.stringify(payload),
+        });
+        return await response.json();
+    } catch (e) {
+        console.error('[check-releases] Error sending admin notification:', e);
+    }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -355,6 +396,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         } catch (catalogErr: any) {
             console.error('[check-releases] Catalog detection failed (non-fatal):', catalogErr.message);
+        }
+
+        if (newlyDetected.length > 0) {
+            try {
+                await sendAdminNotification(newlyDetected);
+                console.log(`[check-releases] Notified admins about ${newlyDetected.length} new items.`);
+            } catch (err) {
+                console.error('[check-releases] Failed to notify admins:', err);
+            }
         }
 
         // --- 2. Fetch Fresh Sheet (if we synced anything) ---

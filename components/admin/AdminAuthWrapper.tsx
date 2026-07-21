@@ -12,10 +12,20 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
     const storedPassword = localStorage.getItem("admin_password");
     if (session === "true" && storedPassword && storedPassword.trim() !== "") {
       setIsAuthenticated(true);
+      if (typeof window !== 'undefined' && window.OneSignalDeferred) {
+          window.OneSignalDeferred.push((OneSignal: any) => {
+              if (OneSignal.User) OneSignal.User.addTag("admin", "true");
+          });
+      }
     } else {
       setIsAuthenticated(false);
       localStorage.removeItem("admin_session");
       localStorage.removeItem("admin_password");
+      if (typeof window !== 'undefined' && window.OneSignalDeferred) {
+          window.OneSignalDeferred.push((OneSignal: any) => {
+              if (OneSignal.User) OneSignal.User.removeTag("admin");
+          });
+      }
     }
   }, []);
 
@@ -37,6 +47,11 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
         localStorage.setItem("admin_session", "true");
         localStorage.setItem("admin_password", password.trim());
         setIsAuthenticated(true);
+        if (typeof window !== 'undefined' && window.OneSignalDeferred) {
+          window.OneSignalDeferred.push((OneSignal: any) => {
+              if (OneSignal.User) OneSignal.User.addTag("admin", "true");
+          });
+        }
       } else {
         setError(true);
         setPassword("");
