@@ -683,11 +683,17 @@ export default async function handler(
       } while (pageToken && page < MAX_PAGES);
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      // Static pages
+      xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
+      xml += urlBlock(`${BASE}/reflexiones`, today, 'daily', '0.9');
+      xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
+      // All blog posts
       allItems.forEach((item: any) => {
         const slug = (item.url || '').split('/').pop()?.replace('.html', '') || '';
         if (!slug) return;
         const lastmod = item.updated ? item.updated.split('T')[0] : (item.published ? item.published.split('T')[0] : today);
-        xml += urlBlock(`${BASE}/post/${slug}`, lastmod, 'monthly', '0.7');
+        xml += urlBlock(`${BASE}/post/${slug}`, lastmod, 'weekly', '0.7');
       });
       xml += `</urlset>`;
       res.setHeader('Content-Type', 'application/xml');
@@ -699,11 +705,11 @@ export default async function handler(
     const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
-    <loc>${BASE}/api/common?action=sitemap&amp;sub=posts</loc>
+    <loc>${BASE}/sitemap.xml?sub=posts</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
   <sitemap>
-    <loc>${BASE}/api/common?action=sitemap&amp;sub=songs</loc>
+    <loc>${BASE}/sitemap.xml?sub=songs</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -739,48 +745,81 @@ export default async function handler(
         return url.split('/').pop()?.replace('.html', '') || '';
       };
 
-      // Use Blogger public JSON feed — fetch recent posts and match by slug locally
-      // Note: Blogger's ?q= search is unreliable; fetching all and matching locally is more robust
-      const blogDomain = 'www.diosmasgym.com';
+      // Search strategy: use Blogger API v3 search first (works for any post, not just recent 50),
+      // then fall back to the public feed.
       const targetSlug = slug.toLowerCase();
       const slugWords = targetSlug.split('-').filter((w: string) => w.length > 3);
 
       let matchedPost: any = null;
 
-      try {
-        // Fetch latest 50 posts from feed — no search term needed
-        const feedUrl = `https://${blogDomain}/feeds/posts/default?alt=json&max-results=50&orderby=published`;
-        const feedResp = await fetch(feedUrl, { headers: { 'Accept': 'application/json' } });
-        if (feedResp.ok) {
-          const feedData = await feedResp.json();
-          const entries: any[] = feedData?.feed?.entry || [];
-
-          for (const entry of entries) {
-            const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
-            if (!altLink) continue;
-            const entrySlug = (altLink.href.split('/').pop()?.replace('.html', '') || '').toLowerCase();
-
-            // Exact match
-            if (entrySlug === targetSlug) { matchedPost = entry; break; }
-            // Prefix match (Blogger sometimes truncates long slugs)
-            if (entrySlug.startsWith(targetSlug.slice(0, 25)) || targetSlug.startsWith(entrySlug.slice(0, 25))) {
-              matchedPost = entry; break;
+      // --- Strategy 1: Use Blogger API v3 with search query derived from slug ---
+      if (apiKey && !matchedPost) {
+        try {
+          const queryTerm = targetSlug.replace(/-/g, ' ');
+          const apiSearchUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/search?key=${apiKey}&q=${encodeURIComponent(queryTerm)}&maxResults=10&fetchImages=true`;
+          const apiResp = await fetch(apiSearchUrl, {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'Vercel-Server-Function' }
+          });
+          if (apiResp.ok) {
+            const apiData = await apiResp.json();
+            const items: any[] = apiData?.items || [];
+            for (const item of items) {
+              const itemSlug = (item.url || '').split('/').pop()?.replace('.html', '').toLowerCase() || '';
+              if (itemSlug === targetSlug || itemSlug.startsWith(targetSlug.slice(0, 30)) || targetSlug.startsWith(itemSlug.slice(0, 30))) {
+                // Convert v3 item format to feed entry format for uniform processing below
+                matchedPost = {
+                  title: { $t: item.title },
+                  content: { $t: item.content || '' },
+                  summary: { $t: item.content ? item.content.replace(/<[^>]*>/g, '').slice(0, 300) : '' },
+                  published: { $t: item.published },
+                  updated: { $t: item.updated },
+                  'media$thumbnail': item.images?.[0] ? { url: item.images[0].url } : null,
+                  link: [{ rel: 'alternate', href: item.url }]
+                };
+                break;
+              }
             }
           }
+        } catch (apiErr) {
+          console.error('Blogger API v3 search error:', apiErr);
+        }
+      }
 
-          // Broad word match fallback
-          if (!matchedPost && slugWords.length >= 2) {
+      // --- Strategy 2: Public JSON feed (recent 150 posts) ---
+      if (!matchedPost) {
+        try {
+          const blogDomain = 'www.diosmasgym.com';
+          const feedUrl = `https://${blogDomain}/feeds/posts/default?alt=json&max-results=150&orderby=published`;
+          const feedResp = await fetch(feedUrl, { headers: { 'Accept': 'application/json' } });
+          if (feedResp.ok) {
+            const feedData = await feedResp.json();
+            const entries: any[] = feedData?.feed?.entry || [];
+
             for (const entry of entries) {
               const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
               if (!altLink) continue;
               const entrySlug = (altLink.href.split('/').pop()?.replace('.html', '') || '').toLowerCase();
-              const hits = slugWords.filter((w: string) => entrySlug.includes(w));
-              if (hits.length >= Math.ceil(slugWords.length * 0.6)) { matchedPost = entry; break; }
+
+              if (entrySlug === targetSlug) { matchedPost = entry; break; }
+              if (entrySlug.startsWith(targetSlug.slice(0, 30)) || targetSlug.startsWith(entrySlug.slice(0, 30))) {
+                matchedPost = entry; break;
+              }
+            }
+
+            // Broad word match fallback
+            if (!matchedPost && slugWords.length >= 2) {
+              for (const entry of entries) {
+                const altLink = (entry.link || []).find((l: any) => l.rel === 'alternate');
+                if (!altLink) continue;
+                const entrySlug = (altLink.href.split('/').pop()?.replace('.html', '') || '').toLowerCase();
+                const hits = slugWords.filter((w: string) => entrySlug.includes(w));
+                if (hits.length >= Math.ceil(slugWords.length * 0.6)) { matchedPost = entry; break; }
+              }
             }
           }
+        } catch (feedErr) {
+          console.error('Blogger feed fetch error:', feedErr);
         }
-      } catch (feedErr) {
-        console.error('Blogger feed fetch error:', feedErr);
       }
 
       let title = "Dios Mas Gym - El Arsenal de Fe";
