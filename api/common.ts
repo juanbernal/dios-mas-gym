@@ -806,9 +806,11 @@ export default async function handler(
 
       // Build JSON-LD structured data if post match was found
       let jsonLdBlock = '';
+      let contentHtml = '';
       if (typeof html === 'string') {
         const publishedDate = matchedPost?.published?.$t || matchedPost?.published || new Date().toISOString();
         const modifiedDate = matchedPost?.updated?.$t || matchedPost?.updated || publishedDate;
+        contentHtml = matchedPost?.content?.$t || matchedPost?.summary?.$t || '';
         jsonLdBlock = `
 <script type="application/ld+json">
 {
@@ -855,7 +857,18 @@ export default async function handler(
       html = injectMeta(html, 'og:url', `https://app.diosmasgym.com/post/${slug}`);
       html = html.replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       
-      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
+      if (/<meta\s+name=["']description["']/i.test(html)) {
+          html = html.replace(/<meta\s+name=["']description["'][\s\S]*?\/?>/i, `<meta name="description" content="${safeDesc}">`);
+      } else {
+          html = html.replace('</head>', `<meta name="description" content="${safeDesc}">\n</head>`);
+      }
+      
+      html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
+
+      // Inject SSR content into root for SEO crawlers
+      if (contentHtml) {
+        html = html.replace('<div id="root"></div>', `<div id="root"><article style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"><h1>${safeTitle}</h1>${contentHtml}</article></div>`);
+      }
 
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
@@ -998,7 +1011,16 @@ export default async function handler(
       
       html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${shareUrl}" />`);
       
-      html = html.replace('</head>', `${jsonLdBlock}\n<meta name="description" content="${safeDesc}">\n</head>`);
+      if (/<meta\s+name=["']description["']/i.test(html)) {
+          html = html.replace(/<meta\s+name=["']description["'][\s\S]*?\/?>/i, `<meta name="description" content="${safeDesc}">`);
+      } else {
+          html = html.replace('</head>', `<meta name="description" content="${safeDesc}">\n</head>`);
+      }
+      
+      html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
+
+      // Inject basic SSR info for SmartLinks
+      html = html.replace('<div id="root"></div>', `<div id="root"><article style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}" /> <a href="${shareUrl}">Escuchar ahora</a></article></div>`);
 
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
