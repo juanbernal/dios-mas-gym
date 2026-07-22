@@ -904,9 +904,20 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
 
+      // Twitter Card meta tags (not in base index.html)
+      const postExtraMeta = [
+        `<meta property="og:type" content="article">`,
+        `<meta name="twitter:card" content="summary_large_image">`,
+        `<meta name="twitter:title" content="${safeTitle}">`,
+        `<meta name="twitter:description" content="${safeDesc}">`,
+        `<meta name="twitter:image" content="${safeImage}">`,
+      ].join('\n');
+      html = html.replace('</head>', `${postExtraMeta}\n</head>`);
+
       // Inject SSR content into root for SEO crawlers
       if (contentHtml) {
-        html = html.replace('<div id="root"></div>', `<div id="root"><article style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"><h1>${safeTitle}</h1>${contentHtml}</article></div>`);
+        const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
+        html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1>${contentHtml}</article></div>`);
       }
 
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
@@ -1058,8 +1069,19 @@ export default async function handler(
       
       html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
 
-      // Inject basic SSR info for SmartLinks
-      html = html.replace('<div id="root"></div>', `<div id="root"><article style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}" /> <a href="${shareUrl}">Escuchar ahora</a></article></div>`);
+      // Add og:type = music.song and Twitter Card tags (not present in base index.html)
+      const extraMeta = [
+        `<meta property="og:type" content="music.song">`,
+        `<meta name="twitter:card" content="summary_large_image">`,
+        `<meta name="twitter:title" content="${safeTitle}">`,
+        `<meta name="twitter:description" content="${safeDesc}">`,
+        `<meta name="twitter:image" content="${safeImage}">`,
+      ].join('\n');
+      html = html.replace('</head>', `${extraMeta}\n</head>`);
+
+      // Inject full SSR content for SmartLinks — visible to crawlers, hidden from users
+      const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
+      html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}"><a href="${shareUrl}">Escuchar ahora en Spotify, YouTube, Apple Music y Deezer</a></article></div>`);
 
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
