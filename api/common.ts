@@ -13,6 +13,26 @@ async function getBaseIndexHtml(): Promise<string> {
   if (cachedIndexHtml && (now - cachedIndexHtmlTime) < 10 * 60 * 1000) {
     return cachedIndexHtml;
   }
+
+  // Strategy 1: Read directly from the filesystem (fastest, no cold-start loop)
+  const candidates = [
+    path.join(process.cwd(), 'dist', 'index.html'),
+    path.join(process.cwd(), 'index.html'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const html = fs.readFileSync(candidate, 'utf-8');
+        if (html && html.includes('<div id="root">')) {
+          cachedIndexHtml = html;
+          cachedIndexHtmlTime = now;
+          return html;
+        }
+      }
+    } catch (_) { /* continue */ }
+  }
+
+  // Strategy 2: Fetch from the production URL (fallback for non-Vercel envs)
   try {
     const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
     const html = await htmlRes.text();
@@ -24,6 +44,7 @@ async function getBaseIndexHtml(): Promise<string> {
   } catch (err) {
     console.error("Failed to fetch base index.html:", err);
   }
+
   if (cachedIndexHtml) return cachedIndexHtml;
   throw new Error("Unable to fetch index.html");
 }
