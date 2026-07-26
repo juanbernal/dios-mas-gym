@@ -111,61 +111,76 @@ const Top5SocialGenerator: React.FC = () => {
         }
     };
 
+    // Converts any external URL → dataURL via fetch+blob (bypasses CORS taint)
+    const toDataUrl = async (url: string): Promise<string> => {
+        if (!url) return '';
+        if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+        try {
+            // Use our image-proxy so the server fetches the image (no CORS restriction)
+            const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl);
+            if (!res.ok) throw new Error('proxy error');
+            const blob = await res.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch {
+            return url; // fallback to original
+        }
+    };
+
     const handleDownload = async () => {
         if (!captureRef.current) return;
         setIsGenerating(true);
         try {
-            // Pre-load images to avoid html2canvas issues
-            const images = Array.from(captureRef.current.querySelectorAll('img'));
-            await Promise.all(images.map((img: any) => {
-                if (img.complete) return Promise.resolve();
-                return new Promise((resolve) => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
+            // ── Step 1: Pre-convert ALL images to dataURLs so html2canvas never
+            //   touches external URLs (which cause tainted-canvas / blank squares)
+            const allImgs = Array.from(captureRef.current.querySelectorAll('img')) as HTMLImageElement[];
+            await Promise.all(allImgs.map(async (img) => {
+                const original = img.getAttribute('data-original-src') || img.src;
+                if (original.startsWith('data:') || original.startsWith('blob:')) return;
+                img.setAttribute('data-original-src', original);
+                const dataUrl = await toDataUrl(original);
+                if (dataUrl) img.src = dataUrl;
             }));
 
-            // Esperar un momento para que las fuentes e imágenes se rendericen
-            await new Promise(r => setTimeout(r, 1000));
-            
-            // Fix cutoff issue and CSS scale
-            window.scrollTo(0, 0);
-            if (containerRef.current) {
-                containerRef.current.style.transform = 'scale(1)';
-                containerRef.current.style.marginBottom = '0px';
-            }
+            // ── Step 2: Give the browser a tick to repaint with the new src values
+            await new Promise(r => setTimeout(r, 600));
 
+            // ── Step 3: Capture at full 1080×1350 with scale:3 (3240×4050 px output)
+            window.scrollTo(0, 0);
             const canvas = await html2canvas(captureRef.current, {
-                scale: 2, // High resolution
-                useCORS: true,
-                allowTaint: false,
+                scale: 3,
+                useCORS: false,      // Not needed — all images are now dataURLs
+                allowTaint: true,
                 backgroundColor: '#000000',
                 scrollX: 0,
                 scrollY: 0,
-                windowWidth: 1080,
-                windowHeight: 1350,
-                onclone: (clonedDoc) => {
-                    const captureEl = clonedDoc.querySelector('div[style*="1080px"]') as HTMLElement;
-                    if (captureEl) {
-                        captureEl.style.transform = 'none';
-                    }
+                width: 1080,
+                height: 1350,
+                onclone: (_, el) => {
+                    el.style.transform = 'none';
+                    el.style.transformOrigin = 'top left';
                 }
             });
-            
-            // Restore styles
-            if (containerRef.current) {
-                containerRef.current.style.transform = '';
-                containerRef.current.style.marginBottom = '';
-            }
 
-            const url = canvas.toDataURL("image/png", 1.0);
-            const link = document.createElement("a");
-            link.download = `TOP-5-SONGS-${new Date().getTime()}.png`;
+            // ── Step 4: Restore original src attributes
+            allImgs.forEach(img => {
+                const original = img.getAttribute('data-original-src');
+                if (original) { img.src = original; img.removeAttribute('data-original-src'); }
+            });
+
+            const url = canvas.toDataURL('image/png', 1.0);
+            const link = document.createElement('a');
+            link.download = `TOP-5-SONGS-${Date.now()}.png`;
             link.href = url;
             link.click();
         } catch (e) {
-            console.error("Error generating image:", e);
-            alert("Hubo un error al generar la imagen.");
+            console.error('Error generating image:', e);
+            alert('Hubo un error al generar la imagen.');
         } finally {
             setIsGenerating(false);
         }

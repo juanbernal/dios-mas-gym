@@ -115,17 +115,78 @@ export default function StoryCountdownCreator() {
   };
 
   // ── Export ─────────────────────────────────────────────────────────────────
+  // Converts any external image URL to a dataURL to avoid CORS taint in html2canvas
+  const toDataUrl = async (src: string): Promise<string> => {
+    if (!src || src.startsWith('data:') || src.startsWith('blob:')) return src;
+    try {
+      const res = await fetch(`/api/image-proxy?url=${encodeURIComponent(src)}`);
+      if (!res.ok) throw new Error('proxy');
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return src;
+    }
+  };
+
   const handleExport = async () => {
     if (!storyRef.current) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(storyRef.current, {
-        scale: 3,
-        useCORS: true,
+      // ── Step 1: Convert cover to dataURL so canvas is never tainted
+      let exportCover = coverImage;
+      if (coverImage && !coverImage.startsWith('data:') && !coverImage.startsWith('blob:')) {
+        exportCover = await toDataUrl(coverImage);
+      }
+
+      // ── Step 2: Clone the story div at FULL size (remove the scale transform)
+      //   html2canvas captures the clone at true 1080×1920, giving full quality.
+      const original = storyRef.current;
+      const clone = original.cloneNode(true) as HTMLElement;
+
+      // Remove the CSS scale — capture at native resolution
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      clone.style.position = 'fixed';
+      clone.style.top = '-9999px';
+      clone.style.left = '-9999px';
+      clone.style.width = '1080px';
+      clone.style.height = '1920px';
+      clone.style.zIndex = '-1';
+      clone.style.pointerEvents = 'none';
+
+      // Replace cover image src with the pre-fetched dataURL
+      if (exportCover && exportCover !== coverImage) {
+        const imgs = clone.querySelectorAll('img');
+        imgs.forEach(img => { img.src = exportCover; });
+      }
+
+      document.body.appendChild(clone);
+
+      // ── Step 3: Give the browser a frame to render the clone
+      await new Promise(r => setTimeout(r, 400));
+
+      // ── Step 4: Capture the off-screen clone at 2× (→ 2160×3840 px)
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: false,
         allowTaint: true,
         backgroundColor: '#05070a',
+        width: 1080,
+        height: 1920,
+        scrollX: 0,
+        scrollY: 0,
       });
-      const url = canvas.toDataURL('image/png');
+
+      // ── Step 5: Clean up clone
+      document.body.removeChild(clone);
+
+      // ── Step 6: Download
+      const url = canvas.toDataURL('image/png', 1.0);
       const a = document.createElement('a');
       a.href = url;
       a.download = `countdown-${songName.toLowerCase().replace(/\s+/g, '-')}.png`;
