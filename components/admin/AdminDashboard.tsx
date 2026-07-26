@@ -223,15 +223,6 @@ const AdminDashboard: React.FC = () => {
             category: 'Contenido Audiovisual'
         },
         {
-            id: 'push-notifications',
-            title: 'Push Notifications',
-            description: 'Envía alertas directas a los dispositivos de tus seguidores (Lanzamientos, Noticias, etc).',
-            icon: 'fa-bell',
-            color: '#f43f5e',
-            route: '/admin/push-notifications',
-            category: 'Marketing & Social'
-        },
-        {
             id: 'analytics',
             title: 'Centro de Análisis',
             description: 'Métricas en tiempo real: descubre qué reflexiones y canciones están impactando más.',
@@ -275,6 +266,33 @@ const AdminDashboard: React.FC = () => {
             color: '#111111',
             route: '/admin/apple-music',
             category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'story-countdown',
+            title: 'Story Countdown Creator',
+            description: 'Genera imágenes de cuenta regresiva para Stories de Instagram. Especifica canción y fecha y exporta en alta resolución.',
+            icon: 'fa-hourglass-half',
+            color: '#f97316',
+            route: '/admin/story-countdown',
+            category: 'Contenido Audiovisual'
+        },
+        {
+            id: 'post-scheduler',
+            title: 'Post Scheduler',
+            description: 'Escribe y programa reflexiones para publicar en Blogger en un día y hora específicos, directamente desde el panel.',
+            icon: 'fa-calendar-plus',
+            color: '#10b981',
+            route: '/admin/post-scheduler',
+            category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'push-notifications',
+            title: 'Push Notifications + Scheduler',
+            description: 'Envía alertas instantáneas o prográmalas para el futuro. Cola de notificaciones con historial de envíos.',
+            icon: 'fa-bell',
+            color: '#f43f5e',
+            route: '/admin/push-notifications',
+            category: 'Marketing & Social'
         }
     ];
 
