@@ -23,7 +23,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         if (json?.data) {
           const songs = json.data.topSongs ? json.data.topSongs.map((s:any) => s.title) : [];
           const pages = json.data.topPages ? json.data.topPages.map((p:any) => p.title) : [];
-          // Combinar ambas listas, dando prioridad a las reproducciones, y quitar duplicados
           const combined = Array.from(new Set([...songs, ...pages]));
           setTopAnalytics(combined);
         }
@@ -73,32 +72,32 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   ];
 
   return (
-    <div className="flex flex-col gap-12 md:gap-24 mb-24">
+    <div className="flex flex-col gap-0 mb-0 overflow-hidden">
       
       {/* FEATURED RELEASE */}
-      <section className="relative w-full overflow-hidden rounded-3xl mx-auto max-w-[1400px] border border-white/10 group mt-12 px-4 md:px-0">
+      <section className="relative w-full overflow-hidden border-b border-white/5 group mt-0">
         <div className="absolute inset-0">
-          <img loading="lazy" src={featured.cover} alt="Background" className="w-full h-full object-cover blur-3xl opacity-30 group-hover:scale-105 transition-transform duration-1000" />
+          <img loading="lazy" src={featured.cover} alt="Background" className="w-full h-full object-cover blur-3xl opacity-20 group-hover:scale-105 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#05070a] via-[#05070a]/80 to-transparent"></div>
         </div>
         
-        <div className="relative z-10 p-8 md:p-16 flex flex-col md:flex-row items-center gap-10 md:gap-20">
-          <div className="w-64 h-64 md:w-96 md:h-96 flex-shrink-0 relative cursor-pointer" onClick={() => onPlaySong(featured)}>
-            <div className="absolute inset-0 bg-[#4a90d9] blur-[100px] opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
+        <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col md:flex-row items-center gap-10 md:gap-20">
+          <div className="w-52 h-52 md:w-80 md:h-80 flex-shrink-0 relative cursor-pointer" onClick={() => onPlaySong(featured)}>
+            <div className="absolute inset-0 bg-[#4a90d9] blur-[80px] opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
             <img 
               src={featured.cover} 
               alt={featured.name} 
               className="w-full h-full object-cover rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform -rotate-2 group-hover:rotate-0 transition-transform duration-500 border border-white/10 relative z-10"
             />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              <div className="w-20 h-20 bg-[#4a90d9] rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(37,99,168,0.8)]">
-                <i className="fas fa-play text-black text-2xl ml-2"></i>
+              <div className="w-16 h-16 bg-[#4a90d9] rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(37,99,168,0.8)]">
+                <i className="fas fa-play text-black text-xl ml-1"></i>
               </div>
             </div>
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <span className="inline-block py-2 px-6 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 text-[9px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6 shadow-[0_0_20px_rgba(37,99,168,0.1)]">
+            <span className="inline-block py-2 px-6 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 text-[9px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6">
               Destacado
             </span>
             <h2 className="font-serif italic text-5xl md:text-7xl mb-4 text-white drop-shadow-lg">{featured.name}</h2>
@@ -123,124 +122,194 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         </div>
       </section>
 
-      {/* TOP DE LA SEMANA */}
-      <section className="py-12 section-container">
-        <div className="flex items-center gap-4 mb-12">
-          <h2 className="font-serif italic text-4xl text-[#4a90d9]">Top de la Semana</h2>
-          <div className="h-px flex-1 bg-gradient-to-r from-[#4a90d9]/20 to-transparent"></div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {topDeLaSemana.map((song, i) => (
-            <div key={song.id || song.name || i} className="group bg-[#0f111a] border border-white/5 rounded-2xl p-4 hover:border-[#4a90d9]/40 transition-colors cursor-pointer flex flex-col" onClick={() => onPlaySong(song)}>
-              <div className="relative aspect-square rounded-xl overflow-hidden mb-4 border border-white/5">
-                <img loading="lazy" src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
-                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#4a90d9] text-black font-black text-[10px] flex items-center justify-center shadow-lg">
-                  {i + 1}
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                  <div className="w-10 h-10 rounded-full bg-[#4a90d9] flex items-center justify-center shadow-[0_0_20px_rgba(37,99,168,0.5)]">
-                    <i className="fas fa-play text-black ml-1"></i>
-                  </div>
-                </div>
-              </div>
-              <h4 className="font-serif text-lg text-white mb-1 truncate group-hover:text-[#4a90d9] transition-colors">{song.name}</h4>
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 truncate">{song.artist}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* TOP DE LA SEMANA — estilo corrido tumbado: lista numerada horizontal con barra lateral inclinada */}
+      <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a]">
+        {/* Barra decorativa inclinada */}
+        <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-[#4a90d9] via-[#4a90d9]/40 to-transparent"></div>
+        <div className="absolute -left-40 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#4a90d9]/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      {/* PLAYLISTS OFICIALES */}
-      <section className="py-12 section-container">
-        <div className="flex items-center gap-4 mb-12">
-          <div className="w-2 h-2 rounded-full bg-[#4a90d9] animate-pulse"></div>
-          <h2 className="font-serif italic text-4xl text-white">Listas de Entrenamiento</h2>
-          <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {playlists.map((pl, i) => (
-            <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-white/5 aspect-[4/3] cursor-pointer" onClick={() => {
-              const match = catalog.find(s => pl.keywords.some(k => s.name.toLowerCase().includes(k))) || catalog[0];
-              onPlaySong(match);
-            }}>
-              <img loading="lazy" src={pl.image} alt={pl.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-              
-              <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                <div className="w-12 h-12 rounded-full bg-[#4a90d9] text-black flex items-center justify-center mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_20px_rgba(37,99,168,0.5)]">
-                  <i className="fas fa-play ml-1"></i>
-                </div>
-                <h3 className="font-serif text-3xl font-bold text-white mb-2">{pl.title}</h3>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{pl.description}</p>
-              </div>
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          {/* Header inclinado */}
+          <div className="flex items-end gap-6 mb-12">
+            <div className="relative">
+              <div className="absolute -inset-2 bg-[#4a90d9]/10 rounded-lg -skew-x-6"></div>
+              <h2 className="relative font-serif italic text-5xl md:text-7xl text-white leading-none">
+                Top <span className="text-[#4a90d9]">Semana</span>
+              </h2>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* REFLEXIONES BANNER */}
-      <section className="my-12 px-4 md:px-0">
-        <div className="relative rounded-[3rem] overflow-hidden border border-[#4a90d9]/30 bg-[#0a0c14] group max-w-[1200px] mx-auto cursor-pointer" onClick={onNavigateReflexiones}>
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[#4a90d9]/10 blur-md rounded-full -translate-y-1/2"></div>
-            <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500/10 blur-md rounded-full -translate-y-1/2"></div>
-          </div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-12 md:p-20 text-center md:text-left gap-10">
-            <div>
-              <span className="inline-block px-4 py-1.5 rounded-full border border-white/20 bg-white/5 text-[9px] font-black uppercase tracking-[0.3em] text-white/70 mb-6 group-hover:border-[#4a90d9]/50 transition-colors">
-                Material Espiritual
-              </span>
-              <h2 className="font-serif italic text-4xl md:text-6xl text-white mb-4 group-hover:text-[#4a90d9] transition-colors">El Arsenal de Reflexiones</h2>
-              <p className="text-white/40 text-sm md:text-base max-w-xl font-bold tracking-wide">
-                Artículos, meditaciones y enseñanzas para fortalecer tu espíritu tanto como tu cuerpo. Explora nuestro contenido completo y encuentra tu inspiración diaria.
-              </p>
+            <div className="pb-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] text-white/30">
+              <span className="w-8 h-px bg-white/20"></span>
+              Lo más escuchado
             </div>
-            
-            <button 
-              className="flex-shrink-0 px-10 py-5 rounded-full border-2 border-[#4a90d9] text-[#4a90d9] text-[10px] font-black uppercase tracking-[0.3em] group-hover:bg-[#4a90d9] group-hover:text-black transition-all group-hover:shadow-[0_0_40px_rgba(37,99,168,0.3)]"
-            >
-              Leer Reflexiones <i className="fas fa-arrow-right ml-2"></i>
-            </button>
           </div>
-        </div>
-      </section>
 
-      {/* MUSIC VIDEOS */}
-      {musicVideos.length > 0 && (
-        <section className="py-12 section-container">
-          <div className="flex items-center gap-4 mb-12">
-            <h2 className="font-serif italic text-4xl text-[#4a90d9]">Videoclips Oficiales</h2>
-            <div className="h-px flex-1 bg-gradient-to-r from-[#4a90d9]/20 to-transparent"></div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {musicVideos.map((video, idx) => (
-              <a 
-                key={idx} 
-                href={video.url} 
-                target="_blank" 
-                rel="noreferrer"
-                className="group relative rounded-2xl overflow-hidden border border-white/10 aspect-video bg-[#0a0c14]"
+          {/* Lista horizontal scrollable estilo ranking */}
+          <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory">
+            {topDeLaSemana.map((song, i) => (
+              <div
+                key={song.id || song.name || i}
+                onClick={() => onPlaySong(song)}
+                className="group snap-start flex-shrink-0 w-[200px] md:w-[220px] cursor-pointer"
               >
-                <img loading="lazy" src={video.cover} alt={video.name} className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-40 transition-all duration-700" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-red-600/90 text-white flex items-center justify-center text-xl shadow-[0_0_30px_rgba(220,38,38,0.5)] group-hover:scale-110 transition-transform">
-                    <i className="fab fa-youtube"></i>
+                {/* Número grande superpuesto */}
+                <div className="relative mb-3">
+                  <div className="absolute -left-3 -top-4 font-serif italic text-[100px] leading-none font-black text-white/5 select-none z-0 group-hover:text-[#4a90d9]/10 transition-colors">
+                    {i + 1}
+                  </div>
+                  <div className="relative z-10 aspect-square rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#4a90d9]/40 transition-colors shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
+                    <img loading="lazy" src={song.cover} alt={song.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-70 group-hover:opacity-100" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                      <div className="w-10 h-10 rounded-full bg-[#4a90d9] flex items-center justify-center shadow-[0_0_20px_rgba(37,99,168,0.8)]">
+                        <i className="fas fa-play text-black text-sm ml-0.5"></i>
+                      </div>
+                    </div>
+                    {/* Rank badge */}
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-[#4a90d9] text-black font-black text-[10px] flex items-center justify-center shadow-lg">
+                      {i + 1}
+                    </div>
                   </div>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
-                  <h4 className="font-bold text-white text-sm truncate">{video.name}</h4>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/50">{video.artist}</p>
-                </div>
-              </a>
+                <h4 className="font-serif italic text-lg text-white truncate group-hover:text-[#4a90d9] transition-colors leading-tight">{song.name}</h4>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/30 truncate mt-0.5">{song.artist}</p>
+              </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LISTAS DE ENTRENAMIENTO — corrido tumbado: fila horizontal full-bleed con skew en bordes */}
+      <section className="relative py-16 md:py-24 overflow-hidden bg-[#070911]">
+        <div className="absolute right-0 top-0 w-2 h-full bg-gradient-to-b from-transparent via-[#4a90d9]/30 to-transparent"></div>
+        <div className="absolute -right-60 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4a90d9]/4 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+          <div className="flex items-end gap-6 mb-12">
+            <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-none">
+              Listas de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] to-blue-300">Entrenamiento</span>
+            </h2>
+          </div>
+
+          {/* Tarjetas grandes inclinadas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 -mx-8 md:-mx-16">
+            {playlists.map((pl, i) => (
+              <div
+                key={i}
+                onClick={() => {
+                  const match = catalog.find(s => pl.keywords.some(k => s.name.toLowerCase().includes(k))) || catalog[0];
+                  onPlaySong(match);
+                }}
+                className="group relative overflow-hidden aspect-[3/4] md:aspect-[2/3] cursor-pointer"
+                style={{ clipPath: i === 1 ? 'polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%)' : i === 0 ? 'polygon(0% 0%, 96% 0%, 90% 100%, 0% 100%)' : 'polygon(10% 0%, 100% 0%, 100% 100%, 4% 100%)' }}
+              >
+                <img loading="lazy" src={pl.image} alt={pl.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[50%] group-hover:grayscale-0" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-[#4a90d9]/40 to-transparent`}></div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10">
+                  <div className="w-10 h-10 rounded-full bg-[#4a90d9] text-black flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(37,99,168,0.7)] translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                    <i className="fas fa-play ml-0.5 text-sm"></i>
+                  </div>
+                  <h3 className="font-serif italic text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">{pl.title}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{pl.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* REFLEXIONES BANNER — corrido tumbado: diagonal dividers + texto grande */}
+      <section
+        className="relative py-20 md:py-32 overflow-hidden cursor-pointer group"
+        style={{ background: 'linear-gradient(135deg, #060810 0%, #0a0e1a 50%, #05070a 100%)' }}
+        onClick={onNavigateReflexiones}
+      >
+        {/* Líneas diagonales decorativas */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(74,144,217,0.03) 60px, rgba(74,144,217,0.03) 61px)' }}></div>
+        </div>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4a90d9]/40 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4a90d9]/20 to-transparent"></div>
+
+        {/* Glows */}
+        <div className="absolute left-1/4 top-1/2 -translate-y-1/2 w-96 h-96 bg-[#4a90d9]/10 rounded-full blur-3xl group-hover:bg-[#4a90d9]/20 transition-all duration-700 pointer-events-none"></div>
+        <div className="absolute right-1/4 top-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 max-w-[1200px] mx-auto px-8 md:px-16 flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left">
+          <div className="flex-1">
+            <span className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-[0.4em] text-white/50 mb-8 group-hover:border-[#4a90d9]/40 group-hover:text-[#4a90d9]/70 transition-all">
+              ✦ Material Espiritual ✦
+            </span>
+            <h2 className="font-serif italic text-5xl md:text-7xl lg:text-8xl text-white mb-6 leading-none group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#4a90d9] transition-all duration-700">
+              El Arsenal de<br /><span className="text-[#4a90d9]">Reflexiones</span>
+            </h2>
+            <p className="text-white/30 text-sm md:text-base max-w-xl font-bold tracking-wide leading-relaxed group-hover:text-white/50 transition-colors">
+              Artículos, meditaciones y enseñanzas para fortalecer tu espíritu tanto como tu cuerpo. Explora el contenido y encuentra tu inspiración diaria.
+            </p>
+          </div>
+          
+          <div className="flex-shrink-0">
+            <div className="relative">
+              <div className="absolute -inset-4 bg-[#4a90d9]/10 rounded-full blur-xl group-hover:bg-[#4a90d9]/20 transition-all duration-500"></div>
+              <button className="relative px-12 py-6 rounded-full border-2 border-[#4a90d9]/50 text-[#4a90d9] text-[11px] font-black uppercase tracking-[0.4em] group-hover:bg-[#4a90d9] group-hover:text-black group-hover:border-[#4a90d9] transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(37,99,168,0.4)]">
+                Leer Reflexiones <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* VIDEOCLIPS OFICIALES — corrido tumbado: grid con tarjetas superpuestas y play centrado grande */}
+      {musicVideos.length > 0 && (
+        <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a]">
+          <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-transparent via-red-600/30 to-transparent"></div>
+          <div className="absolute -left-40 bottom-0 w-[500px] h-[500px] bg-red-900/5 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+            <div className="flex items-end gap-6 mb-12">
+              <div className="relative">
+                <div className="absolute -inset-2 bg-red-600/10 rounded-lg -skew-x-3"></div>
+                <h2 className="relative font-serif italic text-5xl md:text-7xl text-white leading-none">
+                  Videoclips <span className="text-red-500">Oficiales</span>
+                </h2>
+              </div>
+              <div className="pb-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] text-white/30">
+                <span className="w-8 h-px bg-white/20"></span>
+                <i className="fab fa-youtube text-red-500 text-base"></i>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {musicVideos.map((video, idx) => (
+                <a
+                  key={idx}
+                  href={video.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`group relative rounded-3xl overflow-hidden border border-white/5 hover:border-red-500/30 transition-colors bg-[#0a0c14] ${idx === 0 ? 'md:row-span-2 aspect-[4/3] md:aspect-auto md:min-h-[400px]' : 'aspect-video'}`}
+                >
+                  <img loading="lazy" src={video.cover} alt={video.name} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 group-hover:scale-105 transition-all duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className={`rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_40px_rgba(220,38,38,0.6)] group-hover:scale-110 group-hover:shadow-[0_0_60px_rgba(220,38,38,0.8)] transition-all duration-300 ${idx === 0 ? 'w-20 h-20 text-3xl' : 'w-14 h-14 text-xl'}`}>
+                      <i className="fab fa-youtube"></i>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
+                    <h4 className={`font-serif italic text-white truncate group-hover:text-red-400 transition-colors ${idx === 0 ? 'text-2xl md:text-3xl' : 'text-xl'}`}>{video.name}</h4>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-1">{video.artist}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
+      <style>{`
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 };
