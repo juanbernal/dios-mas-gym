@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { safeStorage } from '../services/safeStorage';
 
-// El Popup Inteligente Premium
+// El Popup Inteligente Premium (Comunidad + Redes Sociales)
 export const SocialPopup: React.FC = () => {
     const [showPopup, setShowPopup] = useState(false);
 
@@ -10,58 +10,109 @@ export const SocialPopup: React.FC = () => {
         if (!popupDismissed || Date.now() > parseInt(popupDismissed)) {
             const timer = setTimeout(() => {
                 setShowPopup(true);
-            }, 8000); // 8 seconds
+            }, 4000); // Aparece a los 4 segundos
             return () => clearTimeout(timer);
         }
     }, []);
 
     const dismissPopup = () => {
         setShowPopup(false);
-        safeStorage.setItem('dg_popup_dismissed', (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
+        // Volver a mostrar después de 3 días si se cierra
+        safeStorage.setItem('dg_popup_dismissed', (Date.now() + 3 * 24 * 60 * 60 * 1000).toString());
     };
 
     if (!showPopup) return null;
 
+    const socialLinks = [
+        { name: 'YouTube', icon: 'fab fa-youtube', url: 'https://www.youtube.com/@Diosmasgym', bg: 'hover:bg-red-600 hover:text-white hover:border-red-500' },
+        { name: 'Instagram', icon: 'fab fa-instagram', url: 'https://www.instagram.com/diosmasgym', bg: 'hover:bg-pink-600 hover:text-white hover:border-pink-500' },
+        { name: 'TikTok', icon: 'fab fa-tiktok', url: 'https://www.tiktok.com/@diosmasgym', bg: 'hover:bg-white hover:text-black hover:border-white' },
+        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/4Z10Yx4YjL34q6S8S7W1Xw', bg: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
+        { name: 'Facebook', icon: 'fab fa-facebook', url: 'https://www.facebook.com/diosmasgym', bg: 'hover:bg-blue-600 hover:text-white hover:border-blue-500' },
+    ];
+
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
-            <div className="bg-gradient-to-br from-[#12141c] to-[#05070a] border border-[#4a90d9]/30 rounded-[2.5rem] max-w-sm w-full p-8 md:p-10 shadow-[0_30px_100px_rgba(37,99,168,0.2)] relative overflow-hidden text-center group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent opacity-50"></div>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#4a90d9]/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none group-hover:bg-[#4a90d9]/20 transition-all duration-700"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#4a90d9]/5 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none group-hover:bg-[#4a90d9]/10 transition-all duration-700"></div>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
+            <div className="bg-gradient-to-br from-[#121624] via-[#090b14] to-[#05070a] border border-[#4a90d9]/40 rounded-[2.5rem] max-w-md w-full p-6 md:p-8 shadow-[0_30px_100px_rgba(37,99,168,0.3)] relative overflow-hidden text-center group">
+                {/* Glow decorativo */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent opacity-80"></div>
+                <div className="absolute top-0 right-0 w-72 h-72 bg-[#4a90d9]/15 rounded-full blur-[90px] -mr-24 -mt-24 pointer-events-none group-hover:bg-[#4a90d9]/25 transition-all duration-700"></div>
+                <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-600/10 rounded-full blur-[90px] -ml-24 -mb-24 pointer-events-none"></div>
                 
-                <button onClick={dismissPopup} className="absolute top-5 right-5 text-white/30 hover:text-white hover:bg-white/10 transition-all w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/5 z-10">
+                {/* Botón Cerrar */}
+                <button onClick={dismissPopup} className="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 transition-all w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 z-20">
                     <i className="fas fa-times text-xs"></i>
                 </button>
 
-                <div className="relative w-24 h-24 mx-auto mb-8">
-                    <div className="absolute inset-0 bg-[#4a90d9]/20 rounded-[2rem] blur-xl animate-pulse"></div>
-                    <img src="/logo-diosmasgym.png" alt="Logo" className="w-full h-full object-cover rounded-[2rem] border border-[#4a90d9]/50 shadow-2xl relative z-10" />
+                {/* Header con Logo */}
+                <div className="relative w-20 h-20 mx-auto mb-5">
+                    <div className="absolute inset-0 bg-[#4a90d9]/30 rounded-[1.8rem] blur-xl animate-pulse"></div>
+                    <img src="/logo-diosmasgym.png" alt="Logo" className="w-full h-full object-cover rounded-[1.8rem] border border-[#4a90d9]/60 shadow-2xl relative z-10" />
                 </div>
 
-                <h3 className="font-serif italic text-3xl md:text-4xl text-white mb-3">Comunidad <span className="text-[#4a90d9] block mt-1">Exclusiva</span></h3>
-                <p className="text-white/50 text-[10px] md:text-[11px] leading-relaxed mb-8 uppercase tracking-[0.2em] font-black">
-                    Acceso anticipado a música, lanzamientos y material reservado.
+                <h3 className="font-serif italic text-3xl md:text-4xl text-white mb-2 leading-tight">
+                    Únete a la <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] to-blue-300">Tropa</span>
+                </h3>
+                <p className="text-white/60 text-[10px] md:text-[11px] leading-relaxed mb-6 uppercase tracking-[0.2em] font-black">
+                    Recibe lanzamientos, música y contenido exclusivo
                 </p>
 
-                <div className="flex flex-col gap-4 relative z-10">
-                    <a href="https://t.me/Diosmasgymbot" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="relative group/btn w-full py-4 rounded-2xl flex items-center justify-center gap-3 bg-[#4a90d9]/10 text-[#4a90d9] border border-[#4a90d9]/40 font-black text-[11px] uppercase tracking-widest hover:bg-[#4a90d9] hover:text-black hover:shadow-[0_0_30px_rgba(37,99,168,0.4)] transition-all overflow-hidden">
-                        <div className="absolute inset-0 w-0 bg-[#4a90d9] group-hover/btn:w-full transition-all duration-500 ease-out"></div>
-                        <i className="fab fa-telegram text-lg relative z-10"></i>
-                        <span className="relative z-10">Telegram VIP</span>
+                {/* 1. Botones Principales (Telegram & WhatsApp) */}
+                <div className="flex flex-col gap-3 mb-6 relative z-10">
+                    <a 
+                        href="https://t.me/Diosmasgymbot" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        onClick={dismissPopup} 
+                        className="relative group/btn w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 bg-[#4a90d9] text-black font-black text-[11px] uppercase tracking-widest hover:bg-white hover:shadow-[0_0_30px_rgba(37,99,168,0.5)] transition-all overflow-hidden"
+                    >
+                        <i className="fab fa-telegram text-lg"></i>
+                        <span>Grupo Telegram VIP</span>
                     </a>
-                    <a href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 bg-white/5 text-white/70 border border-white/10 font-black text-[11px] uppercase tracking-widest hover:bg-white/10 hover:text-white hover:border-white/20 transition-all">
+                    <a 
+                        href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        onClick={dismissPopup} 
+                        className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-black text-[11px] uppercase tracking-widest hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all"
+                    >
                         <i className="fab fa-whatsapp text-lg"></i>
-                        WhatsApp
+                        <span>Canal Oficial WhatsApp</span>
                     </a>
                 </div>
+
+                {/* Separador */}
+                <div className="flex items-center gap-3 mb-5 relative z-10">
+                    <div className="h-px flex-1 bg-white/10"></div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Síguenos en Redes</span>
+                    <div className="h-px flex-1 bg-white/10"></div>
+                </div>
+
+                {/* 2. Redes Sociales Oficiales */}
+                <div className="flex flex-wrap items-center justify-center gap-2 relative z-10 mb-6">
+                    {socialLinks.map((item, idx) => (
+                        <a
+                            key={idx}
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={dismissPopup}
+                            className={`px-3.5 py-2.5 rounded-xl flex items-center gap-2 bg-white/5 text-white/80 border border-white/10 font-black text-[9px] uppercase tracking-wider transition-all duration-300 ${item.bg} hover:scale-105`}
+                        >
+                            <i className={`${item.icon} text-sm`}></i>
+                            <span>{item.name}</span>
+                        </a>
+                    ))}
+                </div>
                 
-                <button onClick={dismissPopup} className="mt-8 text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors border-b border-white/10 hover:border-white/30 pb-1 relative z-10">
-                    No por ahora
+                <button onClick={dismissPopup} className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors border-b border-white/10 hover:border-white/30 pb-0.5 relative z-10">
+                    Continuar a la web
                 </button>
             </div>
         </div>
     );
 };
+
 
 // El Banner Integrado en el Layout (Comunidad Telegram & WhatsApp)
 export const InlineSocialBanner: React.FC = () => {
