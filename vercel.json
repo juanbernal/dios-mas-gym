@@ -12,6 +12,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/youtube-top",
+      "destination": "/api/common?action=youtube-top"
+    },
+    {
       "source": "/api/links",
       "destination": "/api/common?action=links"
     },

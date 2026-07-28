@@ -306,6 +306,64 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: YOUTUBE TOP VIDEOS (server-side — bypasses API key referrer restriction)
+  // -------------------------------------------------------------
+  if (action === 'youtube-top') {
+    const apiKey = (process.env.BLOGGER_API_KEY || '').trim().replace(/^[\"']|[\"']$/g, '');
+    const YT_HEADERS = {
+      'Referer': 'https://app.diosmasgym.com/',
+      'Origin': 'https://app.diosmasgym.com',
+      'Accept': 'application/json',
+    };
+    const CHANNELS = [
+      { id: 'UCUgy7ZKVVaxAnrAXCnLG7EA', name: 'Diosmasgym', handle: '@diosmasgym', maxResults: 6 },
+      { id: 'UC3PCx5tqomYtP_5Hrf7cXDQ', name: 'Juan 614', handle: '@juan614oficial', maxResults: 3 },
+    ];
+    try {
+      const allVideos: any[] = [];
+      for (const ch of CHANNELS) {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&order=viewCount&maxResults=${ch.maxResults}&type=video&key=${apiKey}`;
+        const resp = await fetch(url, { headers: YT_HEADERS });
+        if (!resp.ok) { console.error(`YT search error ${ch.name}:`, resp.status); continue; }
+        const data = await resp.json();
+        const items: any[] = data.items || [];
+        // Fetch video stats for viewCount
+        const videoIds = items.map((v: any) => v.id?.videoId).filter(Boolean).join(',');
+        let statsMap: Record<string, string> = {};
+        if (videoIds) {
+          const statsResp = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${apiKey}`, { headers: YT_HEADERS });
+          if (statsResp.ok) {
+            const sd = await statsResp.json();
+            (sd.items || []).forEach((v: any) => { statsMap[v.id] = v.statistics?.viewCount || '0'; });
+          }
+        }
+        items.forEach((v: any) => {
+          const vid = v.id?.videoId;
+          if (!vid) return;
+          const views = parseInt(statsMap[vid] || '0', 10);
+          allVideos.push({
+            id: vid,
+            title: (v.snippet?.title || '').replace(/&quot;/g, '"').replace(/&#39;/g, "'"),
+            thumb: v.snippet?.thumbnails?.high?.url || `https://img.youtube.com/vi/${vid}/hqdefault.jpg`,
+            url: `https://www.youtube.com/watch?v=${vid}`,
+            channel: ch.name,
+            handle: ch.handle,
+            views,
+            viewsFormatted: views >= 1000000 ? `${(views/1000000).toFixed(1)}M vistas` : views >= 1000 ? `${Math.floor(views/1000)}K vistas` : `${views} vistas`,
+          });
+        });
+      }
+      allVideos.sort((a, b) => b.views - a.views);
+      res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json({ videos: allVideos.slice(0, 8) });
+    } catch (err: any) {
+      console.error('YouTube top error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: LINKS
   // -------------------------------------------------------------
   if (action === 'links') {

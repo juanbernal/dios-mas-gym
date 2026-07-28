@@ -12,8 +12,10 @@ interface YTVideo {
   title: string;
   thumb: string;
   url: string;
-  views?: string;
+  views?: number;
+  viewsFormatted?: string;
   channel: string;
+  handle?: string;
 }
 
 export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, onPlaySong, onNavigateReflexiones }) => {
@@ -42,12 +44,19 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     };
 
     const fetchYouTube = async () => {
-      // Use YouTube RSS feeds (no API key needed) via a CORS proxy
-      const channels = [
-        { handle: 'UCDiosmasgym', id: 'UCDiosmasgym', name: 'Dios Mas Gym' },
-        { handle: 'UCJuan614oficial', id: 'UCJuan614oficial', name: 'Juan 614' }
-      ];
-      // Pull from catalog videos (already have YouTube links) — no API key needed
+      try {
+        const res = await fetch('/api/youtube-top');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.videos?.length > 0) {
+            setYtVideos(data.videos);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('YouTube API failed, falling back to catalog', e);
+      }
+      // Fallback: use catalog videos with YouTube links
       const catalogYT = catalog
         .filter(s => s.url && s.url.includes('youtube'))
         .slice(0, 8)
@@ -57,9 +66,12 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
           return {
             id: vid || s.id,
             title: s.name,
-            thumb: vid ? `https://img.youtube.com/vi/${vid}/maxresdefault.jpg` : (s.cover || ''),
+            thumb: vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : (s.cover || ''),
             url: s.url || '',
-            channel: s.artist || 'Dios Mas Gym'
+            channel: s.artist || 'Dios Mas Gym',
+            handle: '@diosmasgym',
+            views: 0,
+            viewsFormatted: '',
           } as YTVideo;
         })
         .filter(v => v.url);
@@ -417,6 +429,14 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                     <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-white font-black text-[11px] flex items-center justify-center">
                       {idx + 1}
                     </div>
+                    {/* Views badge */}
+                    {vid.viewsFormatted && (
+                      <div className="absolute top-3 right-3">
+                        <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-[8px] font-black tracking-widest text-white/80 flex items-center gap-1">
+                          <i className="fas fa-eye text-[7px]"></i> {vid.viewsFormatted}
+                        </span>
+                      </div>
+                    )}
                     {/* Channel badge */}
                     <div className="absolute bottom-3 right-3">
                       <span className="px-2.5 py-1 rounded-full bg-red-600/80 backdrop-blur-sm text-[8px] font-black uppercase tracking-widest text-white">
