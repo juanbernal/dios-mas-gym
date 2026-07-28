@@ -58,6 +58,8 @@ self.addEventListener('notificationclick', (event) => {
 
 // ── Message: trigger manual notification from admin panel ─────────────────
 self.addEventListener('message', (event) => {
+  // Security: only process messages from our own origin
+  if (event.origin && event.origin !== self.location.origin) return;
   if (event.data && event.data.type === 'SHOW_RELEASE_NOTIFICATION') {
     const { title, body, cover, url } = event.data;
     self.registration.showNotification(title || '🎶 Lanzamiento Hoy', {

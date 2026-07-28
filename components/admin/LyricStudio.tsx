@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { generateLyricStyle } from "../../services/geminiService";
 
 const brandingData = {
@@ -306,9 +307,9 @@ const LyricStudio: React.FC = () => {
   };
 
   const importFromBlogger = (post: any) => {
-    // Clean HTML content to plain text
+    // Clean HTML content to plain text safely
     const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = post.content;
+    tempDiv.innerHTML = DOMPurify.sanitize(post.content || "");
     setRawLyrics(tempDiv.innerText || tempDiv.textContent || "");
     setShowBloggerModal(false);
   };

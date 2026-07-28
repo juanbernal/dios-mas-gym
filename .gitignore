@@ -15,6 +15,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Scratch / test files (may contain hardcoded keys)
+scratch/
+test_*.js
+test_*.mjs
+test_*.cjs
+kaka_search.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

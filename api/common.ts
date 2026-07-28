@@ -5,6 +5,30 @@ import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
 
+// ── In-memory rate limiter (per IP, resets per serverless instance lifecycle) ──
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 60;       // max requests
+const RATE_LIMIT_WINDOW = 60000; // per 60 seconds
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true; // OK
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT_MAX) return false; // blocked
+  return true; // OK
+}
+
+function getClientIp(req: any): string {
+  return (req.headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.headers?.['x-real-ip'] as string
+    || req.socket?.remoteAddress
+    || 'unknown';
+}
+
 let cachedIndexHtml = '';
 let cachedIndexHtmlTime = 0;
 
@@ -281,6 +305,16 @@ export default async function handler(
 
   // Determine action from query or route
   const action = (req.query.action as string) || req.url?.split('?')[0].split('/').pop();
+
+  // ── Rate limiting for expensive endpoints ──────────────────────────────────
+  const costlyActions = ['youtube-top', 'sheet-proxy', 'image-proxy', 'sitemap', 'smartlink-ssr', 'smartlink', 'post-ssr', 'post'];
+  if (costlyActions.includes(action || '')) {
+    const ip = getClientIp(req);
+    if (!checkRateLimit(ip)) {
+      res.setHeader('Retry-After', '60');
+      return res.status(429).json({ error: 'Too many requests. Please wait a minute.' });
+    }
+  }
 
   // -------------------------------------------------------------
   // ACTION: DEBUG SSR (Temporary diagnostic endpoint)
