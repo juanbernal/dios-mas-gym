@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 
 interface Post {
   id: string;
@@ -200,7 +201,7 @@ export default function PostScheduler() {
                   
                   {showPreview ? (
                     <div className="w-full bg-black/30 border border-white/10 rounded-xl px-5 py-4 min-h-[200px] prose prose-invert prose-p:text-white/80 prose-headings:text-white"
-                         dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br>') }}
+                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.replace(/\n/g, '<br>')) }}
                     />
                   ) : (
                     <textarea

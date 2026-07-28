@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { fetchArsenalData } from '../../services/contentService';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
@@ -157,7 +158,7 @@ const LyricsManager: React.FC = () => {
     const stripHtml = (html: string) => {
         if (typeof document === 'undefined') return html.replace(/<[^>]*>?/gm, '');
         const tmp = document.createElement("DIV");
-        tmp.innerHTML = html;
+        tmp.innerHTML = DOMPurify.sanitize(html || '');
         return tmp.textContent || tmp.innerText || "";
     };
 
@@ -1275,7 +1276,7 @@ ${cleanedLyrics}`;
                                         </div>
                                         {storyPreviewMode === 'preview' && (
                                             <div className="bg-white border border-gray-200 rounded-2xl p-8 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
-                                                <div className="text-black" style={{ fontSize: '16px', lineHeight: '1.8' }} dangerouslySetInnerHTML={{ __html: storyPostHtml }} />
+                                                <div className="text-black" style={{ fontSize: '16px', lineHeight: '1.8' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(storyPostHtml || '') }} />
                                             </div>
                                         )}
                                         {storyPreviewMode === 'html' && (
