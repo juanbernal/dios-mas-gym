@@ -322,7 +322,7 @@ export default async function handler(
     try {
       const allVideos: any[] = [];
       for (const ch of CHANNELS) {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&order=viewCount&maxResults=${ch.maxResults}&type=video&key=${apiKey}`;
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&order=viewCount&maxResults=${ch.maxResults}&type=video&videoCategoryId=10&key=${apiKey}`;
         const resp = await fetch(url, { headers: YT_HEADERS });
         if (!resp.ok) { console.error(`YT search error ${ch.name}:`, resp.status); continue; }
         const data = await resp.json();

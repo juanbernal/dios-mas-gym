@@ -93,8 +93,11 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                 <h1 className="h1-gothic leading-none text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.15em' }}>
                   SEÑOR
                 </h1>
-                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff' }}>
+                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
                   JESUCRISTO
+                </h1>
+                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(2.2rem, 5.5vw, 5rem)', color: '#4a90d9', marginTop: '-0.05em', letterSpacing: '0.12em' }}>
+                  COMPA
                 </h1>
               </div>
 
