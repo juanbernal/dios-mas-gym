@@ -7,6 +7,14 @@ Allow: /post/
 Disallow: /admin/
 Disallow: /admin
 
+# Prevent crawling of URLs with query parameters (avoids ?m=1 and other duplicates)
+Disallow: /*?m=1
+Disallow: /*?*
+
+# Allow clean URLs for SSR-rendered pages explicitly
+Allow: /link/$
+Allow: /post/$
+
 # Bots de motores de búsqueda
 User-agent: Googlebot
 Allow: /

@@ -917,6 +917,12 @@ export default async function handler(
       html = injectMeta(html, 'og:url', `https://app.diosmasgym.com/post/${slug}`);
       html = html.replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
       
+      // Override robots: allow indexing for this specific post page
+      html = html.replace(
+        /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
+        `<meta name="robots" content="index, follow">`
+      );
+      
       if (/<meta\s+name=["']description["']/i.test(html)) {
           html = html.replace(/<meta\s+name=["']description["'][\s\S]*?\/?>/i, `<meta name="description" content="${safeDesc}">`);
       } else {
@@ -941,6 +947,8 @@ export default async function handler(
         html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1>${contentHtml}</article></div>`);
       }
 
+      // HTTP-level robots signal so Google reads it even before parsing HTML
+      res.setHeader('X-Robots-Tag', 'index, follow');
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
@@ -1052,6 +1060,20 @@ export default async function handler(
       // Fetch compiled index.html (from cache/network)
       let html = await getBaseIndexHtml();
 
+      // If song not found, return real 404 to avoid Soft 404 in GSC
+      if (!song && id !== 'custom' && !(req.query.title && req.query.artist)) {
+        html = html.replace(
+          /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
+          `<meta name="robots" content="noindex, nofollow">`
+        );
+        html = html.replace(/<title>[^<]*<\/title>/i, `<title>Canción no encontrada - Dios Mas Gym</title>`);
+        html = html.replace('</head>', `<link rel="canonical" href="https://app.diosmasgym.com/" />\n</head>`);
+        res.setHeader('Cache-Control', 'no-store, no-cache');
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        return res.status(404).send(html);
+      }
+
       let shareUrl = `https://app.diosmasgym.com/link/${id}`;
       if (id === 'custom' && req.query.title && req.query.artist) {
         const qTitle = req.query.title as string;
@@ -1082,6 +1104,12 @@ export default async function handler(
       
       html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${shareUrl}" />`);
       
+      // Override robots: allow indexing for this specific smart link page
+      html = html.replace(
+        /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
+        `<meta name="robots" content="index, follow">`
+      );
+      
       if (/<meta\s+name=["']description["']/i.test(html)) {
           html = html.replace(/<meta\s+name=["']description["'][\s\S]*?\/?>/i, `<meta name="description" content="${safeDesc}">`);
       } else {
@@ -1104,6 +1132,8 @@ export default async function handler(
       const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
       html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}"><a href="${shareUrl}">Escuchar ahora en Spotify, YouTube, Apple Music y Deezer</a></article></div>`);
 
+      // HTTP-level robots signal so Google reads it even before parsing HTML
+      res.setHeader('X-Robots-Tag', 'index, follow');
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
