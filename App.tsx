@@ -23,7 +23,7 @@ import PostView from './components/PostView';
 import { fetchArsenalData, fetchPostBySlug, fetchPostById } from './services/contentService';
 import { fetchMusicCatalog } from './services/musicService';
 import { ContentPost, AppState, AppView, MusicItem } from './types';
-import SocialPopup, { InlineSocialBanner } from './components/SocialPromo';
+import SocialPopup, { InlineSocialBanner, InlineFollowNetworks } from './components/SocialPromo';
 import { HomeMusicSections } from './components/HomeMusicSections';
 import { useAnalytics } from './hooks/useAnalytics';
 import { safeStorage } from './services/safeStorage';
@@ -746,6 +746,8 @@ const App: React.FC = () => {
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
 
               <ArmaduraPromo />
+              <InlineFollowNetworks />
+              <InlineSocialBanner />
 
               {/* Infinite scroll sentinel */}
               <div ref={sentinelRef} className="h-10"></div>
