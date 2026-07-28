@@ -7,6 +7,15 @@ interface HomeMusicSectionsProps {
   onNavigateReflexiones: () => void;
 }
 
+interface YTVideo {
+  id: string;
+  title: string;
+  thumb: string;
+  url: string;
+  views?: string;
+  channel: string;
+}
+
 export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, onPlaySong, onNavigateReflexiones }) => {
   if (!catalog || catalog.length === 0) return null;
 
@@ -14,6 +23,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   const featured = catalog[0];
 
   const [topAnalytics, setTopAnalytics] = useState<string[]>([]);
+  const [ytVideos, setYtVideos] = useState<YTVideo[]>([]);
   
   useEffect(() => {
     const fetchTop = async () => {
@@ -30,8 +40,35 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         console.warn('Analytics top fetch failed', e);
       }
     };
+
+    const fetchYouTube = async () => {
+      // Use YouTube RSS feeds (no API key needed) via a CORS proxy
+      const channels = [
+        { handle: 'UCDiosmasgym', id: 'UCDiosmasgym', name: 'Dios Mas Gym' },
+        { handle: 'UCJuan614oficial', id: 'UCJuan614oficial', name: 'Juan 614' }
+      ];
+      // Pull from catalog videos (already have YouTube links) — no API key needed
+      const catalogYT = catalog
+        .filter(s => s.url && s.url.includes('youtube'))
+        .slice(0, 8)
+        .map(s => {
+          const urlMatch = s.url?.match(/(?:v=|youtu\.be\/)([\w-]{11})/);
+          const vid = urlMatch?.[1] || '';
+          return {
+            id: vid || s.id,
+            title: s.name,
+            thumb: vid ? `https://img.youtube.com/vi/${vid}/maxresdefault.jpg` : (s.cover || ''),
+            url: s.url || '',
+            channel: s.artist || 'Dios Mas Gym'
+          } as YTVideo;
+        })
+        .filter(v => v.url);
+      setYtVideos(catalogYT);
+    };
+
     fetchTop();
-  }, []);
+    fetchYouTube();
+  }, [catalog]);
 
   const topDeLaSemana = useMemo(() => {
     if (topAnalytics.length > 0) {
@@ -54,19 +91,19 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     {
       title: "Entrenamiento Pesado",
       description: "Beats agresivos y guitarras para romper récords.",
-      image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop",
       keywords: ["gym", "fuerza", "poder", "entrenar"]
     },
     {
       title: "Adoración y Fe",
       description: "Momentos de intimidad y fortaleza espiritual.",
-      image: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=2070&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1507692049790-de58290a4334?q=80&w=2070&auto=format&fit=crop",
       keywords: ["dios", "luz", "paz", "salvacion"]
     },
     {
       title: "Combate Espiritual",
       description: "Para cuando la batalla arrecia y necesitas fe.",
-      image: "https://images.unsplash.com/photo-1525268323446-0b8d28e75e11?q=80&w=2070&auto=format&fit=crop",
+      image: "https://images.unsplash.com/photo-1519671282429-b8a761c37f0e?q=80&w=2070&auto=format&fit=crop",
       keywords: ["batalla", "espada", "guerra", "fuego"]
     }
   ];
@@ -301,6 +338,109 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                   </div>
                 </a>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+
+      {/* MÁS VISTO EN YOUTUBE — carrusel horizontal con thumbnails reales */}
+      {ytVideos.length > 0 && (
+        <section className="relative py-16 md:py-24 overflow-hidden bg-[#060810] border-t border-white/5">
+          {/* Línea roja lateral */}
+          <div className="absolute right-0 top-0 w-2 h-full bg-gradient-to-b from-red-600/50 via-red-600/20 to-transparent"></div>
+          <div className="absolute -right-60 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-900/8 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="max-w-[1400px] mx-auto px-8 md:px-16">
+            {/* Header */}
+            <div className="flex items-end justify-between gap-6 mb-10">
+              <div className="flex items-end gap-5">
+                <div className="relative">
+                  <div className="absolute -inset-2 bg-red-700/15 rounded-lg skew-x-3"></div>
+                  <h2 className="relative font-serif italic text-5xl md:text-7xl text-white leading-none">
+                    Más Visto en <span className="text-red-500">YouTube</span>
+                  </h2>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-4 pb-2">
+                <a
+                  href="https://www.youtube.com/@Diosmasgym"
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-600/10 border border-red-600/20 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300"
+                >
+                  <i className="fab fa-youtube text-sm"></i> @Diosmasgym
+                </a>
+                <a
+                  href="https://www.youtube.com/@Juan614oficial"
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-600/10 border border-red-600/20 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300"
+                >
+                  <i className="fab fa-youtube text-sm"></i> @Juan614
+                </a>
+              </div>
+            </div>
+
+            {/* Carrusel horizontal */}
+            <div className="flex gap-4 md:gap-5 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory">
+              {ytVideos.map((vid, idx) => (
+                <a
+                  key={vid.id}
+                  href={vid.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group snap-start flex-shrink-0 w-[280px] md:w-[320px] cursor-pointer"
+                >
+                  {/* Thumbnail 16:9 */}
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/5 group-hover:border-red-500/40 transition-colors shadow-[0_8px_32px_rgba(0,0,0,0.5)] mb-3">
+                    <img
+                      loading="lazy"
+                      src={vid.thumb}
+                      alt={vid.title}
+                      className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+                      onError={(e) => {
+                        // Fallback to hqdefault if maxresdefault fails
+                        const vidId = vid.url?.match(/(?:v=|youtu\.be\/)([\w-]{11})/)?.[1];
+                        if (vidId && !(e.currentTarget.src.includes('hqdefault'))) {
+                          e.currentTarget.src = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+                        }
+                      }}
+                    />
+                    {/* Dark gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
+                    {/* Play button */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.6)] opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+                        <i className="fas fa-play ml-0.5"></i>
+                      </div>
+                    </div>
+                    {/* Position number */}
+                    <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-white font-black text-[11px] flex items-center justify-center">
+                      {idx + 1}
+                    </div>
+                    {/* Channel badge */}
+                    <div className="absolute bottom-3 right-3">
+                      <span className="px-2.5 py-1 rounded-full bg-red-600/80 backdrop-blur-sm text-[8px] font-black uppercase tracking-widest text-white">
+                        <i className="fab fa-youtube mr-1"></i>YT
+                      </span>
+                    </div>
+                  </div>
+                  {/* Info */}
+                  <h4 className="font-serif italic text-base md:text-lg text-white line-clamp-2 group-hover:text-red-400 transition-colors leading-snug">{vid.title}</h4>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">{vid.channel}</p>
+                </a>
+              ))}
+            </div>
+
+            {/* Botones suscripción mobile */}
+            <div className="flex md:hidden items-center justify-center gap-4 mt-8">
+              <a href="https://www.youtube.com/@Diosmasgym" target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all">
+                <i className="fab fa-youtube"></i> @Diosmasgym
+              </a>
+              <a href="https://www.youtube.com/@Juan614oficial" target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-600/20 border border-red-600/40 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
+                <i className="fab fa-youtube"></i> @Juan614
+              </a>
             </div>
           </div>
         </section>
