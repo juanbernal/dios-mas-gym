@@ -115,10 +115,19 @@ const AdminDashboard: React.FC = () => {
 
     const tools = [
         {
+            id: 'custom-promo',
+            title: 'Diseñador Avanzado de Banners Promocionales',
+            description: 'Crea banners publicitarios profesionales con estilos Scrapbook, Disco Vinilo, Cyberpunk, Editorial, Grunge y Polaroid.',
+            icon: 'fa-wand-magic-sparkles',
+            color: '#c5a059',
+            route: '/admin/custom-promo',
+            category: 'Contenido Audiovisual'
+        },
+        {
             id: 'music-promo-hub',
             title: 'Centro de Promoción de Canciones & Álbumes',
             description: 'Suite profesional todo-en-uno: crea campañas de 15 días, comunicados de prensa, pitches para playlists, hooks de TikTok y banners HD en vivo.',
-            icon: 'fa-[#c5a059] fa-[#c5a059] fa-bullhorn text-2xl',
+            icon: 'fa-bullhorn',
             color: '#c5a059',
             route: '/admin/music-promo-hub',
             category: 'Marketing & Social'

@@ -301,6 +301,15 @@ Genera lo siguiente en JSON estricto:
         {/* Quick Launchpad to Other Tools */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-10">
           <button 
+            onClick={() => handleOpenTool('/admin/custom-promo')}
+            className="bg-[#0f111a] hover:bg-[#181b29] border border-white/10 hover:border-[#c5a059]/50 p-4 rounded-xl text-left transition-all group"
+          >
+            <i className="fa-solid fa-[#c5a059] fa-wand-magic-sparkles text-[#c5a059] text-xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <div className="font-bold text-xs">Custom Promo Studio</div>
+            <div className="text-[9px] text-gray-400">Scrapbook, Vinyl, Cyberpunk</div>
+          </button>
+
+          <button 
             onClick={() => handleOpenTool('/admin/promo-image')}
             className="bg-[#0f111a] hover:bg-[#181b29] border border-white/10 hover:border-[#c5a059]/50 p-4 rounded-xl text-left transition-all group"
           >
