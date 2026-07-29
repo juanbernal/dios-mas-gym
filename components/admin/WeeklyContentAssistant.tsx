@@ -50,7 +50,7 @@ interface SuggestionCardProps {
     suggestion: Suggestion;
     onNext: () => void;
     onMarkCompleted: () => void;
-    onAction: (route: string) => void;
+    onAction: (route: string, state?: any) => void;
     title: string;
 }
 

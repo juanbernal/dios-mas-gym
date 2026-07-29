@@ -192,7 +192,10 @@ const PromoImageApp: React.FC = () => {
     if (!bg) return;
     const img = new Image();
     img.crossOrigin = "anonymous"; 
-    img.src = bg;
+    img.onerror = () => {
+      console.warn("⚠️ [AUTO-COLOR] Error cargando imagen para análisis. Fallback.");
+      if (autoColor) setContrastColor("#c5a059");
+    };
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
@@ -238,6 +241,7 @@ const PromoImageApp: React.FC = () => {
         if (autoColor) setContrastColor("#c5a059");
       }
     };
+    img.src = getCorsFriendlyUrl(bg) || bg;
   }, [bg, autoColor]);
 
   // ASYNC PREPARE CANVAS: Ghost Master Engine (Native 4K Native Resolution)
@@ -674,7 +678,7 @@ const PromoImageApp: React.FC = () => {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.5.0</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.5.1</h1>
         </div>
         <div className="w-20"></div> {/* Spacer */}
       </div>
@@ -1460,7 +1464,7 @@ const PromoTemplate: React.FC<any> = ({
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
-                imageRendering: 'high-quality',
+                imageRendering: 'smooth' as any,
                 filter: 'brightness(1.02)' // Brillo base para contrarrestar el overlay oscuro
               }} 
             />
