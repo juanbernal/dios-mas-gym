@@ -304,15 +304,6 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
-            id: 'music-promo-hub',
-            title: 'Centro de Promoción de Canciones & Álbumes',
-            description: 'Suite profesional todo-en-uno: crea campañas de 15 días, comunicados de prensa, pitches para playlists, hooks de TikTok y banners HD en vivo.',
-            icon: 'fa-bullhorn',
-            color: '#c5a059',
-            route: '/admin/music-promo-hub',
-            category: 'Marketing & Social'
-        },
-        {
             id: 'push-notifications',
             title: 'Push Notifications + Scheduler',
             description: 'Envía alertas instantáneas o prográmalas para el futuro. Cola de notificaciones con historial de envíos.',
