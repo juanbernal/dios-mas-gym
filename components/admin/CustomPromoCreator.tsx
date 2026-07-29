@@ -6,10 +6,10 @@ import { MusicItem } from "../../types";
 import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const SIZES = {
-  instagram: { w: 2160, h: 2700, label: "Instagram Post (4:5 HD)", aspect: "4/5" },
-  story: { w: 2160, h: 3840, label: "Story / Reels / TikTok (9:16 4K)", aspect: "9/16" },
-  post: { w: 3840, h: 2160, label: "YouTube / Facebook (16:9 4K)", aspect: "16/9" },
-  square: { w: 2160, h: 2160, label: "Cuadrado Perfecto (1:1 2K)", aspect: "1/1" }
+  instagram: { w: 1080, h: 1350, ratio: "4:5", label: "Instagram Post (4:5 HD)" },
+  story: { w: 1080, h: 1920, ratio: "9:16", label: "Story / Reels / TikTok (9:16)" },
+  post: { w: 1920, h: 1080, ratio: "16:9", label: "YouTube / Facebook (16:9)" },
+  square: { w: 1080, h: 1080, ratio: "1:1", label: "Cuadrado Perfecto (1:1)" }
 };
 
 const BIBLE_VERSES = [
@@ -20,14 +20,14 @@ const BIBLE_VERSES = [
   { ref: "2 TIMOTEO 1:7", text: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio." },
   { ref: "ROMANOS 8:31", text: "Si Dios es por nosotros, ¿quién contra nosotros?" },
   { ref: "PROVERBIOS 3:5", text: "Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia." },
-  { ref: "SALMOS 46:1", text: "Dios me cuida y me fortalece siempre." }
+  { ref: "SALMOS 46:1", text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio." }
 ];
 
 const FONTS = [
   { id: "serif-luxury", name: "DM Serif Luxury", class: "font-serif italic" },
   { id: "sans-bebas", name: "Bebas Poster Impact", class: "font-['Bebas_Neue'] tracking-wider uppercase font-black" },
-  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-2xl font-bold" },
-  { id: "tech-mono", name: "Tech Cyber Mono", class: "font-mono font-bold uppercase" },
+  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-3xl font-bold" },
+  { id: "tech-mono", name: "Tech Cyber Mono", class: "font-mono font-bold uppercase tracking-widest" },
   { id: "classic-cinzel", name: "Cinzel Gold Roman", class: "font-['Cinzel'] font-bold tracking-widest" }
 ];
 
@@ -52,17 +52,20 @@ export const CustomPromoCreator: React.FC = () => {
 
   // Typography & Layout Controls
   const [selectedFont, setSelectedFont] = useState<string>("serif-luxury");
-  const [activeTemplate, setActiveTemplate] = useState<"vinyl" | "scrapbook" | "cyberpunk" | "editorial" | "neon" | "grunge" | "glass">("vinyl");
+  const [activeTemplate, setActiveTemplate] = useState<"vinyl" | "scrapbook" | "cyberpunk" | "editorial" | "neon" | "grunge" | "glass" | "poster">("vinyl");
   const [sizeKey, setSizeKey] = useState<keyof typeof SIZES>("instagram");
   const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200");
 
-  // Lighting, Effects & Color Tuning
-  const [bgBlur, setBgBlur] = useState<number>(25);
-  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.6);
+  // Visual Decorators (MÁS ELEMENTOS CHIDOS)
+  const [showGoldFrame, setShowGoldFrame] = useState<boolean>(true);
+  const [showVinylSparks, setShowVinylSparks] = useState<boolean>(true);
+  const [showRibbonBadge, setShowRibbonBadge] = useState<boolean>(true);
+  const [showEqWaves, setShowEqWaves] = useState<boolean>(true);
+
+  // Lighting & Effects
+  const [bgBlur, setBgBlur] = useState<number>(20);
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.55);
   const [accentColor, setAccentColor] = useState<string>("#c5a059");
-  const [glowIntensity, setGlowIntensity] = useState<number>(40);
-  const [textureGrain, setTextureGrain] = useState<boolean>(true);
-  const [lightRays, setLightRays] = useState<boolean>(true);
 
   // Visibility Toggles
   const [showVerse, setShowVerse] = useState<boolean>(true);
@@ -105,7 +108,6 @@ export const CustomPromoCreator: React.FC = () => {
     loadCatalog();
   }, []);
 
-  // Fetch song lyrics via API automatically
   const fetchLyricsForSong = async (songName: string, songArtist: string) => {
     setIsSearchingLyrics(true);
     try {
@@ -165,21 +167,21 @@ export const CustomPromoCreator: React.FC = () => {
     }
   };
 
-  // HIGH-RESOLUTION RENDERER & DIRECT DOWNLOAD (NATIVE PNG 4K)
+  // ULTRA HD HIGH PRECISION RENDERER & DIRECT BLOB DOWNLOAD
   const handleExportUltraHD = async () => {
     if (!renderNodeRef.current) return;
     setIsExporting(true);
-    showToast("⚡ Masterizando gráfica en ULTRA HD 4K (4320px)... Por favor espera.");
+    showToast("⚡ Masterizando imagen en Ultra HD 4K... Por favor espera.");
 
     try {
       const targetNode = renderNodeRef.current;
 
-      // 1. Force Image preloading into memory with crossOrigin
+      // Force Preload Images for CORS Safety
       const images = Array.from(targetNode.querySelectorAll("img"));
       await Promise.all(
         images.map((img) => {
           return new Promise((resolve) => {
-            if (img.complete && img.naturalWidth !== 0) resolve(true);
+            if (img.complete && img.naturalWidth !== 0) return resolve(true);
             const copy = new Image();
             copy.crossOrigin = "anonymous";
             copy.onload = () => resolve(true);
@@ -189,21 +191,19 @@ export const CustomPromoCreator: React.FC = () => {
         })
       );
 
-      // 2. Wait for fonts & CSS filters to stabilize
       await document.fonts.ready;
-      await new Promise((res) => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 600));
 
-      // 3. Render high precision Canvas (Scale 3x for 4K crispness)
+      // Render at High Scale for crisp 4K Output
       const canvas = await html2canvas(targetNode, {
-        scale: 3,
+        scale: 4, // 4X Scale for Maximum Sharpness
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#05070a",
-        imageTimeout: 15000,
         logging: false,
       });
 
-      // 4. Trigger Direct Blob Download
+      // Direct Blob Stream Download
       canvas.toBlob((blob) => {
         if (!blob) {
           showToast("❌ Error al convertir imagen.");
@@ -212,19 +212,19 @@ export const CustomPromoCreator: React.FC = () => {
         }
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.download = `PROMO_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
+        a.download = `BANNER_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
         a.href = blobUrl;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-        showToast("🎉 ¡Banner Master Ultra HD 4K descargado con éxito!");
+        showToast("🎉 ¡Banner Master Ultra HD 4K descargado con máxima calidad!");
         setIsExporting(false);
       }, "image/png", 1.0);
 
     } catch (err) {
       console.error("Export error:", err);
-      showToast("❌ Error exportando. Inténtalo de nuevo.");
+      showToast("❌ Error al exportar.");
       setIsExporting(false);
     }
   };
@@ -260,7 +260,7 @@ export const CustomPromoCreator: React.FC = () => {
               Studio PRO de <span className="text-[#c5a059]">Banners HD 4K</span>
             </h1>
             <p className="text-gray-400 text-xs md:text-sm mt-1">
-              Diseñador gráfico profesional para portadas de canciones, versículos bíblicos de la API, letras oficiales y descarga en Ultra HD.
+              Diseña banners impactantes con marcos dorados, versículos de fe, ecualizadores visuales y letras oficiales.
             </p>
           </div>
 
@@ -275,7 +275,7 @@ export const CustomPromoCreator: React.FC = () => {
               </>
             ) : (
               <>
-                <i className="fa-solid fa-crown text-base"></i> Descargar Master 4K Ultra HD
+                <i className="fa-solid fa-download text-base"></i> Descargar Banner Master 4K
               </>
             )}
           </button>
@@ -285,13 +285,13 @@ export const CustomPromoCreator: React.FC = () => {
       {/* Studio Workspace */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        {/* LEFT PANEL: CONTROLS & CREATIVE TOOLS (5 Cols) */}
+        {/* LEFT PANEL: CONTROLS (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
 
           {/* 1. Song & Image Picker */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Fotografía Principal
+              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Imagen Principal
             </h3>
 
             {/* Catalog Search */}
@@ -333,21 +333,21 @@ export const CustomPromoCreator: React.FC = () => {
             </label>
           </div>
 
-          {/* 2. STYLE, TEMPLATE & TYPOGRAPHY */}
+          {/* 2. PLANTILLAS & ELEMENTOS DECORATIVOS CHIDOS */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-palette text-base"></i> 2. Estilo Visual & Tipografía
+              <i className="fa-solid fa-[#c5a059] fa-wand-magic-sparkles text-base"></i> 2. Estilos & Adornos Gráficos
             </h3>
 
             {/* Templates Selector */}
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { id: "vinyl", name: "📀 Vinilo 3D Premium", desc: "Disco giratorio en acetato" },
-                { id: "scrapbook", name: "📸 Scrapbook Polaroid", desc: "Foto instantánea artesanal" },
-                { id: "glass", name: "💎 Glassmorphism", desc: "Vidrio esmerilado luxury" },
-                { id: "cyberpunk", name: "⚡ Cyberpunk 2077", desc: "Neón cian y glitch" },
+                { id: "vinyl", name: "📀 Vinilo 3D Premium", desc: "Acetato giratorio en vivo" },
+                { id: "scrapbook", name: "📸 Scrapbook Polaroid", desc: "Foto instantánea con cinta" },
+                { id: "glass", name: "💎 Glassmorphism", desc: "Efecto cristal de lujo" },
+                { id: "cyberpunk", name: "⚡ Cyberpunk 2077", desc: "Marco neón futurista" },
                 { id: "editorial", name: "🖤 Editorial Vogue", desc: "Revista luxury Serif" },
-                { id: "neon", name: "💡 Studio Neon Glow", desc: "Luces de estudio de sonido" },
+                { id: "poster", name: "🎨 Póster de Concierto", desc: "Estética flyer oficial" }
               ].map((tmpl) => (
                 <button
                   key={tmpl.id}
@@ -366,9 +366,32 @@ export const CustomPromoCreator: React.FC = () => {
               ))}
             </div>
 
+            {/* Decorator Toggles */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              <span className="text-[10px] font-bold text-gray-400 block mb-1">Elementos Gráficos Adicionales</span>
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-300">
+                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
+                  <input type="checkbox" checked={showGoldFrame} onChange={(e) => setShowGoldFrame(e.target.checked)} className="accent-[#c5a059]" />
+                  Marco Dorado Luxury
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
+                  <input type="checkbox" checked={showEqWaves} onChange={(e) => setShowEqWaves(e.target.checked)} className="accent-[#c5a059]" />
+                  Ecualizador Visual
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
+                  <input type="checkbox" checked={showRibbonBadge} onChange={(e) => setShowRibbonBadge(e.target.checked)} className="accent-[#c5a059]" />
+                  Listón de Fe Oficial
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
+                  <input type="checkbox" checked={showPlatforms} onChange={(e) => setShowPlatforms(e.target.checked)} className="accent-[#c5a059]" />
+                  Iconos Streaming
+                </label>
+              </div>
+            </div>
+
             {/* Typography Selector */}
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1.5">Tipografía del Título</label>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1">Tipografía del Título</label>
               <select
                 value={selectedFont}
                 onChange={(e) => setSelectedFont(e.target.value)}
@@ -378,26 +401,6 @@ export const CustomPromoCreator: React.FC = () => {
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
               </select>
-            </div>
-
-            {/* Output Dimensions */}
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1.5">Formato de Salida</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(SIZES) as Array<keyof typeof SIZES>).map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => setSizeKey(key)}
-                    className={`p-2.5 rounded-xl text-[11px] font-bold border transition-all text-left ${
-                      sizeKey === key
-                        ? "bg-white text-black border-white"
-                        : "bg-[#05070a] text-gray-400 border-white/10 hover:border-white/20"
-                    }`}
-                  >
-                    {SIZES[key].label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -467,14 +470,14 @@ export const CustomPromoCreator: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. LIGHTING & FINE TUNING */}
+          {/* 4. TEXTS & TUNING */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-2 flex items-center gap-2">
-              <i className="fa-solid fa-[#c5a059] fa-sliders text-base"></i> 4. Iluminación & Ajustes
+              <i className="fa-solid fa-[#c5a059] fa-sliders text-base"></i> 4. Textos Básicos y Color
             </h3>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Título</label>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1">Título de la Canción</label>
               <input
                 type="text"
                 value={title}
@@ -508,42 +511,9 @@ export const CustomPromoCreator: React.FC = () => {
               </div>
             </div>
 
-            {/* Controls */}
             <div className="pt-2 border-t border-white/10 space-y-3">
-              <div>
-                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Desenfoque del Fondo</span>
-                  <span>{bgBlur}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="60"
-                  step="5"
-                  value={bgBlur}
-                  onChange={(e) => setBgBlur(parseInt(e.target.value))}
-                  className="w-full accent-[#c5a059]"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Oscuridad del Fondo</span>
-                  <span>{Math.round(overlayOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="0.9"
-                  step="0.05"
-                  value={overlayOpacity}
-                  onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
-                  className="w-full accent-[#c5a059]"
-                />
-              </div>
-
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gray-400">Color Acento Neón</span>
+                <span className="text-[10px] text-gray-400">Color de Acento Neón</span>
                 <input
                   type="color"
                   value={accentColor}
@@ -560,7 +530,7 @@ export const CustomPromoCreator: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-gray-400">
-              VISTA PREVIA DE ALTA DEFINICIÓN
+              VISTA PREVIA EN VIVO DE ALTA CALIDAD
             </span>
             <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3.5 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></span>
@@ -571,7 +541,7 @@ export const CustomPromoCreator: React.FC = () => {
           {/* Render Master Frame Node */}
           <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-8 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
             
-            {/* The Actual Render Target Captured by html2canvas */}
+            {/* Target Node Captured by html2canvas */}
             <div
               ref={renderNodeRef}
               style={{
@@ -583,12 +553,14 @@ export const CustomPromoCreator: React.FC = () => {
                 borderRadius: "28px"
               }}
               className={`shadow-2xl flex flex-col justify-between p-6 md:p-10 transition-all ${
-                activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a] border-2 border-[#c5a059]/50" :
-                activeTemplate === "scrapbook" ? "bg-[#181512] border-2 border-amber-900/50" :
-                activeTemplate === "glass" ? "bg-black/60 backdrop-blur-3xl border-2 border-white/20" :
-                activeTemplate === "cyberpunk" ? "bg-[#030d14] border-2 border-cyan-400 shadow-[0_0_60px_rgba(0,255,255,0.25)]" :
-                activeTemplate === "editorial" ? "bg-[#08080a] border-2 border-white/30" :
-                "bg-[#150a18] border-2 border-fuchsia-500/50"
+                showGoldFrame ? "border-4 border-[#c5a059]" : "border-2 border-white/10"
+              } ${
+                activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a]" :
+                activeTemplate === "scrapbook" ? "bg-[#181512]" :
+                activeTemplate === "glass" ? "bg-black/70 backdrop-blur-3xl" :
+                activeTemplate === "cyberpunk" ? "bg-[#030d14] shadow-[0_0_60px_rgba(0,255,255,0.25)]" :
+                activeTemplate === "poster" ? "bg-[#140808]" :
+                "bg-[#08080a]"
               }`}
             >
               {/* Dynamic Background Image with Blur */}
@@ -601,12 +573,12 @@ export const CustomPromoCreator: React.FC = () => {
                 }}
               />
 
-              {/* Dynamic Gradient Light Overlay */}
+              {/* Dynamic Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-0" />
 
               {/* Ambient Glow Aura */}
               <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[90px] pointer-events-none opacity-30 z-0"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[100px] pointer-events-none opacity-40 z-0"
                 style={{ backgroundColor: accentColor }}
               />
 
@@ -620,9 +592,9 @@ export const CustomPromoCreator: React.FC = () => {
                   {releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : releaseStatus === "proximamente" ? "⚡ PRÓXIMAMENTE" : "💎 PRE-SAVE"}
                 </span>
 
-                {showWatermark && (
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#c5a059] bg-black/60 border border-[#c5a059]/40 px-3.5 py-1 rounded-full shadow-lg">
-                    {badgeText}
+                {showRibbonBadge && (
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-black bg-[#c5a059] px-3.5 py-1 rounded-full shadow-lg">
+                    FE Y DISCIPLINA
                   </span>
                 )}
               </div>
@@ -661,8 +633,8 @@ export const CustomPromoCreator: React.FC = () => {
                   </div>
                 )}
 
-                {/* Glassmorphism & Cyberpunk & Standard Covers */}
-                {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial") && (
+                {/* Standard Covers */}
+                {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial" || activeTemplate === "poster") && (
                   <div className="relative mb-6">
                     <img
                       src={getCorsFriendlyUrl(coverUrl)}
@@ -670,10 +642,23 @@ export const CustomPromoCreator: React.FC = () => {
                       className={`w-52 h-52 md:w-72 md:h-72 object-cover rounded-2xl shadow-2xl border-2 ${
                         activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-[0_0_30px_rgba(0,255,255,0.4)]" :
                         activeTemplate === "neon" ? "border-fuchsia-400 shadow-[0_0_30px_rgba(217,70,239,0.4)]" :
-                        activeTemplate === "glass" ? "border-white/40 shadow-2xl" :
+                        activeTemplate === "poster" ? "border-red-500/60 shadow-2xl" :
                         "border-white/30"
                       }`}
                     />
+                  </div>
+                )}
+
+                {/* Equalizer Visual Waves */}
+                {showEqWaves && (
+                  <div className="flex items-center justify-center gap-1 mb-3">
+                    {[40, 70, 30, 90, 50, 80, 40, 60].map((h, i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-[#c5a059] rounded-full animate-pulse"
+                        style={{ height: `${h / 4}px`, animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
                   </div>
                 )}
 
