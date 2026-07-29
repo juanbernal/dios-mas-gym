@@ -6,10 +6,10 @@ import { MusicItem } from "../../types";
 import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const SIZES = {
-  instagram: { w: 1080, h: 1350, ratio: "4:5", label: "Instagram Post (4:5)" },
-  story: { w: 1080, h: 1920, ratio: "9:16", label: "Story / Reels / TikTok (9:16)" },
-  post: { w: 1920, h: 1080, ratio: "16:9", label: "YouTube / Facebook (16:9)" },
-  square: { w: 1080, h: 1080, ratio: "1:1", label: "Cuadrado Perfecto (1:1)" }
+  instagram: { w: 2160, h: 2700, label: "Instagram Post (4:5 HD)", aspect: "4/5" },
+  story: { w: 2160, h: 3840, label: "Story / Reels / TikTok (9:16 4K)", aspect: "9/16" },
+  post: { w: 3840, h: 2160, label: "YouTube / Facebook (16:9 4K)", aspect: "16/9" },
+  square: { w: 2160, h: 2160, label: "Cuadrado Perfecto (1:1 2K)", aspect: "1/1" }
 };
 
 const BIBLE_VERSES = [
@@ -20,12 +20,20 @@ const BIBLE_VERSES = [
   { ref: "2 TIMOTEO 1:7", text: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio." },
   { ref: "ROMANOS 8:31", text: "Si Dios es por nosotros, ¿quién contra nosotros?" },
   { ref: "PROVERBIOS 3:5", text: "Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia." },
-  { ref: "SALMOS 46:1", text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones." }
+  { ref: "SALMOS 46:1", text: "Dios me cuida y me fortalece siempre." }
+];
+
+const FONTS = [
+  { id: "serif-luxury", name: "DM Serif Luxury", class: "font-serif italic" },
+  { id: "sans-bebas", name: "Bebas Poster Impact", class: "font-['Bebas_Neue'] tracking-wider uppercase font-black" },
+  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-2xl font-bold" },
+  { id: "tech-mono", name: "Tech Cyber Mono", class: "font-mono font-bold uppercase" },
+  { id: "classic-cinzel", name: "Cinzel Gold Roman", class: "font-['Cinzel'] font-bold tracking-widest" }
 ];
 
 export const CustomPromoCreator: React.FC = () => {
   const navigate = useNavigate();
-  const masterRef = useRef<HTMLDivElement>(null);
+  const renderNodeRef = useRef<HTMLDivElement>(null);
 
   // Catalog
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -33,30 +41,36 @@ export const CustomPromoCreator: React.FC = () => {
   const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
 
   // Content Fields
-  const [title, setTitle] = useState("TÍTULO DE LA CANCIÓN");
+  const [title, setTitle] = useState("TÍTULO DE TU CANCIÓN");
   const [artist, setArtist] = useState("Diosmasgym");
   const [releaseStatus, setReleaseStatus] = useState<"disponible" | "proximamente" | "preventa">("disponible");
-  const [customPhrase, setCustomPhrase] = useState("Una melodía inspiradora para transformar tu espíritu y fortalecer tu fe.");
+  const [customPhrase, setCustomPhrase] = useState("Una producción de fe, superación y disciplina.");
   const [verseText, setVerseText] = useState("Todo lo puedo en Cristo que me fortalece. — FILIPENSES 4:13");
   const [songLyric, setSongLyric] = useState("");
+  const [badgeText, setBadgeText] = useState("MANDO EJECUTIVO");
+  const [producerText, setProducerText] = useState("PRODUCIDO EN CHIHUAHUA, MX");
 
-  // Decorative Tool Toggles
+  // Typography & Layout Controls
+  const [selectedFont, setSelectedFont] = useState<string>("serif-luxury");
+  const [activeTemplate, setActiveTemplate] = useState<"vinyl" | "scrapbook" | "cyberpunk" | "editorial" | "neon" | "grunge" | "glass">("vinyl");
+  const [sizeKey, setSizeKey] = useState<keyof typeof SIZES>("instagram");
+  const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200");
+
+  // Lighting, Effects & Color Tuning
+  const [bgBlur, setBgBlur] = useState<number>(25);
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.6);
+  const [accentColor, setAccentColor] = useState<string>("#c5a059");
+  const [glowIntensity, setGlowIntensity] = useState<number>(40);
+  const [textureGrain, setTextureGrain] = useState<boolean>(true);
+  const [lightRays, setLightRays] = useState<boolean>(true);
+
+  // Visibility Toggles
   const [showVerse, setShowVerse] = useState<boolean>(true);
-  const [showLyric, setShowLyric] = useState<boolean>(false);
+  const [showLyric, setShowLyric] = useState<boolean>(true);
   const [showPlatforms, setShowPlatforms] = useState<boolean>(true);
   const [showWatermark, setShowWatermark] = useState<boolean>(true);
-  const [badgeText, setBadgeText] = useState("EDICIÓN EXCLUSIVA ♡");
 
-  // Visual Customizations
-  const [activeTemplate, setActiveTemplate] = useState<"vinyl" | "scrapbook" | "cyberpunk" | "editorial" | "neon" | "grunge">("vinyl");
-  const [sizeKey, setSizeKey] = useState<keyof typeof SIZES>("instagram");
-  const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800");
-  const [bgBlur, setBgBlur] = useState<number>(30);
-  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.65);
-  const [accentColor, setAccentColor] = useState<string>("#c5a059");
-  const [textColor, setTextColor] = useState<string>("#ffffff");
-
-  // Status, Lyric fetching & Export
+  // Status & Export
   const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [toast, setToast] = useState("");
@@ -67,10 +81,10 @@ export const CustomPromoCreator: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(""), 3500);
+    setTimeout(() => setToast(""), 4000);
   };
 
-  // Load Music Catalog
+  // Load Catalog
   useEffect(() => {
     const loadCatalog = async () => {
       setLoadingCatalog(true);
@@ -81,9 +95,7 @@ export const CustomPromoCreator: React.FC = () => {
         ]);
         const full = [...dM, ...j6].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setCatalog(full);
-        if (full.length > 0) {
-          handleSelectSong(full[0]);
-        }
+        if (full.length > 0) handleSelectSong(full[0]);
       } catch (err) {
         console.error("Error al cargar catálogo:", err);
       } finally {
@@ -112,15 +124,14 @@ export const CustomPromoCreator: React.FC = () => {
             .map((l: string) => l.trim())
             .filter((l: string) => l.length > 0 && !l.startsWith("["));
           if (lines.length > 0) {
-            const firstVerse = lines.slice(0, 3).join(" / ");
-            setSongLyric(`"${firstVerse}"`);
+            setSongLyric(`"${lines.slice(0, 2).join(" / ")}"`);
             setShowLyric(true);
-            showToast("✨ Letra oficial encontrada y añadida al banner");
+            showToast("✨ Letra oficial auto-detectada");
           }
         }
       }
     } catch (e) {
-      console.warn("No se pudo obtener la letra automática:", e);
+      console.warn("No se pudo obtener la letra:", e);
     } finally {
       setIsSearchingLyrics(false);
     }
@@ -131,7 +142,7 @@ export const CustomPromoCreator: React.FC = () => {
     setTitle(song.name.toUpperCase());
     setArtist(song.artist || "Diosmasgym");
     if (song.cover) setCoverUrl(song.cover);
-    setCustomPhrase(`Escucha "${song.name}" de ${song.artist || 'Diosmasgym'} en todas las plataformas digitales.`);
+    setCustomPhrase(`Escucha "${song.name}" de ${song.artist || 'Diosmasgym'} en todas las plataformas.`);
     setIsSearchOpen(false);
     fetchLyricsForSong(song.name, song.artist || "Diosmasgym");
   };
@@ -140,7 +151,7 @@ export const CustomPromoCreator: React.FC = () => {
     const random = BIBLE_VERSES[Math.floor(Math.random() * BIBLE_VERSES.length)];
     setVerseText(`"${random.text}" — ${random.ref}`);
     setShowVerse(true);
-    showToast(`📖 Versículo aplicado: ${random.ref}`);
+    showToast(`📖 Versículo de Fe: ${random.ref}`);
   };
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,49 +165,66 @@ export const CustomPromoCreator: React.FC = () => {
     }
   };
 
-  // Robust Ultra HD Banner Export
-  const handleExportBanner = async () => {
-    if (!masterRef.current) return;
+  // HIGH-RESOLUTION RENDERER & DIRECT DOWNLOAD (NATIVE PNG 4K)
+  const handleExportUltraHD = async () => {
+    if (!renderNodeRef.current) return;
     setIsExporting(true);
-    try {
-      showToast("⏳ Preparando captura en Alta Definición (HD 4K)...");
+    showToast("⚡ Masterizando gráfica en ULTRA HD 4K (4320px)... Por favor espera.");
 
-      // Pre-load external images using CORS proxy before rendering
-      const targetImages = masterRef.current.querySelectorAll("img");
+    try {
+      const targetNode = renderNodeRef.current;
+
+      // 1. Force Image preloading into memory with crossOrigin
+      const images = Array.from(targetNode.querySelectorAll("img"));
       await Promise.all(
-        Array.from(targetImages).map((img) => {
+        images.map((img) => {
           return new Promise((resolve) => {
-            if (img.complete) return resolve(true);
-            img.onload = () => resolve(true);
-            img.onerror = () => resolve(false);
+            if (img.complete && img.naturalWidth !== 0) resolve(true);
+            const copy = new Image();
+            copy.crossOrigin = "anonymous";
+            copy.onload = () => resolve(true);
+            copy.onerror = () => resolve(false);
+            copy.src = img.src;
           });
         })
       );
 
+      // 2. Wait for fonts & CSS filters to stabilize
       await document.fonts.ready;
-      await new Promise(res => setTimeout(res, 600));
+      await new Promise((res) => setTimeout(res, 800));
 
-      const canvas = await html2canvas(masterRef.current, {
+      // 3. Render high precision Canvas (Scale 3x for 4K crispness)
+      const canvas = await html2canvas(targetNode, {
+        scale: 3,
         useCORS: true,
         allowTaint: false,
-        scale: 3, // Ultra HD High Res
-        backgroundColor: null,
-        logging: false
+        backgroundColor: "#05070a",
+        imageTimeout: 15000,
+        logging: false,
       });
 
-      const imageURI = canvas.toDataURL("image/png", 1.0);
-      const link = document.createElement("a");
-      link.download = `BANNER_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}_4K.png`;
-      link.href = imageURI;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // 4. Trigger Direct Blob Download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showToast("❌ Error al convertir imagen.");
+          setIsExporting(false);
+          return;
+        }
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.download = `PROMO_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
+        a.href = blobUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        showToast("🎉 ¡Banner Master Ultra HD 4K descargado con éxito!");
+        setIsExporting(false);
+      }, "image/png", 1.0);
 
-      showToast("✅ Banner descargado en ULTRA HD 4K (3000px+)");
     } catch (err) {
       console.error("Export error:", err);
       showToast("❌ Error exportando. Inténtalo de nuevo.");
-    } finally {
       setIsExporting(false);
     }
   };
@@ -206,12 +234,14 @@ export const CustomPromoCreator: React.FC = () => {
     song.artist.toLowerCase().includes(searchQuery.toLowerCase())
   ).slice(0, 8);
 
+  const activeFontClass = FONTS.find(f => f.id === selectedFont)?.class || "font-serif italic";
+
   return (
-    <div className="min-h-screen bg-[#05070a] text-white pt-20 pb-32 px-4 md:px-8 font-['Poppins']">
+    <div className="min-h-screen bg-[#030508] text-white pt-20 pb-32 px-4 md:px-8 font-['Poppins']">
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-8 right-8 z-[200] bg-[#c5a059] text-black font-bold px-6 py-3 rounded-xl shadow-2xl animate-bounce flex items-center gap-2">
-          <span>✨</span> {toast}
+        <div className="fixed bottom-8 right-8 z-[300] bg-[#c5a059] text-black font-bold px-6 py-3.5 rounded-2xl shadow-[0_0_40px_rgba(197,160,89,0.5)] animate-bounce flex items-center gap-3 border border-amber-300">
+          <span className="text-xl">✨</span> {toast}
         </div>
       )}
 
@@ -227,44 +257,45 @@ export const CustomPromoCreator: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="font-serif italic text-4xl md:text-6xl text-white">
-              Diseñador Avanzado de <span className="text-[#c5a059]">Banners</span>
+              Studio PRO de <span className="text-[#c5a059]">Banners HD 4K</span>
             </h1>
             <p className="text-gray-400 text-xs md:text-sm mt-1">
-              Personaliza con letras de canciones, versículos bíblicos de la API, sellos de fe y exporta en Ultra HD 4K.
+              Diseñador gráfico profesional para portadas de canciones, versículos bíblicos de la API, letras oficiales y descarga en Ultra HD.
             </p>
           </div>
+
           <button
-            onClick={handleExportBanner}
+            onClick={handleExportUltraHD}
             disabled={isExporting}
-            className="px-6 py-4 bg-gradient-to-r from-[#c5a059] via-[#e5c178] to-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-xl hover:shadow-[0_0_35px_rgba(197,160,89,0.5)] transition-all flex items-center gap-3 disabled:opacity-50"
+            className="px-8 py-5 bg-gradient-to-r from-[#c5a059] via-[#f3d38e] to-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:shadow-[0_0_40px_rgba(197,160,89,0.5)] transition-all flex items-center gap-3 disabled:opacity-50 transform hover:scale-105 active:scale-95"
           >
             {isExporting ? (
               <>
-                <i className="fa-solid fa-spinner animate-spin"></i> Generando HD 4K...
+                <i className="fa-solid fa-circle-notch animate-spin text-base"></i> Renderizando 4K...
               </>
             ) : (
               <>
-                <i className="fa-solid fa-download"></i> Descargar Banner Ultra HD 4K
+                <i className="fa-solid fa-crown text-base"></i> Descargar Master 4K Ultra HD
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Main Studio Workspace */}
+      {/* Studio Workspace */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        {/* LEFT PANEL: CONTROLS & ADD-ONS (5 Cols) */}
+        {/* LEFT PANEL: CONTROLS & CREATIVE TOOLS (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
 
           {/* 1. Song & Image Picker */}
-          <div className="bg-[#0f111a] border border-white/10 p-6 rounded-2xl shadow-xl">
+          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción e Imagen Principal
+              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Fotografía Principal
             </h3>
 
             {/* Catalog Search */}
-            <div className="relative mb-4">
+            <div className="relative mb-3">
               <input
                 type="text"
                 value={searchQuery}
@@ -274,7 +305,7 @@ export const CustomPromoCreator: React.FC = () => {
                 }}
                 onFocus={() => searchQuery.length > 0 && setIsSearchOpen(true)}
                 placeholder="Buscar canción en el catálogo..."
-                className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
+                className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3.5 text-xs text-white outline-none"
               />
               {isSearchOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-[#0c0e17] border border-white/20 rounded-xl overflow-hidden z-50 shadow-2xl max-h-60 overflow-y-auto">
@@ -295,17 +326,85 @@ export const CustomPromoCreator: React.FC = () => {
               )}
             </div>
 
-            {/* Upload Button */}
-            <label className="w-full py-3 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-xs font-bold text-gray-300 hover:text-white flex items-center justify-center gap-2 cursor-pointer transition-all">
+            {/* Custom Upload */}
+            <label className="w-full py-3.5 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-xs font-bold text-gray-300 hover:text-white flex items-center justify-center gap-2 cursor-pointer transition-all">
               <i className="fa-solid fa-cloud-arrow-up text-[#c5a059]"></i> Subir Imagen de Galería / Portada
               <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
             </label>
           </div>
 
-          {/* 2. ADD-ONS: BIBLE VERSES & SONG LYRICS (NUEVAS HERRAMIENTAS) */}
-          <div className="bg-[#0f111a] border border-white/10 p-6 rounded-2xl shadow-xl space-y-4">
+          {/* 2. STYLE, TEMPLATE & TYPOGRAPHY */}
+          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-book-bible text-base"></i> 2. Herramientas: Versículos & Letra
+              <i className="fa-solid fa-palette text-base"></i> 2. Estilo Visual & Tipografía
+            </h3>
+
+            {/* Templates Selector */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                { id: "vinyl", name: "📀 Vinilo 3D Premium", desc: "Disco giratorio en acetato" },
+                { id: "scrapbook", name: "📸 Scrapbook Polaroid", desc: "Foto instantánea artesanal" },
+                { id: "glass", name: "💎 Glassmorphism", desc: "Vidrio esmerilado luxury" },
+                { id: "cyberpunk", name: "⚡ Cyberpunk 2077", desc: "Neón cian y glitch" },
+                { id: "editorial", name: "🖤 Editorial Vogue", desc: "Revista luxury Serif" },
+                { id: "neon", name: "💡 Studio Neon Glow", desc: "Luces de estudio de sonido" },
+              ].map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => setActiveTemplate(tmpl.id as any)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    activeTemplate === tmpl.id
+                      ? "bg-[#c5a059] text-black border-[#c5a059] font-bold shadow-lg"
+                      : "bg-[#05070a] text-gray-300 border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{tmpl.name}</div>
+                  <div className={`text-[9px] ${activeTemplate === tmpl.id ? "text-black/70" : "text-gray-500"}`}>
+                    {tmpl.desc}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Typography Selector */}
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1.5">Tipografía del Título</label>
+              <select
+                value={selectedFont}
+                onChange={(e) => setSelectedFont(e.target.value)}
+                className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none cursor-pointer"
+              >
+                {FONTS.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Output Dimensions */}
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1.5">Formato de Salida</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.keys(SIZES) as Array<keyof typeof SIZES>).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setSizeKey(key)}
+                    className={`p-2.5 rounded-xl text-[11px] font-bold border transition-all text-left ${
+                      sizeKey === key
+                        ? "bg-white text-black border-white"
+                        : "bg-[#05070a] text-gray-400 border-white/10 hover:border-white/20"
+                    }`}
+                  >
+                    {SIZES[key].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. BIBLE VERSES & SONG LYRICS */}
+          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
+              <i className="fa-solid fa-book-bible text-base"></i> 3. Versículos & Letra Oficial
             </h3>
 
             {/* Versículo de la Biblia */}
@@ -326,7 +425,7 @@ export const CustomPromoCreator: React.FC = () => {
                 onChange={(e) => setVerseText(e.target.value)}
                 rows={2}
                 className="w-full bg-[#090c14] border border-white/10 focus:border-[#c5a059] rounded-lg p-2.5 text-[11px] text-gray-300 outline-none resize-none"
-                placeholder="Escribe o selecciona un versículo..."
+                placeholder="Escribe un versículo..."
               />
               <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
                 <input
@@ -343,10 +442,10 @@ export const CustomPromoCreator: React.FC = () => {
             <div className="p-3.5 bg-[#05070a] border border-white/10 rounded-xl space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-bold text-white flex items-center gap-2">
-                  <i className="fa-solid fa-align-left text-[#c5a059]"></i> Frase o Letra de la Canción
+                  <i className="fa-solid fa-quote-left text-[#c5a059]"></i> Frase / Letra Destacada
                 </span>
                 {isSearchingLyrics && (
-                  <span className="text-[9px] text-[#c5a059] animate-pulse">Buscando letra IA...</span>
+                  <span className="text-[9px] text-[#c5a059] animate-pulse">Buscando letra...</span>
                 )}
               </div>
               <textarea
@@ -354,7 +453,7 @@ export const CustomPromoCreator: React.FC = () => {
                 onChange={(e) => setSongLyric(e.target.value)}
                 rows={2}
                 className="w-full bg-[#090c14] border border-white/10 focus:border-[#c5a059] rounded-lg p-2.5 text-[11px] text-gray-300 outline-none resize-none"
-                placeholder="Frase destacada de la canción..."
+                placeholder="Frase o coro de la canción..."
               />
               <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
                 <input
@@ -363,91 +462,19 @@ export const CustomPromoCreator: React.FC = () => {
                   onChange={(e) => setShowLyric(e.target.checked)}
                   className="accent-[#c5a059]"
                 />
-                Mostrar Frase de la Letra en el Banner
-              </label>
-            </div>
-
-            {/* Extras Toggles */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
-              <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showPlatforms}
-                  onChange={(e) => setShowPlatforms(e.target.checked)}
-                  className="accent-[#c5a059]"
-                />
-                Iconos Plataformas
-              </label>
-              <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showWatermark}
-                  onChange={(e) => setShowWatermark(e.target.checked)}
-                  className="accent-[#c5a059]"
-                />
-                Sello Mando Ejecutivo
+                Mostrar Frase de Letra
               </label>
             </div>
           </div>
 
-          {/* 3. Style & Template Selector */}
-          <div className="bg-[#0f111a] border border-white/10 p-6 rounded-2xl shadow-xl">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-palette text-base"></i> 3. Estilo Visual & Formato
-            </h3>
-
-            <div className="grid grid-cols-2 gap-2.5 mb-4">
-              {[
-                { id: "vinyl", name: "📀 Vinilo 3D", desc: "Acetato giratorio moderno" },
-                { id: "scrapbook", name: "📸 Scrapbook", desc: "Polaroid & cinta artesanal" },
-                { id: "cyberpunk", name: "⚡ Cyberpunk", desc: "Neón y estética futurista" },
-                { id: "editorial", name: "🖤 Editorial", desc: "Revista luxury Serif" },
-                { id: "neon", name: "💡 Glow Neón", desc: "Luces de estudio vibrantes" },
-                { id: "grunge", name: "🔥 Grunge", desc: "Textura urbana rebelde" },
-              ].map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  onClick={() => setActiveTemplate(tmpl.id as any)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    activeTemplate === tmpl.id
-                      ? "bg-[#c5a059] text-black border-[#c5a059] font-bold shadow-lg"
-                      : "bg-[#05070a] text-gray-300 border-white/10 hover:border-white/20"
-                  }`}
-                >
-                  <div className="text-xs font-bold">{tmpl.name}</div>
-                  <div className={`text-[9px] ${activeTemplate === tmpl.id ? "text-black/70" : "text-gray-500"}`}>
-                    {tmpl.desc}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Size Selector */}
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(SIZES) as Array<keyof typeof SIZES>).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setSizeKey(key)}
-                  className={`p-2.5 rounded-xl text-[11px] font-bold border transition-all text-left ${
-                    sizeKey === key
-                      ? "bg-white text-black border-white"
-                      : "bg-[#05070a] text-gray-400 border-white/10 hover:border-white/20"
-                  }`}
-                >
-                  {SIZES[key].label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 4. Text Customization */}
-          <div className="bg-[#0f111a] border border-white/10 p-6 rounded-2xl shadow-xl space-y-3">
+          {/* 4. LIGHTING & FINE TUNING */}
+          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-2 flex items-center gap-2">
-              <i className="fa-solid fa-sliders text-base"></i> 4. Textos Básicos y Color
+              <i className="fa-solid fa-[#c5a059] fa-sliders text-base"></i> 4. Iluminación & Ajustes
             </h3>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Título de la Canción</label>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1">Título</label>
               <input
                 type="text"
                 value={title}
@@ -481,17 +508,33 @@ export const CustomPromoCreator: React.FC = () => {
               </div>
             </div>
 
-            {/* Sliders */}
+            {/* Controls */}
             <div className="pt-2 border-t border-white/10 space-y-3">
               <div>
                 <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Oscuridad Fondo</span>
+                  <span>Desenfoque del Fondo</span>
+                  <span>{bgBlur}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="60"
+                  step="5"
+                  value={bgBlur}
+                  onChange={(e) => setBgBlur(parseInt(e.target.value))}
+                  className="w-full accent-[#c5a059]"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Oscuridad del Fondo</span>
                   <span>{Math.round(overlayOpacity * 100)}%</span>
                 </div>
                 <input
                   type="range"
-                  min="0.2"
-                  max="0.95"
+                  min="0.1"
+                  max="0.9"
                   step="0.05"
                   value={overlayOpacity}
                   onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
@@ -500,7 +543,7 @@ export const CustomPromoCreator: React.FC = () => {
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gray-400">Color Acento</span>
+                <span className="text-[10px] text-gray-400">Color Acento Neón</span>
                 <input
                   type="color"
                   value={accentColor}
@@ -513,41 +556,42 @@ export const CustomPromoCreator: React.FC = () => {
 
         </div>
 
-        {/* RIGHT PANEL: LIVE HIGH-RES CANVAS PREVIEW (7 Cols) */}
+        {/* RIGHT PANEL: LIVE MASTER RENDER NODE (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-gray-400">
-              VISTA PREVIA EN VIVO ({currentSize.label})
+              VISTA PREVIA DE ALTA DEFINICIÓN
             </span>
-            <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3 py-1 rounded-full">
-              RENDER ULTRA HD 4K
+            <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3.5 py-1.5 rounded-full flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></span>
+              RENDER MASTER 4K (3840px)
             </span>
           </div>
 
-          {/* Render Container Frame */}
-          <div className="w-full bg-[#080a10] border border-white/10 p-4 md:p-8 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
+          {/* Render Master Frame Node */}
+          <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-8 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
             
-            {/* The Actual Render Master Node */}
+            {/* The Actual Render Target Captured by html2canvas */}
             <div
-              ref={masterRef}
+              ref={renderNodeRef}
               style={{
                 width: "100%",
-                maxWidth: `${currentSize.w / 2}px`,
-                aspectRatio: `${currentSize.w} / ${currentSize.h}`,
+                maxWidth: `${currentSize.w / 3.5}px`,
+                aspectRatio: currentSize.aspect,
                 position: "relative",
                 overflow: "hidden",
-                borderRadius: "24px"
+                borderRadius: "28px"
               }}
               className={`shadow-2xl flex flex-col justify-between p-6 md:p-10 transition-all ${
-                activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a] border border-[#c5a059]/40" :
-                activeTemplate === "scrapbook" ? "bg-[#161412] border-2 border-amber-900/40" :
-                activeTemplate === "cyberpunk" ? "bg-[#030d14] border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(0,255,255,0.2)]" :
-                activeTemplate === "editorial" ? "bg-[#0a0a0c] border border-white/20" :
-                activeTemplate === "neon" ? "bg-[#120817] border-2 border-fuchsia-500/40" :
-                "bg-[#140c0c] border-2 border-red-600/40"
+                activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a] border-2 border-[#c5a059]/50" :
+                activeTemplate === "scrapbook" ? "bg-[#181512] border-2 border-amber-900/50" :
+                activeTemplate === "glass" ? "bg-black/60 backdrop-blur-3xl border-2 border-white/20" :
+                activeTemplate === "cyberpunk" ? "bg-[#030d14] border-2 border-cyan-400 shadow-[0_0_60px_rgba(0,255,255,0.25)]" :
+                activeTemplate === "editorial" ? "bg-[#08080a] border-2 border-white/30" :
+                "bg-[#150a18] border-2 border-fuchsia-500/50"
               }`}
             >
-              {/* Dynamic Blurred Background Cover */}
+              {/* Dynamic Background Image with Blur */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-all"
                 style={{
@@ -557,10 +601,16 @@ export const CustomPromoCreator: React.FC = () => {
                 }}
               />
 
-              {/* Dark Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-0" />
+              {/* Dynamic Gradient Light Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-0" />
 
-              {/* TOP BAR */}
+              {/* Ambient Glow Aura */}
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[90px] pointer-events-none opacity-30 z-0"
+                style={{ backgroundColor: accentColor }}
+              />
+
+              {/* TOP HEADER BAR */}
               <div className="relative z-10 flex justify-between items-center">
                 <span className={`text-[9px] md:text-[11px] font-black tracking-[0.3em] uppercase px-4 py-1.5 rounded-full border backdrop-blur-md ${
                   releaseStatus === "disponible" ? "bg-[#c5a059]/20 text-[#c5a059] border-[#c5a059]/40" :
@@ -571,13 +621,13 @@ export const CustomPromoCreator: React.FC = () => {
                 </span>
 
                 {showWatermark && (
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#c5a059] bg-black/40 border border-[#c5a059]/30 px-3 py-1 rounded-full">
-                    MANDO EJECUTIVO
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#c5a059] bg-black/60 border border-[#c5a059]/40 px-3.5 py-1 rounded-full shadow-lg">
+                    {badgeText}
                   </span>
                 )}
               </div>
 
-              {/* CENTER MAIN ARTWORK */}
+              {/* CENTER ARTWORK & TEXT CONTENT */}
               <div className="relative z-10 my-auto flex flex-col items-center text-center py-4">
 
                 {/* Vinyl 3D Mode */}
@@ -611,26 +661,24 @@ export const CustomPromoCreator: React.FC = () => {
                   </div>
                 )}
 
-                {/* Cyberpunk Neón / Modern Frame */}
-                {(activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial" || activeTemplate === "grunge") && (
+                {/* Glassmorphism & Cyberpunk & Standard Covers */}
+                {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial") && (
                   <div className="relative mb-6">
                     <img
                       src={getCorsFriendlyUrl(coverUrl)}
                       alt={title}
                       className={`w-52 h-52 md:w-72 md:h-72 object-cover rounded-2xl shadow-2xl border-2 ${
-                        activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-cyan-500/50" :
-                        activeTemplate === "neon" ? "border-fuchsia-400 shadow-fuchsia-500/50" :
-                        activeTemplate === "editorial" ? "border-white/40" :
-                        "border-red-500/50 shadow-red-600/40"
+                        activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-[0_0_30px_rgba(0,255,255,0.4)]" :
+                        activeTemplate === "neon" ? "border-fuchsia-400 shadow-[0_0_30px_rgba(217,70,239,0.4)]" :
+                        activeTemplate === "glass" ? "border-white/40 shadow-2xl" :
+                        "border-white/30"
                       }`}
                     />
                   </div>
                 )}
 
-                {/* Title & Artist Text */}
-                <h2 className={`font-serif italic font-black text-3xl md:text-5xl text-white leading-tight drop-shadow-lg ${
-                  activeTemplate === "editorial" ? "font-serif text-[#e5c178]" : ""
-                }`}>
+                {/* Title & Artist */}
+                <h2 className={`font-black text-3xl md:text-5xl text-white leading-tight drop-shadow-2xl ${activeFontClass}`}>
                   {title}
                 </h2>
 
@@ -640,17 +688,17 @@ export const CustomPromoCreator: React.FC = () => {
 
                 {/* Custom Lyric Quote Box */}
                 {showLyric && songLyric && (
-                  <div className="mt-4 p-3 bg-black/60 backdrop-blur-md border border-[#c5a059]/40 rounded-xl max-w-md shadow-lg">
+                  <div className="mt-4 p-3.5 bg-black/70 backdrop-blur-md border border-[#c5a059]/40 rounded-2xl max-w-md shadow-2xl">
                     <p className="text-xs md:text-sm font-serif italic text-amber-200">
                       {songLyric}
                     </p>
-                    <span className="text-[8px] uppercase tracking-widest text-[#c5a059] block mt-1">LETRA OFICIAL</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] block mt-1">LETRA OFICIAL</span>
                   </div>
                 )}
 
                 {/* Bible Verse Box */}
                 {showVerse && verseText && (
-                  <div className="mt-3 p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl max-w-md shadow-lg">
+                  <div className="mt-3 p-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl max-w-md shadow-2xl">
                     <p className="text-[11px] md:text-xs text-gray-200 italic">
                       {verseText}
                     </p>
@@ -658,12 +706,9 @@ export const CustomPromoCreator: React.FC = () => {
                 )}
               </div>
 
-              {/* BOTTOM FOOTER PLATFORMS */}
-              {showPlatforms && (
-                <div className="relative z-10 border-t border-white/10 pt-4 flex flex-col items-center gap-3">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400">
-                    DISPONIBLE EN TODAS LAS PLATAFORMAS
-                  </span>
+              {/* BOTTOM FOOTER PLATFORMS & PRODUCER FOOTER */}
+              <div className="relative z-10 border-t border-white/10 pt-4 flex flex-col items-center gap-2">
+                {showPlatforms && (
                   <div className="flex items-center gap-6 text-xl text-gray-300">
                     <i className="fa-brands fa-spotify hover:text-green-500 transition-colors"></i>
                     <i className="fa-brands fa-apple hover:text-white transition-colors"></i>
@@ -671,8 +716,11 @@ export const CustomPromoCreator: React.FC = () => {
                     <i className="fa-brands fa-amazon hover:text-amber-400 transition-colors"></i>
                     <i className="fa-solid fa-music hover:text-pink-500 transition-colors"></i>
                   </div>
-                </div>
-              )}
+                )}
+                <span className="text-[9px] uppercase font-mono font-bold tracking-widest text-gray-400">
+                  {producerText}
+                </span>
+              </div>
 
             </div>
 
