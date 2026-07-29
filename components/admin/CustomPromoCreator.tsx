@@ -6,10 +6,10 @@ import { MusicItem } from "../../types";
 import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 
 const SIZES = {
-  instagram: { w: 1080, h: 1350, ratio: "4:5", label: "Instagram Post (4:5 HD)" },
-  story: { w: 1080, h: 1920, ratio: "9:16", label: "Story / Reels / TikTok (9:16)" },
-  post: { w: 1920, h: 1080, ratio: "16:9", label: "YouTube / Facebook (16:9)" },
-  square: { w: 1080, h: 1080, ratio: "1:1", label: "Cuadrado Perfecto (1:1)" }
+  instagram: { w: 1080, h: 1350, ratio: "4:5", label: "Instagram Post (4:5 HD)", previewMaxW: 420 },
+  story: { w: 1080, h: 1920, ratio: "9:16", label: "Story / Reels / TikTok (9:16 4K)", previewMaxW: 340 },
+  post: { w: 1920, h: 1080, ratio: "16:9", label: "YouTube / Facebook (16:9 4K)", previewMaxW: 560 },
+  square: { w: 1080, h: 1080, ratio: "1:1", label: "Cuadrado Perfecto (1:1 2K)", previewMaxW: 420 }
 };
 
 const BIBLE_VERSES = [
@@ -25,15 +25,15 @@ const BIBLE_VERSES = [
 
 const FONTS = [
   { id: "serif-luxury", name: "DM Serif Luxury", class: "font-serif italic" },
-  { id: "sans-bebas", name: "Bebas Poster Impact", class: "font-['Bebas_Neue'] tracking-wider uppercase font-black" },
-  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-3xl font-bold" },
+  { id: "sans-bebas", name: "Bebas Impact Ultra", class: "font-['Bebas_Neue'] tracking-wider uppercase font-black" },
+  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-4xl font-bold" },
   { id: "tech-mono", name: "Tech Cyber Mono", class: "font-mono font-bold uppercase tracking-widest" },
   { id: "classic-cinzel", name: "Cinzel Gold Roman", class: "font-['Cinzel'] font-bold tracking-widest" }
 ];
 
 export const CustomPromoCreator: React.FC = () => {
   const navigate = useNavigate();
-  const renderNodeRef = useRef<HTMLDivElement>(null);
+  const exportNodeRef = useRef<HTMLDivElement>(null);
 
   // Catalog
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -56,14 +56,15 @@ export const CustomPromoCreator: React.FC = () => {
   const [sizeKey, setSizeKey] = useState<keyof typeof SIZES>("instagram");
   const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200");
 
-  // Visual Decorators (MÁS ELEMENTOS CHIDOS)
+  // Visual Decorators
   const [showGoldFrame, setShowGoldFrame] = useState<boolean>(true);
   const [showVinylSparks, setShowVinylSparks] = useState<boolean>(true);
   const [showRibbonBadge, setShowRibbonBadge] = useState<boolean>(true);
   const [showEqWaves, setShowEqWaves] = useState<boolean>(true);
+  const [showGoldLeafOverlay, setShowGoldLeafOverlay] = useState<boolean>(true);
 
   // Lighting & Effects
-  const [bgBlur, setBgBlur] = useState<number>(20);
+  const [bgBlur, setBgBlur] = useState<number>(25);
   const [overlayOpacity, setOverlayOpacity] = useState<number>(0.55);
   const [accentColor, setAccentColor] = useState<string>("#c5a059");
 
@@ -167,17 +168,17 @@ export const CustomPromoCreator: React.FC = () => {
     }
   };
 
-  // ULTRA HD HIGH PRECISION RENDERER & DIRECT BLOB DOWNLOAD
+  // TRUE 4K MASTER EXPORT ENGINE (REDUCES BLUR ENTIRELY BY CAPTURING AT FULL 4K RESOLUTION DIRECTLY)
   const handleExportUltraHD = async () => {
-    if (!renderNodeRef.current) return;
+    if (!exportNodeRef.current) return;
     setIsExporting(true);
-    showToast("⚡ Masterizando imagen en Ultra HD 4K... Por favor espera.");
+    showToast("⚡ Renderizando Master Ultra HD 4K en máxima definición... Por favor espera.");
 
     try {
-      const targetNode = renderNodeRef.current;
+      const exportTarget = exportNodeRef.current;
 
-      // Force Preload Images for CORS Safety
-      const images = Array.from(targetNode.querySelectorAll("img"));
+      // 1. Force Pre-loading and Caching Images in Canvas memory
+      const images = Array.from(exportTarget.querySelectorAll("img"));
       await Promise.all(
         images.map((img) => {
           return new Promise((resolve) => {
@@ -192,33 +193,34 @@ export const CustomPromoCreator: React.FC = () => {
       );
 
       await document.fonts.ready;
-      await new Promise((res) => setTimeout(res, 600));
+      await new Promise((res) => setTimeout(res, 800));
 
-      // Render at High Scale for crisp 4K Output
-      const canvas = await html2canvas(targetNode, {
-        scale: 4, // 4X Scale for Maximum Sharpness
+      // 2. High-Density 4K Render Engine (scale 2 on an already huge 4K node guarantees zero blur)
+      const canvas = await html2canvas(exportTarget, {
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#05070a",
+        imageTimeout: 15000,
         logging: false,
       });
 
-      // Direct Blob Stream Download
+      // 3. Direct Blob Stream Download
       canvas.toBlob((blob) => {
         if (!blob) {
-          showToast("❌ Error al convertir imagen.");
+          showToast("❌ Error al procesar imagen.");
           setIsExporting(false);
           return;
         }
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.download = `BANNER_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
+        a.download = `PROMO_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
         a.href = blobUrl;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-        showToast("🎉 ¡Banner Master Ultra HD 4K descargado con máxima calidad!");
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2500);
+        showToast("🎉 ¡Banner Master 4K Ultra HD descargado con nitidez perfecta!");
         setIsExporting(false);
       }, "image/png", 1.0);
 
@@ -235,6 +237,267 @@ export const CustomPromoCreator: React.FC = () => {
   ).slice(0, 8);
 
   const activeFontClass = FONTS.find(f => f.id === selectedFont)?.class || "font-serif italic";
+
+  // SHARED INNER RENDER CONTENT FUNCTION (REUSED IN PREVIEW & 4K HIDDEN RENDER NODE FOR 100% QUALITY EQUALITY)
+  const renderBannerContent = (isMaster4K = false) => {
+    const scaleFactor = isMaster4K ? 2.5 : 1; // Scale typography and elements for true 4K target
+
+    return (
+      <div
+        className={`shadow-2xl flex flex-col justify-between transition-all w-full h-full relative overflow-hidden ${
+          isMaster4K ? "p-16 md:p-24 border-[10px]" : "p-6 md:p-10 border-4"
+        } ${
+          showGoldFrame ? "border-[#c5a059]" : "border-white/10"
+        } ${
+          activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a]" :
+          activeTemplate === "scrapbook" ? "bg-[#181512]" :
+          activeTemplate === "glass" ? "bg-black/70 backdrop-blur-3xl" :
+          activeTemplate === "cyberpunk" ? "bg-[#030d14] shadow-[0_0_80px_rgba(0,255,255,0.3)]" :
+          activeTemplate === "poster" ? "bg-[#140808]" :
+          "bg-[#08080a]"
+        }`}
+        style={{ borderRadius: isMaster4K ? "48px" : "28px" }}
+      >
+        {/* Dynamic Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-all"
+          style={{
+            backgroundImage: `url(${getCorsFriendlyUrl(coverUrl)})`,
+            filter: `blur(${bgBlur * (isMaster4K ? 2 : 1)}px)`,
+            opacity: 1 - overlayOpacity
+          }}
+        />
+
+        {/* Dynamic Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-0" />
+
+        {/* Gold Leaf & Ambient Glow Aura */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[120px] pointer-events-none opacity-40 z-0"
+          style={{ backgroundColor: accentColor }}
+        />
+
+        {/* TOP HEADER BAR */}
+        <div className="relative z-10 flex justify-between items-center">
+          <span
+            className="font-black tracking-[0.3em] uppercase rounded-full border backdrop-blur-md"
+            style={{
+              fontSize: isMaster4K ? "24px" : "11px",
+              padding: isMaster4K ? "12px 32px" : "6px 16px",
+              backgroundColor: releaseStatus === "disponible" ? "rgba(197,160,89,0.2)" : "rgba(6,182,212,0.2)",
+              color: releaseStatus === "disponible" ? "#c5a059" : "#22d3ee",
+              borderColor: releaseStatus === "disponible" ? "rgba(197,160,89,0.4)" : "rgba(6,182,212,0.4)"
+            }}
+          >
+            {releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : releaseStatus === "proximamente" ? "⚡ PRÓXIMAMENTE" : "💎 PRE-SAVE"}
+          </span>
+
+          {showRibbonBadge && (
+            <span
+              className="font-black uppercase tracking-widest text-black bg-[#c5a059] rounded-full shadow-2xl"
+              style={{
+                fontSize: isMaster4K ? "22px" : "11px",
+                padding: isMaster4K ? "10px 28px" : "4px 14px"
+              }}
+            >
+              FE Y DISCIPLINA
+            </span>
+          )}
+        </div>
+
+        {/* CENTER ARTWORK & TEXT CONTENT */}
+        <div className="relative z-10 my-auto flex flex-col items-center text-center py-4">
+
+          {/* Vinyl 3D Mode */}
+          {activeTemplate === "vinyl" && (
+            <div className="relative group cursor-pointer mb-6">
+              <img
+                src={getCorsFriendlyUrl(coverUrl)}
+                alt={title}
+                className="object-cover shadow-2xl border-2 border-white/20 relative z-10"
+                style={{
+                  width: isMaster4K ? "600px" : "220px",
+                  height: isMaster4K ? "600px" : "220px",
+                  borderRadius: isMaster4K ? "32px" : "16px"
+                }}
+              />
+              <div
+                className="absolute top-0 rounded-full bg-black border-8 border-gray-900 flex items-center justify-center shadow-2xl animate-spin-slow"
+                style={{
+                  right: isMaster4K ? "-100px" : "-35px",
+                  width: isMaster4K ? "600px" : "220px",
+                  height: isMaster4K ? "600px" : "220px"
+                }}
+              >
+                <div
+                  className="rounded-full border-4 border-amber-500/40 bg-black flex items-center justify-center"
+                  style={{
+                    width: isMaster4K ? "160px" : "60px",
+                    height: isMaster4K ? "160px" : "60px"
+                  }}
+                >
+                  <div
+                    className="rounded-full bg-amber-500"
+                    style={{
+                      width: isMaster4K ? "50px" : "20px",
+                      height: isMaster4K ? "50px" : "20px"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Scrapbook Polaroid Mode */}
+          {activeTemplate === "scrapbook" && (
+            <div
+              className="relative bg-white p-4 pb-12 rounded-lg shadow-2xl rotate-[-2deg] mb-6 border border-gray-300"
+              style={{ maxWidth: isMaster4K ? "650px" : "260px" }}
+            >
+              <div
+                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-200/90 backdrop-blur-sm rotate-2 shadow-sm border border-amber-300/50"
+                style={{
+                  width: isMaster4K ? "240px" : "100px",
+                  height: isMaster4K ? "50px" : "20px"
+                }}
+              />
+              <img
+                src={getCorsFriendlyUrl(coverUrl)}
+                alt={title}
+                className="w-full aspect-square object-cover rounded-sm mb-3"
+              />
+              <div
+                className="font-serif italic text-black font-bold text-center"
+                style={{ fontSize: isMaster4K ? "32px" : "13px" }}
+              >
+                "{title}" — {artist} ♡
+              </div>
+            </div>
+          )}
+
+          {/* Standard / Glass / Cyberpunk Covers */}
+          {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial" || activeTemplate === "poster") && (
+            <div className="relative mb-6">
+              <img
+                src={getCorsFriendlyUrl(coverUrl)}
+                alt={title}
+                className={`object-cover shadow-2xl border-4 ${
+                  activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-[0_0_50px_rgba(0,255,255,0.4)]" :
+                  activeTemplate === "neon" ? "border-fuchsia-400 shadow-[0_0_50px_rgba(217,70,239,0.4)]" :
+                  activeTemplate === "poster" ? "border-red-500/60 shadow-2xl" :
+                  "border-white/40"
+                }`}
+                style={{
+                  width: isMaster4K ? "700px" : "260px",
+                  height: isMaster4K ? "700px" : "260px",
+                  borderRadius: isMaster4K ? "36px" : "20px"
+                }}
+              />
+            </div>
+          )}
+
+          {/* Equalizer Visual Waves */}
+          {showEqWaves && (
+            <div className="flex items-center justify-center gap-1.5 mb-4">
+              {[40, 70, 30, 90, 50, 80, 40, 60, 90, 40].map((h, i) => (
+                <div
+                  key={i}
+                  className="bg-[#c5a059] rounded-full animate-pulse"
+                  style={{
+                    width: isMaster4K ? "8px" : "3px",
+                    height: `${(h / 3) * (isMaster4K ? 2.5 : 1)}px`,
+                    animationDelay: `${i * 0.12}s`
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Title & Artist */}
+          <h2
+            className={`font-black text-white leading-tight drop-shadow-2xl ${activeFontClass}`}
+            style={{ fontSize: isMaster4K ? "96px" : "38px" }}
+          >
+            {title}
+          </h2>
+
+          <p
+            className="font-bold uppercase tracking-widest mt-2"
+            style={{
+              color: accentColor,
+              fontSize: isMaster4K ? "38px" : "15px"
+            }}
+          >
+            {artist}
+          </p>
+
+          {/* Custom Lyric Quote Box */}
+          {showLyric && songLyric && (
+            <div
+              className="mt-6 bg-black/75 backdrop-blur-md border border-[#c5a059]/50 rounded-2xl shadow-2xl"
+              style={{
+                padding: isMaster4K ? "24px 36px" : "12px 18px",
+                maxWidth: isMaster4K ? "1100px" : "420px"
+              }}
+            >
+              <p
+                className="font-serif italic text-amber-200"
+                style={{ fontSize: isMaster4K ? "32px" : "13px" }}
+              >
+                {songLyric}
+              </p>
+              <span
+                className="font-black uppercase tracking-widest text-[#c5a059] block mt-1"
+                style={{ fontSize: isMaster4K ? "18px" : "8px" }}
+              >
+                LETRA OFICIAL
+              </span>
+            </div>
+          )}
+
+          {/* Bible Verse Box */}
+          {showVerse && verseText && (
+            <div
+              className="mt-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl"
+              style={{
+                padding: isMaster4K ? "24px 36px" : "12px 18px",
+                maxWidth: isMaster4K ? "1100px" : "420px"
+              }}
+            >
+              <p
+                className="text-gray-200 italic font-medium"
+                style={{ fontSize: isMaster4K ? "30px" : "12px" }}
+              >
+                {verseText}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* BOTTOM FOOTER PLATFORMS & PRODUCER FOOTER */}
+        <div className="relative z-10 border-t border-white/10 pt-4 flex flex-col items-center gap-3">
+          {showPlatforms && (
+            <div
+              className="flex items-center gap-8 text-gray-300"
+              style={{ fontSize: isMaster4K ? "48px" : "20px" }}
+            >
+              <i className="fa-brands fa-spotify hover:text-green-500 transition-colors"></i>
+              <i className="fa-brands fa-apple hover:text-white transition-colors"></i>
+              <i className="fa-brands fa-youtube hover:text-red-500 transition-colors"></i>
+              <i className="fa-brands fa-amazon hover:text-amber-400 transition-colors"></i>
+              <i className="fa-solid fa-music hover:text-pink-500 transition-colors"></i>
+            </div>
+          )}
+          <span
+            className="uppercase font-mono font-bold tracking-widest text-gray-400"
+            style={{ fontSize: isMaster4K ? "20px" : "9px" }}
+          >
+            {producerText}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#030508] text-white pt-20 pb-32 px-4 md:px-8 font-['Poppins']">
@@ -275,7 +538,7 @@ export const CustomPromoCreator: React.FC = () => {
               </>
             ) : (
               <>
-                <i className="fa-solid fa-download text-base"></i> Descargar Banner Master 4K
+                <i className="fa-solid fa-download text-base"></i> Descargar Master 4K Ultra HD
               </>
             )}
           </button>
@@ -526,11 +789,11 @@ export const CustomPromoCreator: React.FC = () => {
 
         </div>
 
-        {/* RIGHT PANEL: LIVE MASTER RENDER NODE (7 Cols) */}
+        {/* RIGHT PANEL: LIVE PREVIEW (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-gray-400">
-              VISTA PREVIA EN VIVO DE ALTA CALIDAD
+              VISTA PREVIA DE ALTA CALIDAD
             </span>
             <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3.5 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></span>
@@ -538,181 +801,45 @@ export const CustomPromoCreator: React.FC = () => {
             </span>
           </div>
 
-          {/* Render Master Frame Node */}
+          {/* Interactive Live Screen Frame */}
           <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-8 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
-            
-            {/* Target Node Captured by html2canvas */}
             <div
-              ref={renderNodeRef}
               style={{
                 width: "100%",
-                maxWidth: `${currentSize.w / 3.5}px`,
-                aspectRatio: currentSize.aspect,
-                position: "relative",
-                overflow: "hidden",
-                borderRadius: "28px"
+                maxWidth: `${currentSize.previewMaxW}px`,
+                aspectRatio: currentSize.ratio.replace(":", "/"),
               }}
-              className={`shadow-2xl flex flex-col justify-between p-6 md:p-10 transition-all ${
-                showGoldFrame ? "border-4 border-[#c5a059]" : "border-2 border-white/10"
-              } ${
-                activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a]" :
-                activeTemplate === "scrapbook" ? "bg-[#181512]" :
-                activeTemplate === "glass" ? "bg-black/70 backdrop-blur-3xl" :
-                activeTemplate === "cyberpunk" ? "bg-[#030d14] shadow-[0_0_60px_rgba(0,255,255,0.25)]" :
-                activeTemplate === "poster" ? "bg-[#140808]" :
-                "bg-[#08080a]"
-              }`}
             >
-              {/* Dynamic Background Image with Blur */}
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-all"
-                style={{
-                  backgroundImage: `url(${getCorsFriendlyUrl(coverUrl)})`,
-                  filter: `blur(${bgBlur}px)`,
-                  opacity: 1 - overlayOpacity
-                }}
-              />
-
-              {/* Dynamic Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-0" />
-
-              {/* Ambient Glow Aura */}
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[100px] pointer-events-none opacity-40 z-0"
-                style={{ backgroundColor: accentColor }}
-              />
-
-              {/* TOP HEADER BAR */}
-              <div className="relative z-10 flex justify-between items-center">
-                <span className={`text-[9px] md:text-[11px] font-black tracking-[0.3em] uppercase px-4 py-1.5 rounded-full border backdrop-blur-md ${
-                  releaseStatus === "disponible" ? "bg-[#c5a059]/20 text-[#c5a059] border-[#c5a059]/40" :
-                  releaseStatus === "proximamente" ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40" :
-                  "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                }`}>
-                  {releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : releaseStatus === "proximamente" ? "⚡ PRÓXIMAMENTE" : "💎 PRE-SAVE"}
-                </span>
-
-                {showRibbonBadge && (
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-black bg-[#c5a059] px-3.5 py-1 rounded-full shadow-lg">
-                    FE Y DISCIPLINA
-                  </span>
-                )}
-              </div>
-
-              {/* CENTER ARTWORK & TEXT CONTENT */}
-              <div className="relative z-10 my-auto flex flex-col items-center text-center py-4">
-
-                {/* Vinyl 3D Mode */}
-                {activeTemplate === "vinyl" && (
-                  <div className="relative group cursor-pointer mb-6">
-                    <img
-                      src={getCorsFriendlyUrl(coverUrl)}
-                      alt={title}
-                      className="w-48 h-48 md:w-64 md:h-64 rounded-2xl object-cover shadow-2xl border-2 border-white/20 relative z-10"
-                    />
-                    <div className="absolute top-0 -right-8 md:-right-12 w-48 h-48 md:w-64 md:h-64 rounded-full bg-black border-8 border-gray-900 flex items-center justify-center shadow-2xl animate-spin-slow">
-                      <div className="w-16 h-16 rounded-full border-4 border-amber-500/40 bg-black flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-amber-500" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Scrapbook Polaroid Mode */}
-                {activeTemplate === "scrapbook" && (
-                  <div className="relative bg-white p-4 pb-12 rounded-lg shadow-2xl rotate-[-2deg] mb-6 max-w-[260px] border border-gray-300">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-amber-200/80 backdrop-blur-sm rotate-2 shadow-sm border border-amber-300/50" />
-                    <img
-                      src={getCorsFriendlyUrl(coverUrl)}
-                      alt={title}
-                      className="w-full aspect-square object-cover rounded-sm mb-3"
-                    />
-                    <div className="font-serif italic text-black font-bold text-xs text-center">
-                      "{title}" — {artist} ♡
-                    </div>
-                  </div>
-                )}
-
-                {/* Standard Covers */}
-                {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial" || activeTemplate === "poster") && (
-                  <div className="relative mb-6">
-                    <img
-                      src={getCorsFriendlyUrl(coverUrl)}
-                      alt={title}
-                      className={`w-52 h-52 md:w-72 md:h-72 object-cover rounded-2xl shadow-2xl border-2 ${
-                        activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-[0_0_30px_rgba(0,255,255,0.4)]" :
-                        activeTemplate === "neon" ? "border-fuchsia-400 shadow-[0_0_30px_rgba(217,70,239,0.4)]" :
-                        activeTemplate === "poster" ? "border-red-500/60 shadow-2xl" :
-                        "border-white/30"
-                      }`}
-                    />
-                  </div>
-                )}
-
-                {/* Equalizer Visual Waves */}
-                {showEqWaves && (
-                  <div className="flex items-center justify-center gap-1 mb-3">
-                    {[40, 70, 30, 90, 50, 80, 40, 60].map((h, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-[#c5a059] rounded-full animate-pulse"
-                        style={{ height: `${h / 4}px`, animationDelay: `${i * 0.15}s` }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Title & Artist */}
-                <h2 className={`font-black text-3xl md:text-5xl text-white leading-tight drop-shadow-2xl ${activeFontClass}`}>
-                  {title}
-                </h2>
-
-                <p className="text-sm md:text-base font-bold uppercase tracking-widest mt-2" style={{ color: accentColor }}>
-                  {artist}
-                </p>
-
-                {/* Custom Lyric Quote Box */}
-                {showLyric && songLyric && (
-                  <div className="mt-4 p-3.5 bg-black/70 backdrop-blur-md border border-[#c5a059]/40 rounded-2xl max-w-md shadow-2xl">
-                    <p className="text-xs md:text-sm font-serif italic text-amber-200">
-                      {songLyric}
-                    </p>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] block mt-1">LETRA OFICIAL</span>
-                  </div>
-                )}
-
-                {/* Bible Verse Box */}
-                {showVerse && verseText && (
-                  <div className="mt-3 p-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl max-w-md shadow-2xl">
-                    <p className="text-[11px] md:text-xs text-gray-200 italic">
-                      {verseText}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* BOTTOM FOOTER PLATFORMS & PRODUCER FOOTER */}
-              <div className="relative z-10 border-t border-white/10 pt-4 flex flex-col items-center gap-2">
-                {showPlatforms && (
-                  <div className="flex items-center gap-6 text-xl text-gray-300">
-                    <i className="fa-brands fa-spotify hover:text-green-500 transition-colors"></i>
-                    <i className="fa-brands fa-apple hover:text-white transition-colors"></i>
-                    <i className="fa-brands fa-youtube hover:text-red-500 transition-colors"></i>
-                    <i className="fa-brands fa-amazon hover:text-amber-400 transition-colors"></i>
-                    <i className="fa-solid fa-music hover:text-pink-500 transition-colors"></i>
-                  </div>
-                )}
-                <span className="text-[9px] uppercase font-mono font-bold tracking-widest text-gray-400">
-                  {producerText}
-                </span>
-              </div>
-
+              {renderBannerContent(false)}
             </div>
-
           </div>
         </div>
 
       </div>
+
+      {/* OFF-SCREEN MASTER 4K RENDER CONTAINER (NATIVE 4K 3840px RESOLUTION FOR 100% BLUR-FREE HIGH DEFINITION PNG) */}
+      <div
+        style={{
+          position: "fixed",
+          left: "-9999px",
+          top: "-9999px",
+          width: `${currentSize.w}px`,
+          height: `${currentSize.h}px`,
+          zIndex: -9999,
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          ref={exportNodeRef}
+          style={{
+            width: `${currentSize.w}px`,
+            height: `${currentSize.h}px`,
+          }}
+        >
+          {renderBannerContent(true)}
+        </div>
+      </div>
+
     </div>
   );
 };
