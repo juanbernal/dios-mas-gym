@@ -115,6 +115,15 @@ const AdminDashboard: React.FC = () => {
 
     const tools = [
         {
+            id: 'music-promo-hub',
+            title: 'Centro de Promoción de Canciones & Álbumes',
+            description: 'Suite profesional todo-en-uno: crea campañas de 15 días, comunicados de prensa, pitches para playlists, hooks de TikTok y banners HD en vivo.',
+            icon: 'fa-[#c5a059] fa-[#c5a059] fa-bullhorn text-2xl',
+            color: '#c5a059',
+            route: '/admin/music-promo-hub',
+            category: 'Marketing & Social'
+        },
+        {
             id: 'promo-image',
             title: 'Promo Image Generator',
             description: 'Crea imágenes promocionales para Instagram, Stories y más desde el catálogo de canciones.',
@@ -284,6 +293,15 @@ const AdminDashboard: React.FC = () => {
             color: '#10b981',
             route: '/admin/post-scheduler',
             category: 'Gestión y Utilidades'
+        },
+        {
+            id: 'music-promo-hub',
+            title: 'Centro de Promoción de Canciones & Álbumes',
+            description: 'Suite profesional todo-en-uno: crea campañas de 15 días, comunicados de prensa, pitches para playlists, hooks de TikTok y banners HD en vivo.',
+            icon: 'fa-bullhorn',
+            color: '#c5a059',
+            route: '/admin/music-promo-hub',
+            category: 'Marketing & Social'
         },
         {
             id: 'push-notifications',
