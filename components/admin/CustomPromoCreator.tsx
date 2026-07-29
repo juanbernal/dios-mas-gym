@@ -1,16 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import html2canvas from "html2canvas";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
-import { getCorsFriendlyUrl } from "../../services/imageHelpers";
-
-const SIZES = {
-  instagram: { w: 1080, h: 1350, ratio: "4:5", label: "Instagram Post (4:5 HD)", previewMaxW: 420 },
-  story: { w: 1080, h: 1920, ratio: "9:16", label: "Story / Reels / TikTok (9:16 4K)", previewMaxW: 340 },
-  post: { w: 1920, h: 1080, ratio: "16:9", label: "YouTube / Facebook (16:9 4K)", previewMaxW: 560 },
-  square: { w: 1080, h: 1080, ratio: "1:1", label: "Cuadrado Perfecto (1:1 2K)", previewMaxW: 420 }
-};
 
 const BIBLE_VERSES = [
   { ref: "JOSUÉ 1:9", text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo." },
@@ -23,75 +14,92 @@ const BIBLE_VERSES = [
   { ref: "SALMOS 46:1", text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio." }
 ];
 
-const FONTS = [
-  { id: "serif-luxury", name: "DM Serif Luxury", class: "font-serif italic" },
-  { id: "sans-bebas", name: "Bebas Impact Ultra", class: "font-['Bebas_Neue'] tracking-wider uppercase font-black" },
-  { id: "handwritten", name: "Caveat Script", class: "font-['Caveat'] text-4xl font-bold" },
-  { id: "tech-mono", name: "Tech Cyber Mono", class: "font-mono font-bold uppercase tracking-widest" },
-  { id: "classic-cinzel", name: "Cinzel Gold Roman", class: "font-['Cinzel'] font-bold tracking-widest" }
-];
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    if (!src) return reject(new Error("no src"));
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      // Fallback crossOrigin bypass via Image Object
+      const copy = new Image();
+      copy.onload = () => resolve(copy);
+      copy.onerror = reject;
+      copy.src = src;
+    };
+    img.src = src;
+  });
+}
+
+function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? line + " " + word : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
 export const CustomPromoCreator: React.FC = () => {
   const navigate = useNavigate();
-  const exportNodeRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Catalog
+  // States
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
-  const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
 
-  // Content Fields
-  const [title, setTitle] = useState("TÍTULO DE TU CANCIÓN");
+  // Custom Controls
+  const [title, setTitle] = useState("TITULO DE TU CANCIÓN");
   const [artist, setArtist] = useState("Diosmasgym");
   const [releaseStatus, setReleaseStatus] = useState<"disponible" | "proximamente" | "preventa">("disponible");
-  const [customPhrase, setCustomPhrase] = useState("Una producción de fe, superación y disciplina.");
   const [verseText, setVerseText] = useState("Todo lo puedo en Cristo que me fortalece. — FILIPENSES 4:13");
   const [songLyric, setSongLyric] = useState("");
-  const [badgeText, setBadgeText] = useState("MANDO EJECUTIVO");
-  const [producerText, setProducerText] = useState("PRODUCIDO EN CHIHUAHUA, MX");
-
-  // Typography & Layout Controls
-  const [selectedFont, setSelectedFont] = useState<string>("serif-luxury");
-  const [activeTemplate, setActiveTemplate] = useState<"vinyl" | "scrapbook" | "cyberpunk" | "editorial" | "neon" | "grunge" | "glass" | "poster">("vinyl");
-  const [sizeKey, setSizeKey] = useState<keyof typeof SIZES>("instagram");
   const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200");
 
-  // Visual Decorators
-  const [showGoldFrame, setShowGoldFrame] = useState<boolean>(true);
-  const [showVinylSparks, setShowVinylSparks] = useState<boolean>(true);
-  const [showRibbonBadge, setShowRibbonBadge] = useState<boolean>(true);
-  const [showEqWaves, setShowEqWaves] = useState<boolean>(true);
-  const [showGoldLeafOverlay, setShowGoldLeafOverlay] = useState<boolean>(true);
-
-  // Lighting & Effects
-  const [bgBlur, setBgBlur] = useState<number>(25);
-  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.55);
-  const [accentColor, setAccentColor] = useState<string>("#c5a059");
-
-  // Visibility Toggles
+  // Aesthetics & Themes
+  const [bannerStyle, setBannerStyle] = useState<"gold-edition" | "vinyl-master" | "cyber-neon" | "scrapbook-polaroid" | "vogue-dark">("gold-edition");
+  const [overlayDarkness, setOverlayDarkness] = useState<number>(0.65);
   const [showVerse, setShowVerse] = useState<boolean>(true);
   const [showLyric, setShowLyric] = useState<boolean>(true);
-  const [showPlatforms, setShowPlatforms] = useState<boolean>(true);
-  const [showWatermark, setShowWatermark] = useState<boolean>(true);
+  const [showFrame, setShowFrame] = useState<boolean>(true);
+  const [showEqualizer, setShowEqualizer] = useState<boolean>(true);
 
-  // Status & Export
-  const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [toast, setToast] = useState("");
+  // Search & Status
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const currentSize = SIZES[sizeKey];
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [toast, setToast] = useState("");
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(""), 4000);
+    setTimeout(() => setToast(""), 3500);
   };
 
   // Load Catalog
   useEffect(() => {
     const loadCatalog = async () => {
-      setLoadingCatalog(true);
       try {
         const [dM, j6] = await Promise.all([
           fetchMusicCatalog("diosmasgym"),
@@ -102,59 +110,45 @@ export const CustomPromoCreator: React.FC = () => {
         if (full.length > 0) handleSelectSong(full[0]);
       } catch (err) {
         console.error("Error al cargar catálogo:", err);
-      } finally {
-        setLoadingCatalog(false);
       }
     };
     loadCatalog();
   }, []);
-
-  const fetchLyricsForSong = async (songName: string, songArtist: string) => {
-    setIsSearchingLyrics(true);
-    try {
-      const res = await fetch("/api/search-lyrics", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-password": localStorage.getItem("admin_password") || ""
-        },
-        body: JSON.stringify({ name: songName, artist: songArtist })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.lyrics && data.lyrics !== "LETRA_NO_ENCONTRADA") {
-          const lines = data.lyrics.split("\n")
-            .map((l: string) => l.trim())
-            .filter((l: string) => l.length > 0 && !l.startsWith("["));
-          if (lines.length > 0) {
-            setSongLyric(`"${lines.slice(0, 2).join(" / ")}"`);
-            setShowLyric(true);
-            showToast("✨ Letra oficial auto-detectada");
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("No se pudo obtener la letra:", e);
-    } finally {
-      setIsSearchingLyrics(false);
-    }
-  };
 
   const handleSelectSong = (song: MusicItem) => {
     setSelectedSong(song);
     setTitle(song.name.toUpperCase());
     setArtist(song.artist || "Diosmasgym");
     if (song.cover) setCoverUrl(song.cover);
-    setCustomPhrase(`Escucha "${song.name}" de ${song.artist || 'Diosmasgym'} en todas las plataformas.`);
     setIsSearchOpen(false);
-    fetchLyricsForSong(song.name, song.artist || "Diosmasgym");
+
+    // Auto lyric search
+    fetch("/api/search-lyrics", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": localStorage.getItem("admin_password") || ""
+      },
+      body: JSON.stringify({ name: song.name, artist: song.artist || "Diosmasgym" })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.lyrics && data.lyrics !== "LETRA_NO_ENCONTRADA") {
+          const lines = data.lyrics.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0 && !l.startsWith("["));
+          if (lines.length > 0) {
+            setSongLyric(`"${lines.slice(0, 2).join(" / ")}"`);
+            setShowLyric(true);
+          }
+        }
+      })
+      .catch(() => {});
   };
 
   const handleRandomVerse = () => {
     const random = BIBLE_VERSES[Math.floor(Math.random() * BIBLE_VERSES.length)];
     setVerseText(`"${random.text}" — ${random.ref}`);
     setShowVerse(true);
-    showToast(`📖 Versículo de Fe: ${random.ref}`);
+    showToast(`📖 Versículo: ${random.ref}`);
   };
 
   const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,336 +162,287 @@ export const CustomPromoCreator: React.FC = () => {
     }
   };
 
-  // TRUE 4K MASTER EXPORT ENGINE (REDUCES BLUR ENTIRELY BY CAPTURING AT FULL 4K RESOLUTION DIRECTLY)
-  const handleExportUltraHD = async () => {
-    if (!exportNodeRef.current) return;
-    setIsExporting(true);
-    showToast("⚡ Renderizando Master Ultra HD 4K en máxima definición... Por favor espera.");
+  // 🎨 CANVAS GRAPHICS RENDER ENGINE (2160 x 2700 HD 4K PERFECT PIXEL RENDER)
+  const drawCanvas = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    try {
-      const exportTarget = exportNodeRef.current;
+    const W = 2160;
+    const H = 2700;
+    canvas.width = W;
+    canvas.height = H;
 
-      // 1. Force Pre-loading and Caching Images in Canvas memory
-      const images = Array.from(exportTarget.querySelectorAll("img"));
-      await Promise.all(
-        images.map((img) => {
-          return new Promise((resolve) => {
-            if (img.complete && img.naturalWidth !== 0) return resolve(true);
-            const copy = new Image();
-            copy.crossOrigin = "anonymous";
-            copy.onload = () => resolve(true);
-            copy.onerror = () => resolve(false);
-            copy.src = img.src;
-          });
-        })
-      );
+    // 1. Dark Base Background
+    ctx.fillStyle = "#05070a";
+    ctx.fillRect(0, 0, W, H);
 
-      await document.fonts.ready;
-      await new Promise((res) => setTimeout(res, 800));
+    // 2. Draw Blurred Cover Background
+    if (coverUrl) {
+      try {
+        const coverImg = await loadImage(coverUrl);
+        // Draw centered cover covering canvas
+        ctx.save();
+        ctx.filter = `blur(45px) brightness(${1 - overlayDarkness})`;
+        ctx.drawImage(coverImg, -200, -200, W + 400, H + 400);
+        ctx.restore();
+      } catch (err) {
+        console.warn("Cover background fallback", err);
+      }
+    }
 
-      // 2. High-Density 4K Render Engine (scale 2 on an already huge 4K node guarantees zero blur)
-      const canvas = await html2canvas(exportTarget, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#05070a",
-        imageTimeout: 15000,
-        logging: false,
+    // 3. Ambient Lighting & Theme Vignettes
+    const gradient = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1400);
+    if (bannerStyle === "gold-edition") {
+      gradient.addColorStop(0, "rgba(197, 160, 89, 0.25)");
+      gradient.addColorStop(1, "rgba(5, 7, 10, 0.95)");
+    } else if (bannerStyle === "cyber-neon") {
+      gradient.addColorStop(0, "rgba(0, 242, 255, 0.25)");
+      gradient.addColorStop(1, "rgba(3, 13, 20, 0.98)");
+    } else {
+      gradient.addColorStop(0, "rgba(0, 0, 0, 0.1)");
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0.9)");
+    }
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+
+    // 4. Gold Outer Border Frame
+    if (showFrame) {
+      ctx.lineWidth = 24;
+      ctx.strokeStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+      drawRoundedRect(ctx, 40, 40, W - 80, H - 80, 48);
+      ctx.stroke();
+    }
+
+    // 5. Header Status Badge
+    const badgeText = releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : releaseStatus === "proximamente" ? "⚡ PRÓXIMAMENTE" : "💎 PRE-SAVE";
+    ctx.font = "900 36px 'Inter', sans-serif";
+    ctx.fillStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    drawRoundedRect(ctx, 90, 90, 420, 80, 40);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fill();
+    ctx.strokeStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.fillStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+    ctx.fillText(badgeText, 130, 112);
+
+    // Header Right Seal
+    ctx.font = "900 34px 'Inter', sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#c5a059";
+    ctx.fillText("MANDO EJECUTIVO  ·  DIOSMASGYM", W - 90, 112);
+
+    // 6. MAIN CENTER ARTWORK (COVER / VINYL / POLAROID)
+    const coverBoxSize = 900;
+    const coverX = (W - coverBoxSize) / 2;
+    const coverY = 320;
+
+    if (bannerStyle === "vinyl-master") {
+      // 3D Vinyl Disc Behind
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(coverX + coverBoxSize + 160, coverY + coverBoxSize / 2, coverBoxSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#111115";
+      ctx.fill();
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = "#222228";
+      ctx.stroke();
+      // Center Label
+      ctx.beginPath();
+      ctx.arc(coverX + coverBoxSize + 160, coverY + coverBoxSize / 2, 140, 0, Math.PI * 2);
+      ctx.fillStyle = "#c5a059";
+      ctx.fill();
+      ctx.restore();
+
+      // Front Cover
+      if (coverUrl) {
+        try {
+          const coverImg = await loadImage(coverUrl);
+          drawRoundedRect(ctx, coverX - 100, coverY, coverBoxSize, coverBoxSize, 40);
+          ctx.save();
+          ctx.clip();
+          ctx.drawImage(coverImg, coverX - 100, coverY, coverBoxSize, coverBoxSize);
+          ctx.restore();
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = "rgba(255,255,255,0.3)";
+          ctx.stroke();
+        } catch {}
+      }
+    } else if (bannerStyle === "scrapbook-polaroid") {
+      // Polaroid White Frame
+      ctx.save();
+      ctx.translate(W / 2, coverY + 450);
+      ctx.rotate(-0.04);
+      drawRoundedRect(ctx, -460, -480, 920, 1060, 24);
+      ctx.fillStyle = "#fcfbfa";
+      ctx.fill();
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 40;
+
+      if (coverUrl) {
+        try {
+          const coverImg = await loadImage(coverUrl);
+          ctx.drawImage(coverImg, -410, -430, 820, 820);
+        } catch {}
+      }
+      ctx.font = "italic bold 44px Georgia, serif";
+      ctx.fillStyle = "#111111";
+      ctx.textAlign = "center";
+      ctx.fillText(`"${title}" — ${artist}`, 0, 480);
+      ctx.restore();
+    } else {
+      // Standard & Cyber & Gold Cover Box
+      if (coverUrl) {
+        try {
+          const coverImg = await loadImage(coverUrl);
+          drawRoundedRect(ctx, coverX, coverY, coverBoxSize, coverBoxSize, 48);
+          ctx.save();
+          ctx.clip();
+          ctx.drawImage(coverImg, coverX, coverY, coverBoxSize, coverBoxSize);
+          ctx.restore();
+
+          ctx.shadowColor = bannerStyle === "cyber-neon" ? "rgba(0,242,255,0.6)" : "rgba(197,160,89,0.5)";
+          ctx.shadowBlur = 50;
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        } catch {}
+      }
+    }
+
+    // 7. Equalizer Audio Waves
+    if (showEqualizer) {
+      const eqY = coverY + coverBoxSize + 60;
+      const barHeights = [40, 80, 120, 60, 100, 140, 70, 110, 50, 90, 130, 60];
+      const startX = W / 2 - (barHeights.length * 28) / 2;
+
+      ctx.fillStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+      barHeights.forEach((h, idx) => {
+        drawRoundedRect(ctx, startX + idx * 28, eqY - h / 2, 14, h, 6);
+        ctx.fill();
+      });
+    }
+
+    // 8. TITLE & ARTIST TEXT
+    const titleY = coverY + coverBoxSize + 180;
+    ctx.font = "italic 900 96px Georgia, 'Times New Roman', serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(0,0,0,0.9)";
+    ctx.shadowBlur = 24;
+
+    const titleLines = wrapText(ctx, (title || "TITULO DE TU CANCIÓN").toUpperCase(), W - 200);
+    titleLines.slice(0, 2).forEach((l, i) => {
+      ctx.fillText(l, W / 2, titleY + i * 110);
+    });
+    ctx.shadowBlur = 0;
+
+    // Artist Subtitle
+    const artistY = titleY + titleLines.length * 110 + 20;
+    ctx.font = "900 48px 'Inter', sans-serif";
+    ctx.fillStyle = bannerStyle === "cyber-neon" ? "#00f2ff" : "#c5a059";
+    ctx.fillText(artist.toUpperCase(), W / 2, artistY);
+
+    // 9. BIBLE VERSE & LYRIC BOXES
+    let boxY = artistY + 90;
+
+    // Lyric Box
+    if (showLyric && songLyric) {
+      const lyricLines = wrapText(ctx, songLyric, W - 400);
+      const boxH = lyricLines.length * 48 + 60;
+      drawRoundedRect(ctx, 150, boxY, W - 300, boxH, 24);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(197, 160, 89, 0.4)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.font = "italic 600 36px Georgia, serif";
+      ctx.fillStyle = "#fef3c7";
+      ctx.textAlign = "center";
+      lyricLines.forEach((line, idx) => {
+        ctx.fillText(line, W / 2, boxY + 30 + idx * 48);
       });
 
-      // 3. Direct Blob Stream Download
+      boxY += boxH + 30;
+    }
+
+    // Bible Verse Box
+    if (showVerse && verseText) {
+      const verseLines = wrapText(ctx, verseText, W - 400);
+      const boxH = verseLines.length * 44 + 50;
+      drawRoundedRect(ctx, 150, boxY, W - 300, boxH, 24);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.font = "italic 500 32px 'Inter', sans-serif";
+      ctx.fillStyle = "#e2e8f0";
+      ctx.textAlign = "center";
+      verseLines.forEach((line, idx) => {
+        ctx.fillText(line, W / 2, boxY + 25 + idx * 44);
+      });
+    }
+
+    // 10. FOOTER STREAMING PLATFORMS
+    const footerY = H - 160;
+    ctx.font = "900 30px 'Inter', sans-serif";
+    ctx.fillStyle = "#94a3b8";
+    ctx.textAlign = "center";
+    ctx.fillText("DISPONIBLE EN SPOTIFY  ·  APPLE MUSIC  ·  YOUTUBE", W / 2, footerY);
+
+    ctx.font = "700 24px monospace";
+    ctx.fillStyle = "#64748b";
+    ctx.fillText("PRODUCIDO EN CHIHUAHUA, MX  ·  DIOSMASGYM RECORDS", W / 2, footerY + 50);
+
+  }, [coverUrl, bannerStyle, overlayDarkness, showFrame, releaseStatus, title, artist, showEqualizer, showLyric, songLyric, showVerse, verseText]);
+
+  // Redraw canvas whenever states change
+  useEffect(() => {
+    drawCanvas();
+  }, [drawCanvas]);
+
+  // DIRECT CANVAS DOWNLOAD (100% CRYSTAL CLEAR PNG, 0% BLUR, NATIVE HIGH RES)
+  const handleDirectDownload = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setIsDownloading(true);
+    showToast("⚡ Generando archivo PNG en Máxima Resolución Nítida...");
+
+    setTimeout(() => {
       canvas.toBlob((blob) => {
         if (!blob) {
-          showToast("❌ Error al procesar imagen.");
-          setIsExporting(false);
+          showToast("❌ Error generando imagen");
+          setIsDownloading(false);
           return;
         }
-        const blobUrl = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.download = `PROMO_4K_${title.replace(/\s+/g, "_")}_${activeTemplate.toUpperCase()}.png`;
-        a.href = blobUrl;
+        a.download = `BANNER_MASTER_${title.replace(/\s+/g, "_")}.png`;
+        a.href = url;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 2500);
-        showToast("🎉 ¡Banner Master 4K Ultra HD descargado con nitidez perfecta!");
-        setIsExporting(false);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast("🎉 ¡Banner en Alta Definición HD 4K descargado con éxito!");
+        setIsDownloading(false);
       }, "image/png", 1.0);
-
-    } catch (err) {
-      console.error("Export error:", err);
-      showToast("❌ Error al exportar.");
-      setIsExporting(false);
-    }
+    }, 300);
   };
 
   const filteredCatalog = catalog.filter(song =>
     song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     song.artist.toLowerCase().includes(searchQuery.toLowerCase())
   ).slice(0, 8);
-
-  const activeFontClass = FONTS.find(f => f.id === selectedFont)?.class || "font-serif italic";
-
-  // SHARED INNER RENDER CONTENT FUNCTION (REUSED IN PREVIEW & 4K HIDDEN RENDER NODE FOR 100% QUALITY EQUALITY)
-  const renderBannerContent = (isMaster4K = false) => {
-    const scaleFactor = isMaster4K ? 2.5 : 1; // Scale typography and elements for true 4K target
-
-    return (
-      <div
-        className={`shadow-2xl flex flex-col justify-between transition-all w-full h-full relative overflow-hidden ${
-          isMaster4K ? "p-16 md:p-24 border-[10px]" : "p-6 md:p-10 border-4"
-        } ${
-          showGoldFrame ? "border-[#c5a059]" : "border-white/10"
-        } ${
-          activeTemplate === "vinyl" ? "bg-gradient-to-br from-[#0c0e17] via-[#141726] to-[#05070a]" :
-          activeTemplate === "scrapbook" ? "bg-[#181512]" :
-          activeTemplate === "glass" ? "bg-black/70 backdrop-blur-3xl" :
-          activeTemplate === "cyberpunk" ? "bg-[#030d14] shadow-[0_0_80px_rgba(0,255,255,0.3)]" :
-          activeTemplate === "poster" ? "bg-[#140808]" :
-          "bg-[#08080a]"
-        }`}
-        style={{ borderRadius: isMaster4K ? "48px" : "28px" }}
-      >
-        {/* Dynamic Background Image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-all"
-          style={{
-            backgroundImage: `url(${getCorsFriendlyUrl(coverUrl)})`,
-            filter: `blur(${bgBlur * (isMaster4K ? 2 : 1)}px)`,
-            opacity: 1 - overlayOpacity
-          }}
-        />
-
-        {/* Dynamic Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-0" />
-
-        {/* Gold Leaf & Ambient Glow Aura */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 rounded-full blur-[120px] pointer-events-none opacity-40 z-0"
-          style={{ backgroundColor: accentColor }}
-        />
-
-        {/* TOP HEADER BAR */}
-        <div className="relative z-10 flex justify-between items-center">
-          <span
-            className="font-black tracking-[0.3em] uppercase rounded-full border backdrop-blur-md"
-            style={{
-              fontSize: isMaster4K ? "24px" : "11px",
-              padding: isMaster4K ? "12px 32px" : "6px 16px",
-              backgroundColor: releaseStatus === "disponible" ? "rgba(197,160,89,0.2)" : "rgba(6,182,212,0.2)",
-              color: releaseStatus === "disponible" ? "#c5a059" : "#22d3ee",
-              borderColor: releaseStatus === "disponible" ? "rgba(197,160,89,0.4)" : "rgba(6,182,212,0.4)"
-            }}
-          >
-            {releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : releaseStatus === "proximamente" ? "⚡ PRÓXIMAMENTE" : "💎 PRE-SAVE"}
-          </span>
-
-          {showRibbonBadge && (
-            <span
-              className="font-black uppercase tracking-widest text-black bg-[#c5a059] rounded-full shadow-2xl"
-              style={{
-                fontSize: isMaster4K ? "22px" : "11px",
-                padding: isMaster4K ? "10px 28px" : "4px 14px"
-              }}
-            >
-              FE Y DISCIPLINA
-            </span>
-          )}
-        </div>
-
-        {/* CENTER ARTWORK & TEXT CONTENT */}
-        <div className="relative z-10 my-auto flex flex-col items-center text-center py-4">
-
-          {/* Vinyl 3D Mode */}
-          {activeTemplate === "vinyl" && (
-            <div className="relative group cursor-pointer mb-6">
-              <img
-                src={getCorsFriendlyUrl(coverUrl)}
-                alt={title}
-                className="object-cover shadow-2xl border-2 border-white/20 relative z-10"
-                style={{
-                  width: isMaster4K ? "600px" : "220px",
-                  height: isMaster4K ? "600px" : "220px",
-                  borderRadius: isMaster4K ? "32px" : "16px"
-                }}
-              />
-              <div
-                className="absolute top-0 rounded-full bg-black border-8 border-gray-900 flex items-center justify-center shadow-2xl animate-spin-slow"
-                style={{
-                  right: isMaster4K ? "-100px" : "-35px",
-                  width: isMaster4K ? "600px" : "220px",
-                  height: isMaster4K ? "600px" : "220px"
-                }}
-              >
-                <div
-                  className="rounded-full border-4 border-amber-500/40 bg-black flex items-center justify-center"
-                  style={{
-                    width: isMaster4K ? "160px" : "60px",
-                    height: isMaster4K ? "160px" : "60px"
-                  }}
-                >
-                  <div
-                    className="rounded-full bg-amber-500"
-                    style={{
-                      width: isMaster4K ? "50px" : "20px",
-                      height: isMaster4K ? "50px" : "20px"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Scrapbook Polaroid Mode */}
-          {activeTemplate === "scrapbook" && (
-            <div
-              className="relative bg-white p-4 pb-12 rounded-lg shadow-2xl rotate-[-2deg] mb-6 border border-gray-300"
-              style={{ maxWidth: isMaster4K ? "650px" : "260px" }}
-            >
-              <div
-                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-200/90 backdrop-blur-sm rotate-2 shadow-sm border border-amber-300/50"
-                style={{
-                  width: isMaster4K ? "240px" : "100px",
-                  height: isMaster4K ? "50px" : "20px"
-                }}
-              />
-              <img
-                src={getCorsFriendlyUrl(coverUrl)}
-                alt={title}
-                className="w-full aspect-square object-cover rounded-sm mb-3"
-              />
-              <div
-                className="font-serif italic text-black font-bold text-center"
-                style={{ fontSize: isMaster4K ? "32px" : "13px" }}
-              >
-                "{title}" — {artist} ♡
-              </div>
-            </div>
-          )}
-
-          {/* Standard / Glass / Cyberpunk Covers */}
-          {(activeTemplate === "glass" || activeTemplate === "cyberpunk" || activeTemplate === "neon" || activeTemplate === "editorial" || activeTemplate === "poster") && (
-            <div className="relative mb-6">
-              <img
-                src={getCorsFriendlyUrl(coverUrl)}
-                alt={title}
-                className={`object-cover shadow-2xl border-4 ${
-                  activeTemplate === "cyberpunk" ? "border-cyan-400 shadow-[0_0_50px_rgba(0,255,255,0.4)]" :
-                  activeTemplate === "neon" ? "border-fuchsia-400 shadow-[0_0_50px_rgba(217,70,239,0.4)]" :
-                  activeTemplate === "poster" ? "border-red-500/60 shadow-2xl" :
-                  "border-white/40"
-                }`}
-                style={{
-                  width: isMaster4K ? "700px" : "260px",
-                  height: isMaster4K ? "700px" : "260px",
-                  borderRadius: isMaster4K ? "36px" : "20px"
-                }}
-              />
-            </div>
-          )}
-
-          {/* Equalizer Visual Waves */}
-          {showEqWaves && (
-            <div className="flex items-center justify-center gap-1.5 mb-4">
-              {[40, 70, 30, 90, 50, 80, 40, 60, 90, 40].map((h, i) => (
-                <div
-                  key={i}
-                  className="bg-[#c5a059] rounded-full animate-pulse"
-                  style={{
-                    width: isMaster4K ? "8px" : "3px",
-                    height: `${(h / 3) * (isMaster4K ? 2.5 : 1)}px`,
-                    animationDelay: `${i * 0.12}s`
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Title & Artist */}
-          <h2
-            className={`font-black text-white leading-tight drop-shadow-2xl ${activeFontClass}`}
-            style={{ fontSize: isMaster4K ? "96px" : "38px" }}
-          >
-            {title}
-          </h2>
-
-          <p
-            className="font-bold uppercase tracking-widest mt-2"
-            style={{
-              color: accentColor,
-              fontSize: isMaster4K ? "38px" : "15px"
-            }}
-          >
-            {artist}
-          </p>
-
-          {/* Custom Lyric Quote Box */}
-          {showLyric && songLyric && (
-            <div
-              className="mt-6 bg-black/75 backdrop-blur-md border border-[#c5a059]/50 rounded-2xl shadow-2xl"
-              style={{
-                padding: isMaster4K ? "24px 36px" : "12px 18px",
-                maxWidth: isMaster4K ? "1100px" : "420px"
-              }}
-            >
-              <p
-                className="font-serif italic text-amber-200"
-                style={{ fontSize: isMaster4K ? "32px" : "13px" }}
-              >
-                {songLyric}
-              </p>
-              <span
-                className="font-black uppercase tracking-widest text-[#c5a059] block mt-1"
-                style={{ fontSize: isMaster4K ? "18px" : "8px" }}
-              >
-                LETRA OFICIAL
-              </span>
-            </div>
-          )}
-
-          {/* Bible Verse Box */}
-          {showVerse && verseText && (
-            <div
-              className="mt-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl"
-              style={{
-                padding: isMaster4K ? "24px 36px" : "12px 18px",
-                maxWidth: isMaster4K ? "1100px" : "420px"
-              }}
-            >
-              <p
-                className="text-gray-200 italic font-medium"
-                style={{ fontSize: isMaster4K ? "30px" : "12px" }}
-              >
-                {verseText}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* BOTTOM FOOTER PLATFORMS & PRODUCER FOOTER */}
-        <div className="relative z-10 border-t border-white/10 pt-4 flex flex-col items-center gap-3">
-          {showPlatforms && (
-            <div
-              className="flex items-center gap-8 text-gray-300"
-              style={{ fontSize: isMaster4K ? "48px" : "20px" }}
-            >
-              <i className="fa-brands fa-spotify hover:text-green-500 transition-colors"></i>
-              <i className="fa-brands fa-apple hover:text-white transition-colors"></i>
-              <i className="fa-brands fa-youtube hover:text-red-500 transition-colors"></i>
-              <i className="fa-brands fa-amazon hover:text-amber-400 transition-colors"></i>
-              <i className="fa-solid fa-music hover:text-pink-500 transition-colors"></i>
-            </div>
-          )}
-          <span
-            className="uppercase font-mono font-bold tracking-widest text-gray-400"
-            style={{ fontSize: isMaster4K ? "20px" : "9px" }}
-          >
-            {producerText}
-          </span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-[#030508] text-white pt-20 pb-32 px-4 md:px-8 font-['Poppins']">
@@ -520,32 +465,32 @@ export const CustomPromoCreator: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="font-serif italic text-4xl md:text-6xl text-white">
-              Studio PRO de <span className="text-[#c5a059]">Banners HD 4K</span>
+              Estudio Profesional de <span className="text-[#c5a059]">Banners HD</span>
             </h1>
             <p className="text-gray-400 text-xs md:text-sm mt-1">
-              Diseña banners impactantes con marcos dorados, versículos de fe, ecualizadores visuales y letras oficiales.
+              Motor directo de renderizado Canvas HD 4K: Vinilos 3D, Polaroid Scrapbook, Neón Cyber y Versículos Bíblicos.
             </p>
           </div>
 
           <button
-            onClick={handleExportUltraHD}
-            disabled={isExporting}
-            className="px-8 py-5 bg-gradient-to-r from-[#c5a059] via-[#f3d38e] to-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:shadow-[0_0_40px_rgba(197,160,89,0.5)] transition-all flex items-center gap-3 disabled:opacity-50 transform hover:scale-105 active:scale-95"
+            onClick={handleDirectDownload}
+            disabled={isDownloading}
+            className="px-8 py-5 bg-gradient-to-r from-[#c5a059] via-[#f3d38e] to-[#c5a059] text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:shadow-[0_0_40px_rgba(197,160,89,0.5)] transition-all flex items-center gap-3 disabled:opacity-50 transform hover:scale-105 active:scale-95 cursor-pointer"
           >
-            {isExporting ? (
+            {isDownloading ? (
               <>
-                <i className="fa-solid fa-circle-notch animate-spin text-base"></i> Renderizando 4K...
+                <i className="fa-solid fa-circle-notch animate-spin text-base"></i> Exportando PNG Nítido...
               </>
             ) : (
               <>
-                <i className="fa-solid fa-download text-base"></i> Descargar Master 4K Ultra HD
+                <i className="fa-solid fa-download text-base"></i> Descargar Banner HD 4K (Máxima Calidad)
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Studio Workspace */}
+      {/* Main Studio Workspace */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         {/* LEFT PANEL: CONTROLS (5 Cols) */}
@@ -554,10 +499,9 @@ export const CustomPromoCreator: React.FC = () => {
           {/* 1. Song & Image Picker */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Imagen Principal
+              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Fotografía
             </h3>
 
-            {/* Catalog Search */}
             <div className="relative mb-3">
               <input
                 type="text"
@@ -589,91 +533,62 @@ export const CustomPromoCreator: React.FC = () => {
               )}
             </div>
 
-            {/* Custom Upload */}
             <label className="w-full py-3.5 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-xs font-bold text-gray-300 hover:text-white flex items-center justify-center gap-2 cursor-pointer transition-all">
               <i className="fa-solid fa-cloud-arrow-up text-[#c5a059]"></i> Subir Imagen de Galería / Portada
               <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
             </label>
           </div>
 
-          {/* 2. PLANTILLAS & ELEMENTOS DECORATIVOS CHIDOS */}
+          {/* 2. ESTILOS VISUALES DIVERSOS */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-[#c5a059] fa-wand-magic-sparkles text-base"></i> 2. Estilos & Adornos Gráficos
+              <i className="fa-solid fa-palette text-base"></i> 2. Estilos Visuales & Plantillas
             </h3>
 
-            {/* Templates Selector */}
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { id: "vinyl", name: "📀 Vinilo 3D Premium", desc: "Acetato giratorio en vivo" },
-                { id: "scrapbook", name: "📸 Scrapbook Polaroid", desc: "Foto instantánea con cinta" },
-                { id: "glass", name: "💎 Glassmorphism", desc: "Efecto cristal de lujo" },
-                { id: "cyberpunk", name: "⚡ Cyberpunk 2077", desc: "Marco neón futurista" },
-                { id: "editorial", name: "🖤 Editorial Vogue", desc: "Revista luxury Serif" },
-                { id: "poster", name: "🎨 Póster de Concierto", desc: "Estética flyer oficial" }
+                { id: "gold-edition", name: "🏆 Gold Imperial", desc: "Dorado clásico luxury" },
+                { id: "vinyl-master", name: "📀 Vinilo 3D", desc: "Acetato giratorio realista" },
+                { id: "scrapbook-polaroid", name: "📸 Polaroid Vintage", desc: "Foto artesanal" },
+                { id: "cyber-neon", name: "⚡ Cyber Neón", desc: "Futurista cian briloso" },
+                { id: "vogue-dark", name: "🖤 Editorial Dark", desc: "Estilo revista nocturna" }
               ].map((tmpl) => (
                 <button
                   key={tmpl.id}
-                  onClick={() => setActiveTemplate(tmpl.id as any)}
+                  onClick={() => setBannerStyle(tmpl.id as any)}
                   className={`p-3 rounded-xl border text-left transition-all ${
-                    activeTemplate === tmpl.id
+                    bannerStyle === tmpl.id
                       ? "bg-[#c5a059] text-black border-[#c5a059] font-bold shadow-lg"
                       : "bg-[#05070a] text-gray-300 border-white/10 hover:border-white/20"
                   }`}
                 >
                   <div className="text-xs font-bold">{tmpl.name}</div>
-                  <div className={`text-[9px] ${activeTemplate === tmpl.id ? "text-black/70" : "text-gray-500"}`}>
+                  <div className={`text-[9px] ${bannerStyle === tmpl.id ? "text-black/70" : "text-gray-500"}`}>
                     {tmpl.desc}
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Decorator Toggles */}
-            <div className="pt-2 border-t border-white/10 space-y-2">
-              <span className="text-[10px] font-bold text-gray-400 block mb-1">Elementos Gráficos Adicionales</span>
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-300">
-                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
-                  <input type="checkbox" checked={showGoldFrame} onChange={(e) => setShowGoldFrame(e.target.checked)} className="accent-[#c5a059]" />
-                  Marco Dorado Luxury
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
-                  <input type="checkbox" checked={showEqWaves} onChange={(e) => setShowEqWaves(e.target.checked)} className="accent-[#c5a059]" />
-                  Ecualizador Visual
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
-                  <input type="checkbox" checked={showRibbonBadge} onChange={(e) => setShowRibbonBadge(e.target.checked)} className="accent-[#c5a059]" />
-                  Listón de Fe Oficial
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2 rounded-lg border border-white/5">
-                  <input type="checkbox" checked={showPlatforms} onChange={(e) => setShowPlatforms(e.target.checked)} className="accent-[#c5a059]" />
-                  Iconos Streaming
-                </label>
-              </div>
-            </div>
-
-            {/* Typography Selector */}
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Tipografía del Título</label>
-              <select
-                value={selectedFont}
-                onChange={(e) => setSelectedFont(e.target.value)}
-                className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none cursor-pointer"
-              >
-                {FONTS.map(f => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
+            <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[10px] text-gray-300">
+              <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2.5 rounded-lg border border-white/5">
+                <input type="checkbox" checked={showFrame} onChange={(e) => setShowFrame(e.target.checked)} className="accent-[#c5a059]" />
+                Marco Dorado
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-2.5 rounded-lg border border-white/5">
+                <input type="checkbox" checked={showEqualizer} onChange={(e) => setShowEqualizer(e.target.checked)} className="accent-[#c5a059]" />
+                Ondas de Audio
+              </label>
             </div>
           </div>
 
-          {/* 3. BIBLE VERSES & SONG LYRICS */}
+          {/* 3. BIBLE VERSES & LYRIC TOOLS */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
               <i className="fa-solid fa-book-bible text-base"></i> 3. Versículos & Letra Oficial
             </h3>
 
-            {/* Versículo de la Biblia */}
+            {/* Versículo */}
             <div className="p-3.5 bg-[#05070a] border border-white/10 rounded-xl space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-bold text-white flex items-center gap-2">
@@ -691,52 +606,35 @@ export const CustomPromoCreator: React.FC = () => {
                 onChange={(e) => setVerseText(e.target.value)}
                 rows={2}
                 className="w-full bg-[#090c14] border border-white/10 focus:border-[#c5a059] rounded-lg p-2.5 text-[11px] text-gray-300 outline-none resize-none"
-                placeholder="Escribe un versículo..."
               />
               <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showVerse}
-                  onChange={(e) => setShowVerse(e.target.checked)}
-                  className="accent-[#c5a059]"
-                />
-                Mostrar Versículo en el Banner
+                <input type="checkbox" checked={showVerse} onChange={(e) => setShowVerse(e.target.checked)} className="accent-[#c5a059]" />
+                Mostrar Versículo
               </label>
             </div>
 
-            {/* Letra de la Canción */}
+            {/* Letra */}
             <div className="p-3.5 bg-[#05070a] border border-white/10 rounded-xl space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-bold text-white flex items-center gap-2">
-                  <i className="fa-solid fa-quote-left text-[#c5a059]"></i> Frase / Letra Destacada
-                </span>
-                {isSearchingLyrics && (
-                  <span className="text-[9px] text-[#c5a059] animate-pulse">Buscando letra...</span>
-                )}
-              </div>
+              <span className="text-[11px] font-bold text-white flex items-center gap-2">
+                <i className="fa-solid fa-quote-left text-[#c5a059]"></i> Frase / Letra Destacada
+              </span>
               <textarea
                 value={songLyric}
                 onChange={(e) => setSongLyric(e.target.value)}
                 rows={2}
                 className="w-full bg-[#090c14] border border-white/10 focus:border-[#c5a059] rounded-lg p-2.5 text-[11px] text-gray-300 outline-none resize-none"
-                placeholder="Frase o coro de la canción..."
               />
               <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showLyric}
-                  onChange={(e) => setShowLyric(e.target.checked)}
-                  className="accent-[#c5a059]"
-                />
-                Mostrar Frase de Letra
+                <input type="checkbox" checked={showLyric} onChange={(e) => setShowLyric(e.target.checked)} className="accent-[#c5a059]" />
+                Mostrar Letra
               </label>
             </div>
           </div>
 
-          {/* 4. TEXTS & TUNING */}
+          {/* 4. TEXTS */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] mb-2 flex items-center gap-2">
-              <i className="fa-solid fa-[#c5a059] fa-sliders text-base"></i> 4. Textos Básicos y Color
+              <i className="fa-solid fa-[#c5a059] fa-pen-to-square text-base"></i> 4. Textos Principales
             </h3>
 
             <div>
@@ -773,73 +671,32 @@ export const CustomPromoCreator: React.FC = () => {
                 </select>
               </div>
             </div>
-
-            <div className="pt-2 border-t border-white/10 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gray-400">Color de Acento Neón</span>
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="w-8 h-8 rounded border-none bg-transparent cursor-pointer"
-                />
-              </div>
-            </div>
           </div>
 
         </div>
 
-        {/* RIGHT PANEL: LIVE PREVIEW (7 Cols) */}
+        {/* RIGHT PANEL: LIVE NATIVE CANVAS PREVIEW (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-gray-400">
-              VISTA PREVIA DE ALTA CALIDAD
+              VISTA PREVIA REAL CANVA HD
             </span>
             <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3.5 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></span>
-              RENDER MASTER 4K (3840px)
+              2160 x 2700 PX ULTRA HD
             </span>
           </div>
 
-          {/* Interactive Live Screen Frame */}
-          <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-8 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
-            <div
-              style={{
-                width: "100%",
-                maxWidth: `${currentSize.previewMaxW}px`,
-                aspectRatio: currentSize.ratio.replace(":", "/"),
-              }}
-            >
-              {renderBannerContent(false)}
-            </div>
+          {/* Native Canvas Render Frame */}
+          <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-6 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
+            <canvas
+              ref={canvasRef}
+              className="w-full max-w-[440px] aspect-[4/5] rounded-2xl shadow-2xl object-contain bg-black"
+            />
           </div>
         </div>
 
       </div>
-
-      {/* OFF-SCREEN MASTER 4K RENDER CONTAINER (NATIVE 4K 3840px RESOLUTION FOR 100% BLUR-FREE HIGH DEFINITION PNG) */}
-      <div
-        style={{
-          position: "fixed",
-          left: "-9999px",
-          top: "-9999px",
-          width: `${currentSize.w}px`,
-          height: `${currentSize.h}px`,
-          zIndex: -9999,
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          ref={exportNodeRef}
-          style={{
-            width: `${currentSize.w}px`,
-            height: `${currentSize.h}px`,
-          }}
-        >
-          {renderBannerContent(true)}
-        </div>
-      </div>
-
     </div>
   );
 };
