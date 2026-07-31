@@ -1669,11 +1669,8 @@ const LyricStudio: React.FC = () => {
                                   max={Math.max(10, Math.floor(duration))}
                                   value={startOffset}
                                   onChange={(e) => {
-                                      const val = parseInt(e.target.value);
-                                      setStartOffset(val);
-                                      if (audioRef.current) {
-                                          audioRef.current.currentTime = val;
-                                      }
+                                      setStartOffset(parseInt(e.target.value));
+                                      // NO mover el audio aquí — solo guardar la configuración
                                   }}
                                   className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#00ffcc]"
                               />
@@ -1683,11 +1680,8 @@ const LyricStudio: React.FC = () => {
                                   max={Math.max(10, Math.floor(duration))}
                                   value={startOffset}
                                   onChange={(e) => {
-                                      const val = Math.max(0, parseInt(e.target.value) || 0);
-                                      setStartOffset(val);
-                                      if (audioRef.current) {
-                                          audioRef.current.currentTime = val;
-                                      }
+                                      setStartOffset(Math.max(0, parseInt(e.target.value) || 0));
+                                      // NO mover el audio aquí — solo guardar la configuración
                                   }}
                                   className="w-12 bg-black/60 border border-white/10 p-1 text-[9px] text-center font-mono rounded-lg"
                               />
