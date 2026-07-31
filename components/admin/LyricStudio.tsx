@@ -85,6 +85,7 @@ const LyricStudio: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const particlesRef = useRef<any[]>([]);
   
@@ -93,6 +94,7 @@ const LyricStudio: React.FC = () => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const requestRef = useRef<number | undefined>(undefined);
   const logoStudioRef = useRef<HTMLImageElement | null>(null);
   const outroImagesRef = useRef<(HTMLImageElement | null)[]>([null, null]);
 
