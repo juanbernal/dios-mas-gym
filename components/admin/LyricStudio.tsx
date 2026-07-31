@@ -1557,20 +1557,22 @@ const LyricStudio: React.FC = () => {
         </div>
         
         <div className="mt-4 flex flex-col items-center gap-2 w-full scale-90 md:scale-100">
-          {/* Interactive Progress Bar */}
+          {/* Interactive Progress Bar — tiempo relativo al video, no al archivo de audio */}
           <div className="w-full max-w-sm px-2">
             <input 
               type="range"
               min="0"
-              max={duration || 100}
+              max={Math.max(1, duration - startOffset)}
               step="0.1"
-              value={currentTime}
+              value={Math.max(0, currentTime - (includeIntro ? INTRO_DURATION : 0))}
               onChange={(e) => {
-                const targetTime = parseFloat(e.target.value);
-                setCurrentTime(targetTime);
+                const videoLyricsTime = parseFloat(e.target.value);
+                // Convertir tiempo del video a posición real en el archivo de audio
+                const audioFileTime = startOffset + videoLyricsTime;
                 if (audioRef.current) {
-                  audioRef.current.currentTime = Math.max(0, targetTime - (includeIntro ? INTRO_DURATION : 0));
+                  audioRef.current.currentTime = Math.min(audioFileTime, audioRef.current.duration || audioFileTime);
                 }
+                setCurrentTime(videoLyricsTime + (includeIntro ? INTRO_DURATION : 0));
               }}
               className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ffcc] hover:bg-white/20 transition-all"
             />
@@ -1598,12 +1600,16 @@ const LyricStudio: React.FC = () => {
                 setDuration(d);
             }}
             onTimeUpdate={(e) => {
-                if (e.currentTarget.currentTime > MAX_VIDEO_DURATION) {
+                const audioPos = e.currentTarget.currentTime;
+                // Convertir posición del archivo de audio a tiempo del VIDEO
+                const actualIntro = includeIntro ? INTRO_DURATION : 0;
+                const videoTime = Math.max(actualIntro, (audioPos - startOffset) + actualIntro);
+                // Detener si el audio pasa el límite máximo de video
+                if (audioPos - startOffset > MAX_VIDEO_DURATION) {
                     e.currentTarget.pause();
-                    e.currentTarget.currentTime = MAX_VIDEO_DURATION;
                     setIsPlaying(false);
                 }
-                setCurrentTime(e.currentTarget.currentTime);
+                if (!isPlaying) setCurrentTime(videoTime);
             }}
           />
         </div>
