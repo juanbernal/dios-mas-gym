@@ -1218,7 +1218,10 @@ const LyricStudio: React.FC = () => {
       let visualTime = 0;
       
       if (audioRef.current && !audioRef.current.paused) {
-          visualTime = audioRef.current.currentTime + actualIntro;
+          // El tiempo del VIDEO = (posición actual en el archivo - startOffset) + intro
+          // Así si el audio arranca en segundo 60, el video empieza en segundo 0
+          const audioVideoTime = (audioRef.current.currentTime - startOffset) + actualIntro;
+          visualTime = Math.max(actualIntro, audioVideoTime);
       } else {
           if (startTimeRef.current === 0) startTimeRef.current = performance.now();
           const elapsed = (performance.now() - startTimeRef.current) / 1000;
@@ -1233,7 +1236,7 @@ const LyricStudio: React.FC = () => {
       renderFrame(currentTime);
       requestRef.current = requestAnimationFrame(animate);
     }
-  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime, animationStyle, vhsMode, sensitivity, customLogo, visualizerStyle]);
+  }, [isPlaying, isExporting, lyricsInput, vibe, emojiPack, fontSize, textColor, glowToggle, branding, includeIntro, includeOutro, currentTime, animationStyle, vhsMode, sensitivity, customLogo, visualizerStyle, startOffset]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
@@ -1447,9 +1450,10 @@ const LyricStudio: React.FC = () => {
     if (!isSyncing || syncIndex >= syncLines.length) return;
     if (!audioRef.current) return;
     
-    // Aplicación de corrección automática fija (+0.25s para compensar latencia/adelanto)
-    const rawTime = audioRef.current.currentTime + SYNC_CORRECTION;
-    if (rawTime > MAX_VIDEO_DURATION) {
+    // Tiempo del VIDEO = posición en audio - startOffset + correción de latencia
+    // Así si el audio está en segundo 63 y startOffset=60, el timestamp del video es 3.25s
+    const rawTime = (audioRef.current.currentTime - startOffset) + SYNC_CORRECTION;
+    if (rawTime < 0 || rawTime > MAX_VIDEO_DURATION) {
         setIsSyncing(false);
         return;
     }
@@ -1466,8 +1470,9 @@ const LyricStudio: React.FC = () => {
   const markSilence = () => {
     if (!isSyncing) return;
     if (!audioRef.current) return;
-    const rawTime = audioRef.current.currentTime + SYNC_CORRECTION;
-    if (rawTime > MAX_VIDEO_DURATION) return;
+    // Tiempo del VIDEO = posición en audio - startOffset + corrección
+    const rawTime = (audioRef.current.currentTime - startOffset) + SYNC_CORRECTION;
+    if (rawTime < 0 || rawTime > MAX_VIDEO_DURATION) return;
     const time = rawTime.toFixed(2);
     setLyricsInput(prev => prev + `${time} | [SILENCIO]\n`);
   };
