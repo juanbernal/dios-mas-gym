@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog, deduplicateCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
@@ -21,6 +21,9 @@ const AdminDashboard: React.FC = () => {
     const [recentToolIds, setRecentToolIds] = useState<string[]>(() => {
         try { return JSON.parse(localStorage.getItem('admin_recent_tools') || '[]'); } catch { return []; }
     });
+    const [showCatalogModal, setShowCatalogModal] = useState(false);
+    const [catalogFilter, setCatalogFilter] = useState<'oficiales' | 'unicas' | 'raw' | 'diosmasgym' | 'juan614'>('oficiales');
+    const [catalogSearch, setCatalogSearch] = useState('');
     const push = useOneSignal();
 
     const loadMusicCatalog = async (forceRefresh = false) => {
@@ -363,6 +366,31 @@ const AdminDashboard: React.FC = () => {
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     };
 
+    const filteredModalCatalog = useMemo(() => {
+        let list: MusicItem[] = [];
+        if (catalogFilter === 'oficiales') {
+            list = musicCatalog.filter(s => isOfficialType(s.type));
+        } else if (catalogFilter === 'unicas') {
+            list = deduplicatedMusic;
+        } else if (catalogFilter === 'raw') {
+            list = musicCatalog.filter(s => !isOfficialType(s.type));
+        } else if (catalogFilter === 'diosmasgym') {
+            list = deduplicatedMusic.filter(s => s.artist.toLowerCase().includes('dios'));
+        } else if (catalogFilter === 'juan614') {
+            list = deduplicatedMusic.filter(s => s.artist.toLowerCase().includes('juan'));
+        }
+
+        if (catalogSearch.trim()) {
+            const query = catalogSearch.toLowerCase().trim();
+            list = list.filter(s => 
+                (s.name && s.name.toLowerCase().includes(query)) ||
+                (s.artist && s.artist.toLowerCase().includes(query)) ||
+                (s.type && s.type.toLowerCase().includes(query))
+            );
+        }
+        return list;
+    }, [catalogFilter, catalogSearch, musicCatalog, deduplicatedMusic]);
+
     return (
         <div className="min-h-screen bg-transparent pt-32 pb-40 px-6 md:px-8 font-sans relative z-10">
             <div className="max-w-7xl mx-auto">
@@ -426,28 +454,49 @@ const AdminDashboard: React.FC = () => {
 
                     {/* Stats Compactos (Bento Style) */}
                     <div className={`${isInstalled ? 'lg:col-span-12' : 'lg:col-span-4'} grid grid-cols-2 md:grid-cols-4 gap-4 h-full`}>
-                        <div className="bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-6 flex flex-col justify-between hover:border-[#c5a059]/60 transition-all">
-                            <i className="fas fa-[#c5a059] fa-compact-disc text-[#c5a059] text-xl"></i>
+                        <div 
+                            onClick={() => { setCatalogFilter('oficiales'); setShowCatalogModal(true); }}
+                            className="bg-[#0f111a] border border-[#c5a059]/40 rounded-3xl p-6 flex flex-col justify-between cursor-pointer hover:border-[#c5a059] hover:bg-[#c5a059]/5 transition-all group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <i className="fas fa-compact-disc text-[#c5a059] text-xl"></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] opacity-0 group-hover:opacity-100 transition-opacity">Ver Lista →</span>
+                            </div>
                             <div>
                                 <p className="text-3xl font-serif italic text-white">{musicStats.official}</p>
                                 <p className="text-[8px] font-black uppercase tracking-widest text-[#c5a059]">Lanzamientos Oficiales</p>
                             </div>
                         </div>
-                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-[#4a90d9]/30 transition-all">
-                            <i className="fas fa-music text-[#4a90d9] text-xl"></i>
+
+                        <div 
+                            onClick={() => { setCatalogFilter('unicas'); setShowCatalogModal(true); }}
+                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between cursor-pointer hover:border-[#4a90d9]/40 hover:bg-[#4a90d9]/5 transition-all group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <i className="fas fa-music text-[#4a90d9] text-xl"></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-[#4a90d9] opacity-0 group-hover:opacity-100 transition-opacity">Ver Lista →</span>
+                            </div>
                             <div>
                                 <p className="text-3xl font-serif italic text-white">{musicStats.dedupTotal}</p>
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Canciones Únicas</p>
                             </div>
                         </div>
-                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all">
-                            <i className="fab fa-youtube text-red-500/80 text-xl"></i>
+
+                        <div 
+                            onClick={() => { setCatalogFilter('raw'); setShowCatalogModal(true); }}
+                            className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between cursor-pointer hover:border-red-500/40 hover:bg-red-500/5 transition-all group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <i className="fab fa-youtube text-red-500/80 text-xl"></i>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">Ver Lista →</span>
+                            </div>
                             <div>
                                 <p className="text-3xl font-serif italic text-white">{musicStats.autoSync}</p>
                                 <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Sync YouTube Raw</p>
                             </div>
                         </div>
-                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all">
+
+                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between">
                             <i className="fas fa-rotate text-white/20 text-xl"></i>
                             <div>
                                 <p className="text-xs font-bold text-white/60">{lastMusicSync}</p>
@@ -596,6 +645,14 @@ const AdminDashboard: React.FC = () => {
                             </button>
                             <span className="w-1 h-1 rounded-full bg-white/10"></span>
                             <button 
+                                onClick={() => { setCatalogFilter('oficiales'); setShowCatalogModal(true); }}
+                                className="text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] hover:text-white transition-all flex items-center gap-2"
+                            >
+                                <i className="fas fa-list font-normal"></i>
+                                Explorar Catálogo
+                            </button>
+                            <span className="w-1 h-1 rounded-full bg-white/10"></span>
+                            <button 
                                 onClick={() => navigate('/')}
                                 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-white transition-all"
                             >
@@ -605,6 +662,145 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* MODAL DE EXPLORADOR DE CATÁLOGO */}
+            {showCatalogModal && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-fade-in">
+                    <div className="bg-[#0f111a] border border-white/10 rounded-[2.5rem] w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                        {/* Header del Modal */}
+                        <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl md:text-2xl font-serif italic text-white flex items-center gap-3">
+                                    <i className="fas fa-compact-disc text-[#c5a059]"></i> Explorador del Catálogo Oficial
+                                </h3>
+                                <p className="text-white/40 text-xs mt-1">
+                                    Visualiza e inspecciona todas las canciones del catálogo en vivo.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowCatalogModal(false)}
+                                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white flex items-center justify-center hover:bg-white/10 transition-all"
+                            >
+                                <i className="fas fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        {/* Tabs de Filtro & Búsqueda */}
+                        <div className="p-6 md:px-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.01]">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { id: 'oficiales', label: '🌟 Lanzamientos Oficiales', count: musicStats.official, color: '#c5a059' },
+                                    { id: 'unicas', label: '🎵 Canciones Únicas', count: musicStats.dedupTotal, color: '#4a90d9' },
+                                    { id: 'raw', label: '🔴 YouTube Sync', count: musicStats.autoSync, color: '#ef4444' },
+                                    { id: 'diosmasgym', label: '📱 Diosmasgym', count: musicStats.diosmasgym, color: '#2563eb' },
+                                    { id: 'juan614', label: '🤠 Juan 614', count: musicStats.juan614, color: '#d97706' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setCatalogFilter(tab.id as any)}
+                                        className={`px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
+                                            catalogFilter === tab.id
+                                                ? 'bg-[#4a90d9] text-black border-[#4a90d9]'
+                                                : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
+                                        }`}
+                                    >
+                                        {tab.label} <span className="opacity-60 ml-1">({tab.count})</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="relative w-full md:w-64">
+                                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                                <input
+                                    type="text"
+                                    value={catalogSearch}
+                                    onChange={e => setCatalogSearch(e.target.value)}
+                                    placeholder="Buscar por nombre..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-xs text-white outline-none focus:border-[#4a90d9]"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Lista de Canciones */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                            {filteredModalCatalog.length === 0 ? (
+                                <div className="text-center py-16 text-white/30">
+                                    <i className="fas fa-folder-open text-4xl mb-3 block opacity-30"></i>
+                                    <p className="text-sm font-mono">No se encontraron canciones en esta categoría.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {filteredModalCatalog.map((item, idx) => {
+                                        const isOfficial = isOfficialType(item.type);
+                                        return (
+                                            <div
+                                                key={item.id + '_' + idx}
+                                                className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-white/20 transition-all group"
+                                            >
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 border border-white/10 shrink-0 relative">
+                                                        {item.cover ? (
+                                                            <img src={item.cover} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-white/20 text-xs">
+                                                                <i className="fas fa-music"></i>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                            <span className={`text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                                                isOfficial
+                                                                    ? 'bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/40'
+                                                                    : 'bg-white/5 text-white/40 border border-white/10'
+                                                            }`}>
+                                                                {item.type || 'Canción'}
+                                                            </span>
+                                                            <span className="text-[8px] text-white/30 font-mono">
+                                                                {item.artist}
+                                                            </span>
+                                                        </div>
+                                                        <h4 className="text-white text-xs font-bold truncate group-hover:text-[#4a90d9] transition-colors">
+                                                            {item.name}
+                                                        </h4>
+                                                        {item.date && (
+                                                            <p className="text-[8px] text-white/20 font-mono mt-0.5">
+                                                                {item.date.split('T')[0]}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {item.url && (
+                                                    <a
+                                                        href={item.url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-[#4a90d9] hover:border-[#4a90d9] transition-all shrink-0"
+                                                        title="Escuchar / Ver enlace"
+                                                    >
+                                                        <i className="fas fa-external-link-alt text-xs"></i>
+                                                    </a>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 md:px-8 border-t border-white/5 flex items-center justify-between bg-black/40 text-[9px] font-black uppercase tracking-widest text-white/40">
+                            <span>Mostrando {filteredModalCatalog.length} de {musicCatalog.length} registros</span>
+                            <button
+                                onClick={() => setShowCatalogModal(false)}
+                                className="px-6 py-2 bg-white/10 text-white hover:bg-white hover:text-black transition-all rounded-xl text-[8px]"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
