@@ -85,8 +85,7 @@ const LyricStudio: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const imgRef = useRef<HTMLImageElement>(new Image());
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const particlesRef = useRef<any[]>([]);
   
   // Audio Analysis Refs
@@ -95,10 +94,13 @@ const LyricStudio: React.FC = () => {
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const logoStudioRef = useRef<HTMLImageElement | null>(null);
-  const outroImagesRef = useRef<HTMLImageElement[]>([new Image(), new Image()]);
+  const outroImagesRef = useRef<(HTMLImageElement | null)[]>([null, null]);
 
   useEffect(() => {
+    if (!imgRef.current) imgRef.current = new Image();
     if (!logoStudioRef.current) logoStudioRef.current = new Image();
+    if (!outroImagesRef.current[0]) outroImagesRef.current[0] = new Image();
+    if (!outroImagesRef.current[1]) outroImagesRef.current[1] = new Image();
     // Initial Particles
     particlesRef.current = Array.from({length: 35}, () => ({
       x: Math.random() * 720,
@@ -151,11 +153,15 @@ const LyricStudio: React.FC = () => {
   // Effect to load outro images when branding changes
   useEffect(() => {
     if (branding === 'juan614') {
-        outroImagesRef.current[0].src = "/outros/outro_juan_1.png";
-        outroImagesRef.current[1].src = "/outros/outro_juan_2.png";
+        if (!outroImagesRef.current[0]) outroImagesRef.current[0] = new Image();
+        if (!outroImagesRef.current[1]) outroImagesRef.current[1] = new Image();
+        outroImagesRef.current[0]!.src = "/outros/outro_juan_1.png";
+        outroImagesRef.current[1]!.src = "/outros/outro_juan_2.png";
     } else if (branding === 'diosmasgym') {
-        outroImagesRef.current[0].src = "/outros/outro_dios_1.png";
-        outroImagesRef.current[1].src = "/outros/outro_dios_2.png";
+        if (!outroImagesRef.current[0]) outroImagesRef.current[0] = new Image();
+        if (!outroImagesRef.current[1]) outroImagesRef.current[1] = new Image();
+        outroImagesRef.current[0]!.src = "/outros/outro_dios_1.png";
+        outroImagesRef.current[1]!.src = "/outros/outro_dios_2.png";
     }
   }, [branding]);
 
@@ -675,7 +681,7 @@ const LyricStudio: React.FC = () => {
     }
 
     // 1. Dark background with album art blur
-    if (imgRef.current.src) {
+    if (imgRef.current && imgRef.current.src && imgRef.current.naturalWidth > 0) {
       const src = imgRef.current;
       const sc = Math.max(cw / (src.width || cw), ch / (src.height || ch)) * 1.15;
       ctx.save();
@@ -957,24 +963,24 @@ const LyricStudio: React.FC = () => {
     // 1. Fondo Cinemático
     ctx.save();
     const sourceImg = imgRef.current;
-    let scale = Math.max(cw / (sourceImg.width || cw), ch / (sourceImg.height || ch));
-    
-    // Organic Handheld Camera (Anti-AI)
-    const nX = smoothNoise(time * 0.8) - 0.5;
-    const nY = smoothNoise(time * 0.7 + 100) - 0.5;
-    
-    let panX = nX * 40 + Math.sin(time * 0.1) * 15;
-    let panY = nY * 30 + Math.cos(time * 0.08) * 10;
-    let shake = (lowEnd > 0.7) ? (Math.random()-0.5) * 12 * lowEnd : 0;
-    let zoom = 1.05 + (lowEnd * 0.06) + smoothNoise(time * 0.2) * 0.05;
+    if (sourceImg && sourceImg.src && sourceImg.naturalWidth > 0) {
+      let scale = Math.max(cw / (sourceImg.width || cw), ch / (sourceImg.height || ch));
+      
+      // Organic Handheld Camera (Anti-AI)
+      const nX = smoothNoise(time * 0.8) - 0.5;
+      const nY = smoothNoise(time * 0.7 + 100) - 0.5;
+      
+      let panX = nX * 40 + Math.sin(time * 0.1) * 15;
+      let panY = nY * 30 + Math.cos(time * 0.08) * 10;
+      let shake = (lowEnd > 0.7) ? (Math.random()-0.5) * 12 * lowEnd : 0;
+      let zoom = 1.05 + (lowEnd * 0.06) + smoothNoise(time * 0.2) * 0.05;
 
-    // Breath effect
-    const breath = 1 + smoothNoise(time * 0.4) * 0.03;
-    
-    ctx.translate(cw/2 + panX + shake, ch/2 + panY + shake);
-    ctx.scale(scale * zoom * breath, scale * zoom * breath);
-    
-    if (sourceImg.src) {
+      // Breath effect
+      const breath = 1 + smoothNoise(time * 0.4) * 0.03;
+      
+      ctx.translate(cw/2 + panX + shake, ch/2 + panY + shake);
+      ctx.scale(scale * zoom * breath, scale * zoom * breath);
+      
       ctx.translate(-sourceImg.width/2, -sourceImg.height/2);
       if (lowEnd > 0.75) {
         ctx.globalAlpha = 0.4;
