@@ -1249,16 +1249,23 @@ const LyricStudio: React.FC = () => {
       setIsPlaying(false);
     } else {
       if (includeIntro) {
+          // Resetear audio al startOffset antes de reproducir
+          if (audioRef.current) audioRef.current.currentTime = startOffset;
           setCurrentTime(0);
           setIsPlaying(true);
           startTimeRef.current = performance.now();
           setTimeout(() => {
-              if (audioRef.current && isPlaying) { 
+              if (audioRef.current) { 
+                  audioRef.current.currentTime = startOffset;
                   audioRef.current.play();
               }
           }, INTRO_DURATION * 1000);
       } else {
-          audioRef.current?.play();
+          // Resetear audio al startOffset antes de reproducir
+          if (audioRef.current) {
+              audioRef.current.currentTime = startOffset;
+              audioRef.current.play();
+          }
           setIsPlaying(true);
           startTimeRef.current = 0;
       }
@@ -1269,7 +1276,7 @@ const LyricStudio: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => imgRef.current.src = ev.target?.result as string;
+      reader.onload = (ev) => { if (imgRef.current) imgRef.current.src = ev.target?.result as string; };
       reader.readAsDataURL(file);
     }
   };
@@ -1377,8 +1384,10 @@ const LyricStudio: React.FC = () => {
     const actualOutro = includeOutro ? OUTRO_DURATION : 0;
     const totalDuration = actualIntro + lyricsDuration + actualOutro;
 
-    recorder.start(); 
-    audioRef.current.currentTime = 0; 
+    recorder.start();
+    // Siempre empezar el audio desde el startOffset configurado, nunca desde donde quedó el preview
+    audioRef.current.currentTime = startOffset;
+    audioRef.current.pause(); // Empezar pausado, el loop lo activa en el momento correcto
     
     let exportTime = 0;
     let lastRealTime = performance.now();
@@ -1396,8 +1405,13 @@ const LyricStudio: React.FC = () => {
       const pct = Math.min((frameTime / totalDuration) * 100, 100);
       setProgress(pct);
 
-      // Sincronización de Audio
+      // Sincronización de Audio: el audio del video empieza en la sección de lyrics
+      // pero su posición real en el archivo es startOffset + tiempo relativo de lyrics
       if (frameTime >= actualIntro && frameTime < actualIntro + lyricsDuration) {
+          const expectedAudioTime = startOffset + (frameTime - actualIntro);
+          const drift = Math.abs(audioRef.current.currentTime - expectedAudioTime);
+          // Corregir drift si hay desincronización de más de 0.3s
+          if (drift > 0.3) audioRef.current.currentTime = expectedAudioTime;
           if (audioRef.current.paused) {
               audioRef.current.play().catch(e => console.error("Auto-play blocked", e));
           }
