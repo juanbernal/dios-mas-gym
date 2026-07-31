@@ -41,6 +41,46 @@ export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceR
   }
 };
 
+const isNonMusicOrForeign = (title: string): boolean => {
+  if (!title) return true;
+  const t = title.toLowerCase();
+
+  // Tagalog words & non-Spanish auto-sync markers
+  const tagalogRegex = /\b(ano|kung|ang|mga|hindi|ng|saulo|ebanghelyo|kasalanan|sinasabi|ligtas|kamatayan|dugo|sino|paano|katawan|lupang|bakit|tagalog|pinoy|na|ka|mo|ko|salamat|totoo|paalala|pagsubok|taong|impyerno|impiyerno|kailangan|pananampalataya|kaligtasan|handa|pumanaw|makilala|siyang|ating|tunay|kawikaan|biyaya|s'yang|bangkay|labanan|namatay|apostol|himala|langit|glorified|kinuha|bagong|orihinal|muling|ginawa|digmaang|salitang|pagibig|alalahanin|manalangin|panalangin|katangian|tagausig|pala|dito|nakapunta|ikaw|matapos|makagawa|sadyain|kulam|kasiguraduhan|hudas|iskariote|lord|pakinggan|ngayon|tupa|tsismis|nagkokontrahan|paul|james|nawawala|nagsasabing|pangalan|aklat|lahat|may|ilalaban|payo|hesus|biyaya|posible|sikreto)\b/;
+  if (tagalogRegex.test(t)) return true;
+
+  // English YouTube devotionals / trivia / sermon titles
+  const englishDevotionals = [
+    'sunset', 'ocean waves', 'billy graham', 'bible facts', 'miracles performed',
+    'prophecies fulfilled', 'prophecy of', 'tribulation', 'armageddon', 'rapture',
+    'how jesus', 'how moses', 'how sodom', 'how rapture', 'how to',
+    'talk to jesus', 'he has good news', 'receive god', 'fear not', 'real love 💯',
+    'pursue love', 'patiently waiting', 'guard your heart', 'god is my strength',
+    'humble yourself', 'surrendered 💯', 'all things', "god's love",
+    'worry no more', 'grace is sufficient', 'trusting god', 'remember this bible',
+    'spreadlove', 'jesus is calling', 'top 5 biggest religion', 'prayer for',
+    'morning prayer', 'fathers discipline', 'psalm chapter', 'happy hearts day',
+    'how david', 'god is with us', 'god is love', 'god loves you',
+    'god is our refuge', 'be strong and courageous', 'we are eternal', 'god knows your pain',
+    'hope in the lord', 'receive god', 'the nine choirs', 'result of trust', 'trust in jesus',
+    'jesus conquered', 'tired? come to jesus', 'love is..', 'do not fear', 'not that we loved',
+    'jesus warning', 'marrying the right person', 'happiness is not a goal', 'put god first',
+    'feeling unloved', 'miracles of jesus', 'miracle performed', 'how jesus turned', 'anxious? talk to jesus',
+    'broken-hearted', 'need healing', 'need peace', 'feeling alone', 'are you tired',
+    'prophecies fulfilled', 'biblical names', 'we belong to jesus', 'jesus chose you',
+    'god is saying today', 'jesus the light', 'love message from god', 'the only way',
+    'jesus the bread', 'message of the cross', 'jesus love will not', 'let me fight this',
+    'first ten fallen angels', 'jesus reminder', 'scientific death', 'test your bible',
+    'best gift ever!', 'king david', 'king solomon', "a father's discipline",
+    'only reason i know', 'jesus is life', 'receive the good news', 'always remember',
+    'why do i love', 'love your enemies'
+  ];
+
+  if (englishDevotionals.some(phrase => t.includes(phrase))) return true;
+
+  return false;
+};
+
 /**
  * Parses a CSV string into an array of MusicItem objects.
  * Handles variations in headers and potential empty lines.
@@ -108,10 +148,11 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
     if (!entry.type)   entry.type   = clean(values[4]);
     if (!entry.date)   entry.date   = clean(values[5]);
 
-    // Skip metadata rows (Spotify artist info, empty lines, etc.)
+    // Skip metadata rows (Spotify artist info, empty lines, foreign/devotional auto-sync videos)
     if (!entry.url) continue;
     if (entry.url.includes('spotify.com/intl') || entry.url.includes('spotify.com/artist')) continue;
-    if (!entry.name) continue;
+    if (!entry.name || entry.name.toLowerCase().includes('spotify artist')) continue;
+    if (isNonMusicOrForeign(entry.name)) continue;
 
     if (entry.url) {
       let videoId = '';
