@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-[#c5a059]";
-import { useNavigate as useNav } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
 
@@ -8,8 +7,7 @@ const BIBLE_VERSES = [
   { ref: "JOSUÉ 1:9", text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo." },
   { ref: "ISAÍAS 41:10", text: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo." },
   { ref: "FILIPENSES 4:13", text: "Todo lo puedo en Cristo que me fortalece." },
-  { ref: "SALMOS 27:1", text: "Jehová es mi luz y mi salvación; ¿de quién temeré? Jehová es la fortaleza de mi vida." },
-  { ref: "2 TIMOTEO 1:7", text: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio." }
+  { ref: "SALMOS 27:1", text: "Jehová es mi luz y mi salvación; ¿de quién temeré?" }
 ];
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -43,31 +41,27 @@ function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 }
 
 export const CustomPromoCreator: React.FC = () => {
-  const navigate = useNav();
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // States
+  // Data States
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
-  const [selectedSong, setSelectedSong] = useState<MusicItem | null>(null);
-
-  // Editable Fields
-  const [title, setTitle] = useState("NOMBRE DE LA CANCIÓN");
+  const [title, setTitle] = useState("TITULO DE TU CANCIÓN");
   const [artist, setArtist] = useState("DIOSMASGYM");
-  const [slogan, setSlogan] = useState("MÚSICA CON PROPÓSITO");
   const [releaseStatus, setReleaseStatus] = useState<"disponible" | "proximamente">("disponible");
-  const [smartLinkCode, setSmartLinkCode] = useState("diosmasgym.com/link");
-  const [genre, setGenre] = useState("TRAP / URBANO CRISTIANO");
-  const [releaseDateStr, setReleaseDateStr] = useState("29 / 07 / 2026");
-  const [producer, setProducer] = useState("DIOSMASGYM RECORDS");
+  const [verseText, setVerseText] = useState("Todo lo puedo en Cristo que me fortalece. — FILIPENSES 4:13");
+  const [songLyric, setSongLyric] = useState("");
   const [coverUrl, setCoverUrl] = useState<string>("https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200");
-  const [characterUrl, setCharacterUrl] = useState<string>("");
 
-  // Toggles for Custom elements
-  const [showPillars, setShowPillars] = useState(true);
-  const [showCharacter, setShowCharacter] = useState(true);
-  const [showQrBox, setShowQrBox] = useState(true);
+  // Style Themes
+  const [styleMode, setStyleMode] = useState<"modern-dark" | "luxury-gold" | "clean-minimal" | "cyber-neon">("modern-dark");
 
-  // Search & Export
+  // Toggles
+  const [showVerse, setShowVerse] = useState(true);
+  const [showLyric, setShowLyric] = useState(true);
+  const [showPlatforms, setShowPlatforms] = useState(true);
+
+  // Status
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -89,368 +83,200 @@ export const CustomPromoCreator: React.FC = () => {
   }, []);
 
   const handleSelectSong = (song: MusicItem) => {
-    setSelectedSong(song);
     setTitle(song.name.toUpperCase());
     setArtist((song.artist || "DIOSMASGYM").toUpperCase());
     if (song.cover) setCoverUrl(song.cover);
     setIsSearchOpen(false);
   };
 
-  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isCharacter = false) => {
+  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        if (ev.target?.result) {
-          if (isCharacter) setCharacterUrl(ev.target.result as string);
-          else setCoverUrl(ev.target.result as string);
-        }
+        if (ev.target?.result) setCoverUrl(ev.target.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // 🎨 EXACT HIGH IMPACT FLYER CANVAS RENDERER (2160 x 2160 ULTRA HD SQUARE)
+  // 🎨 CANVAS GRAPHICS RENDER ENGINE (1920 x 1920 HD ULTRA CRISP RENDER)
   const drawCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const W = 2160;
-    const H = 2160;
+    const W = 1920;
+    const H = 1920;
     canvas.width = W;
     canvas.height = H;
 
-    // 1. Black Background
-    ctx.fillStyle = "#05070c";
+    // Background Base Color
+    ctx.fillStyle = styleMode === "clean-minimal" ? "#0a0c10" : "#05070a";
     ctx.fillRect(0, 0, W, H);
 
-    // 2. Dynamic Blurred Cover Aura Background
+    // Dynamic Cover Ambient Blur
     if (coverUrl) {
       try {
         const coverImg = await loadImage(coverUrl);
         ctx.save();
-        ctx.filter = "blur(60px) brightness(0.4)";
+        ctx.filter = "blur(70px) brightness(0.35)";
         ctx.drawImage(coverImg, -200, -200, W + 400, H + 400);
         ctx.restore();
       } catch {}
     }
 
-    // Radial Lighting Overlay
-    const grad = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1300);
-    grad.addColorStop(0, "rgba(197, 160, 89, 0.15)");
-    grad.addColorStop(0.7, "rgba(5, 7, 12, 0.85)");
-    grad.addColorStop(1, "rgba(3, 5, 8, 0.98)");
+    // Gradient Overlay
+    const grad = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1200);
+    if (styleMode === "luxury-gold") {
+      grad.addColorStop(0, "rgba(197, 160, 89, 0.2)");
+      grad.addColorStop(1, "rgba(5, 7, 10, 0.95)");
+    } else if (styleMode === "cyber-neon") {
+      grad.addColorStop(0, "rgba(0, 242, 255, 0.2)");
+      grad.addColorStop(1, "rgba(3, 10, 20, 0.96)");
+    } else {
+      grad.addColorStop(0, "rgba(0, 0, 0, 0.2)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0.92)");
+    }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Golden Outer Border Frame
-    ctx.lineWidth = 16;
-    ctx.strokeStyle = "#c5a059";
-    drawRoundedRect(ctx, 40, 40, W - 80, H - 80, 40);
+    // Frame Border
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "rgba(255, 255, 255, 0.15)";
+    drawRoundedRect(ctx, 40, 40, W - 80, H - 80, 36);
     ctx.stroke();
 
-    // ── 3. HEADER SECTION ───────────────────────────────────────────────────
-    // Top Left Badge: NUEVA CANCIÓN
-    drawRoundedRect(ctx, 90, 90, 320, 100, 24);
+    // 1. TOP BRAND HEADER
+    ctx.font = "900 32px 'Inter', sans-serif";
+    ctx.fillStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "#ffffff";
+    ctx.textAlign = "left";
+    ctx.fillText("DIOSMASGYM RECORDS", 100, 110);
+
+    // Top Right Badge
+    const statusText = releaseStatus === "disponible" ? "🔥 YA DISPONIBLE" : "⚡ PRÓXIMAMENTE";
+    drawRoundedRect(ctx, W - 420, 75, 320, 65, 30);
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fill();
-    ctx.strokeStyle = "#c5a059";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.font = "900 24px 'Inter', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.textAlign = "left";
-    ctx.fillText("🎵  NUEVA", 130, 132);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText("CANCIÓN", 130, 162);
-
-    // Top Center Brand Logo: DIOSMASGYM + CROWN
-    // Draw Crown Symbol
-    ctx.fillStyle = "#c5a059";
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 40, 110);
-    ctx.lineTo(W / 2 - 70, 70);
-    ctx.lineTo(W / 2 - 20, 85);
-    ctx.lineTo(W / 2, 60);
-    ctx.lineTo(W / 2 + 20, 85);
-    ctx.lineTo(W / 2 + 70, 70);
-    ctx.lineTo(W / 2 + 40, 110);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.font = "900 90px 'Bebas Neue', sans-serif";
-    ctx.fillStyle = "#c5a059";
+    ctx.font = "800 24px 'Inter', sans-serif";
+    ctx.fillStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "#ffffff";
     ctx.textAlign = "center";
-    ctx.shadowColor = "rgba(197, 160, 89, 0.5)";
-    ctx.shadowBlur = 30;
-    ctx.fillText("DIOSMASGYM", W / 2, 205);
-    ctx.shadowBlur = 0;
+    ctx.fillText(statusText, W - 260, 115);
 
-    ctx.font = "700 26px 'Inter', sans-serif";
-    ctx.fillStyle = "#e2e8f0";
-    ctx.fillText(slogan.toUpperCase(), W / 2, 245);
+    // 2. MAIN CENTER COVER ARTWORK (HD BIG SQUARE)
+    const coverW = 860;
+    const coverH = 860;
+    const coverX = (W - coverW) / 2;
+    const coverY = 220;
 
-    // Top Right Handle: @DIOSMASGYM + Social Icons
-    ctx.font = "900 26px 'Inter', sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "right";
-    ctx.fillText("@DIOSMASGYM", W - 110, 120);
-
-    ctx.font = "24px 'FontAwesome', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.fillText("         ", W - 110, 160);
-
-    // ── 4. LEFT SECTION: YA DISPONIBLE + PILLARS ────────────────────────────
-    const leftX = 110;
-    let currentY = 380;
-
-    // Big Impact "YA DISPONIBLE"
-    ctx.font = "900 160px 'Bebas Neue', sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "left";
-    ctx.shadowColor = "rgba(0,0,0,0.8)";
-    ctx.shadowBlur = 20;
-    ctx.fillText("YA", leftX, currentY);
-    ctx.shadowBlur = 0;
-
-    currentY += 150;
-    ctx.font = "900 130px 'Bebas Neue', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.shadowColor = "rgba(197, 160, 89, 0.4)";
-    ctx.shadowBlur = 30;
-    ctx.fillText("DISPONIBLE", leftX, currentY);
-    ctx.shadowBlur = 0;
-
-    currentY += 50;
-    ctx.font = "700 26px 'Inter', sans-serif";
-    ctx.fillStyle = "#94a3b8";
-    ctx.fillText("EN TODAS LAS PLATAFORMAS DIGITALES", leftX, currentY);
-
-    // Horizontal Neon Line Under Status
-    currentY += 25;
-    const lineGrad = ctx.createLinearGradient(leftX, 0, leftX + 600, 0);
-    lineGrad.addColorStop(0, "#c5a059");
-    lineGrad.addColorStop(1, "transparent");
-    ctx.fillStyle = lineGrad;
-    ctx.fillRect(leftX, currentY, 600, 4);
-
-    // 3 Pillars List: MÚSICA / LETRAS / FE
-    if (showPillars) {
-      currentY += 90;
-      const pillars = [
-        { icon: "🎵", title: "MÚSICA QUE TE INSPIRA" },
-        { icon: "✝", title: "LETRAS QUE FORTALECEN" },
-        { icon: "🏋", title: "FE QUE TRANSFORMA" }
-      ];
-
-      pillars.forEach((p) => {
-        // Circle Icon Box
-        ctx.beginPath();
-        ctx.arc(leftX + 45, currentY + 30, 40, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fill();
-        ctx.strokeStyle = "#c5a059";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.font = "28px 'Inter', sans-serif";
-        ctx.fillStyle = "#c5a059";
-        ctx.textAlign = "center";
-        ctx.fillText(p.icon, leftX + 45, currentY + 40);
-
-        ctx.font = "800 24px 'Inter', sans-serif";
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "left";
-        ctx.fillText(p.title, leftX + 110, currentY + 40);
-
-        currentY += 105;
-      });
-    }
-
-    // ── 5. CENTER SECTION: COVER ARTWORK BOX ────────────────────────────────
-    const coverBoxW = 850;
-    const coverBoxH = 850;
-    const coverBoxX = (W - coverBoxW) / 2;
-    const coverBoxY = 340;
-
-    // Glowing Outer Frame for Cover
-    ctx.shadowColor = "rgba(197, 160, 89, 0.6)";
-    ctx.shadowBlur = 60;
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = "#c5a059";
-    drawRoundedRect(ctx, coverBoxX, coverBoxY, coverBoxW, coverBoxH, 24);
+    // Glowing Cover Box
+    ctx.shadowColor = styleMode === "luxury-gold" ? "rgba(197, 160, 89, 0.5)" : styleMode === "cyber-neon" ? "rgba(0, 242, 255, 0.5)" : "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 40;
+    drawRoundedRect(ctx, coverX, coverY, coverW, coverH, 32);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "rgba(255,255,255,0.3)";
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Draw Main Cover Image Inside
     if (coverUrl) {
       try {
         const coverImg = await loadImage(coverUrl);
-        drawRoundedRect(ctx, coverBoxX + 6, coverBoxY + 6, coverBoxW - 12, coverBoxH - 12, 20);
+        drawRoundedRect(ctx, coverX + 4, coverY + 4, coverW - 8, coverH - 8, 28);
         ctx.save();
         ctx.clip();
-        ctx.drawImage(coverImg, coverBoxX + 6, coverBoxY + 6, coverBoxW - 12, coverBoxH - 12);
+        ctx.drawImage(coverImg, coverX + 4, coverY + 4, coverW - 8, coverH - 8);
         ctx.restore();
       } catch {}
     }
 
-    // Horizontal Equalizer Waves Across Center
-    const eqY = coverBoxY + coverBoxH / 2;
-    ctx.fillStyle = "rgba(197, 160, 89, 0.7)";
-    for (let i = 0; i < 40; i++) {
-      const h = Math.sin(i * 0.4) * 50 + 20;
-      ctx.fillRect(coverBoxX - 120 + i * 28, eqY - h / 2, 6, h);
-    }
-
-    // ── 6. RIGHT SECTION: CHARACTER / ARTIST CUTOUT (OPCIONAL) ─────────────
-    if (showCharacter && characterUrl) {
-      try {
-        const charImg = await loadImage(characterUrl);
-        ctx.save();
-        ctx.shadowColor = "rgba(197, 160, 89, 0.5)";
-        ctx.shadowBlur = 50;
-        ctx.drawImage(charImg, W - 750, 250, 700, 1050);
-        ctx.restore();
-      } catch {}
-    }
-
-    // ── 7. SONG TITLE & ARTIST BELOW COVER ──────────────────────────────────
-    const titleCenterY = coverBoxY + coverBoxH + 100;
-    ctx.font = "italic 900 110px Georgia, 'Times New Roman', serif";
+    // 3. SONG TITLE & ARTIST
+    let textY = coverY + coverH + 110;
+    ctx.font = "900 88px 'Inter', sans-serif";
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-    ctx.shadowBlur = 30;
-    ctx.fillText(`"${title}"`, W / 2, titleCenterY);
+    ctx.shadowBlur = 20;
+    ctx.fillText((title || "NOMBRE DE LA CANCIÓN").toUpperCase(), W / 2, textY);
     ctx.shadowBlur = 0;
 
-    ctx.font = "900 40px 'Inter', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.fillText(`ARTISTA:  ${artist}`, W / 2, titleCenterY + 70);
+    textY += 60;
+    ctx.font = "800 36px 'Inter', sans-serif";
+    ctx.fillStyle = styleMode === "luxury-gold" ? "#c5a059" : styleMode === "cyber-neon" ? "#00f2ff" : "#94a3b8";
+    ctx.fillText((artist || "DIOSMASGYM").toUpperCase(), W / 2, textY);
 
-    // Decorative Line Under Artist
-    ctx.fillStyle = "#c5a059";
-    ctx.fillRect(W / 2 - 200, titleCenterY + 95, 400, 4);
-
-    // ── 8. SMART LINK QR BOX (RIGHT BOTTOM) ──────────────────────────────────
-    if (showQrBox) {
-      const qrW = 340;
-      const qrH = 400;
-      const qrX = W - 110 - qrW;
-      const qrY = H - 560;
-
-      drawRoundedRect(ctx, qrX, qrY, qrW, qrH, 24);
-      ctx.fillStyle = "rgba(5, 10, 20, 0.85)";
+    // 4. LYRIC OR BIBLE VERSE
+    textY += 70;
+    if (showLyric && songLyric) {
+      drawRoundedRect(ctx, 200, textY, W - 400, 110, 20);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fill();
-      ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 4;
-      ctx.shadowColor = "rgba(56, 189, 248, 0.5)";
-      ctx.shadowBlur = 30;
+      ctx.strokeStyle = styleMode === "luxury-gold" ? "rgba(197, 160, 89, 0.3)" : "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
-      ctx.font = "900 22px 'Inter', sans-serif";
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.fillText("ESCÚCHALA AQUÍ", qrX + qrW / 2, qrY + 35);
-
-      // QR Code Simulation Image Frame
-      drawRoundedRect(ctx, qrX + 35, qrY + 60, 270, 270, 16);
-      ctx.fillStyle = "#ffffff";
+      ctx.font = "italic 500 32px Georgia, serif";
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillText(songLyric, W / 2, textY + 65);
+      textY += 130;
+    } else if (showVerse && verseText) {
+      drawRoundedRect(ctx, 200, textY, W - 400, 110, 20);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
       ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-      // Fake QR pattern draw
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(qrX + 55, qrY + 80, 70, 70);
-      ctx.fillRect(qrX + 215, qrY + 80, 70, 70);
-      ctx.fillRect(qrX + 55, qrY + 240, 70, 70);
-      ctx.fillRect(qrX + 140, qrY + 140, 60, 60);
-      ctx.fillRect(qrX + 180, qrY + 220, 80, 50);
-
-      ctx.font = "800 20px 'Inter', sans-serif";
-      ctx.fillStyle = "#c5a059";
-      ctx.fillText("TU SMART LINK", qrX + qrW / 2, qrY + 365);
+      ctx.font = "italic 500 30px 'Inter', sans-serif";
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillText(verseText, W / 2, textY + 65);
+      textY += 130;
     }
 
-    // ── 9. BOTTOM STREAMING PLATFORMS FOOTER BAR ─────────────────────────────
-    const footerY = H - 340;
-    const footerW = W - 220;
-    const footerX = 110;
+    // 5. FOOTER STREAMING PLATFORMS
+    if (showPlatforms) {
+      const footerY = H - 140;
+      ctx.font = "800 26px 'Inter', sans-serif";
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("DISPONIBLE EN SPOTIFY · APPLE MUSIC · YOUTUBE · AMAZON", W / 2, footerY);
 
-    drawRoundedRect(ctx, footerX, footerY, footerW, 170, 32);
-    ctx.fillStyle = "rgba(5, 7, 14, 0.85)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(197, 160, 89, 0.4)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
+      ctx.font = "600 20px monospace";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText("PRODUCIDO EN CHIHUAHUA, MX", W / 2, footerY + 45);
+    }
 
-    ctx.font = "800 22px 'Inter', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.textAlign = "center";
-    ctx.fillText("DISPONIBLE EN:", W / 2, footerY + 35);
-
-    // Platform Badges Grid (Spotify, Apple Music, YouTube Music, Amazon Music, Deezer)
-    const platforms = [
-      { name: "SPOTIFY", color: "#1DB954" },
-      { name: "APPLE MUSIC", color: "#fc3c44" },
-      { name: "YOUTUBE MUSIC", color: "#FF0000" },
-      { name: "AMAZON MUSIC", color: "#00a8e1" },
-      { name: "DEEZER", color: "#ff0099" }
-    ];
-
-    const platSpacing = footerW / platforms.length;
-    platforms.forEach((p, idx) => {
-      const px = footerX + idx * platSpacing + platSpacing / 2;
-      ctx.beginPath();
-      ctx.arc(px, footerY + 90, 30, 0, Math.PI * 2);
-      ctx.fillStyle = p.color;
-      ctx.fill();
-
-      ctx.font = "800 18px 'Inter', sans-serif";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(p.name, px, footerY + 145);
-    });
-
-    // ── 10. METADATA FOOTER (FECHA / GÉNERO / PRODUCCIÓN) ────────────────────
-    const metaY = H - 120;
-    ctx.font = "800 22px 'Inter', sans-serif";
-    ctx.fillStyle = "#c5a059";
-    ctx.textAlign = "center";
-
-    ctx.fillText(`📅 FECHA:  ${releaseDateStr}    |    🎵 GÉNERO:  ${genre}    |    🎙️ PRODUCCIÓN:  ${producer}`, W / 2, metaY);
-
-  }, [coverUrl, characterUrl, releaseStatus, slogan, title, artist, showPillars, showCharacter, showQrBox, genre, releaseDateStr, producer]);
+  }, [coverUrl, styleMode, releaseStatus, title, artist, showLyric, songLyric, showVerse, verseText, showPlatforms]);
 
   useEffect(() => {
     drawCanvas();
   }, [drawCanvas]);
 
-  // DIRECT PNG ULTRA HD DOWNLOAD (2160 x 2160 FULL NATIVE PNG BLOB STREAM)
   const handleDirectDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setIsDownloading(true);
-    showToast("⚡ Masterizando Flyer Oficial en Ultra HD 4K...");
+    showToast("⚡ Exportando Imagen Ultra HD 100% Nítida...");
 
     setTimeout(() => {
       canvas.toBlob((blob) => {
         if (!blob) {
-          showToast("❌ Error generando imagen");
+          showToast("❌ Error al exportar");
           setIsDownloading(false);
           return;
         }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.download = `FLYER_PROMO_${title.replace(/\s+/g, "_")}.png`;
+        a.download = `PROMO_NIDA_${title.replace(/\s+/g, "_")}.png`;
         a.href = url;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 2500);
-        showToast("🎉 ¡Flyer Oficial Ultra HD 4K descargado con éxito!");
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast("🎉 ¡Banner HD descargado con éxito!");
         setIsDownloading(false);
       }, "image/png", 1.0);
     }, 300);
@@ -482,10 +308,10 @@ export const CustomPromoCreator: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="font-serif italic text-4xl md:text-6xl text-white">
-              Creador de <span className="text-[#c5a059]">Flyers Oficiales 4K</span>
+              Diseñador de <span className="text-[#c5a059]">Banners Limpios HD</span>
             </h1>
             <p className="text-gray-400 text-xs md:text-sm mt-1">
-              Genera imágenes de promoción exactas al estilo oficial de Diosmasgym con QR de SmartLink, pilares, plataformas y descarga Ultra HD.
+              Estilo moderno, elegante y limpio de disquera profesional. Sin recargados innecesarios.
             </p>
           </div>
 
@@ -496,11 +322,11 @@ export const CustomPromoCreator: React.FC = () => {
           >
             {isDownloading ? (
               <>
-                <i className="fa-solid fa-circle-notch animate-spin text-base"></i> Exportando Flyer 4K...
+                <i className="fa-solid fa-circle-notch animate-spin text-base"></i> Exportando HD...
               </>
             ) : (
               <>
-                <i className="fa-solid fa-download text-base"></i> Descargar Flyer Ultra HD 4K
+                <i className="fa-solid fa-download text-base"></i> Descargar Banner HD Nítido
               </>
             )}
           </button>
@@ -510,13 +336,13 @@ export const CustomPromoCreator: React.FC = () => {
       {/* Main Studio Workspace */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        {/* LEFT PANEL: EDITABLE FIELDS (5 Cols) */}
+        {/* LEFT PANEL: CONTROLS (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
 
           {/* 1. Seleccionar Canción / Portada */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción & Portada Central
+              <i className="fa-solid fa-compact-disc text-base"></i> 1. Canción o Imagen de Portada
             </h3>
 
             <div className="relative">
@@ -539,7 +365,7 @@ export const CustomPromoCreator: React.FC = () => {
                       onClick={() => handleSelectSong(song)}
                       className="w-full p-3 hover:bg-white/10 flex items-center gap-3 border-b border-white/5 text-left transition-colors"
                     >
-                      <img src={getCorsFriendlyUrl(song.cover)} className="w-10 h-10 rounded-md object-cover" />
+                      <img src={song.cover} className="w-10 h-10 rounded-md object-cover" />
                       <div className="overflow-hidden">
                         <div className="font-bold text-xs text-white truncate">{song.name}</div>
                         <div className="text-[10px] text-[#c5a059] truncate">{song.artist}</div>
@@ -550,23 +376,47 @@ export const CustomPromoCreator: React.FC = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <label className="py-3 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-[11px] font-bold text-gray-300 flex items-center justify-center gap-2 cursor-pointer transition-all">
-                <i className="fa-solid fa-image text-[#c5a059]"></i> Cambiar Portada
-                <input type="file" accept="image/*" onChange={(e) => handleCustomImageUpload(e, false)} className="hidden" />
-              </label>
+            <label className="w-full py-3 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-[11px] font-bold text-gray-300 flex items-center justify-center gap-2 cursor-pointer transition-all">
+              <i className="fa-solid fa-cloud-arrow-up text-[#c5a059]"></i> Subir Foto de Galería
+              <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
+            </label>
+          </div>
 
-              <label className="py-3 bg-[#05070a] hover:bg-[#151828] border border-dashed border-white/20 hover:border-[#c5a059] rounded-xl text-[11px] font-bold text-gray-300 flex items-center justify-center gap-2 cursor-pointer transition-all">
-                <i className="fa-solid fa-user text-[#c5a059]"></i> Foto Artista 3D
-                <input type="file" accept="image/*" onChange={(e) => handleCustomImageUpload(e, true)} className="hidden" />
-              </label>
+          {/* 2. ESTILOS LIMPIOS */}
+          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
+              <i className="fa-solid fa-palette text-base"></i> 2. Estilo de Color y Fondo
+            </h3>
+
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "modern-dark", name: "🖤 Modern Dark", desc: "Oscuro elegante" },
+                { id: "luxury-gold", name: "🏆 Gold Luxury", desc: "Dorado exclusivo" },
+                { id: "cyber-neon", name: "⚡ Cyber Cyan", desc: "Brillo cian futurista" },
+                { id: "clean-minimal", name: "✨ Clean Minimal", desc: "Sencillo y directo" }
+              ].map((style) => (
+                <button
+                  key={style.id}
+                  onClick={() => setStyleMode(style.id as any)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    styleMode === style.id
+                      ? "bg-[#c5a059] text-black border-[#c5a059] font-bold shadow-lg"
+                      : "bg-[#05070a] text-gray-300 border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{style.name}</div>
+                  <div className={`text-[9px] ${styleMode === style.id ? "text-black/70" : "text-gray-500"}`}>
+                    {style.desc}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* 2. DATOS PRINCIPALES DE PROMOCIÓN */}
+          {/* 3. TEXTOS */}
           <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-pen-nib text-base"></i> 2. Datos del Lanzamiento
+              <i className="fa-solid fa-pen-nib text-base"></i> 3. Textos Principales
             </h3>
 
             <div>
@@ -591,18 +441,6 @@ export const CustomPromoCreator: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 mb-1">Eslogan Superior</label>
-                <input
-                  type="text"
-                  value={slogan}
-                  onChange={(e) => setSlogan(e.target.value.toUpperCase())}
-                  className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
                 <label className="block text-[10px] font-bold text-gray-400 mb-1">Estado</label>
                 <select
                   value={releaseStatus}
@@ -613,80 +451,35 @@ export const CustomPromoCreator: React.FC = () => {
                   <option value="proximamente">⚡ PRÓXIMAMENTE</option>
                 </select>
               </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 mb-1">Género Musical</label>
-                <input
-                  type="text"
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value.toUpperCase())}
-                  className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
-                />
-              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 mb-1">Fecha Lanzamiento</label>
-                <input
-                  type="text"
-                  value={releaseDateStr}
-                  onChange={(e) => setReleaseDateStr(e.target.value)}
-                  className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 mb-1">Producción / Sello</label>
-                <input
-                  type="text"
-                  value={producer}
-                  onChange={(e) => setProducer(e.target.value.toUpperCase())}
-                  className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. ELEMENTOS GRÁFICOS MOSTRADOS */}
-          <div className="bg-[#0b0e17] border border-white/10 p-6 rounded-2xl shadow-2xl space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#c5a059] flex items-center gap-2">
-              <i className="fa-solid fa-sliders text-base"></i> 3. Activar / Desactivar Bloques
-            </h3>
-
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-300">
-              <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-3 rounded-xl border border-white/5">
-                <input type="checkbox" checked={showPillars} onChange={(e) => setShowPillars(e.target.checked)} className="accent-[#c5a059]" />
-                Lista 3 Pilares
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-3 rounded-xl border border-white/5">
-                <input type="checkbox" checked={showQrBox} onChange={(e) => setShowQrBox(e.target.checked)} className="accent-[#c5a059]" />
-                Caja QR SmartLink
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer bg-[#05070a] p-3 rounded-xl border border-white/5">
-                <input type="checkbox" checked={showCharacter} onChange={(e) => setShowCharacter(e.target.checked)} className="accent-[#c5a059]" />
-                Artista 3D Recortado
-              </label>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1">Frase / Letra / Versículo</label>
+              <input
+                type="text"
+                value={songLyric}
+                onChange={(e) => setSongLyric(e.target.value)}
+                placeholder="Escribe una frase o versículo..."
+                className="w-full bg-[#05070a] border border-white/10 focus:border-[#c5a059] rounded-xl p-3 text-xs text-white outline-none"
+              />
             </div>
           </div>
 
         </div>
 
-        {/* RIGHT PANEL: LIVE NATIVE CANVAS PREVIEW (7 Cols) */}
+        {/* RIGHT PANEL: LIVE CANVAS PREVIEW (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="text-xs font-bold text-gray-400">
-              VISTA PREVIA EN VIVO REAL (CANVAS HD)
+              VISTA PREVIA EN VIVO
             </span>
             <span className="text-[10px] font-black uppercase text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/30 px-3.5 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></span>
-              2160 x 2160 PX ULTRA HD
+              1920 x 1920 PX HD
             </span>
           </div>
 
-          {/* Native Canvas Render Frame */}
+          {/* Canvas Render Frame */}
           <div className="w-full bg-[#05070a] border border-white/10 p-4 md:p-6 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
             <canvas
               ref={canvasRef}

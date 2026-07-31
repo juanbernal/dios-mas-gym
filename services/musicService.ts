@@ -131,3 +131,36 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
   // Return newest first (those at the bottom of the CSV)
   return music.reverse();
 };
+
+/**
+ * Deduplicates music catalog items by video ID or normalized name slug,
+ * prioritizing official release types (Sencillo, Álbum, EP, Single) over YouTube Auto Sync entries.
+ */
+export const deduplicateCatalog = (items: MusicItem[]): MusicItem[] => {
+  const map = new Map<string, MusicItem>();
+  const isOfficialType = (type?: string) => {
+    if (!type) return false;
+    const t = type.toLowerCase();
+    return t.includes('sencillo') || t.includes('álbum') || t.includes('album') || t.includes('ep') || t.includes('single');
+  };
+
+  for (const item of items) {
+    if (!item) continue;
+    let key = item.id;
+    if (!key || key.includes('-')) {
+      key = (item.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '');
+    }
+    if (!key) continue;
+
+    if (!map.has(key)) {
+      map.set(key, item);
+    } else {
+      const existing = map.get(key)!;
+      if (isOfficialType(item.type) && !isOfficialType(existing.type)) {
+        map.set(key, item);
+      }
+    }
+  }
+  return Array.from(map.values());
+};
+

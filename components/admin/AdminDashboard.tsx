@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMusicCatalog } from '../../services/musicService';
+import { fetchMusicCatalog, deduplicateCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import WeeklyContentAssistant from './WeeklyContentAssistant';
 import AppleMusicImporter from './AppleMusicImporter';
@@ -341,13 +341,24 @@ const AdminDashboard: React.FC = () => {
         localStorage.setItem('admin_favorite_tools', JSON.stringify(nextFavorites));
     };
 
+    const deduplicatedMusic = deduplicateCatalog(musicCatalog);
+
+    const isOfficialType = (type?: string) => {
+        if (!type) return false;
+        const t = type.toLowerCase();
+        return t.includes('sencillo') || t.includes('álbum') || t.includes('album') || t.includes('ep') || t.includes('single');
+    };
+
     const musicStats = {
-        total: musicCatalog.length,
-        diosmasgym: musicCatalog.filter(song => song.artist.toLowerCase().includes('dios')).length,
-        juan614: musicCatalog.filter(song => song.artist.toLowerCase().includes('juan')).length,
-        missingCover: musicCatalog.filter(song => !song.cover).length,
-        missingDate: musicCatalog.filter(song => !song.date).length,
-        latest: [...musicCatalog]
+        official: musicCatalog.filter(song => isOfficialType(song.type)).length,
+        dedupTotal: deduplicatedMusic.length,
+        autoSync: musicCatalog.filter(song => !isOfficialType(song.type)).length,
+        totalRaw: musicCatalog.length,
+        diosmasgym: deduplicatedMusic.filter(song => song.artist.toLowerCase().includes('dios')).length,
+        juan614: deduplicatedMusic.filter(song => song.artist.toLowerCase().includes('juan')).length,
+        missingCover: deduplicatedMusic.filter(song => !song.cover).length,
+        missingDate: deduplicatedMusic.filter(song => !song.date).length,
+        latest: [...deduplicatedMusic]
             .filter(song => song.date)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     };
@@ -386,7 +397,7 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Módulo Central: Asistente Inteligente (Protagonista) */}
                 <div className="mb-16">
-                    <WeeklyContentAssistant catalog={musicCatalog} />
+                    <WeeklyContentAssistant catalog={deduplicatedMusic} />
                 </div>
 
                 {/* Grid Superior: Instalación + Stats Rápidos */}
@@ -414,15 +425,29 @@ const AdminDashboard: React.FC = () => {
                     )}
 
                     {/* Stats Compactos (Bento Style) */}
-                    <div className={`${isInstalled ? 'lg:col-span-12' : 'lg:col-span-4'} grid grid-cols-2 gap-4 h-full`}>
-                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between">
-                            <i className="fas fa-compact-disc text-[#4a90d9] text-xl"></i>
+                    <div className={`${isInstalled ? 'lg:col-span-12' : 'lg:col-span-4'} grid grid-cols-2 md:grid-cols-4 gap-4 h-full`}>
+                        <div className="bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-6 flex flex-col justify-between hover:border-[#c5a059]/60 transition-all">
+                            <i className="fas fa-[#c5a059] fa-compact-disc text-[#c5a059] text-xl"></i>
                             <div>
-                                <p className="text-3xl font-serif italic text-white">{musicStats.total}</p>
-                                <p className="text-[8px] font-black uppercase tracking-widest text-white/20">Catálogo Total</p>
+                                <p className="text-3xl font-serif italic text-white">{musicStats.official}</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-[#c5a059]">Lanzamientos Oficiales</p>
                             </div>
                         </div>
-                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between">
+                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-[#4a90d9]/30 transition-all">
+                            <i className="fas fa-music text-[#4a90d9] text-xl"></i>
+                            <div>
+                                <p className="text-3xl font-serif italic text-white">{musicStats.dedupTotal}</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Canciones Únicas</p>
+                            </div>
+                        </div>
+                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all">
+                            <i className="fab fa-youtube text-red-500/80 text-xl"></i>
+                            <div>
+                                <p className="text-3xl font-serif italic text-white">{musicStats.autoSync}</p>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Sync YouTube Raw</p>
+                            </div>
+                        </div>
+                        <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all">
                             <i className="fas fa-rotate text-white/20 text-xl"></i>
                             <div>
                                 <p className="text-xs font-bold text-white/60">{lastMusicSync}</p>
