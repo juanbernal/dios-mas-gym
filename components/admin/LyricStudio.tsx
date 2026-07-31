@@ -95,10 +95,10 @@ const LyricStudio: React.FC = () => {
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const logoStudioRef = useRef<HTMLImageElement | null>(null);
-  if (!logoStudioRef.current) logoStudioRef.current = new Image();
   const outroImagesRef = useRef<HTMLImageElement[]>([new Image(), new Image()]);
 
   useEffect(() => {
+    if (!logoStudioRef.current) logoStudioRef.current = new Image();
     // Initial Particles
     particlesRef.current = Array.from({length: 35}, () => ({
       x: Math.random() * 720,
@@ -592,7 +592,7 @@ const LyricStudio: React.FC = () => {
 
     // 4. Logo reveal — use the real Diosmasgym Records logo
     const logo = logoStudioRef.current;
-    if (logo.complete && logo.naturalWidth > 0) {
+    if (logo && logo.complete && logo.naturalWidth > 0) {
       const prog = Math.min(time / 1.8, 1);
       const logoH = ch * 0.38;
       const logoW = (logo.width / logo.height) * logoH;
@@ -698,7 +698,7 @@ const LyricStudio: React.FC = () => {
     // 3. Logo
     const logo = logoStudioRef.current;
     const logoProg = Math.min(time / 1.2, 1);
-    if (logo.complete && logo.naturalWidth > 0) {
+    if (logo && logo.complete && logo.naturalWidth > 0) {
       const lH = ch * 0.22;
       const lW = (logo.width / logo.height) * lH;
       ctx.save();
