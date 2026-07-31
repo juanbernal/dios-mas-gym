@@ -69,7 +69,10 @@ const LyricStudio: React.FC = () => {
   const [sensitivity, setSensitivity] = useState(1);
   const [blurAmount, setBlurAmount] = useState(25);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
-  const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, hidden
+  const [visualizerStyle, setVisualizerStyle] = useState("bars"); // bars, wave, pulse, dots, circular, dna, mirror, starfield, hidden
+  const [startOffset, setStartOffset] = useState(0); // Punto de inicio personalizado de la canción en segundos
+  const [lyricsYPosition, setLyricsYPosition] = useState<"center" | "top" | "bottom">("center");
+  const [karaokeMode, setKaraokeMode] = useState(false);
   const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false);
   const [imagePromptStatus, setImagePromptStatus] = useState<string>("");
@@ -91,8 +94,8 @@ const LyricStudio: React.FC = () => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const requestRef = useRef<number>();
-  const logoStudioRef = useRef<HTMLImageElement>(new Image());
+  const logoStudioRef = useRef<HTMLImageElement | null>(null);
+  if (!logoStudioRef.current) logoStudioRef.current = new Image();
   const outroImagesRef = useRef<HTMLImageElement[]>([new Image(), new Image()]);
 
   useEffect(() => {
@@ -476,6 +479,73 @@ const LyricStudio: React.FC = () => {
             ctx.shadowBlur = 10;
             ctx.fillRect(radius, -1, h, 2);
             ctx.restore();
+        }
+        ctx.restore();
+    } else if (visualizerStyle === 'dna') {
+        // DNA HELIX VISUALIZER
+        ctx.save();
+        const points = 40;
+        const centerY = ch - 160;
+        for (let i = 0; i < points; i++) {
+            const x = (i / points) * cw;
+            const val = dataArrayRef.current[i % dataArrayRef.current.length];
+            const amp = (val / 255) * 60 * sensitivity;
+            const phase = time * 3 + i * 0.3;
+            const y1 = centerY + Math.sin(phase) * amp;
+            const y2 = centerY - Math.sin(phase) * amp;
+
+            // Strand 1 (Cyan)
+            ctx.fillStyle = '#00ffcc';
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(x, y1, 4, 0, Math.PI * 2); ctx.fill();
+
+            // Strand 2 (Gold)
+            ctx.fillStyle = '#c5a059';
+            ctx.shadowColor = '#c5a059';
+            ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(x, y2, 4, 0, Math.PI * 2); ctx.fill();
+
+            // Connecting rungs
+            if (i % 2 === 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    } else if (visualizerStyle === 'mirror') {
+        // SPECTRUM MIRROR
+        ctx.save();
+        const barsCount = 60;
+        const barW = cw / barsCount;
+        const centerY = ch / 2;
+        for (let i = 0; i < barsCount; i++) {
+            const val = dataArrayRef.current[i % dataArrayRef.current.length];
+            const h = (val / 255) * 140 * sensitivity;
+            const grad = ctx.createLinearGradient(0, centerY - h, 0, centerY + h);
+            grad.addColorStop(0, '#ff007f');
+            grad.addColorStop(0.5, 'transparent');
+            grad.addColorStop(1, '#00ffcc');
+            ctx.fillStyle = grad;
+            ctx.fillRect(i * barW, centerY - h, barW - 2, h * 2);
+        }
+        ctx.restore();
+    } else if (visualizerStyle === 'starfield') {
+        // STARFIELD BASS BOOST
+        ctx.save();
+        const starCount = 50;
+        for (let i = 0; i < starCount; i++) {
+            const angle = (i / starCount) * Math.PI * 2 + time * 0.2;
+            const val = dataArrayRef.current[i % dataArrayRef.current.length];
+            const dist = 50 + (val / 255) * 280 * sensitivity;
+            const sx = cw / 2 + Math.cos(angle) * dist;
+            const sy = ch / 2 + Math.sin(angle) * dist;
+            const size = 2 + (val / 255) * 6;
+            ctx.fillStyle = i % 2 === 0 ? '#00ffcc' : '#c5a059';
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
     }
@@ -891,6 +961,8 @@ const LyricStudio: React.FC = () => {
     if (vibe === 'party') ctx.filter = `hue-rotate(${time * 30}deg) saturate(1.2)`;
     if (vibe === 'retro') ctx.filter = `sepia(0.3) contrast(1.1) brightness(0.9)`;
     if (vibe === 'glitch' && Math.random() > 0.96) ctx.filter = `invert(0.1) contrast(2)`;
+    if (vibe === 'neon') ctx.filter = `saturate(2) hue-rotate(${Math.sin(time) * 45}deg) contrast(1.3)`;
+    if (vibe === 'holy') ctx.filter = `brightness(1.25) contrast(1.05) sepia(0.2)`;
     
     const vGrad = ctx.createRadialGradient(cw/2, ch/2, cw/4, cw/2, ch/2, ch*0.9);
     vGrad.addColorStop(0, 'transparent');
@@ -1022,7 +1094,7 @@ const LyricStudio: React.FC = () => {
       if (next && (next.time - time) < 0.3) alpha = Math.max((next.time - time) / 0.3, 0);
 
       ctx.save();
-      const yPos = ch / 2;
+      const yPos = lyricsYPosition === "top" ? ch * 0.28 : lyricsYPosition === "bottom" ? ch * 0.72 : ch / 2;
       
       if (glowToggle) {
         const glow = ctx.createRadialGradient(cw/2, yPos, 0, cw/2, yPos, cw*0.7);
@@ -1309,7 +1381,7 @@ const LyricStudio: React.FC = () => {
     setIsSyncing(true);
     setLyricsInput("");
     if (audioRef.current) {
-        audioRef.current.currentTime = 0;
+        audioRef.current.currentTime = startOffset;
         audioRef.current.play();
         setIsPlaying(true);
         setupAudio();
@@ -1425,6 +1497,25 @@ const LyricStudio: React.FC = () => {
         </div>
         
         <div className="mt-4 flex flex-col items-center gap-2 w-full scale-90 md:scale-100">
+          {/* Interactive Progress Bar */}
+          <div className="w-full max-w-sm px-2">
+            <input 
+              type="range"
+              min="0"
+              max={duration || 100}
+              step="0.1"
+              value={currentTime}
+              onChange={(e) => {
+                const targetTime = parseFloat(e.target.value);
+                setCurrentTime(targetTime);
+                if (audioRef.current) {
+                  audioRef.current.currentTime = Math.max(0, targetTime - (includeIntro ? INTRO_DURATION : 0));
+                }
+              }}
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ffcc] hover:bg-white/20 transition-all"
+            />
+          </div>
+
           <div className="flex items-center justify-between w-full max-w-sm bg-[#0a0a14]/60 backdrop-blur-2xl px-6 py-3 rounded-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <button 
                 onClick={handlePlayToggle}
@@ -1475,7 +1566,7 @@ const LyricStudio: React.FC = () => {
               <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-[#00ffcc] shadow-[0_0_15px_#00ffcc] animate-pulse"></div>
                   <h1 className="text-xl font-black italic tracking-tighter uppercase font-serif text-white">
-                      Lyric Studio <span className="text-[9px] not-italic text-[#c5a059] font-black tracking-widest ml-1 border border-[#c5a059]/20 px-2 py-0.5 rounded bg-[#c5a059]/5">PRO v2.3</span>
+                      Lyric Studio <span className="text-[9px] not-italic text-[#c5a059] font-black tracking-widest ml-1 border border-[#c5a059]/20 px-2 py-0.5 rounded bg-[#c5a059]/5">PRO v2.4</span>
                   </h1>
               </div>
               
@@ -1504,13 +1595,49 @@ const LyricStudio: React.FC = () => {
                       />
                   </div>
                   <div>
-                      <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block">Audio Master</label>
+                      <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block flex items-center justify-between">
+                        <span>Audio Master</span>
+                        <span className="text-[#00ffcc] font-mono">Inicio: {startOffset}s</span>
+                      </label>
                       <input 
                         type="file" 
                         onChange={handleAudioChange} 
                         accept="audio/*" 
-                        className="w-full text-[9px] file:bg-[#00ffcc]/10 file:border file:border-[#00ffcc]/20 file:text-[#00ffcc] file:px-3 file:py-1.5 file:rounded-xl file:font-black file:uppercase file:tracking-widest hover:file:bg-[#00ffcc] hover:file:text-black hover:file:border-[#00ffcc] file:transition-all cursor-pointer bg-white/5 px-2 py-1.5 rounded-xl border border-white/5 text-zinc-400" 
+                        className="w-full text-[9px] file:bg-[#00ffcc]/10 file:border file:border-[#00ffcc]/20 file:text-[#00ffcc] file:px-3 file:py-1.5 file:rounded-xl file:font-black file:uppercase file:tracking-widest hover:file:bg-[#00ffcc] hover:file:text-black hover:file:border-[#00ffcc] file:transition-all cursor-pointer bg-white/5 px-2 py-1.5 rounded-xl border border-white/5 text-zinc-400 mb-2" 
                       />
+                      <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                          <label className="text-[7px] text-zinc-400 uppercase font-black tracking-widest block">🎛️ Punto de Inicio de la Canción (Segundos)</label>
+                          <div className="flex items-center gap-2">
+                              <input 
+                                  type="range"
+                                  min="0"
+                                  max={Math.max(10, Math.floor(duration))}
+                                  value={startOffset}
+                                  onChange={(e) => {
+                                      const val = parseInt(e.target.value);
+                                      setStartOffset(val);
+                                      if (audioRef.current) {
+                                          audioRef.current.currentTime = val;
+                                      }
+                                  }}
+                                  className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#00ffcc]"
+                              />
+                              <input 
+                                  type="number"
+                                  min="0"
+                                  max={Math.max(10, Math.floor(duration))}
+                                  value={startOffset}
+                                  onChange={(e) => {
+                                      const val = Math.max(0, parseInt(e.target.value) || 0);
+                                      setStartOffset(val);
+                                      if (audioRef.current) {
+                                          audioRef.current.currentTime = val;
+                                      }
+                                  }}
+                                  className="w-12 bg-black/60 border border-white/10 p-1 text-[9px] text-center font-mono rounded-lg"
+                              />
+                          </div>
+                      </div>
                   </div>
                   <div>
                       <label className="text-[8px] text-zinc-400 uppercase font-black tracking-widest mb-1.5 block">Sello de Agua</label>
@@ -1755,6 +1882,9 @@ const LyricStudio: React.FC = () => {
                           { id: 'pulse', label: 'Pulso Neon', icon: 'fa-circle-dot' },
                           { id: 'dots', label: 'Puntos Minimal', icon: 'fa-ellipsis' },
                           { id: 'circular', label: 'Círculo Studio', icon: 'fa-circle-notch' },
+                          { id: 'dna', label: 'ADN Helix', icon: 'fa-[#00ffcc] fa-[#c5a059] fa-dna' },
+                          { id: 'mirror', label: 'Espejo Espectral', icon: 'fa-[#ff007f] fa-arrows-up-down' },
+                          { id: 'starfield', label: 'Campo Estelar', icon: 'fa-[#00ffcc] fa-star' },
                           { id: 'hidden', label: 'Ocultar todo', icon: 'fa-eye-slash' }
                       ].map((s) => (
                           <button 
@@ -1764,6 +1894,25 @@ const LyricStudio: React.FC = () => {
                           >
                               <i className={`fas ${s.icon} text-[9px]`}></i>
                               {s.label}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+
+              <div className="mb-4 p-3.5 bg-black/20 rounded-2xl border border-white/5">
+                  <label className="text-[8px] text-[#00ffcc] uppercase font-black tracking-widest mb-2 block">Posición Vertical de Letra</label>
+                  <div className="grid grid-cols-3 gap-2">
+                      {[
+                          { id: 'top', label: 'Arriba' },
+                          { id: 'center', label: 'Centro' },
+                          { id: 'bottom', label: 'Abajo' }
+                      ].map((pos) => (
+                          <button 
+                              key={pos.id}
+                              onClick={() => setLyricsYPosition(pos.id as any)}
+                              className={`py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${lyricsYPosition === pos.id ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/5 hover:border-white/20'}`}
+                          >
+                              {pos.label}
                           </button>
                       ))}
                   </div>
@@ -1782,6 +1931,8 @@ const LyricStudio: React.FC = () => {
                           <option value="party">Fiesta Beats</option>
                           <option value="retro">Vintage 8mm</option>
                           <option value="glitch">Glitch Art</option>
+                          <option value="neon">Neon City 🏙️</option>
+                          <option value="holy">Luz Divina ☀️</option>
                       </select>
                   </div>
                   <div className="space-y-1.5">
