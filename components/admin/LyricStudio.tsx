@@ -834,7 +834,11 @@ const LyricStudio: React.FC = () => {
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(-size/2, -size/2, size, size, 25); ctx.fill(); ctx.stroke();
+    if ((ctx as any).roundRect) {
+      ctx.beginPath(); (ctx as any).roundRect(-size/2, -size/2, size, size, 25); ctx.fill(); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.rect(-size/2, -size/2, size, size); ctx.fill(); ctx.stroke();
+    }
 
     // Glow
     const iconGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 70);
@@ -862,7 +866,11 @@ const LyricStudio: React.FC = () => {
         ctx.fillStyle = instGrad; ctx.beginPath(); ctx.arc(18, -18, 4, 0, Math.PI*2); ctx.fill();
     } else if (logo.platform === 'YouTube') {
         ctx.fillStyle = logo.color;
-        ctx.beginPath(); ctx.roundRect(-40, -28, 80, 56, 12); ctx.fill();
+        if ((ctx as any).roundRect) {
+          ctx.beginPath(); (ctx as any).roundRect(-40, -28, 80, 56, 12); ctx.fill();
+        } else {
+          ctx.beginPath(); ctx.rect(-40, -28, 80, 56); ctx.fill();
+        }
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.moveTo(-12, -18); ctx.lineTo(18, 0); ctx.lineTo(-12, 18); ctx.closePath(); ctx.fill();
     }
