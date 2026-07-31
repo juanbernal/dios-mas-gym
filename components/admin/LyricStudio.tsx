@@ -363,7 +363,11 @@ const LyricStudio: React.FC = () => {
     
     // Background
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.beginPath(); (ctx as any).roundRect(bx, by, barW, barH, 2); ctx.fill();
+    if ((ctx as any).roundRect) {
+      ctx.beginPath(); (ctx as any).roundRect(bx, by, barW, barH, 2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.rect(bx, by, barW, barH); ctx.fill();
+    }
     
     // Progress
     const grad = ctx.createLinearGradient(bx, 0, bx + barW, 0);
@@ -372,7 +376,11 @@ const LyricStudio: React.FC = () => {
     ctx.fillStyle = grad;
     ctx.shadowColor = '#00ffcc';
     ctx.shadowBlur = 10;
-    ctx.beginPath(); (ctx as any).roundRect(bx, by, barW * (pct / 100), barH, 2); ctx.fill();
+    if ((ctx as any).roundRect) {
+      ctx.beginPath(); (ctx as any).roundRect(bx, by, barW * (pct / 100), barH, 2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.rect(bx, by, barW * (pct / 100), barH); ctx.fill();
+    }
     ctx.restore();
   };
 
@@ -768,16 +776,29 @@ const LyricStudio: React.FC = () => {
       ctx.fillStyle = cg;
       ctx.strokeStyle = `${p.color}44`;
       ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      (ctx as any).roundRect(cardX, cy2, cardW, cardH, 14);
-      ctx.fill();
-      ctx.stroke();
+      if ((ctx as any).roundRect) {
+        ctx.beginPath();
+        (ctx as any).roundRect(cardX, cy2, cardW, cardH, 14);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.rect(cardX, cy2, cardW, cardH);
+        ctx.fill();
+        ctx.stroke();
+      }
 
       // Color accent left strip
       ctx.fillStyle = p.color;
-      ctx.beginPath();
-      (ctx as any).roundRect(cardX, cy2, 5, cardH, [14, 0, 0, 14]);
-      ctx.fill();
+      if ((ctx as any).roundRect) {
+        ctx.beginPath();
+        (ctx as any).roundRect(cardX, cy2, 5, cardH, [14, 0, 0, 14]);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.rect(cardX, cy2, 5, cardH);
+        ctx.fill();
+      }
 
       // Icon circle
       const iconX = cardX + cardH * 0.5 + 12;
@@ -1081,7 +1102,11 @@ const LyricStudio: React.FC = () => {
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.strokeStyle = 'rgba(255,255,255,0.15)';
       ctx.lineWidth = 1;
-      ctx.beginPath(); (ctx as any).roundRect(bx, by, bw, bh, 20); ctx.fill(); ctx.stroke();
+      if ((ctx as any).roundRect) {
+        ctx.beginPath(); (ctx as any).roundRect(bx, by, bw, bh, 20); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+      }
       
       ctx.textAlign = 'center';
       ctx.fillStyle = '#fff'; ctx.font = '800 24px Montserrat';
