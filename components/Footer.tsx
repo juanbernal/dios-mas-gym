@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
 
         {/* Top: Logo + tagline */}
         <div className="flex flex-col items-center text-center mb-16">
-          <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-20 h-20 object-cover mb-6" style={{ borderRadius: '4px', border: '1px solid rgba(37,99,168,0.3)' }} />
+          <img src="/logo-diosmasgym.png" alt="Diosmasgym" loading="lazy" className="w-20 h-20 object-cover mb-6" style={{ borderRadius: '4px', border: '1px solid rgba(37,99,168,0.3)' }} />
           <h2 className="text-white mb-4" style={{ fontFamily: 'var(--font-gothic)', fontSize: 'clamp(3rem, 8vw, 6rem)', lineHeight: 0.9 }}>
             Dios Más Gym
           </h2>

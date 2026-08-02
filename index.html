@@ -3,23 +3,7 @@
 <html lang="es">
 <head>
     <!-- PWA_VERSION: 5.0.3 -->
-    <!-- OneSignal Web SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function(OneSignal) {
-            await OneSignal.init({
-                appId: "7cf6d7f5-c5fc-4528-a45f-dec85b099881",
-                safari_web_id: "web.onesignal.auto.21eb64f1-a307-4b53-9fa9-5af0b410a31b",
-                notifyButton: { enable: false }, // UI personalizada en el panel admin
-                serviceWorkerParam: { scope: '/' },
-                serviceWorkerPath: '/OneSignalSDKWorker.js',
-                allowLocalhostAsSecureOrigin: true,
-            });
-        });
-    </script>
 
-    <!-- Hash redirect script removed to improve SEO and allow crawlers to index clean URLs directly -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dios Mas Gym - El Arsenal de Fe</title>
@@ -32,26 +16,25 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/png" href="https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600">
-    <!-- Tailwind Config to match custom fonts -->
-    <script>
-      tailwind = {
-        config: {
-          theme: {
-            extend: {
-              fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-                serif: ['"Pirata One"', 'system-ui'],
-                mono: ['Oswald', 'sans-serif'],
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Bebas+Neue&family=Satisfy&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    
+
+    <!-- ===== PERFORMANCE: DNS preconnects para recursos externos ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.onesignal.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://blogger.googleusercontent.com" crossorigin>
+    <link rel="dns-prefetch" href="https://script.google.com">
+    <link rel="dns-prefetch" href="https://open.spotify.com">
+
+    <!-- Google Fonts — carga asíncrona para no bloquear render -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Pirata+One&family=Oswald:wght@400;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Pirata+One&family=Oswald:wght@400;600;700&display=swap"></noscript>
+
+    <!-- Font Awesome — carga asíncrona -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" crossorigin>
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
     <!-- OpenGraph Meta Tags (Para compartir en Facebook/WhatsApp) -->
     <meta property="og:title" content="Dios Mas Gym - El Arsenal de Fe">
     <meta property="og:description" content="Reflexiones de fe, valentía y disciplina en El Arsenal.">
@@ -108,14 +91,29 @@
     </script>
     <!-- FIN DEL CÓDIGO DE RASTREO -->
 
-    <!-- Google tag (gtag.js) -->
+    <!-- Google Analytics — async no bloquea render -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL60YWDMDD"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-ZL60YWDMDD');
+    </script>
+
+    <!-- OneSignal — defer para no bloquear render crítico -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+                appId: "7cf6d7f5-c5fc-4528-a45f-dec85b099881",
+                safari_web_id: "web.onesignal.auto.21eb64f1-a307-4b53-9fa9-5af0b410a31b",
+                notifyButton: { enable: false },
+                serviceWorkerParam: { scope: '/' },
+                serviceWorkerPath: '/OneSignalSDKWorker.js',
+                allowLocalhostAsSecureOrigin: true,
+            });
+        });
     </script>
 </head>
 <body class="flex flex-col">

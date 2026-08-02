@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
+      css: {
+        postcss: './postcss.config.js',
+      },
       define: {
         // AI Keys are now strictly handled by serverless functions.
       },
@@ -18,6 +21,20 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        // Chunk splitting para reducir el bundle inicial
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+              'charts': ['recharts'],
+            }
+          }
+        },
+        // Comprimir assets
+        cssCodeSplit: true,
+        assetsInlineLimit: 4096,
       }
     };
 });

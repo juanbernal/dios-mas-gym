@@ -126,9 +126,9 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
 
               {/* Artist logos row */}
               <div className="flex items-center gap-6 mt-12 pt-8" style={{ borderTop: '1px solid rgba(37,99,168,0.15)' }}>
-                <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)' }} />
+                <img src="/logo-diosmasgym.png" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)' }} />
                 <div style={{ width: '1px', height: '40px', background: 'rgba(37,99,168,0.3)' }}></div>
-                <img src="/logo-juan614-v2.jpg" alt="Juan 614" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.2)' }} />
+                <img src="/logo-juan614-v2.jpg" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.2)' }} />
                 <div>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.4)', fontSize: '0.5rem' }}>Artistas</p>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.7)', fontSize: '0.55rem' }}>Diosmasgym × Juan 614</p>
