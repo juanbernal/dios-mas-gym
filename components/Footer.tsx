@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
       <div className="section-container relative z-10">
 
         {/* Top: Logo + tagline */}
-        <div className="flex flex-col items-center text-center mb-20">
+        <div className="flex flex-col items-center text-center mb-16">
           <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-20 h-20 object-cover mb-6" style={{ borderRadius: '4px', border: '1px solid rgba(37,99,168,0.3)' }} />
           <h2 className="text-white mb-4" style={{ fontFamily: 'var(--font-gothic)', fontSize: 'clamp(3rem, 8vw, 6rem)', lineHeight: 0.9 }}>
             Dios Más Gym
@@ -34,6 +34,43 @@ const Footer: React.FC = () => {
             </span>
             <div className="w-10 h-px" style={{ background: 'rgba(37,99,168,0.4)' }}></div>
           </div>
+        </div>
+
+        {/* Social Networks */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
+          {[
+            { label: 'Instagram', icon: 'fa-instagram', href: 'https://www.instagram.com/diosmasgym', color: '#e1306c', bg: 'rgba(225,48,108,0.08)' },
+            { label: 'TikTok', icon: 'fa-tiktok', href: 'https://www.tiktok.com/@diosmasgym', color: '#ffffff', bg: 'rgba(255,255,255,0.05)' },
+            { label: 'YouTube', icon: 'fa-youtube', href: 'https://www.youtube.com/@diosmasgym', color: '#ff0000', bg: 'rgba(255,0,0,0.08)' },
+            { label: 'Spotify', icon: 'fa-spotify', href: 'https://open.spotify.com/artist/diosmasgym', color: '#1db954', bg: 'rgba(29,185,84,0.08)' },
+            { label: 'Facebook', icon: 'fa-facebook-f', href: 'https://www.facebook.com/diosmasgym', color: '#1877f2', bg: 'rgba(24,119,242,0.08)' },
+          ].map(social => (
+            <a
+              key={social.label}
+              href={social.href}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: social.bg,
+                borderColor: `${social.color}20`,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = `${social.color}60`;
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = `0 8px 30px ${social.color}22`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = `${social.color}20`;
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none';
+              }}
+            >
+              <i className={`fab ${social.icon} text-lg`} style={{ color: social.color }} />
+              <span className="label-tag" style={{ color: 'rgba(200,205,212,0.55)', fontSize: '0.55rem' }}>
+                {social.label}
+              </span>
+            </a>
+          ))}
         </div>
 
         {/* Middle: 3 columns */}
@@ -101,7 +138,7 @@ const Footer: React.FC = () => {
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="label-tag" style={{ color: 'rgba(200,205,212,0.2)', fontSize: '0.5rem' }}>
-            © {new Date().getFullYear()} Reflections Hub Pro
+            © {new Date().getFullYear()} Dios Más Gym — Todos los derechos reservados
           </p>
           <p className="label-tag" style={{ color: 'rgba(37,99,168,0.4)', fontSize: '0.5rem', letterSpacing: '0.3em' }}>
             Puro Señor Jesucristo compa

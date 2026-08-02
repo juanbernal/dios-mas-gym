@@ -253,6 +253,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Métricas & Audiencia'
         },
         {
+            id: 'seo-dashboard',
+            title: 'Dashboard SEO',
+            description: 'Auditoría de indexado en Google, Core Web Vitals en tiempo real, meta tags, sitemap y robots.txt. Verifica si tu sitio está correctamente indexado.',
+            icon: 'fa-magnifying-glass-chart',
+            color: '#10b981',
+            route: '/admin/seo-dashboard',
+            category: 'Métricas & Audiencia'
+        },
+        {
             id: 'maintenance',
             title: 'Control de Mantenimiento',
             description: 'Activa o desactiva el modo de mantenimiento global de la página y configura el video animado.',

@@ -58,6 +58,7 @@ const AppleMusicImporter = React.lazy(() => import('./components/admin/AppleMusi
 const StoryCountdownCreator = React.lazy(() => import('./components/admin/StoryCountdownCreator'));
 const PostScheduler = React.lazy(() => import('./components/admin/PostScheduler'));
 const MusicPromoHub = React.lazy(() => import('./components/admin/MusicPromoHub'));
+const SEODashboard = React.lazy(() => import('./components/admin/SEODashboard'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -986,6 +987,7 @@ const App: React.FC = () => {
                 <Route path="story-countdown" element={<AdminAuthWrapper><StoryCountdownCreator/></AdminAuthWrapper>} />
                 <Route path="post-scheduler" element={<AdminAuthWrapper><PostScheduler/></AdminAuthWrapper>} />
                 <Route path="music-promo-hub" element={<AdminAuthWrapper><MusicPromoHub/></AdminAuthWrapper>} />
+                <Route path="seo-dashboard" element={<AdminAuthWrapper><SEODashboard/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
