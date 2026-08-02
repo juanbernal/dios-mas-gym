@@ -1002,6 +1002,7 @@ const App: React.FC = () => {
           onClick={() => { const r = state.allPosts[Math.floor(Math.random() * state.allPosts.length)]; if (r) navigate(`/post/${getSlugFromUrl(r.url)}`); }}
           className="fixed bottom-28 md:bottom-8 right-6 z-[100] w-14 h-14 rounded-full bg-[#4a90d9] text-black shadow-xl hover:bg-white transition-all hover:scale-110 flex items-center justify-center"
           title="Post Aleatorio"
+          aria-label="Abrir reflexión aleatoria"
         >
           <i className="fas fa-shuffle text-lg"></i>
         </button>

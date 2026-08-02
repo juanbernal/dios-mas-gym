@@ -8,7 +8,8 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) => {
-  const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+  // Logo en tamaño reducido (=s128 en lugar de =s1600 — 93% menos peso para LCP)
+  const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s128";
 
   return (
     <nav className="fixed top-5 inset-x-4 md:inset-x-12 lg:inset-x-20 h-20 rounded-[1.75rem] nav-blur z-[1000] flex items-center justify-between px-5 md:px-10 backdrop-blur-2xl border border-white/10 shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
@@ -16,7 +17,10 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
         <img 
           src={LOGO_URL} 
           className="h-7 md:h-8 cursor-pointer hover:scale-105 transition-transform drop-shadow-[0_0_25px_rgba(37,99,168,0.25)]" 
-          alt="Logo" 
+          alt="Dios Mas Gym Logo"
+          width="32"
+          height="32"
+          fetchPriority="high"
           onClick={() => changeView('inicio')} 
         />
         
@@ -30,6 +34,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
       <div className="flex items-center gap-3 md:gap-5">
         <button 
           onClick={onSearch} 
+          aria-label="Buscar reflexiones"
           className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 text-white/45 hover:text-[#4a90d9] hover:border-[#4a90d9]/30 transition-colors"
         >
           <i className="fas fa-search"></i>
