@@ -748,8 +748,6 @@ const App: React.FC = () => {
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
 
               <ArmaduraPromo />
-              <InlineFollowNetworks />
-              <InlineSocialBanner />
 
               {/* Infinite scroll sentinel */}
               <div ref={sentinelRef} className="h-10"></div>
