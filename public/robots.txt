@@ -6,6 +6,8 @@ Allow: /reflexiones/
 Allow: /post/
 Disallow: /admin/
 Disallow: /admin
+Disallow: /api/
+Disallow: /assets/
 
 # Prevent crawling of URLs with query parameters (avoids ?m=1 and other duplicates)
 Disallow: /*?m=1
