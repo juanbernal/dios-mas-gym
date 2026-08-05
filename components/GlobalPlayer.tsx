@@ -44,6 +44,18 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
         });
       }
     }
+
+    const handleMessage = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'infoDelivery' && data.info) {
+          if (data.info.playerState === 1) setIsPlaying(true);
+          if (data.info.playerState === 2 || data.info.playerState === 0) setIsPlaying(false);
+        }
+      } catch (err) {}
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [activeSong?.id, activeSong]);
 
   const togglePlay = () => {
@@ -78,11 +90,11 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
         <div className="relative z-10 p-4 md:p-6 flex items-center justify-between gap-4 md:gap-6">
           <div className="flex items-center gap-6 flex-1 min-w-0">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group cursor-pointer" onClick={togglePlay}>
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group">
               <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
               <div className="absolute inset-0 bg-[#4a90d9]/20 mix-blend-overlay pointer-events-none"></div>
               
-              <div className="absolute inset-0 z-0 opacity-[0.01] overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 z-50 opacity-[0.01] overflow-hidden">
                 {videoId && (
                   <iframe 
                     ref={iframeRef}

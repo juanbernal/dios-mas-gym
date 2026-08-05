@@ -72,7 +72,7 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const playerRef = useRef<any>(null);
-    const playerId = `inline-yt-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
+    const [playerId] = useState(() => `inline-yt-${videoId}-${Math.random().toString(36).substr(2, 9)}`);
 
     useEffect(() => {
         if (!window.YT) {
@@ -123,6 +123,12 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
                         } else {
                             setIsPlaying(false);
                         }
+                    },
+                    onError: (event: any) => {
+                        console.error("YouTube Player Error:", event.data);
+                        if (event.data === 150 || event.data === 101) {
+                            alert("YouTube ha bloqueado la reproducción de esta canción en sitios externos (Error de Inserción).");
+                        }
                     }
                 }
             });
@@ -159,16 +165,15 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
 
     return (
         <div className="w-full bg-black/40 border border-white/10 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden backdrop-blur-sm shadow-xl">
-            <div className="absolute inset-0 z-0 opacity-[0.01] pointer-events-none overflow-hidden">
-                <div id={playerId}></div>
-            </div>
             {isPlaying && <div className="absolute inset-0 z-0 opacity-10 animate-pulse pointer-events-none" style={{ backgroundColor: accentColor }}></div>}
             
             <button 
-                onClick={togglePlay} 
-                className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0" 
+                className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0 overflow-hidden" 
                 style={{ backgroundColor: accentColor }}
             >
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 opacity-[0.01]">
+                    <div id={playerId}></div>
+                </div>
                 <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-black ${!isPlaying ? 'ml-1' : ''}`}></i>
             </button>
             

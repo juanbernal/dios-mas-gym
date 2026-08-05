@@ -96,6 +96,12 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                         } else {
                             setIsPlaying(false);
                         }
+                    },
+                    onError: (event: any) => {
+                        console.error("YouTube Player Error:", event.data);
+                        if (event.data === 150 || event.data === 101) {
+                            alert("YouTube ha bloqueado la reproducción de esta canción en sitios externos (Error de Inserción).");
+                        }
                     }
                 }
             });
@@ -167,8 +173,6 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
 
     return (
         <div className={`w-full max-w-md mb-8 rounded-2xl p-5 border shadow-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-300 ${isJuan ? 'bg-[#081830]/90 border-[#1e4a7a]/30' : 'bg-black/50 border-white/10 backdrop-blur-xl'}`}>
-            <div id={`yt-player-${videoId}`} className="hidden"></div>
-            
             <HUDCorners color={isJuan ? '#4a90d9' : '#4a90d9'} />
 
             {/* scanline overlay */}
@@ -186,8 +190,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
 
             <div className="flex items-center gap-4 relative z-10">
                 <button 
-                    onClick={togglePlay} 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group relative overflow-hidden"
                     style={{ 
                         backgroundColor: 'transparent',
                         borderColor: `${accentColor}80`,
@@ -195,6 +198,9 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                         boxShadow: `0 0 10px ${accentColor}20`
                     }}
                 >
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 opacity-[0.01]">
+                        <div id={`yt-player-${videoId}`}></div>
+                    </div>
                     <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} group-hover:scale-110 transition-transform ${!isPlaying ? 'ml-0.5' : ''}`}></i>
                 </button>
                 <div className="flex-1 pr-1 text-left">
