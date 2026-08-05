@@ -82,16 +82,11 @@ const ProximosLanzamientos: React.FC = () => {
 
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
-    const checkCatalogSync = async (existing: ReleaseData[], force = false) => {
+    const processCatalogSync = (existing: ReleaseData[], dM: any[], j6: any[], force = false) => {
         if (force) syncStartedRef.current = false;
         if (syncStartedRef.current && !force) return;
         
         try {
-            const [dM, j6] = await Promise.all([
-                fetchMusicCatalog('diosmasgym', true),
-                fetchMusicCatalog('juan614', true)
-            ]);
-            
             const normalize = (s: string) => s.toLowerCase()
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
@@ -147,11 +142,9 @@ const ProximosLanzamientos: React.FC = () => {
             
             const missing = latestCatalog.filter((cat) => {
                 const normCatName = normalize(cat.name).replace(/[^a-z0-9]/g, '');
-                const normCatArtist = normalize(cat.artist).replace(/[^a-z0-9]/g, '');
                 
                 const foundItem = existing.find(ex => {
                     const normExName = normalize(ex.name || '').replace(/[^a-z0-9]/g, '');
-                    const normExArtist = normalize(ex.Artista || '').replace(/[^a-z0-9]/g, '');
                     return normExName === normCatName || normExName.includes(normCatName) || normCatName.includes(normExName);
                 });
                 
@@ -185,7 +178,17 @@ const ProximosLanzamientos: React.FC = () => {
         setLoadingReleases(true);
         setStatus({ type: 'idle' });
         try {
-            const response = await fetch(`/api/sheet-proxy?read=true&nocache=${Math.random()}&t=${Date.now()}`);
+            const sheetUrl = force
+                ? `/api/sheet-proxy?read=true&nocache=true&t=${Date.now()}`
+                : `/api/sheet-proxy?read=true`;
+
+            const [response, dM, j6] = await Promise.all([
+                fetch(sheetUrl),
+                fetchMusicCatalog('diosmasgym', force),
+                fetchMusicCatalog('juan614', force)
+            ]);
+
+            let filtered: ReleaseData[] = [];
             if (response.ok) {
                 const data = await response.json();
                 const normalized = (data as any[]).map(r => {
@@ -210,10 +213,10 @@ const ProximosLanzamientos: React.FC = () => {
                         coverImageUrl: findKey(['coverimageurl', 'imagen', 'portada'])
                     } as ReleaseData;
                 });
-                const filtered = normalized.filter(r => !r.Artista || !r.Artista.toLowerCase().startsWith('config'));
+                filtered = normalized.filter(r => !r.Artista || !r.Artista.toLowerCase().startsWith('config'));
                 setCurrentReleases(filtered);
-                checkCatalogSync(filtered, force);
             }
+            processCatalogSync(filtered, dM, j6, force);
         } catch (error) {
             console.error("Error fetching admin releases:", error);
         } finally {
@@ -297,7 +300,7 @@ const ProximosLanzamientos: React.FC = () => {
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                await new Promise(r => setTimeout(r, 1200));
+                await new Promise(r => setTimeout(r, 200));
             } catch (e) {
                 failed.push(release);
                 console.error("Error syncing item:", release.name, e);

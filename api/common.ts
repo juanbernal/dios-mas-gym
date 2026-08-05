@@ -748,12 +748,20 @@ export default async function handler(
       } else {
         // GET read: pass query params as-is
         const q = { ...req.query } as Record<string, string>;
+        const hasNoCache = !!q.nocache;
         delete q.script;
         delete q.action;
         const qs = new URLSearchParams(q).toString();
         if (qs) url += `?${qs}`;
 
         const resp = await fetch(url, { method: 'GET', redirect: 'follow' });
+
+        if (hasNoCache) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        } else {
+          res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+        }
+
         const ct = resp.headers.get('content-type');
         if (ct?.includes('application/json')) {
           return res.status(200).json(await resp.json());

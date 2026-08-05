@@ -51,19 +51,19 @@ const UpcomingReleases: React.FC = () => {
     useEffect(() => {
         const loadReleases = async () => {
             try {
-                // Fetch del catálogo principal
-                const [dM, j6] = await Promise.all([
+                // Fetch del catálogo principal y la hoja de Próximos Lanzamientos en paralelo
+                const [dM, j6, sheetResponse] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614')
+                    fetchMusicCatalog('juan614'),
+                    fetch(`/api/sheet-proxy?read=true`).catch(() => null)
                 ]);
                 
                 let combinedCatalog = [...dM, ...j6];
 
                 // Fetch de la hoja de Próximos Lanzamientos
                 try {
-                    const response = await fetch(`/api/sheet-proxy?read=true`);
-                    if (response.ok) {
-                        const data = await response.json();
+                    if (sheetResponse && sheetResponse.ok) {
+                        const data = await sheetResponse.json();
                         const extraReleases = (data as any[]).map(r => {
                             const findKey = (keys: string[]) => {
                                 const k = Object.keys(r).find(key => keys.includes(key.replace(/\s+/g, '').trim().toLowerCase()));
