@@ -349,9 +349,14 @@ const App: React.FC = () => {
         console.warn("Error reading/parsing dg_posts_cache:", e);
       }
 
+      // Fallback para ocultar el splash si la API tarda demasiado
+      const splashTimeout = setTimeout(() => {
+         setShowSplash(false);
+      }, 2500);
+
       try {
         const [arsenalResult, musicD, musicJ, maintStatus] = await Promise.all([
-          fetchArsenalData(50).catch(err => {
+          fetchArsenalData(15).catch(err => {
             console.error("Blogger fetch failed:", err);
             return { posts: [], nextPageToken: undefined };
           }),
@@ -423,6 +428,7 @@ const App: React.FC = () => {
         if (musicD.length > 0) setRandomMusicSong(musicD[Math.floor(Math.random() * musicD.length)]);
         if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
+        clearTimeout(splashTimeout);
         setShowSplash(false);
       } catch (err: any) {
         console.error("Critical error during app initialization:", err);
@@ -431,6 +437,7 @@ const App: React.FC = () => {
           loading: false, 
           error: err?.message || String(err)
         }));
+        clearTimeout(splashTimeout);
         setShowSplash(false);
       }
     };
