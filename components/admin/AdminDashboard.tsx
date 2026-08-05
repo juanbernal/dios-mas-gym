@@ -119,21 +119,12 @@ const AdminDashboard: React.FC = () => {
     const tools = [
         {
             id: 'custom-promo',
-            title: 'Diseñador Avanzado de Banners Promocionales',
-            description: 'Crea banners publicitarios profesionales con estilos Scrapbook, Disco Vinilo, Cyberpunk, Editorial, Grunge y Polaroid.',
+            title: 'Studio HD — Diseñador de Banners',
+            description: 'Motor de diseño pro con 8 estilos cinematográficos: Dark Cinematic, Gold Luxury, Neon Noir, Minimal Type, Grunge Press, Scrapbook, Film Grain y Editorial. Exporta 1920×1920 nítido.',
             icon: 'fa-wand-magic-sparkles',
             color: '#c5a059',
             route: '/admin/custom-promo',
             category: 'Contenido Audiovisual'
-        },
-        {
-            id: 'music-promo-hub',
-            title: 'Centro de Promoción de Canciones & Álbumes',
-            description: 'Suite profesional todo-en-uno: crea campañas de 15 días, comunicados de prensa, pitches para playlists, hooks de TikTok y banners HD en vivo.',
-            icon: 'fa-bullhorn',
-            color: '#c5a059',
-            route: '/admin/music-promo-hub',
-            category: 'Marketing & Social'
         },
         {
             id: 'promo-image',
@@ -147,20 +138,11 @@ const AdminDashboard: React.FC = () => {
         {
             id: 'lyric-studio',
             title: 'Lyric Studio Pro',
-            description: 'Genera videos líricos cinemáticos con sincronización de audio y efectos visuales modernos.',
+            description: 'Genera videos líricos cinemáticos, formatea letras para Musixmatch y sincroniza audio con efectos visuales modernos.',
             icon: 'fa-clapperboard',
             color: '#00ffcc',
             route: '/admin/lyric-studio',
             category: 'Contenido Audiovisual'
-        },
-        {
-            id: 'lyric-cleaner',
-            title: 'Limpiador de Letras',
-            description: 'Formatea letras en bruto de IA para Musixmatch de manera rápida.',
-            icon: 'fa-align-left',
-            color: '#10b981',
-            route: '/admin/lyric-cleaner',
-            category: 'Gestión y Utilidades'
         },
         {
             id: 'proximos-lanzamientos',
@@ -190,24 +172,6 @@ const AdminDashboard: React.FC = () => {
             category: 'Marketing & Social'
         },
         {
-            id: 'canvas-creator',
-            title: 'Spotify Canvas Creator',
-            description: 'Convierte tus portadas cuadradas en visuales verticales (9:16) con efectos y texturas.',
-            icon: 'fa-mobile-screen-button',
-            color: '#1DB954',
-            route: '/admin/canvas-creator',
-            category: 'Contenido Audiovisual'
-        },
-        {
-            id: 'metadata-tagger',
-            title: 'Metadata Tagger ID3',
-            description: 'Incrusta directamente la portada, ISRC y el artista dentro de tus archivos MP3 antes de distribuirlos.',
-            icon: 'fa-compact-disc',
-            color: '#a855f7',
-            route: '/admin/metadata-tagger',
-            category: 'Gestión y Utilidades'
-        },
-        {
             id: 'link-bio',
             title: 'Link-in-Bio Manager',
             description: 'Gestiona tu página de enlaces para Instagram y TikTok con el diseño premium de la marca.',
@@ -219,7 +183,7 @@ const AdminDashboard: React.FC = () => {
         {
             id: 'smartlink-video',
             title: 'SmartLink Image Creator',
-            description: 'Genera imágenes verticales (9:16) en alta resolución con el diseño real de tu SmartLink, listas para compartir en tus Stories y Estados.',
+            description: 'Genera imágenes verticales (9:16) en alta resolución con el diseño real de tu SmartLink, listas para compartir en Stories.',
             icon: 'fa-mobile-screen',
             color: '#4a90d9',
             route: '/admin/smartlink-video',
@@ -255,7 +219,7 @@ const AdminDashboard: React.FC = () => {
         {
             id: 'seo-dashboard',
             title: 'Dashboard SEO',
-            description: 'Auditoría de indexado en Google, Core Web Vitals en tiempo real, meta tags, sitemap y robots.txt. Verifica si tu sitio está correctamente indexado.',
+            description: 'Auditoría de indexado en Google, Core Web Vitals en tiempo real, meta tags, sitemap y robots.txt.',
             icon: 'fa-magnifying-glass-chart',
             color: '#10b981',
             route: '/admin/seo-dashboard',
@@ -295,24 +259,6 @@ const AdminDashboard: React.FC = () => {
             icon: 'fab fa-apple',
             color: '#111111',
             route: '/admin/apple-music',
-            category: 'Gestión y Utilidades'
-        },
-        {
-            id: 'story-countdown',
-            title: 'Story Countdown Creator',
-            description: 'Genera imágenes de cuenta regresiva para Stories de Instagram. Especifica canción y fecha y exporta en alta resolución.',
-            icon: 'fa-hourglass-half',
-            color: '#f97316',
-            route: '/admin/story-countdown',
-            category: 'Contenido Audiovisual'
-        },
-        {
-            id: 'post-scheduler',
-            title: 'Post Scheduler',
-            description: 'Escribe y programa reflexiones para publicar en Blogger en un día y hora específicos, directamente desde el panel.',
-            icon: 'fa-calendar-plus',
-            color: '#10b981',
-            route: '/admin/post-scheduler',
             category: 'Gestión y Utilidades'
         },
         {
