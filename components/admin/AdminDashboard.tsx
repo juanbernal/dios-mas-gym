@@ -145,6 +145,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Contenido Audiovisual'
         },
         {
+            id: 'lyric-cleaner',
+            title: 'Limpiador de Letras PRO',
+            description: 'Formatea letras en bruto de IA para Musixmatch de manera rápida con enlace directo a Studio.',
+            icon: 'fa-align-left',
+            color: '#10b981',
+            route: '/admin/lyric-cleaner',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'proximos-lanzamientos',
             title: 'Próximos Lanzamientos',
             description: 'Gestión y programación de estrenos directamente desde la base de datos centralizada de Google.',
