@@ -348,7 +348,7 @@ export default async function handler(
   const action = (req.query.action as string) || req.url?.split('?')[0].split('/').pop();
 
   // ── Rate limiting for expensive endpoints ──────────────────────────────────
-  const costlyActions = ['youtube-top', 'sheet-proxy', 'image-proxy', 'sitemap', 'smartlink-ssr', 'smartlink', 'post-ssr', 'post'];
+  const costlyActions = ['youtube-top', 'sheet-proxy', 'image-proxy', 'smartlink-ssr', 'smartlink', 'post-ssr', 'post'];
   if (costlyActions.includes(action || '')) {
     const ip = getClientIp(req);
     if (!checkRateLimit(ip)) {
@@ -832,9 +832,11 @@ export default async function handler(
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       
-      // Also add static pages to the songs sitemap just to be safe
+      // Static pages in the songs sitemap
       xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
       xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
 
       songs.forEach(song => {
         if (!song.id) return;
@@ -887,6 +889,7 @@ export default async function handler(
       xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
       xml += urlBlock(`${BASE}/reflexiones`, today, 'daily', '0.9');
       xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
       // All blog posts
       allItems.forEach((item: any) => {
@@ -1339,13 +1342,20 @@ export default async function handler(
     const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
 
     let xml = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
-    xml += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n`;
+    xml += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n`;
     xml += `<channel>\n`;
     xml += `  <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
     xml += `  <link>https://app.diosmasgym.com</link>\n`;
     xml += `  <description>Reflexiones de fe, valentía, disciplina y lanzamientos de música cristiana y de motivación.</description>\n`;
-    xml += `  <language>es-es</language>\n`;
+    xml += `  <language>es-mx</language>\n`;
     xml += `  <atom:link href="https://app.diosmasgym.com/feed.xml" rel="self" type="application/rss+xml" />\n`;
+    xml += `  <image>\n`;
+    xml += `    <url>https://app.diosmasgym.com/icon-512.png</url>\n`;
+    xml += `    <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
+    xml += `    <link>https://app.diosmasgym.com</link>\n`;
+    xml += `    <width>512</width>\n`;
+    xml += `    <height>512</height>\n`;
+    xml += `  </image>\n`;
 
     try {
       // 1. Fetch Blogger posts
@@ -1392,12 +1402,16 @@ export default async function handler(
         const pubDate = song.date ? new Date(song.date).toUTCString() : new Date().toUTCString();
         const description = `Lanzamiento oficial de la canción "${song.name}" de ${song.artist}. Escúchala en tu plataforma favorita.`;
 
+        const coverUrl = song.cover ? escapeXml(song.cover) : '';
+        const audioUrl = song.url ? escapeXml(song.url) : '';
+
         xml += `  <item>\n`;
         xml += `    <title>Estreno: ${escapeXml(song.name)} - ${escapeXml(song.artist)}</title>\n`;
         xml += `    <link>${songUrl}</link>\n`;
         xml += `    <guid>${songUrl}</guid>\n`;
         xml += `    <pubDate>${pubDate}</pubDate>\n`;
         xml += `    <description>${escapeXml(description)}</description>\n`;
+        if (coverUrl) xml += `    <media:thumbnail url="${coverUrl}" />\n`;
         xml += `  </item>\n`;
       });
 
