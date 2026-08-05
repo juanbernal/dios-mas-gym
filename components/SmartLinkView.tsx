@@ -46,11 +46,19 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 document.head.appendChild(tag);
             }
             
+            const existingCb = window.onYouTubeIframeAPIReady;
             window.onYouTubeIframeAPIReady = () => {
+                if (existingCb) existingCb();
                 initPlayer();
             };
         } else if (window.YT && window.YT.Player) {
             initPlayer();
+        } else {
+            const existingCb = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (existingCb) existingCb();
+                initPlayer();
+            };
         }
 
         function initPlayer() {
@@ -66,7 +74,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     fs: 0,
                     modestbranding: 1,
                     rel: 0,
-                    playsinline: 1
+                    playsinline: 1,
+                    origin: window.location.origin
                 },
                 events: {
                     onStateChange: (event: any) => {

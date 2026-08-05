@@ -77,25 +77,26 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
         <div className="relative z-10 h-2 bg-white/5 cursor-pointer hover:bg-[#4a90d9]/40 transition-colors" onClick={() => setIsMinimized(!isMinimized)}></div>
 
         <div className="relative z-10 p-4 md:p-6 flex items-center justify-between gap-4 md:gap-6">
-          <div className="absolute opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
-            {videoId && (
-              <iframe 
-                ref={iframeRef}
-                id="yt-player-iframe"
-                width="1" height="1" 
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&controls=0&enablejsapi=1`}
-                title="Audio Player"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              ></iframe>
-            )}
-          </div>
-
           <div className="flex items-center gap-6 flex-1 min-w-0">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group cursor-pointer" onClick={togglePlay}>
               <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
-              <div className="absolute inset-0 bg-[#4a90d9]/20 mix-blend-overlay"></div>
-              <div className="absolute inset-0 flex items-center justify-center transition-all group-hover:scale-110">
+              <div className="absolute inset-0 bg-[#4a90d9]/20 mix-blend-overlay pointer-events-none"></div>
+              
+              <div className="absolute inset-0 z-0 opacity-[0.01] overflow-hidden pointer-events-none">
+                {videoId && (
+                  <iframe 
+                    ref={iframeRef}
+                    id="yt-player-iframe"
+                    width="100%" height="100%" 
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&controls=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                    title="Audio Player"
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                  ></iframe>
+                )}
+              </div>
+
+              <div className="absolute inset-0 flex items-center justify-center transition-all group-hover:scale-110 pointer-events-none">
                 <div className="w-8 h-8 rounded-full bg-[#4a90d9] text-black flex items-center justify-center shadow-lg">
                   <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-[10px] ${isPlaying ? '' : 'ml-0.5'}`}></i>
                 </div>
