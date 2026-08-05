@@ -90,8 +90,30 @@ const LinkBioPublic: React.FC = () => {
 
     useEffect(() => {
         if (data && data.profile) {
-            const pageTitle = `${data.profile.name} | Bio`;
+            const pageTitle = `${data.profile.name} | Bio — El Arsenal de Fe`;
+            const pageDesc = data.profile.bio || 'El Arsenal de Fe — Música cristiana y reflexiones de fe.';
+            const pageImg = data.profile.avatar || 'https://app.diosmasgym.com/icon-512.png';
+            const pageUrl = `https://app.diosmasgym.com/bio/${artist || 'diosmasgym'}`;
+
             document.title = pageTitle;
+
+            // Inject dynamic OG/meta tags for social sharing
+            const setMeta = (selector: string, attr: string, val: string) => {
+                let el = document.querySelector(selector) as HTMLMetaElement;
+                if (!el) { el = document.createElement('meta') as any; document.head.appendChild(el); }
+                (el as any)[attr] = val;
+            };
+            setMeta('meta[name="description"]', 'content', pageDesc);
+            setMeta('meta[property="og:title"]', 'content', pageTitle);
+            setMeta('meta[property="og:description"]', 'content', pageDesc);
+            setMeta('meta[property="og:image"]', 'content', pageImg);
+            setMeta('meta[property="og:url"]', 'content', pageUrl);
+            setMeta('meta[name="twitter:title"]', 'content', pageTitle);
+            setMeta('meta[name="twitter:description"]', 'content', pageDesc);
+            setMeta('meta[name="twitter:image"]', 'content', pageImg);
+            const canonicalEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+            if (canonicalEl) canonicalEl.href = pageUrl;
+
             trackEvent('post_view', {
                 title: `${data.profile.name} (Bio Link)`,
                 artist: artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'

@@ -923,6 +923,138 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: BIO SSR (Meta injection for /bio and /bio/:artist pages)
+  // -------------------------------------------------------------
+  if (action === 'bio-ssr') {
+    const artist = (req.query.artist as string) || 'diosmasgym';
+    const isJuan = artist.toLowerCase() === 'juan614';
+
+    const name = isJuan ? 'Juan 614' : 'Dios Mas Gym';
+    const bio = isJuan
+      ? 'Corridos tumbados, banda sinaloense y calle con propósito. Música cristiana con identidad.'
+      : 'El Arsenal de Fe — Música cristiana, rap y corridos de motivación. Reflexiones de disciplina, valentía y fe.';
+    const image = isJuan
+      ? 'https://app.diosmasgym.com/logo-juan614-v2.jpg'
+      : 'https://app.diosmasgym.com/icon-512.png';
+    const canonicalUrl = `https://app.diosmasgym.com/bio/${artist.toLowerCase()}`;
+    const title = `${name} | Bio — El Arsenal de Fe`;
+    const description = bio;
+
+    const jsonLdBlock = `
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  "name": ${JSON.stringify(name)},
+  "url": ${JSON.stringify(canonicalUrl)},
+  "image": ${JSON.stringify(image)},
+  "description": ${JSON.stringify(description)},
+  "genre": ["Música Cristiana", "Rap Cristiano", "Corridos"],
+  "sameAs": [
+    ${isJuan
+      ? '"https://www.youtube.com/@juan614oficial"'
+      : '"https://www.youtube.com/@diosmasgym", "https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do"'
+    }
+  ]
+}
+</script>`;
+
+    try {
+      let html = await getBaseIndexHtml();
+      const safeTitle = escapeXml(title);
+      const safeDesc = escapeXml(description);
+      const safeImg = escapeXml(image);
+
+      html = html.replace(/\u003ctitle\u003e[\s\S]*?\u003c\/title\u003e/i, `\u003ctitle\u003e${safeTitle}\u003c/title\u003e`);
+      html = html.replace(/\u003cmeta\s+name=["']description["'][\s\S]*?\/?>/i, `\u003cmeta name="description" content="${safeDesc}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:title["'][\s\S]*?\/?>/i, `\u003cmeta property="og:title" content="${safeTitle}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:description["'][\s\S]*?\/?>/i, `\u003cmeta property="og:description" content="${safeDesc}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:image["'][\s\S]*?\/?>/i, `\u003cmeta property="og:image" content="${safeImg}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:url["'][\s\S]*?\/?>/i, `\u003cmeta property="og:url" content="${canonicalUrl}"\u003e`);
+      html = html.replace(/\u003clink[\s\S]*?rel=["']canonical["'][\s\S]*?\u003e/i, `\u003clink rel="canonical" href="${canonicalUrl}" /\u003e`);
+      html = html.replace(/\u003cmeta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i, `\u003cmeta name="robots" content="index, follow"\u003e`);
+      html = html.replace('\u003c/head\u003e', `${jsonLdBlock}\n\u003c/head\u003e`);
+
+      // Hidden SSR content for crawlers
+      const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
+      html = html.replace('\u003cdiv id="root"\u003e\u003c/div\u003e', `\u003cdiv id="root"\u003e\u003csection style="${hiddenStyle}"\u003e\u003ch1\u003e${safeTitle}\u003c/h1\u003e\u003cp\u003e${safeDesc}\u003c/p\u003e\u003c/section\u003e\u003c/div\u003e`);
+
+      res.setHeader('X-Robots-Tag', 'index, follow');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(html);
+    } catch (err) {
+      console.error('Error in bio-ssr:', err);
+      try {
+        const text = await getBaseIndexHtml();
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(text);
+      } catch {
+        return res.status(500).send('Error loading app');
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: REFLEXIONES SSR (Meta injection for /reflexiones page)
+  // -------------------------------------------------------------
+  if (action === 'reflexiones-ssr') {
+    const title = 'Reflexiones de Fe | El Arsenal — Dios Mas Gym';
+    const description = 'Explora el Arsenal de Fe: reflexiones bíblicas, devocionales y mensajes de valentía, disciplina y motivación cristiana de Dios Mas Gym.';
+    const canonicalUrl = 'https://app.diosmasgym.com/reflexiones';
+    const image = 'https://app.diosmasgym.com/icon-512.png';
+
+    const jsonLdBlock = `
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": ${JSON.stringify(title)},
+  "description": ${JSON.stringify(description)},
+  "url": ${JSON.stringify(canonicalUrl)},
+  "image": ${JSON.stringify(image)},
+  "publisher": {
+    "@type": "Organization",
+    "name": "Dios Mas Gym",
+    "url": "https://app.diosmasgym.com"
+  }
+}
+</script>`;
+
+    try {
+      let html = await getBaseIndexHtml();
+      const safeTitle = escapeXml(title);
+      const safeDesc = escapeXml(description);
+
+      html = html.replace(/\u003ctitle\u003e[\s\S]*?\u003c\/title\u003e/i, `\u003ctitle\u003e${safeTitle}\u003c/title\u003e`);
+      html = html.replace(/\u003cmeta\s+name=["']description["'][\s\S]*?\/?>/i, `\u003cmeta name="description" content="${safeDesc}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:title["'][\s\S]*?\/?>/i, `\u003cmeta property="og:title" content="${safeTitle}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:description["'][\s\S]*?\/?>/i, `\u003cmeta property="og:description" content="${safeDesc}"\u003e`);
+      html = html.replace(/\u003cmeta\s+property=["']og:url["'][\s\S]*?\/?>/i, `\u003cmeta property="og:url" content="${canonicalUrl}"\u003e`);
+      html = html.replace(/\u003clink[\s\S]*?rel=["']canonical["'][\s\S]*?\u003e/i, `\u003clink rel="canonical" href="${canonicalUrl}" /\u003e`);
+      html = html.replace(/\u003cmeta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i, `\u003cmeta name="robots" content="index, follow"\u003e`);
+      html = html.replace('\u003c/head\u003e', `${jsonLdBlock}\n\u003c/head\u003e`);
+
+      const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
+      html = html.replace('\u003cdiv id="root"\u003e\u003c/div\u003e', `\u003cdiv id="root"\u003e\u003csection style="${hiddenStyle}"\u003e\u003ch1\u003e${safeTitle}\u003c/h1\u003e\u003cp\u003e${safeDesc}\u003c/p\u003e\u003c/section\u003e\u003c/div\u003e`);
+
+      res.setHeader('X-Robots-Tag', 'index, follow');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(html);
+    } catch (err) {
+      console.error('Error in reflexiones-ssr:', err);
+      try {
+        const text = await getBaseIndexHtml();
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(text);
+      } catch {
+        return res.status(500).send('Error loading app');
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: POST SSR (Server-Side Meta Injection)
   // -------------------------------------------------------------
   if (action === 'post-ssr' || action === 'post') {

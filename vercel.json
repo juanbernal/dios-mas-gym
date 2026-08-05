@@ -67,6 +67,18 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/bio",
+      "destination": "/api/common?action=bio-ssr&artist=diosmasgym"
+    },
+    {
+      "source": "/bio/:artist",
+      "destination": "/api/common?action=bio-ssr&artist=:artist"
+    },
+    {
+      "source": "/reflexiones",
+      "destination": "/api/common?action=reflexiones-ssr"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

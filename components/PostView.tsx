@@ -151,9 +151,11 @@ const PostView: React.FC<PostViewProps> = ({ state, setState, getSlugFromUrl, re
         el.setAttribute('content', content);
       };
 
+      const canonicalPostUrl = `https://app.diosmasgym.com/post/${slug}`;
+
       updateMeta('og:title', title);
       updateMeta('og:description', description);
-      updateMeta('og:url', url);
+      updateMeta('og:url', canonicalPostUrl);
       updateMeta('og:image', image);
       updateMeta('description', description);
 
