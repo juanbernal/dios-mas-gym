@@ -64,8 +64,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         function initPlayer() {
             if (playerRef.current) return;
             playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
-                height: '0',
-                width: '0',
+                height: '200',
+                width: '200',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,

@@ -103,8 +103,8 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
         function initPlayer() {
             if (playerRef.current) return;
             playerRef.current = new window.YT.Player(playerId, {
-                height: '0',
-                width: '0',
+                height: '200',
+                width: '200',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,
@@ -159,12 +159,14 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
 
     return (
         <div className="w-full bg-black/40 border border-white/10 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden backdrop-blur-sm shadow-xl">
-            <div id={playerId} className="hidden"></div>
-            {isPlaying && <div className="absolute inset-0 opacity-10 animate-pulse" style={{ backgroundColor: accentColor }}></div>}
+            <div className="absolute inset-0 z-0 opacity-[0.01] pointer-events-none overflow-hidden">
+                <div id={playerId}></div>
+            </div>
+            {isPlaying && <div className="absolute inset-0 z-0 opacity-10 animate-pulse pointer-events-none" style={{ backgroundColor: accentColor }}></div>}
             
             <button 
                 onClick={togglePlay} 
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0" 
+                className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0" 
                 style={{ backgroundColor: accentColor }}
             >
                 <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-black ${!isPlaying ? 'ml-1' : ''}`}></i>
