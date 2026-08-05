@@ -322,7 +322,7 @@ const ReleaseCountdown = ({ releaseDate, isJuan }: { releaseDate: string, isJuan
     );
 };
 
-const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: string }) => {
+const SongCredits = ({ isJuan, song, onOpenLyrics }: { isJuan: boolean, song: MusicItem, onOpenLyrics: () => void }) => {
     const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
     const bgClass = isJuan ? 'bg-[#081830]/40' : 'bg-black/30';
     const textPrimary = isJuan ? 'text-[#f1f5f9]' : 'text-white';
@@ -334,9 +334,19 @@ const SongCredits = ({ isJuan, artistName }: { isJuan: boolean, artistName: stri
         <div className={`w-full backdrop-blur-xl p-6 rounded-2xl border shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left ${bgClass} ${mainBorderClass} relative overflow-hidden group`}>
             <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${isJuan ? 'from-[#4a90d9] to-[#1e4a7a]' : 'from-[#4a90d9] to-[#8c6b32]'}`}></div>
             
-            <h4 className={`text-[8px] font-black uppercase tracking-[0.25em] mb-5 flex items-center gap-2`} style={{ color: accentColor }}>
-                <i className="fas fa-info-circle text-[9px]"></i> CRÉDITOS DE LA CANCIÓN
-            </h4>
+            <div className="flex justify-between items-center mb-5">
+                <h4 className={`text-[8px] font-black uppercase tracking-[0.25em] flex items-center gap-2`} style={{ color: accentColor }}>
+                    <i className="fas fa-info-circle text-[9px]"></i> CRÉDITOS DE LA CANCIÓN
+                </h4>
+                {song.lyrics && (
+                    <button 
+                        onClick={onOpenLyrics}
+                        className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${isJuan ? 'bg-[#4a90d9]/10 text-[#4a90d9] border-[#4a90d9]/30 hover:bg-[#4a90d9] hover:text-black' : 'bg-[#4a90d9]/10 text-[#4a90d9] border-[#4a90d9]/30 hover:bg-[#4a90d9] hover:text-black'}`}
+                    >
+                        <i className="fas fa-book-open"></i> Leer Letra
+                    </button>
+                )}
+            </div>
             
             <div className="flex flex-col gap-4 pl-1">
                 {/* Composition & Lyrics */}
@@ -441,6 +451,37 @@ const QrModal = ({ isOpen, onClose, url }: { isOpen: boolean, onClose: () => voi
                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`} alt="QR Code" className="w-48 h-48" />
                 </div>
                 <button onClick={onClose} className="w-full py-3 rounded-full border border-white/10 hover:bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-widest transition-all">Cerrar</button>
+            </div>
+        </div>
+    );
+};
+
+const LyricsModal = ({ isOpen, onClose, lyrics, songName, isJuan }: { isOpen: boolean, onClose: () => void, lyrics?: string, songName: string, isJuan: boolean }) => {
+    if (!isOpen || !lyrics) return null;
+    const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-8 animate-fade-in" onClick={onClose}>
+            <div className={`relative max-w-2xl w-full max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border ${isJuan ? 'bg-[#081830] border-[#1e4a7a]/40' : 'bg-[#111] border-[#4a90d9]/30'}`} onClick={e => e.stopPropagation()}>
+                
+                {/* Header fijo */}
+                <div className={`p-6 md:p-8 border-b flex justify-between items-center bg-gradient-to-b ${isJuan ? 'from-[#0b2447] to-[#081830] border-[#1e4a7a]/40' : 'from-[#1a1a1a] to-[#111] border-white/10'}`}>
+                    <div>
+                        <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] mb-1 flex items-center gap-2" style={{ color: accentColor }}>
+                            <i className="fas fa-music"></i> Letra Oficial
+                        </h3>
+                        <h2 className="text-xl md:text-2xl font-black text-white">{songName}</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+
+                {/* Contenido scrolleable */}
+                <div className="overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                    <div className="whitespace-pre-wrap font-serif text-lg md:text-xl text-center md:text-left leading-relaxed md:leading-loose text-white/90">
+                        {lyrics}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -576,6 +617,7 @@ const SmartLinkView: React.FC = () => {
     const { trackEvent } = useAnalytics();
 
     const [showQrModal, setShowQrModal] = useState(false);
+    const [showLyricsModal, setShowLyricsModal] = useState(false);
     const [copied, setCopied] = useState(false);
     const [showPlatforms, setShowPlatforms] = useState(false);
     const [devotional, setDevotional] = useState<{ verse: string; reference: string } | null>(null);
@@ -1026,7 +1068,7 @@ const SmartLinkView: React.FC = () => {
                     <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                         {/* LEFT COLUMN */}
                         <div className="flex flex-col gap-6 md:gap-8">
-                            <SongCredits isJuan={false} artistName={song.artist} />
+                            <SongCredits isJuan={false} song={song} onOpenLyrics={() => setShowLyricsModal(true)} />
                             
                             {/* Palabra de Aliento Card */}
                             <div className="w-full h-full backdrop-blur-xl bg-black/45 p-6 md:p-8 rounded-2xl border border-[#4a90d9]/15 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
@@ -1222,6 +1264,7 @@ const SmartLinkView: React.FC = () => {
 
                 {/* Modals */}
                 <QrModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} url={getShareUrl()} />
+                <LyricsModal isOpen={showLyricsModal} onClose={() => setShowLyricsModal(false)} lyrics={song?.lyrics} songName={song?.name || ''} isJuan={false} />
             </div>
         );
     }
@@ -1348,7 +1391,7 @@ const SmartLinkView: React.FC = () => {
                 <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     {/* LEFT COLUMN */}
                     <div className="flex flex-col gap-6 md:gap-8">
-                        <SongCredits isJuan={true} artistName={song.artist} />
+                        <SongCredits isJuan={true} song={song} onOpenLyrics={() => setShowLyricsModal(true)} />
                         
                         {/* Palabra de Aliento Card */}
                         <div className="w-full h-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
@@ -1517,6 +1560,7 @@ const SmartLinkView: React.FC = () => {
 
             {/* Modals */}
             <QrModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} url={getShareUrl()} />
+            <LyricsModal isOpen={showLyricsModal} onClose={() => setShowLyricsModal(false)} lyrics={song?.lyrics} songName={song?.name || ''} isJuan={true} />
         </div>
     );
 };

@@ -137,16 +137,18 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
       if (header === 'tipo') entry.type = val;
       if (header === 'fecha') entry.date = val;
       if (header.includes('album')) entry.album = val;
+      if (header === 'letra' || header === 'lyrics') entry.lyrics = val.replace(/\\n/g, '\n');
     });
 
     // --- Positional fallbacks (for CSVs with empty header columns, e.g. Juan 614) ---
-    // Expected order: 0=Nombre, 1=Artista, 2=URL, 3=Portada, 4=Tipo, 5=Fecha
+    // Expected order: 0=Nombre, 1=Artista, 2=URL, 3=Portada, 4=Tipo, 5=Fecha, 6=Letra
     if (!entry.name)   entry.name   = clean(values[0]);
     if (!entry.artist) entry.artist = clean(values[1]);
     if (!entry.url)    entry.url    = clean(values[2]);
     if (!entry.cover)  entry.cover  = clean(values[3]);
     if (!entry.type)   entry.type   = clean(values[4]);
     if (!entry.date)   entry.date   = clean(values[5]);
+    if (!entry.lyrics && values[6]) entry.lyrics = clean(values[6]).replace(/\\n/g, '\n');
 
     // Skip metadata rows (Spotify artist info, empty lines, foreign/devotional auto-sync videos)
     if (!entry.url) continue;

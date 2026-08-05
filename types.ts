@@ -32,6 +32,7 @@ export interface MusicItem {
   type: string;
   date: string;
   album?: string;
+  lyrics?: string;
 }
 
 export interface AppState {
