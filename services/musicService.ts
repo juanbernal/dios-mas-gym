@@ -86,8 +86,30 @@ const isNonMusicOrForeign = (title: string): boolean => {
  * Handles variations in headers and potential empty lines.
  * Supports both Diosmasgym (named headers) and Juan614 (positional fallback) CSV formats.
  */
+const parseRows = (csv: string): string[] => {
+  const rows: string[] = [];
+  let currentRow = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < csv.length; i++) {
+      const char = csv[i];
+      if (char === '"') inQuotes = !inQuotes;
+      
+      if (char === '\n' && !inQuotes) {
+          rows.push(currentRow);
+          currentRow = '';
+      } else if (char === '\r' && !inQuotes) {
+          // ignore \r
+      } else {
+          currentRow += char;
+      }
+  }
+  if (currentRow) rows.push(currentRow);
+  return rows;
+};
+
 const parseMusicCSV = (csvText: string): MusicItem[] => {
-  const lines = csvText.split(/\r?\n/);
+  const lines = parseRows(csvText);
   if (lines.length < 2) return [];
 
   // Data starts after the "---" if present, or from the headers
