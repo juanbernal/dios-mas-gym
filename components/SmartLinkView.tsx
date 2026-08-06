@@ -178,7 +178,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             <div
                 ref={containerRef}
                 className="absolute pointer-events-none"
-                style={{ width: '200px', height: '200px', top: '-100px', left: '-100px', opacity: 0.01, zIndex: -1 }}
+                style={{ width: '200px', height: '200px', top: 0, left: 0, opacity: 0.01, zIndex: -1 }}
             />
 
             <div className="flex items-center gap-4 relative z-10">
