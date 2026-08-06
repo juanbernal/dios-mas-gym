@@ -9,7 +9,9 @@ interface GlobalPlayerProps {
 const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
+  const initedRef = useRef<boolean>(false);
   const prevSongRef = useRef<string>('');
 
   const getVideoId = (url: string) => {
@@ -45,31 +47,86 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
       }
     }
 
-    const handleMessage = (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.event === 'infoDelivery' && data.info) {
-          if (data.info.playerState === 1) setIsPlaying(true);
-          if (data.info.playerState === 2 || data.info.playerState === 0) setIsPlaying(false);
+    if (!videoId || !containerRef.current) return;
+
+    const tryInit = () => {
+        if (!containerRef.current || initedRef.current) return;
+        initedRef.current = true;
+        try {
+            const targetDiv = document.createElement('div');
+            containerRef.current.innerHTML = '';
+            containerRef.current.appendChild(targetDiv);
+
+            playerRef.current = new window.YT.Player(targetDiv, {
+                height: '1',
+                width: '1',
+                videoId: videoId,
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    playsinline: 1,
+                    origin: window.location.origin
+                },
+                events: {
+                    onReady: (event: any) => {
+                        event.target.playVideo();
+                        setIsPlaying(true);
+                    },
+                    onStateChange: (event: any) => {
+                        if (event.data === window.YT.PlayerState.PLAYING) {
+                            setIsPlaying(true);
+                        } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
+                            setIsPlaying(false);
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('YT Init error:', e);
+            initedRef.current = false;
         }
-      } catch (err) {}
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [activeSong?.id, activeSong]);
+
+    if (window.YT && window.YT.Player) {
+        tryInit();
+    } else {
+        if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(tag);
+        }
+        const prevCb = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+            if (typeof prevCb === 'function') prevCb();
+            tryInit();
+        };
+    }
+
+    return () => {
+        if (playerRef.current) {
+            try { playerRef.current.destroy(); } catch (_) {}
+            playerRef.current = null;
+        }
+        initedRef.current = false;
+    };
+  }, [videoId, activeSong?.id]);
 
   const togglePlay = () => {
+    if (!playerRef.current) return;
     const nextState = !isPlaying;
-    setIsPlaying(nextState);
     try {
-      const player = document.getElementById('yt-player-iframe') as HTMLIFrameElement;
-      if (player?.contentWindow) {
-        player.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: nextState ? 'playVideo' : 'pauseVideo' }),
-          '*'
-        );
-      }
-    } catch {}
+        if (nextState) {
+            playerRef.current.playVideo();
+        } else {
+            playerRef.current.pauseVideo();
+        }
+    } catch (e) {
+        console.error('togglePlay error:', e);
+    }
     
     if (nextState && typeof window !== 'undefined' && (window as any).gtag && activeSong) {
         (window as any).gtag('event', 'play_song', {
@@ -101,19 +158,13 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
               </div>
             </div>
 
-            {/* Hidden YT iframe — outside album art, pointer-events-none so it never intercepts clicks */}
+            {/* Hidden YT iframe container — outside album art, pointer-events-none */}
             {videoId && (
-              <div className="absolute opacity-0 pointer-events-none" style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}>
-                <iframe 
-                  ref={iframeRef}
-                  id="yt-player-iframe"
-                  width="200" height="200" 
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&controls=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                  title="Audio Player"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                ></iframe>
-              </div>
+              <div 
+                ref={containerRef}
+                className="absolute opacity-0 pointer-events-none" 
+                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+              />
             )}
 
             <div className="flex-1 min-w-0 flex items-center gap-8">
