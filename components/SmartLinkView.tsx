@@ -177,7 +177,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             {/* Hidden YT player container — sized to prevent browser pausing, but invisible */}
             <div
                 ref={containerRef}
-                className="absolute pointer-events-none"
+                className="fixed pointer-events-none"
                 style={{ width: '200px', height: '200px', top: 0, left: 0, opacity: 0.01, zIndex: -1 }}
             />
 
