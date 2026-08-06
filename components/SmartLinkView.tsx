@@ -28,6 +28,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     const [startTime, setStartTime] = useState(0);
     const playerRef = React.useRef<any>(null);
     const hasSeekedRef = React.useRef(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const initedRef = React.useRef(false);
 
     useEffect(() => {
         // Reset player states for a fresh song when videoId changes
@@ -35,37 +37,24 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         setProgress(0);
         setStartTime(0);
         hasSeekedRef.current = false;
+        initedRef.current = false;
+        playerRef.current = null;
 
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            if (firstScriptTag && firstScriptTag.parentNode) {
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            } else {
-                document.head.appendChild(tag);
-            }
-            
-            const existingCb = window.onYouTubeIframeAPIReady;
-            window.onYouTubeIframeAPIReady = () => {
-                if (existingCb) existingCb();
-                initPlayer();
-            };
-        } else if (window.YT && window.YT.Player) {
-            initPlayer();
-        } else {
-            const existingCb = window.onYouTubeIframeAPIReady;
-            window.onYouTubeIframeAPIReady = () => {
-                if (existingCb) existingCb();
-                initPlayer();
-            };
-        }
+        const tryInit = () => {
+            if (initedRef.current) return;
+            if (!window.YT || !window.YT.Player) return;
+            if (!containerRef.current) return;
 
-        function initPlayer() {
-            if (playerRef.current) return;
-            playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
-                height: '200',
-                width: '200',
+            initedRef.current = true;
+
+            // Create a fresh target element inside the container
+            const targetDiv = document.createElement('div');
+            containerRef.current.innerHTML = '';
+            containerRef.current.appendChild(targetDiv);
+
+            playerRef.current = new window.YT.Player(targetDiv, {
+                height: '1',
+                width: '1',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,
@@ -93,30 +82,41 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                                 }
                                 hasSeekedRef.current = true;
                             }
-                        } else {
+                        } else if (
+                            event.data === window.YT.PlayerState.PAUSED ||
+                            event.data === window.YT.PlayerState.ENDED
+                        ) {
                             setIsPlaying(false);
                         }
                     },
                     onError: (event: any) => {
-                        console.error("YouTube Player Error:", event.data);
-                        if (event.data === 150 || event.data === 101) {
-                            alert("YouTube ha bloqueado la reproducción de esta canción en sitios externos (Error de Inserción).");
-                        }
+                        console.error('YouTube Player Error:', event.data);
                     }
                 }
             });
+        };
+
+        if (window.YT && window.YT.Player) {
+            tryInit();
+        } else {
+            if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                document.head.appendChild(tag);
+            }
+            const prevCb = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof prevCb === 'function') prevCb();
+                tryInit();
+            };
         }
 
         return () => {
-            // Destroy the player when the component unmounts or videoId changes
-            if (playerRef.current && playerRef.current.destroy) {
-                try {
-                    playerRef.current.destroy();
-                } catch (e) {
-                    // ignore
-                }
+            if (playerRef.current) {
+                try { playerRef.current.destroy(); } catch (_) {}
                 playerRef.current = null;
             }
+            initedRef.current = false;
         };
     }, [videoId]);
 
@@ -188,10 +188,17 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 </span>
             </div>
 
+            {/* Hidden YT player container — completely outside the button, no pointer events */}
+            <div
+                ref={containerRef}
+                className="absolute opacity-0 pointer-events-none"
+                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+            />
+
             <div className="flex items-center gap-4 relative z-10">
                 <button 
                     onClick={togglePlay}
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group relative overflow-hidden"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group"
                     style={{ 
                         backgroundColor: 'transparent',
                         borderColor: `${accentColor}80`,
@@ -199,9 +206,6 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                         boxShadow: `0 0 10px ${accentColor}20`
                     }}
                 >
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 opacity-[0.01]">
-                        <div id={`yt-player-${videoId}`}></div>
-                    </div>
                     <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} group-hover:scale-110 transition-transform ${!isPlaying ? 'ml-0.5' : ''}`}></i>
                 </button>
                 <div className="flex-1 pr-1 text-left">

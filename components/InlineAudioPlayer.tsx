@@ -72,39 +72,28 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const playerRef = useRef<any>(null);
-    const [playerId] = useState(() => `inline-yt-${videoId}-${Math.random().toString(36).substr(2, 9)}`);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const initedRef = useRef(false);
 
     useEffect(() => {
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            if (firstScriptTag && firstScriptTag.parentNode) {
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            } else {
-                document.head.appendChild(tag);
-            }
-            
-            const existingCb = window.onYouTubeIframeAPIReady;
-            window.onYouTubeIframeAPIReady = () => {
-                if (existingCb) existingCb();
-                initPlayer();
-            };
-        } else if (window.YT && window.YT.Player) {
-            initPlayer();
-        } else {
-            const existingCb = window.onYouTubeIframeAPIReady;
-            window.onYouTubeIframeAPIReady = () => {
-                if (existingCb) existingCb();
-                initPlayer();
-            };
-        }
+        initedRef.current = false;
+        playerRef.current = null;
 
-        function initPlayer() {
-            if (playerRef.current) return;
-            playerRef.current = new window.YT.Player(playerId, {
-                height: '200',
-                width: '200',
+        const tryInit = () => {
+            if (initedRef.current) return;
+            if (!window.YT || !window.YT.Player) return;
+            if (!containerRef.current) return;
+
+            initedRef.current = true;
+
+            // Create a fresh div inside the container for YT to target
+            const targetDiv = document.createElement('div');
+            containerRef.current.innerHTML = '';
+            containerRef.current.appendChild(targetDiv);
+
+            playerRef.current = new window.YT.Player(targetDiv, {
+                height: '1',
+                width: '1',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,
@@ -117,22 +106,50 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
                     origin: window.location.origin
                 },
                 events: {
+                    onReady: () => {
+                        // Player is ready, nothing to do
+                    },
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
-                        } else {
+                        } else if (
+                            event.data === window.YT.PlayerState.PAUSED ||
+                            event.data === window.YT.PlayerState.ENDED
+                        ) {
                             setIsPlaying(false);
                         }
                     },
                     onError: (event: any) => {
-                        console.error("YouTube Player Error:", event.data);
-                        if (event.data === 150 || event.data === 101) {
-                            alert("YouTube ha bloqueado la reproducción de esta canción en sitios externos (Error de Inserción).");
-                        }
+                        console.error('YouTube Player Error:', event.data);
                     }
                 }
             });
+        };
+
+        if (window.YT && window.YT.Player) {
+            // API already loaded
+            tryInit();
+        } else {
+            // Need to load the script
+            if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                document.head.appendChild(tag);
+            }
+            const prevCb = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof prevCb === 'function') prevCb();
+                tryInit();
+            };
         }
+
+        return () => {
+            if (playerRef.current) {
+                try { playerRef.current.destroy(); } catch (_) {}
+                playerRef.current = null;
+            }
+            initedRef.current = false;
+        };
     }, [videoId]);
 
     useEffect(() => {
@@ -155,11 +172,15 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
     }, [isPlaying]);
 
     const togglePlay = () => {
-        if (!playerRef.current || !playerRef.current.playVideo) return;
-        if (isPlaying) {
-            playerRef.current.pauseVideo();
-        } else {
-            playerRef.current.playVideo();
+        if (!playerRef.current) return;
+        try {
+            if (isPlaying) {
+                playerRef.current.pauseVideo();
+            } else {
+                playerRef.current.playVideo();
+            }
+        } catch (e) {
+            console.error('togglePlay error:', e);
         }
     };
 
@@ -167,14 +188,18 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
         <div className="w-full bg-black/40 border border-white/10 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden backdrop-blur-sm shadow-xl">
             {isPlaying && <div className="absolute inset-0 z-0 opacity-10 animate-pulse pointer-events-none" style={{ backgroundColor: accentColor }}></div>}
             
+            {/* Hidden YT player container — outside the button, no pointer events */}
+            <div
+                ref={containerRef}
+                className="absolute opacity-0 pointer-events-none"
+                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+            />
+
             <button 
                 onClick={togglePlay}
-                className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0 overflow-hidden" 
+                className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0" 
                 style={{ backgroundColor: accentColor }}
             >
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 opacity-[0.01]">
-                    <div id={playerId}></div>
-                </div>
                 <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-black ${!isPlaying ? 'ml-1' : ''}`}></i>
             </button>
             

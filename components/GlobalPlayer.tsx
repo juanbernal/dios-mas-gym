@@ -93,20 +93,6 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative group">
               <img src={activeSong.cover} alt={activeSong.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
               <div className="absolute inset-0 bg-[#4a90d9]/20 mix-blend-overlay pointer-events-none"></div>
-              
-              <div className="absolute inset-0 z-50 opacity-[0.01] overflow-hidden">
-                {videoId && (
-                  <iframe 
-                    ref={iframeRef}
-                    id="yt-player-iframe"
-                    width="100%" height="100%" 
-                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&controls=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                    title="Audio Player"
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                  ></iframe>
-                )}
-              </div>
 
               <div className="absolute inset-0 flex items-center justify-center transition-all group-hover:scale-110 pointer-events-none">
                 <div className="w-8 h-8 rounded-full bg-[#4a90d9] text-black flex items-center justify-center shadow-lg">
@@ -114,6 +100,21 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                 </div>
               </div>
             </div>
+
+            {/* Hidden YT iframe — outside album art, pointer-events-none so it never intercepts clicks */}
+            {videoId && (
+              <div className="absolute opacity-0 pointer-events-none" style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}>
+                <iframe 
+                  ref={iframeRef}
+                  id="yt-player-iframe"
+                  width="200" height="200" 
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&controls=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                  title="Audio Player"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            )}
 
             <div className="flex-1 min-w-0 flex items-center gap-8">
               <div>
