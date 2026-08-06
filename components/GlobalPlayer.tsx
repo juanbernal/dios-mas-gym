@@ -9,8 +9,10 @@ interface GlobalPlayerProps {
 const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [startTime, setStartTime] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
+  const hasSeekedRef = useRef<boolean>(false);
   const initedRef = useRef<boolean>(false);
   const prevSongRef = useRef<string>('');
 
@@ -58,8 +60,8 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             containerRef.current.appendChild(targetDiv);
 
             playerRef.current = new window.YT.Player(targetDiv, {
-                height: '1',
-                width: '1',
+                height: '200',
+                width: '200',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 1,
@@ -79,6 +81,18 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
+                            if (!hasSeekedRef.current) {
+                                const duration = event.target.getDuration();
+                                if (duration > 60) {
+                                    const maxStart = duration - 60;
+                                    const randomStart = Math.floor(Math.random() * maxStart);
+                                    setStartTime(randomStart);
+                                    event.target.seekTo(randomStart);
+                                } else {
+                                    setStartTime(0);
+                                }
+                                hasSeekedRef.current = true;
+                            }
                         } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
                             setIsPlaying(false);
                         }
@@ -114,6 +128,24 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
         initedRef.current = false;
     };
   }, [videoId, activeSong?.id]);
+
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying) {
+        interval = setInterval(() => {
+            if (playerRef.current && playerRef.current.getCurrentTime) {
+                const time = playerRef.current.getCurrentTime();
+                const elapsed = time - startTime;
+                if (elapsed >= 60 || elapsed < 0) {
+                    playerRef.current.pauseVideo();
+                    playerRef.current.seekTo(startTime);
+                    setIsPlaying(false);
+                }
+            }
+        }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, startTime]);
 
   const togglePlay = () => {
     if (!playerRef.current) return;
@@ -158,12 +190,12 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
               </div>
             </div>
 
-            {/* Hidden YT iframe container — outside album art, pointer-events-none */}
+            {/* Hidden YT iframe container — sized to prevent pausing, but invisible */}
             {videoId && (
               <div 
                 ref={containerRef}
-                className="absolute opacity-0 pointer-events-none" 
-                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+                className="absolute pointer-events-none" 
+                style={{ width: '200px', height: '200px', top: '-100px', left: '-100px', opacity: 0.01, zIndex: -1 }}
               />
             )}
 

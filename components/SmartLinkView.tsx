@@ -53,8 +53,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             containerRef.current.appendChild(targetDiv);
 
             playerRef.current = new window.YT.Player(targetDiv, {
-                height: '1',
-                width: '1',
+                height: '200',
+                width: '200',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,
@@ -70,6 +70,18 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
+                            if (!hasSeekedRef.current) {
+                                const duration = event.target.getDuration();
+                                if (duration > 60) {
+                                    const maxStart = duration - 60;
+                                    const randomStart = Math.floor(Math.random() * maxStart);
+                                    setStartTime(randomStart);
+                                    event.target.seekTo(randomStart);
+                                } else {
+                                    setStartTime(0);
+                                }
+                                hasSeekedRef.current = true;
+                            }
                         } else if (
                             event.data === window.YT.PlayerState.PAUSED ||
                             event.data === window.YT.PlayerState.ENDED
@@ -112,15 +124,21 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         let interval: any;
         if (isPlaying) {
             interval = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
+                if (playerRef.current && playerRef.current.getCurrentTime) {
                     const time = playerRef.current.getCurrentTime();
-                    const duration = playerRef.current.getDuration() || 1;
-                    setProgress((time / duration) * 100);
+                    const elapsed = time - startTime;
+                    setProgress((elapsed / 60) * 100);
+                    if (elapsed >= 60 || elapsed < 0) {
+                        playerRef.current.pauseVideo();
+                        playerRef.current.seekTo(startTime);
+                        setIsPlaying(false);
+                        setProgress(0);
+                    }
                 }
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isPlaying]);
+    }, [isPlaying, startTime]);
 
     const togglePlay = () => {
         if (!playerRef.current || !playerRef.current.playVideo) return;
@@ -132,7 +150,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     };
 
     const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!playerRef.current || !playerRef.current.seekTo || !playerRef.current.getDuration) return;
+        if (!playerRef.current || !playerRef.current.seekTo) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const width = rect.width;
@@ -140,8 +158,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         if (percentage < 0) percentage = 0;
         if (percentage > 1) percentage = 1;
 
-        const duration = playerRef.current.getDuration() || 1;
-        const newTime = percentage * duration;
+        const newTime = startTime + (percentage * 60);
         playerRef.current.seekTo(newTime);
         setProgress(percentage * 100);
 
@@ -164,15 +181,18 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             <div className="flex justify-between items-center relative z-10 px-1">
                 <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: accentColor }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
-                    REPRODUCTOR DE AUDIO
+                    VISTA PREVIA DE AUDIO (60s)
+                </span>
+                <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#f1f5f9]/40' : 'text-white/40'}`}>
+                    {Math.floor(progress * 0.6)}s / 60s
                 </span>
             </div>
 
-            {/* Hidden YT player container — completely outside the button, no pointer events */}
+            {/* Hidden YT player container — sized to prevent browser pausing, but invisible */}
             <div
                 ref={containerRef}
-                className="absolute opacity-0 pointer-events-none"
-                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+                className="absolute pointer-events-none"
+                style={{ width: '200px', height: '200px', top: '-100px', left: '-100px', opacity: 0.01, zIndex: -1 }}
             />
 
             <div className="flex items-center gap-4 relative z-10">
@@ -190,8 +210,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 </button>
                 <div className="flex-1 pr-1 text-left">
                     <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#f1f5f9]/60' : 'text-white/60'}`}>
-                        <span>{isPlaying ? 'REPRODUCIENDO' : 'LISTO PARA REPRODUCIR'}</span>
-                        <span className="font-mono">{isPlaying ? 'ACTIVO' : 'STANDBY'}</span>
+                        <span>{isPlaying ? 'REPRODUCIENDO PREVIA' : 'LISTO PARA REPRODUCIR'}</span>
+                        <span className="font-mono">{isPlaying ? 'AVANCE ACTIVO' : 'STANDBY'}</span>
                     </div>
                 </div>
             </div>

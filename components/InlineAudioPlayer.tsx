@@ -92,8 +92,8 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
             containerRef.current.appendChild(targetDiv);
 
             playerRef.current = new window.YT.Player(targetDiv, {
-                height: '1',
-                width: '1',
+                height: '200',
+                width: '200',
                 videoId: videoId,
                 playerVars: {
                     autoplay: 0,
@@ -156,10 +156,15 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
         let interval: any;
         if (isPlaying) {
             interval = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
+                if (playerRef.current && playerRef.current.getCurrentTime) {
                     const time = playerRef.current.getCurrentTime();
-                    const duration = playerRef.current.getDuration() || 1;
-                    setProgress((time / duration) * 100);
+                    setProgress((time / 60) * 100);
+                    if (time >= 60) {
+                        playerRef.current.pauseVideo();
+                        playerRef.current.seekTo(0);
+                        setIsPlaying(false);
+                        setProgress(0);
+                    }
                 }
             }, 1000);
         }
@@ -183,11 +188,11 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
         <div className="w-full bg-black/40 border border-white/10 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden backdrop-blur-sm shadow-xl">
             {isPlaying && <div className="absolute inset-0 z-0 opacity-10 animate-pulse pointer-events-none" style={{ backgroundColor: accentColor }}></div>}
             
-            {/* Hidden YT player container — outside the button, no pointer events */}
+            {/* Hidden YT player container — sized to prevent browser pausing, but invisible */}
             <div
                 ref={containerRef}
-                className="absolute opacity-0 pointer-events-none"
-                style={{ width: '1px', height: '1px', overflow: 'hidden', top: 0, left: 0 }}
+                className="absolute pointer-events-none"
+                style={{ width: '200px', height: '200px', top: '-100px', left: '-100px', opacity: 0.01, zIndex: -1 }}
             />
 
             <button 
@@ -200,7 +205,8 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
             
             <div className="flex-1 min-w-0 pr-2">
                 <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-2 text-white/70">
-                    <span>{isPlaying ? 'Reproduciendo...' : 'Escuchar Audio'}</span>
+                    <span>{isPlaying ? 'Reproduciendo...' : 'Escuchar Previa'}</span>
+                    <span className="font-mono text-white/40">{Math.floor(progress * 0.6)}s</span>
                 </div>
                 <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
                     <div className="h-full transition-all duration-1000 ease-linear rounded-full" style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: accentColor }}></div>
