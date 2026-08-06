@@ -190,6 +190,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
 
             <div className="flex items-center gap-4 relative z-10">
                 <button 
+                    onClick={togglePlay}
                     className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all border group relative overflow-hidden"
                     style={{ 
                         backgroundColor: 'transparent',

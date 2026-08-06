@@ -168,6 +168,7 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
             {isPlaying && <div className="absolute inset-0 z-0 opacity-10 animate-pulse pointer-events-none" style={{ backgroundColor: accentColor }}></div>}
             
             <button 
+                onClick={togglePlay}
                 className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 flex-shrink-0 overflow-hidden" 
                 style={{ backgroundColor: accentColor }}
             >
