@@ -128,7 +128,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     const time = playerRef.current.getCurrentTime();
                     const elapsed = time - startTime;
                     setProgress((elapsed / 60) * 100);
-                    if (elapsed >= 60 || elapsed < 0) {
+                    if (elapsed >= 60) {
                         playerRef.current.pauseVideo();
                         playerRef.current.seekTo(startTime);
                         setIsPlaying(false);

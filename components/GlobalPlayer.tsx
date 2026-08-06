@@ -136,7 +136,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             if (playerRef.current && playerRef.current.getCurrentTime) {
                 const time = playerRef.current.getCurrentTime();
                 const elapsed = time - startTime;
-                if (elapsed >= 60 || elapsed < 0) {
+                if (elapsed >= 60) {
                     playerRef.current.pauseVideo();
                     playerRef.current.seekTo(startTime);
                     setIsPlaying(false);
