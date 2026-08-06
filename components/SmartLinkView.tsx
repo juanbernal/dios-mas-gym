@@ -124,21 +124,15 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         let interval: any;
         if (isPlaying) {
             interval = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime) {
+                if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
                     const time = playerRef.current.getCurrentTime();
-                    const elapsed = time - startTime;
-                    setProgress((elapsed / 60) * 100);
-                    if (elapsed >= 60 || elapsed < 0) {
-                        playerRef.current.pauseVideo();
-                        playerRef.current.seekTo(startTime);
-                        setIsPlaying(false);
-                        setProgress(0);
-                    }
+                    const duration = playerRef.current.getDuration() || 1;
+                    setProgress((time / duration) * 100);
                 }
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isPlaying, startTime]);
+    }, [isPlaying]);
 
     const togglePlay = () => {
         if (!playerRef.current || !playerRef.current.playVideo) return;
@@ -150,7 +144,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     };
 
     const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!playerRef.current || !playerRef.current.seekTo) return;
+        if (!playerRef.current || !playerRef.current.seekTo || !playerRef.current.getDuration) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const width = rect.width;
@@ -158,7 +152,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         if (percentage < 0) percentage = 0;
         if (percentage > 1) percentage = 1;
 
-        const newTime = startTime + (percentage * 60);
+        const duration = playerRef.current.getDuration() || 1;
+        const newTime = percentage * duration;
         playerRef.current.seekTo(newTime);
         setProgress(percentage * 100);
 
@@ -181,10 +176,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             <div className="flex justify-between items-center relative z-10 px-1">
                 <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: accentColor }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
-                    VISTA PREVIA DE AUDIO (60s)
-                </span>
-                <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#f1f5f9]/40' : 'text-white/40'}`}>
-                    {Math.floor(progress * 0.6)}s / 60s
+                    REPRODUCTOR DE AUDIO
                 </span>
             </div>
 
@@ -210,8 +202,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 </button>
                 <div className="flex-1 pr-1 text-left">
                     <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#f1f5f9]/60' : 'text-white/60'}`}>
-                        <span>{isPlaying ? 'REPRODUCIENDO PREVIA' : 'LISTO PARA REPRODUCIR'}</span>
-                        <span className="font-mono">{isPlaying ? 'AVANCE ACTIVO' : 'STANDBY'}</span>
+                        <span>{isPlaying ? 'REPRODUCIENDO' : 'LISTO PARA REPRODUCIR'}</span>
+                        <span className="font-mono">{isPlaying ? 'ACTIVO' : 'STANDBY'}</span>
                     </div>
                 </div>
             </div>

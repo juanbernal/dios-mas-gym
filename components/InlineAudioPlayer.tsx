@@ -156,15 +156,10 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
         let interval: any;
         if (isPlaying) {
             interval = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime) {
+                if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
                     const time = playerRef.current.getCurrentTime();
-                    setProgress((time / 60) * 100);
-                    if (time >= 60) {
-                        playerRef.current.pauseVideo();
-                        playerRef.current.seekTo(0);
-                        setIsPlaying(false);
-                        setProgress(0);
-                    }
+                    const duration = playerRef.current.getDuration() || 1;
+                    setProgress((time / duration) * 100);
                 }
             }, 1000);
         }
@@ -205,8 +200,7 @@ const YouTubePlayer = ({ videoId, accentColor }: { videoId: string, accentColor:
             
             <div className="flex-1 min-w-0 pr-2">
                 <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-2 text-white/70">
-                    <span>{isPlaying ? 'Reproduciendo...' : 'Escuchar Previa'}</span>
-                    <span className="font-mono text-white/40">{Math.floor(progress * 0.6)}s</span>
+                    <span>{isPlaying ? 'Reproduciendo...' : 'Escuchar Audio'}</span>
                 </div>
                 <div className="w-full h-1.5 rounded-full overflow-hidden bg-white/10">
                     <div className="h-full transition-all duration-1000 ease-linear rounded-full" style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: accentColor }}></div>
