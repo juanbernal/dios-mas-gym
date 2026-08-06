@@ -296,18 +296,9 @@ const App: React.FC = () => {
     if (state.allPosts.length > 0) setRandomPosts(getRandomSample(state.allPosts, 3));
   }, [state.allPosts]);
 
-  // Scroll-based infinite load for home
+  // Infinite scroll removed to prevent bandwidth throttling of audio playback.
+  // The user will use the manual "Cargar Más" button instead.
   const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (location.pathname !== '/') return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) loadMore();
-    }, { rootMargin: '400px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [location.pathname, state.nextPageToken, state.loading]);
 
   const getSlugFromUrl = (url: string) => {
     if (!url) return '';
