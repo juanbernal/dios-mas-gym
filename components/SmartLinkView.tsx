@@ -70,18 +70,6 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
-                            if (!hasSeekedRef.current) {
-                                const duration = event.target.getDuration();
-                                if (duration > 60) {
-                                    const maxStart = duration - 60;
-                                    const randomStart = Math.floor(Math.random() * maxStart);
-                                    setStartTime(randomStart);
-                                    event.target.seekTo(randomStart);
-                                } else {
-                                    setStartTime(0);
-                                }
-                                hasSeekedRef.current = true;
-                            }
                         } else if (
                             event.data === window.YT.PlayerState.PAUSED ||
                             event.data === window.YT.PlayerState.ENDED
