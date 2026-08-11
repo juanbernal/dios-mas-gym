@@ -4,10 +4,9 @@ import { AppView } from '../types';
 interface NavbarProps {
   currentView: AppView;
   changeView: (view: AppView) => void;
-  onSearch: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
   // Logo en tamaño reducido (=s128 en lugar de =s1600 — 93% menos peso para LCP)
   const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s128";
 
@@ -26,19 +25,10 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
         
         <div className="hidden md:flex items-center gap-8">
           <NavLink active={currentView === 'inicio'} onClick={() => changeView('inicio')} label="Inicio" />
-          <NavLink active={currentView === 'reflexiones'} onClick={() => changeView('reflexiones')} label="Reflexiones" />
-          <NavLink active={currentView === 'favoritos'} onClick={() => changeView('favoritos')} label="Favoritos" />
         </div>
       </div>
 
       <div className="flex items-center gap-3 md:gap-5">
-        <button 
-          onClick={onSearch} 
-          aria-label="Buscar reflexiones"
-          className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 text-white/45 hover:text-[#4a90d9] hover:border-[#4a90d9]/30 transition-colors"
-        >
-          <i className="fas fa-search"></i>
-        </button>
         <a
           href="https://musica.diosmasgym.com/"
           target="_blank"
@@ -47,12 +37,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, onSearch }) =>
         >
           Música
         </a>
-        <button 
-          className="hidden md:block px-7 py-3 bg-[#4a90d9] text-black font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:scale-105 hover:bg-white transition-all shadow-lg"
-          onClick={() => changeView('reflexiones')}
-        >
-          Reflexiones
-        </button>
       </div>
     </nav>
   );

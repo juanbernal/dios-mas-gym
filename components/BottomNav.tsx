@@ -8,8 +8,6 @@ interface BottomNavProps {
 
 const navItems: { view: AppView; label: string; icon: string }[] = [
   { view: 'inicio', label: 'Inicio', icon: 'fa-house' },
-  { view: 'reflexiones', label: 'Arsenal', icon: 'fa-book-bible' },
-  { view: 'favoritos', label: 'Favoritos', icon: 'fa-star' },
 ];
 
 const BottomNav: React.FC<BottomNavProps> = ({ currentView, changeView }) => {

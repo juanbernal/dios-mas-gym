@@ -284,11 +284,7 @@ const LyricStudio: React.FC = () => {
 
       // 1. Fetch from Blogger
       try {
-        const { fetchArsenalData } = await import('../../services/contentService');
-        (window as any).BLOGGER_STATUS = 'DRAFT';
-        const result = await fetchArsenalData(50);
-        allDrafts = [...(result.posts || [])];
-        (window as any).BLOGGER_STATUS = undefined;
+        allDrafts = [];
       } catch (e) { console.error("Blogger error", e); }
 
       // 2. Fetch from Google Sheets

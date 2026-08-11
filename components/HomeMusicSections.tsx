@@ -4,7 +4,6 @@ import { MusicItem } from '../types';
 interface HomeMusicSectionsProps {
   catalog: MusicItem[];
   onPlaySong: (song: MusicItem) => void;
-  onNavigateReflexiones: () => void;
 }
 
 interface YTVideo {
@@ -18,7 +17,7 @@ interface YTVideo {
   handle?: string;
 }
 
-export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, onPlaySong, onNavigateReflexiones }) => {
+export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, onPlaySong }) => {
   if (!catalog || catalog.length === 0) return null;
 
   // 1. Featured Release (Latest)
@@ -267,46 +266,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         </div>
       </section>
 
-      {/* REFLEXIONES BANNER — corrido tumbado: diagonal dividers + texto grande */}
-      <section
-        className="relative py-20 md:py-32 overflow-hidden cursor-pointer group"
-        style={{ background: 'linear-gradient(135deg, #060810 0%, #0a0e1a 50%, #05070a 100%)' }}
-        onClick={onNavigateReflexiones}
-      >
-        {/* Líneas diagonales decorativas */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(74,144,217,0.03) 60px, rgba(74,144,217,0.03) 61px)' }}></div>
-        </div>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4a90d9]/40 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4a90d9]/20 to-transparent"></div>
-
-        {/* Glows */}
-        <div className="absolute left-1/4 top-1/2 -translate-y-1/2 w-96 h-96 bg-[#4a90d9]/10 rounded-full blur-3xl group-hover:bg-[#4a90d9]/20 transition-all duration-700 pointer-events-none"></div>
-        <div className="absolute right-1/4 top-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 max-w-[1200px] mx-auto px-8 md:px-16 flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left">
-          <div className="flex-1">
-            <span className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-[0.4em] text-white/50 mb-8 group-hover:border-[#4a90d9]/40 group-hover:text-[#4a90d9]/70 transition-all">
-              ✦ Material Espiritual ✦
-            </span>
-            <h2 className="font-serif italic text-5xl md:text-7xl lg:text-8xl text-white mb-6 leading-none group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-[#4a90d9] transition-all duration-700">
-              El Arsenal de<br /><span className="text-[#4a90d9]">Reflexiones</span>
-            </h2>
-            <p className="text-white/30 text-sm md:text-base max-w-xl font-bold tracking-wide leading-relaxed group-hover:text-white/50 transition-colors">
-              Artículos, meditaciones y enseñanzas para fortalecer tu espíritu tanto como tu cuerpo. Explora el contenido y encuentra tu inspiración diaria.
-            </p>
-          </div>
-          
-          <div className="flex-shrink-0">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-[#4a90d9]/10 rounded-full blur-xl group-hover:bg-[#4a90d9]/20 transition-all duration-500"></div>
-              <button className="relative px-12 py-6 rounded-full border-2 border-[#4a90d9]/50 text-[#4a90d9] text-[11px] font-black uppercase tracking-[0.4em] group-hover:bg-[#4a90d9] group-hover:text-black group-hover:border-[#4a90d9] transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(37,99,168,0.4)]">
-                Leer Reflexiones <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* VIDEOCLIPS OFICIALES — corrido tumbado: grid con tarjetas superpuestas y play centrado grande */}
       {musicVideos.length > 0 && (

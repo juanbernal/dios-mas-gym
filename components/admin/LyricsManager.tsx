@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import { fetchArsenalData } from '../../services/contentService';
+
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 
@@ -65,7 +65,7 @@ const LyricsManager: React.FC = () => {
         setLoading(true);
         try {
             // 1. Fetch Published
-            const published = await fetchArsenalData(50);
+            const published = { posts: [] };
             const publishedItems: LyricItem[] = (published.posts || []).map(p => ({
                 id: p.id,
                 title: p.title,
@@ -77,7 +77,7 @@ const LyricsManager: React.FC = () => {
 
             // 2. Fetch Drafts
             (window as any).BLOGGER_STATUS = 'DRAFT';
-            const drafts = await fetchArsenalData(50);
+            const drafts = { posts: [] };
             (window as any).BLOGGER_STATUS = undefined;
             const draftItems: LyricItem[] = (drafts.posts || []).map(p => ({
                 id: p.id,

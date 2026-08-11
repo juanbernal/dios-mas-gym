@@ -15,7 +15,7 @@
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "https://app.diosmasgym.com" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://diosmasgym.com" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-admin-password" }
       ]
@@ -47,10 +47,6 @@
       "destination": "/api/common?action=rss"
     },
     {
-      "source": "/post/:slug",
-      "destination": "/api/common?action=post-ssr&slug=:slug"
-    },
-    {
       "source": "/link/:id",
       "destination": "/api/common?action=smartlink-ssr&id=:id"
     },
@@ -73,10 +69,6 @@
     {
       "source": "/bio/:artist",
       "destination": "/api/common?action=bio-ssr&artist=:artist"
-    },
-    {
-      "source": "/reflexiones",
-      "destination": "/api/common?action=reflexiones-ssr"
     },
     {
       "source": "/(.*)",

@@ -21,25 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, selectedCategory, change
 
       <nav className="flex-1 space-y-2">
         <MenuItem active={currentView === 'inicio'} onClick={() => changeView('inicio')} label="Inicio" />
-        <MenuItem active={currentView === 'reflexiones' && !selectedCategory} onClick={() => { setSelectedCategory(null); changeView('reflexiones'); }} label="Arsenal" />
-        
-        <div className="pt-10 pb-4">
-           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Categorías</span>
-        </div>
-        
-        {topCategories.map(cat => (
-          <MenuItem 
-            key={cat} 
-            active={currentView === 'reflexiones' && selectedCategory === cat} 
-            onClick={() => { setSelectedCategory(cat); changeView('reflexiones'); }} 
-            label={cat} 
-          />
-        ))}
 
-        <div className="pt-10 pb-4">
-           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Colección</span>
-        </div>
-        <MenuItem active={currentView === 'favoritos'} onClick={() => changeView('favoritos')} label="Favoritos" />
       </nav>
 
       <div className="mt-20 pt-10 border-t border-white/5">

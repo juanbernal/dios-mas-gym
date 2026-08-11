@@ -89,7 +89,7 @@ const MetadataTagger: React.FC = () => {
                 writer.setFrame('TIT2', metadata.title || 'Sin Título')
                       .setFrame('TPE1', [metadata.artist])
                       .setFrame('TALB', metadata.album || metadata.title)
-                      .setFrame('TYER', metadata.year)
+                      .setFrame('TYER' as any, metadata.year)
                       .setFrame('TCON', [metadata.genre]);
                 
                 if (metadata.isrc) {
