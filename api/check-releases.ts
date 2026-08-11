@@ -280,7 +280,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // --- 1. Detect New Releases from Catalog ---
         // Usa el mismo endpoint de música pero con un parser robusto
         const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = req.headers.host || 'app.diosmasgym.com';
+        const host = req.headers.host || 'www.diosmasgym.com';
         const baseUrl = `${protocol}://${host}`;
 
         // Parse CSV robusto (maneja comillas, comas dentro de campos, etc.)

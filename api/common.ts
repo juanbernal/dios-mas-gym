@@ -995,60 +995,10 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
-  // ACTION: REFLEXIONES SSR (Meta injection for /reflexiones page)
+  // ACTION: REFLEXIONES SSR — removed, redirect permanently to home
   // -------------------------------------------------------------
   if (action === 'reflexiones-ssr') {
-    // Reflexiones has been removed — redirect to home
     return res.redirect(301, 'https://www.diosmasgym.com/');
-
-    const jsonLdBlock = `
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  "name": ${JSON.stringify(title)},
-  "description": ${JSON.stringify(description)},
-  "url": ${JSON.stringify(canonicalUrl)},
-  "image": ${JSON.stringify(image)},
-  "publisher": {
-    "@type": "Organization",
-    "name": "Dios Mas Gym",
-    "url": "https://www.diosmasgym.com"
-  }
-}
-</script>`;
-
-    try {
-      let html = await getBaseIndexHtml();
-      const safeTitle = escapeXml(title);
-      const safeDesc = escapeXml(description);
-
-      html = html.replace(/\u003ctitle\u003e[\s\S]*?\u003c\/title\u003e/i, `\u003ctitle\u003e${safeTitle}\u003c/title\u003e`);
-      html = html.replace(/\u003cmeta\s+name=["']description["'][\s\S]*?\/?>/i, `\u003cmeta name="description" content="${safeDesc}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:title["'][\s\S]*?\/?>/i, `\u003cmeta property="og:title" content="${safeTitle}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:description["'][\s\S]*?\/?>/i, `\u003cmeta property="og:description" content="${safeDesc}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:url["'][\s\S]*?\/?>/i, `\u003cmeta property="og:url" content="${canonicalUrl}"\u003e`);
-      html = html.replace(/\u003clink[\s\S]*?rel=["']canonical["'][\s\S]*?\u003e/i, `\u003clink rel="canonical" href="${canonicalUrl}" /\u003e`);
-      html = html.replace(/\u003cmeta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i, `\u003cmeta name="robots" content="index, follow"\u003e`);
-      html = html.replace('\u003c/head\u003e', `${jsonLdBlock}\n\u003c/head\u003e`);
-
-      const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
-      html = html.replace('\u003cdiv id="root"\u003e\u003c/div\u003e', `\u003cdiv id="root"\u003e\u003csection style="${hiddenStyle}"\u003e\u003ch1\u003e${safeTitle}\u003c/h1\u003e\u003cp\u003e${safeDesc}\u003c/p\u003e\u003c/section\u003e\u003c/div\u003e`);
-
-      res.setHeader('X-Robots-Tag', 'index, follow');
-      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-      res.setHeader('Content-Type', 'text/html');
-      return res.status(200).send(html);
-    } catch (err) {
-      console.error('Error in reflexiones-ssr:', err);
-      try {
-        const text = await getBaseIndexHtml();
-        res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(text);
-      } catch {
-        return res.status(500).send('Error loading app');
-      }
-    }
   }
 
   // -------------------------------------------------------------
