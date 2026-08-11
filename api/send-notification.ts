@@ -113,9 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 en: message,
                 es: message,
             },
-            url: url || 'https://app.diosmasgym.com',
+            url: url || 'https://www.diosmasgym.com',
             ...(imageUrl && { big_picture: imageUrl, large_icon: imageUrl }),
-            ...(!imageUrl && { large_icon: 'https://app.diosmasgym.com/icon-192.png' })
+            ...(!imageUrl && { large_icon: 'https://www.diosmasgym.com/icon-192.png' })
         };
 
         if (testPlayerId) {

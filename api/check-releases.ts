@@ -182,7 +182,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
         }
     }
     const songId = videoId || generateSlug(`${release.Artista}-${release.name}`);
-    const smartLinkUrl = `https://app.diosmasgym.com/link/${songId}`;
+    const smartLinkUrl = `https://www.diosmasgym.com/link/${songId}`;
 
     const payload: any = {
         app_id: APP_ID,
@@ -198,7 +198,7 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
         url: smartLinkUrl,
         ...(release.coverImageUrl
             ? { big_picture: release.coverImageUrl, large_icon: release.coverImageUrl }
-            : { large_icon: 'https://app.diosmasgym.com/icon-192.png' }),
+            : { large_icon: 'https://www.diosmasgym.com/icon-192.png' }),
     };
 
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
@@ -236,7 +236,7 @@ async function sendAdminNotification(items: any[]): Promise<any> {
             en: `Se han detectado y cargado en el sistema: ${titles}`,
             es: `Se han detectado y cargado en el sistema: ${titles}`,
         },
-        url: 'https://app.diosmasgym.com/admin'
+        url: 'https://www.diosmasgym.com/admin'
     };
 
     try {

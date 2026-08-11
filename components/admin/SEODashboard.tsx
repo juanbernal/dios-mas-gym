@@ -15,7 +15,7 @@ interface WebVital {
   description: string;
 }
 
-const DOMAIN = 'https://app.diosmasgym.com';
+const DOMAIN = 'https://www.diosmasgym.com';
 
 const SEODashboard: React.FC = () => {
   const navigate = useNavigate();

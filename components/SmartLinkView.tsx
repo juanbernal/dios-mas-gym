@@ -688,7 +688,7 @@ const SmartLinkView: React.FC = () => {
 
     const getShareUrl = () => {
         if (id === 'custom') {
-            return `https://app.diosmasgym.com/link/custom${location.search}`;
+            return `https://www.diosmasgym.com/link/custom${location.search}`;
         }
         if (id && id.startsWith('prx-') && song) {
             const params = new URLSearchParams();
@@ -696,9 +696,9 @@ const SmartLinkView: React.FC = () => {
             params.set('artist', song.artist);
             params.set('cover', song.cover || '');
             params.set('url', song.url || '');
-            return `https://app.diosmasgym.com/link/custom?${params.toString()}`;
+            return `https://www.diosmasgym.com/link/custom?${params.toString()}`;
         }
-        return `https://app.diosmasgym.com/link/${id}`;
+        return `https://www.diosmasgym.com/link/${id}`;
     };
 
     const copyToClipboard = () => {
@@ -812,8 +812,8 @@ const SmartLinkView: React.FC = () => {
                     // === SEO: Dynamic meta tags for Google / Social ===
                     const songTitle = `${found.name} - ${found.artist}`;
                     const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Dios Más Gym`;
-                    const songImg  = found.cover || 'https://app.diosmasgym.com/logo-diosmasgym.png';
-                    const songUrl  = `https://app.diosmasgym.com/link/${found.id}`;
+                    const songImg  = found.cover || 'https://www.diosmasgym.com/logo-diosmasgym.png';
+                    const songUrl  = `https://www.diosmasgym.com/link/${found.id}`;
 
                     document.title = songTitle;
 

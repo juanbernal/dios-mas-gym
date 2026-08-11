@@ -16,13 +16,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
   const [canNativeShare, setCanNativeShare] = useState(false);
 
   // Clean URL for sharing — build a proper SSR-ready URL from the current page
-  // We need "https://app.diosmasgym.com/post/my-slug" for Facebook/WhatsApp to scrape OG tags
+  // We need "https://www.diosmasgym.com/post/my-slug" for Facebook/WhatsApp to scrape OG tags
   const getCleanShareUrl = () => {
     // With BrowserRouter, window.location.pathname gives us the correct path
     const path = window.location.pathname;
     const pathMatch = path.match(/\/post\/([^/?#]+)/);
     if (pathMatch && pathMatch[1]) {
-      return `https://app.diosmasgym.com/post/${pathMatch[1]}`;
+      return `https://www.diosmasgym.com/post/${pathMatch[1]}`;
     }
     // Fallback: use the url prop but clean it
     const clean = url.split('?')[0].replace(/#.*/,'');

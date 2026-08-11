@@ -92,7 +92,7 @@ const DiagnosticConsole: React.FC<DiagnosticConsoleProps> = ({ appError }) => {
         const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
         const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
         const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
-        return (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
+        return (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://www.diosmasgym.com';
       };
 
       const apiBase = getApiBase();

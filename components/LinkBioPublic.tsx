@@ -92,8 +92,8 @@ const LinkBioPublic: React.FC = () => {
         if (data && data.profile) {
             const pageTitle = `${data.profile.name} | Bio — El Arsenal de Fe`;
             const pageDesc = data.profile.bio || 'El Arsenal de Fe — Música cristiana y reflexiones de fe.';
-            const pageImg = data.profile.avatar || 'https://app.diosmasgym.com/icon-512.png';
-            const pageUrl = `https://app.diosmasgym.com/bio/${artist || 'diosmasgym'}`;
+            const pageImg = data.profile.avatar || 'https://www.diosmasgym.com/icon-512.png';
+            const pageUrl = `https://www.diosmasgym.com/bio/${artist || 'diosmasgym'}`;
 
             document.title = pageTitle;
 

@@ -84,8 +84,8 @@ export default async function handler(
 
     const response = await fetch(url, {
       headers: {
-        'Referer': 'https://app.diosmasgym.com',
-        'Origin': 'https://app.diosmasgym.com',
+        'Referer': 'https://www.diosmasgym.com',
+        'Origin': 'https://www.diosmasgym.com',
         'Accept': 'application/json',
         'User-Agent': 'Vercel-Server-Function'
       }

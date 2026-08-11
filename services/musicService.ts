@@ -13,7 +13,7 @@ export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceR
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
     const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
     const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
-    const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://app.diosmasgym.com';
+    const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://www.diosmasgym.com';
     
     const url = new URL('/api/music', apiBase);
     url.searchParams.append('artist', artist);

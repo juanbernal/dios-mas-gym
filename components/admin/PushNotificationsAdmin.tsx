@@ -234,7 +234,7 @@ const PushNotificationsAdmin: React.FC = () => {
                                         type="url"
                                         value={url}
                                         onChange={e => setUrl(e.target.value)}
-                                        placeholder="https://app.diosmasgym.com/..."
+                                        placeholder="https://www.diosmasgym.com/..."
                                         className="w-full bg-black/30 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/20 outline-none focus:border-[#c5a059]/50 transition-colors"
                                     />
                                     <p className="text-[9px] text-white/30 mt-2">A dónde irá el usuario cuando toque la notificación. Por defecto abre la app.</p>

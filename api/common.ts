@@ -58,7 +58,7 @@ async function getBaseIndexHtml(): Promise<string> {
 
   // Strategy 2: Fetch from the production URL (fallback for non-Vercel envs)
   try {
-    const htmlRes = await fetch('https://app.diosmasgym.com/index.html');
+    const htmlRes = await fetch('https://www.diosmasgym.com/index.html');
     const html = await htmlRes.text();
     if (html && html.includes('<div id="root">')) {
       cachedIndexHtml = html;
@@ -424,8 +424,8 @@ export default async function handler(
   if (action === 'youtube-top') {
     const apiKey = (process.env.BLOGGER_API_KEY || '').trim().replace(/^[\"']|[\"']$/g, '');
     const YT_HEADERS = {
-      'Referer': 'https://app.diosmasgym.com/',
-      'Origin': 'https://app.diosmasgym.com',
+      'Referer': 'https://www.diosmasgym.com/',
+      'Origin': 'https://www.diosmasgym.com',
       'Accept': 'application/json',
     };
     const CHANNELS = [
@@ -817,7 +817,7 @@ export default async function handler(
   if (action === 'sitemap' || action === 'sitemap.xml') {
     const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
     const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
-    const BASE = 'https://app.diosmasgym.com';
+    const BASE = 'https://www.diosmasgym.com';
     const today = new Date().toISOString().split('T')[0];
 
     const urlBlock = (loc: string, lastmod: string, changefreq: string, priority: string) =>
@@ -887,7 +887,6 @@ export default async function handler(
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       // Static pages
       xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
-      xml += urlBlock(`${BASE}/reflexiones`, today, 'daily', '0.9');
       xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
@@ -934,9 +933,9 @@ export default async function handler(
       ? 'Corridos tumbados, banda sinaloense y calle con propósito. Música cristiana con identidad.'
       : 'El Arsenal de Fe — Música cristiana, rap y corridos de motivación. Reflexiones de disciplina, valentía y fe.';
     const image = isJuan
-      ? 'https://app.diosmasgym.com/logo-juan614-v2.jpg'
-      : 'https://app.diosmasgym.com/icon-512.png';
-    const canonicalUrl = `https://app.diosmasgym.com/bio/${artist.toLowerCase()}`;
+      ? 'https://www.diosmasgym.com/logo-juan614-v2.jpg'
+      : 'https://www.diosmasgym.com/icon-512.png';
+    const canonicalUrl = `https://www.diosmasgym.com/bio/${artist.toLowerCase()}`;
     const title = `${name} | Bio — El Arsenal de Fe`;
     const description = bio;
 
@@ -999,10 +998,8 @@ export default async function handler(
   // ACTION: REFLEXIONES SSR (Meta injection for /reflexiones page)
   // -------------------------------------------------------------
   if (action === 'reflexiones-ssr') {
-    const title = 'Reflexiones de Fe | El Arsenal — Dios Mas Gym';
-    const description = 'Explora el Arsenal de Fe: reflexiones bíblicas, devocionales y mensajes de valentía, disciplina y motivación cristiana de Dios Mas Gym.';
-    const canonicalUrl = 'https://app.diosmasgym.com/reflexiones';
-    const image = 'https://app.diosmasgym.com/icon-512.png';
+    // Reflexiones has been removed — redirect to home
+    return res.redirect(301, 'https://www.diosmasgym.com/');
 
     const jsonLdBlock = `
 <script type="application/ld+json">
@@ -1016,7 +1013,7 @@ export default async function handler(
   "publisher": {
     "@type": "Organization",
     "name": "Dios Mas Gym",
-    "url": "https://app.diosmasgym.com"
+    "url": "https://www.diosmasgym.com"
   }
 }
 </script>`;
@@ -1203,7 +1200,7 @@ export default async function handler(
     "name": "Dios Mas Gym",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://app.diosmasgym.com/logo-diosmasgym.png"
+      "url": "https://www.diosmasgym.com/logo-diosmasgym.png"
     }
   },
   "description": ${JSON.stringify(description)}
@@ -1228,8 +1225,8 @@ export default async function handler(
       html = injectMeta(html, 'og:title', safeTitle);
       html = injectMeta(html, 'og:description', safeDesc);
       html = injectMeta(html, 'og:image', safeImage);
-      html = injectMeta(html, 'og:url', `https://app.diosmasgym.com/post/${slug}`);
-      html = html.replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="https://app.diosmasgym.com/post/${slug}" />`);
+      html = injectMeta(html, 'og:url', `https://www.diosmasgym.com/post/${slug}`);
+      html = html.replace(/<link[\s\S]*?rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="https://www.diosmasgym.com/post/${slug}" />`);
       
       // Override robots: allow indexing for this specific post page
       html = html.replace(
@@ -1332,9 +1329,9 @@ export default async function handler(
   "byArtist": {
     "@type": "MusicGroup",
     "name": ${JSON.stringify(song.artist)},
-    "url": ${JSON.stringify(`https://app.diosmasgym.com/bio/${song.artist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
+    "url": ${JSON.stringify(`https://www.diosmasgym.com/bio/${song.artist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
   },
-  "url": ${JSON.stringify(`https://app.diosmasgym.com/link/${song.id}`)},
+  "url": ${JSON.stringify(`https://www.diosmasgym.com/link/${song.id}`)},
   "image": ${JSON.stringify(image)},
   "description": ${JSON.stringify(description)}
 }
@@ -1361,9 +1358,9 @@ export default async function handler(
   "byArtist": {
     "@type": "MusicGroup",
     "name": ${JSON.stringify(qArtist)},
-    "url": ${JSON.stringify(`https://app.diosmasgym.com/bio/${qArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
+    "url": ${JSON.stringify(`https://www.diosmasgym.com/bio/${qArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
   },
-  "url": ${JSON.stringify(`https://app.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`)},
+  "url": ${JSON.stringify(`https://www.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`)},
   "image": ${JSON.stringify(image)},
   "description": ${JSON.stringify(description)}
 }
@@ -1381,20 +1378,20 @@ export default async function handler(
           `<meta name="robots" content="noindex, nofollow">`
         );
         html = html.replace(/<title>[^<]*<\/title>/i, `<title>Canción no encontrada - Dios Mas Gym</title>`);
-        html = html.replace('</head>', `<link rel="canonical" href="https://app.diosmasgym.com/" />\n</head>`);
+        html = html.replace('</head>', `<link rel="canonical" href="https://www.diosmasgym.com/" />\n</head>`);
         res.setHeader('Cache-Control', 'no-store, no-cache');
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
         return res.status(404).send(html);
       }
 
-      let shareUrl = `https://app.diosmasgym.com/link/${id}`;
+      let shareUrl = `https://www.diosmasgym.com/link/${id}`;
       if (id === 'custom' && req.query.title && req.query.artist) {
         const qTitle = req.query.title as string;
         const qArtist = req.query.artist as string;
         const qCover = req.query.cover as string;
         const qUrl = req.query.url as string;
-        shareUrl = `https://app.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`;
+        shareUrl = `https://www.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`;
       }
 
       const safeTitle = escapeXml(title);
@@ -1477,14 +1474,14 @@ export default async function handler(
     xml += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n`;
     xml += `<channel>\n`;
     xml += `  <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
-    xml += `  <link>https://app.diosmasgym.com</link>\n`;
+    xml += `  <link>https://www.diosmasgym.com</link>\n`;
     xml += `  <description>Reflexiones de fe, valentía, disciplina y lanzamientos de música cristiana y de motivación.</description>\n`;
     xml += `  <language>es-mx</language>\n`;
-    xml += `  <atom:link href="https://app.diosmasgym.com/feed.xml" rel="self" type="application/rss+xml" />\n`;
+    xml += `  <atom:link href="https://www.diosmasgym.com/feed.xml" rel="self" type="application/rss+xml" />\n`;
     xml += `  <image>\n`;
-    xml += `    <url>https://app.diosmasgym.com/icon-512.png</url>\n`;
+    xml += `    <url>https://www.diosmasgym.com/icon-512.png</url>\n`;
     xml += `    <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
-    xml += `    <link>https://app.diosmasgym.com</link>\n`;
+    xml += `    <link>https://www.diosmasgym.com</link>\n`;
     xml += `    <width>512</width>\n`;
     xml += `    <height>512</height>\n`;
     xml += `  </image>\n`;
@@ -1496,8 +1493,8 @@ export default async function handler(
         const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=15&status=LIVE`;
         const response = await fetch(url, {
           headers: {
-            'Referer': 'https://app.diosmasgym.com',
-            'Origin': 'https://app.diosmasgym.com',
+            'Referer': 'https://www.diosmasgym.com',
+            'Origin': 'https://www.diosmasgym.com',
             'Accept': 'application/json',
             'User-Agent': 'Vercel-Server-Function'
           }
@@ -1514,7 +1511,7 @@ export default async function handler(
       // 3. Add posts to RSS
       posts.forEach((item: any) => {
         const slug = item.url?.split('/').pop()?.replace('.html', '') || '';
-        const postUrl = `https://app.diosmasgym.com/post/${slug}`;
+        const postUrl = `https://www.diosmasgym.com/post/${slug}`;
         const title = item.title || "Reflexión del Arsenal";
         const description = (item.content || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 250) + '...';
         const pubDate = item.published ? new Date(item.published).toUTCString() : new Date().toUTCString();
@@ -1530,7 +1527,7 @@ export default async function handler(
 
       // 4. Add top 10 music tracks to RSS
       songs.slice(0, 15).forEach((song) => {
-        const songUrl = `https://app.diosmasgym.com/link/${song.id}`;
+        const songUrl = `https://www.diosmasgym.com/link/${song.id}`;
         const pubDate = song.date ? new Date(song.date).toUTCString() : new Date().toUTCString();
         const description = `Lanzamiento oficial de la canción "${song.name}" de ${song.artist}. Escúchala en tu plataforma favorita.`;
 
