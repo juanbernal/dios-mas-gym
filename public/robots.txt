@@ -2,19 +2,11 @@ User-agent: *
 Allow: /
 Allow: /link/
 Allow: /bio/
-Allow: /reflexiones/
-Allow: /post/
 
 # Bloquear panel admin y rutas internas de API
 Disallow: /admin/
 Disallow: /admin
 Disallow: /api/
-
-# Permitir explícitamente los sub-sitemaps dinámicos (son URLs con query string necesarias para Google)
-Allow: /sitemap.xml
-Allow: /sitemap.xml?sub=posts
-Allow: /sitemap.xml?sub=songs
-Allow: /feed.xml
 
 # Bloquear parámetros de caché/debug que generan contenido duplicado
 Disallow: /*?m=1
@@ -29,6 +21,5 @@ User-agent: Bingbot
 Allow: /
 
 # Sitemap principal
-Sitemap: https://app.diosmasgym.com/sitemap.xml
-Sitemap: https://app.diosmasgym.com/sitemap.xml?sub=posts
-Sitemap: https://app.diosmasgym.com/sitemap.xml?sub=songs
+Sitemap: https://www.diosmasgym.com/sitemap.xml
+Sitemap: https://www.diosmasgym.com/sitemap.xml?sub=songs
