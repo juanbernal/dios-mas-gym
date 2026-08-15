@@ -20,6 +20,12 @@ import SocialPopup, { InlineSocialBanner, InlineFollowNetworks } from './compone
 import { HomeMusicSections } from './components/HomeMusicSections';
 import { useAnalytics } from './hooks/useAnalytics';
 import { safeStorage } from './services/safeStorage';
+import ErrorBoundary from './components/ErrorBoundary';
+import NotFound from './components/NotFound';
+import SearchView from './components/SearchView';
+import LyricsView from './components/LyricsView';
+import TestimoniosView from './components/TestimoniosView';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
@@ -52,6 +58,7 @@ const StoryCountdownCreator = React.lazy(() => import('./components/admin/StoryC
 const PostScheduler = React.lazy(() => import('./components/admin/PostScheduler'));
 const MusicPromoHub = React.lazy(() => import('./components/admin/MusicPromoHub'));
 const SEODashboard = React.lazy(() => import('./components/admin/SEODashboard'));
+const WeeklyContentAssistant = React.lazy(() => import('./components/admin/WeeklyContentAssistant'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -372,15 +379,21 @@ const App: React.FC = () => {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#4a90d9] selection:text-black cinematic-grain relative">
       <div className="stripe-accent"></div>
       {!hideGlobalUI && <SocialPopup />}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} />}
+      {!hideGlobalUI && <PWAInstallPrompt />}
       <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
         <Routes>
           <Route path="/" element={
             <>
-              <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => {}} />
+              <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => {
+                if (combinedCatalog.length === 0) return;
+                const song = combinedCatalog[Math.floor(Math.random() * combinedCatalog.length)];
+                setState(p => ({ ...p, activeSong: song }));
+              }} />
 
               {/* TEMPLO DEL GUERRERO */}
               <TemploGuerrero catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />
@@ -440,6 +453,7 @@ const App: React.FC = () => {
                 <Route path="post-scheduler" element={<AdminAuthWrapper><PostScheduler/></AdminAuthWrapper>} />
                 <Route path="music-promo-hub" element={<AdminAuthWrapper><MusicPromoHub/></AdminAuthWrapper>} />
                 <Route path="seo-dashboard" element={<AdminAuthWrapper><SEODashboard/></AdminAuthWrapper>} />
+                <Route path="weekly-content" element={<AdminAuthWrapper><WeeklyContentAssistant catalog={combinedCatalog}/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
@@ -447,6 +461,10 @@ const App: React.FC = () => {
           <Route path="/link/:id" element={<SmartLinkView />} />
           <Route path="/bio" element={<LinkBioPublic />} />
           <Route path="/bio/:artist" element={<LinkBioPublic />} />
+          <Route path="/buscar" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/letra/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/testimonios" element={<TestimoniosView />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {!hideGlobalUI && <BottomNav currentView={state.currentView} changeView={changeView} />}
@@ -456,6 +474,7 @@ const App: React.FC = () => {
       
 
     </div>
+    </ErrorBoundary>
   );
 };
 export default App;

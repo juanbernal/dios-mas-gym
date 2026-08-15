@@ -275,3 +275,37 @@ body::before {
   border: 1px solid var(--blue-bright);
   box-shadow: 3px 3px 0px var(--blue-mid);
 }
+
+/* --- Slide-in animation for modals/banners --- */
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in-up { animation: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* --- Shimmer loading animation --- */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, rgba(37,99,168,0.05) 25%, rgba(37,99,168,0.15) 50%, rgba(37,99,168,0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* --- Search input focus style --- */
+input:focus, textarea:focus {
+  border-color: rgba(74,144,217,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(37,99,168,0.15);
+}
+
+/* --- PWA banner z-layer safety --- */
+.pwa-banner { z-index: 9000; }
+
+/* --- Safe area padding for mobile bottom nav --- */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0.5rem); }
+
+/* --- Testimonial card hover --- */
+.testimony-card:hover { transform: translateY(-3px); }
+

@@ -4,41 +4,87 @@ const generateSlug = (text: string) => {
     return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const getCacheKey = (artist: string) => `music_cache_${artist}`;
+const getTimestampKey = (artist: string) => `music_cache_ts_${artist}`;
+
+const readCache = (artist: string): MusicItem[] | null => {
+  try {
+    const ts = parseInt(sessionStorage.getItem(getTimestampKey(artist)) || '0', 10);
+    if (Date.now() - ts > CACHE_TTL_MS) return null;
+    const raw = sessionStorage.getItem(getCacheKey(artist));
+    if (!raw) return null;
+    return JSON.parse(raw) as MusicItem[];
+  } catch { return null; }
+};
+
+const writeCache = (artist: string, data: MusicItem[]) => {
+  try {
+    sessionStorage.setItem(getCacheKey(artist), JSON.stringify(data));
+    sessionStorage.setItem(getTimestampKey(artist), String(Date.now()));
+  } catch { /* storage full, ignore */ }
+};
+
+const clearCache = (artist: string) => {
+  try {
+    sessionStorage.removeItem(getCacheKey(artist));
+    sessionStorage.removeItem(getTimestampKey(artist));
+  } catch { }
+};
+
 /**
  * Fetches music catalog for a specific artist via the backend proxy.
+ * Uses sessionStorage cache (5 min TTL) to avoid redundant network calls.
  */
 export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceRefresh = false): Promise<MusicItem[]> => {
   try {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
-    const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
-    const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
-    const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://www.diosmasgym.com';
-    
-    const url = new URL('/api/music', apiBase);
-    url.searchParams.append('artist', artist);
-    if (forceRefresh) url.searchParams.append('refresh', Date.now().toString());
-
-    const response = await fetch(url.toString(), forceRefresh ? { cache: 'no-store' } : undefined);
-    if (!response.ok) {
-      let errorDetails = '';
-      try {
-        const errJson = await response.json();
-        errorDetails = errJson.details || errJson.error || JSON.stringify(errJson);
-      } catch (e) {
-        try {
-          errorDetails = await response.text();
-        } catch (e2) {}
+    // Return cached data if fresh and not forced
+    if (!forceRefresh) {
+      const cached = readCache(artist);
+      if (cached) {
+        // Revalidate in background (stale-while-revalidate pattern)
+        doFetch(artist).then(fresh => { if (fresh.length > 0) writeCache(artist, fresh); }).catch(() => {});
+        return cached;
       }
-      throw new Error(`HTTP error! status: ${response.status}${errorDetails ? ` - Details: ${errorDetails}` : ''}`);
+    } else {
+      clearCache(artist);
     }
-    
-    const csvText = await response.text();
-    return parseMusicCSV(csvText);
+
+    const data = await doFetch(artist, forceRefresh);
+    if (data.length > 0) writeCache(artist, data);
+    return data;
   } catch (error) {
     console.error(`Error fetching music for ${artist}:`, error);
     return [];
   }
+};
+
+const doFetch = async (artist: string, forceRefresh = false): Promise<MusicItem[]> => {
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+  const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
+  const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
+  const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://www.diosmasgym.com';
+  
+  const url = new URL('/api/music', apiBase);
+  url.searchParams.append('artist', artist);
+  if (forceRefresh) url.searchParams.append('refresh', Date.now().toString());
+
+  const response = await fetch(url.toString(), forceRefresh ? { cache: 'no-store' } : undefined);
+  if (!response.ok) {
+    let errorDetails = '';
+    try {
+      const errJson = await response.json();
+      errorDetails = errJson.details || errJson.error || JSON.stringify(errJson);
+    } catch (e) {
+      try { errorDetails = await response.text(); } catch (e2) {}
+    }
+    throw new Error(`HTTP error! status: ${response.status}${errorDetails ? ` - Details: ${errorDetails}` : ''}`);
+  }
+  
+  const csvText = await response.text();
+  return parseMusicCSV(csvText);
 };
 
 const isNonMusicOrForeign = (title: string): boolean => {
