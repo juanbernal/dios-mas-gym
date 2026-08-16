@@ -7,8 +7,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
-  // Logo en tamaño reducido (=s128 en lugar de =s1600 — 93% menos peso para LCP)
-  const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s128";
+  const LOGO_URL = "/logo-diosmasgym.png";
 
   return (
     <nav className="fixed top-5 inset-x-4 md:inset-x-12 lg:inset-x-20 h-20 rounded-[1.75rem] nav-blur z-[1000] flex items-center justify-between px-5 md:px-10 backdrop-blur-2xl border border-white/10 shadow-[0_20px_80px_rgba(0,0,0,0.35)]">

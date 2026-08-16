@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, selectedCategory, changeView, setSelectedCategory, topCategories, streak }) => {
-  const LOGO_URL = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+  const LOGO_URL = "/logo-diosmasgym.png";
 
   return (
     <aside className="hidden lg:flex flex-col w-80 bg-bg-deep border-r border-white/5 p-12 z-50 overflow-y-auto no-scrollbar">

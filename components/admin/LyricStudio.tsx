@@ -282,10 +282,20 @@ const LyricStudio: React.FC = () => {
     try {
       let allDrafts: any[] = [];
 
-      // 1. Fetch from Blogger
+      // 1. Fetch from Website API (/api/lyrics)
       try {
-        allDrafts = [];
-      } catch (e) { console.error("Blogger error", e); }
+        const res = await fetch('/api/lyrics');
+        if (res.ok) {
+          const data = await res.json();
+          const apiLyrics = (Array.isArray(data) ? data : (data?.lyrics || [])).map((l: any) => ({
+            title: l.title,
+            content: l.content || l.lyrics,
+            published: l.date,
+            type: 'WEB'
+          }));
+          allDrafts = [...apiLyrics, ...allDrafts];
+        }
+      } catch (e) { console.error("Web lyrics fetch error", e); }
 
       // 2. Fetch from Google Sheets
       if (sheetsSyncUrl) {
@@ -2147,15 +2157,15 @@ const LyricStudio: React.FC = () => {
                                         <div 
                                             key={i} 
                                             onClick={() => importFromBlogger(post)}
-                                            className={`p-4 bg-white/5 border rounded-2xl transition-all cursor-pointer group ${post.type === 'SHEET' ? 'border-[#c5a059]/20 hover:border-[#c5a059] hover:bg-[#c5a059]/5' : 'border-white/5 hover:border-blue-400/50 hover:bg-blue-400/5'}`}
+                                            className={`p-4 bg-white/5 border rounded-2xl transition-all cursor-pointer group ${post.type === 'SHEET' ? 'border-[#c5a059]/20 hover:border-[#c5a059] hover:bg-[#c5a059]/5' : 'border-blue-500/20 hover:border-blue-400 hover:bg-blue-500/5'}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <h3 className={`text-xs font-bold ${post.type === 'SHEET' ? 'group-hover:text-[#c5a059]' : 'group-hover:text-blue-400'} transition-colors`}>{post.title}</h3>
                                                 <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${post.type === 'SHEET' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                    {post.type === 'SHEET' ? 'Google Sheet' : 'Blogger'}
+                                                    {post.type === 'SHEET' ? 'Google Sheet' : 'Sitio Web'}
                                                 </span>
                                             </div>
-                                            <p className="text-[8px] text-white/20 uppercase tracking-widest">{new Date(post.published).toLocaleDateString()}</p>
+                                            <p className="text-[8px] text-white/20 uppercase tracking-widest">{post.published ? new Date(post.published).toLocaleDateString() : 'Reciente'}</p>
                                         </div>
                                     ))
                                 ) : (
@@ -2169,7 +2179,7 @@ const LyricStudio: React.FC = () => {
                     
                     <div className="p-6 bg-white/5 border-t border-white/5">
                         <p className="text-[9px] text-white/40 leading-relaxed text-center italic">
-                            Los borradores se sincronizan desde Blogger y tu Google Sheet configurada.
+                            Los borradores y letras se sincronizan desde tu sitio web y Google Sheets.
                         </p>
                     </div>
                 </div>

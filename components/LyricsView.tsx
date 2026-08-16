@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MusicItem } from '../types';
+import { fetchSavedLyrics } from '../services/musicService';
 
 interface LyricsViewProps {
   catalog: MusicItem[];
@@ -14,16 +15,55 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [copiedVerse, setCopiedVerse] = useState<number | null>(null);
+  const [savedLyrics, setSavedLyrics] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchSavedLyrics().then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        setSavedLyrics(data);
+      }
+    });
+  }, []);
 
   const song = useMemo(() => {
     if (!slug) return null;
-    // Try matching by id first, then by slug of name
-    return catalog.find(s =>
+    // 1. Match from catalog
+    const matched = catalog.find(s =>
       s.id === slug ||
       generateSlug(s.name) === slug ||
       generateSlug(`${s.artist}-${s.name}`) === slug
-    ) || null;
-  }, [catalog, slug]);
+    );
+
+    // 2. Check if there's custom saved lyric in savedLyrics
+    const matchedSaved = savedLyrics.find(l =>
+      l.id === slug ||
+      generateSlug(l.title || '') === slug ||
+      generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug
+    );
+
+    if (matched) {
+      if ((!matched.lyrics || matched.lyrics.trim().length === 0) && matchedSaved?.content) {
+        return { ...matched, lyrics: matchedSaved.content };
+      }
+      return matched;
+    }
+
+    if (matchedSaved) {
+      return {
+        id: matchedSaved.id || slug,
+        name: matchedSaved.title,
+        artist: matchedSaved.artist || 'Dios Mas Gym',
+        cover: '/logo-diosmasgym.png',
+        url: '',
+        type: 'Single',
+        lyrics: matchedSaved.content,
+        date: matchedSaved.date || new Date().toISOString()
+      } as MusicItem;
+    }
+
+    return null;
+  }, [catalog, slug, savedLyrics]);
 
   const handleShare = async () => {
     const shareData = {
@@ -200,10 +240,26 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
           {/* === RIGHT: LYRICS === */}
           <div className="flex-1 min-w-0">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-8 pb-6"
+            <div className="flex items-center justify-between gap-3 mb-8 pb-6"
               style={{ borderBottom: '1px solid rgba(37,99,168,0.15)' }}>
-              <div className="w-6 h-[2px]" style={{ background: '#2563a8' }} />
-              <span className="label-tag" style={{ color: '#4a90d9' }}>Letra Oficial</span>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-[2px]" style={{ background: '#2563a8' }} />
+                <span className="label-tag" style={{ color: '#4a90d9' }}>Letra Oficial</span>
+              </div>
+              {hasLyrics && (
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(song.lyrics || '');
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="label-tag flex items-center gap-1.5 hover:text-white transition-colors"
+                  style={{ background: 'rgba(37,99,168,0.12)', border: '1px solid rgba(37,99,168,0.25)', padding: '0.35rem 0.75rem', borderRadius: '4px', cursor: 'pointer', color: copied ? '#4ade80' : '#4a90d9', fontSize: '0.65rem' }}
+                >
+                  <i className={`fas ${copied ? 'fa-check' : 'fa-copy'}`} />
+                  {copied ? '¡Letra Copiada!' : 'Copiar Toda la Letra'}
+                </button>
+              )}
             </div>
 
             {hasLyrics ? (
@@ -222,11 +278,25 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
                   return isEmpty ? (
                     <div key={i} style={{ height: '1.2rem' }} />
                   ) : isChorus ? (
-                    <p key={i} className="label-tag mt-6 mb-2" style={{ color: '#4a90d9', fontSize: '0.55rem' }}>
+                    <p key={i} className="label-tag mt-6 mb-2 font-bold tracking-wider" style={{ color: '#4a90d9', fontSize: '0.65rem' }}>
                       {line}
                     </p>
                   ) : (
-                    <p key={i}>{line}</p>
+                    <p 
+                      key={i}
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(`"${line}" - ${song.name} (${song.artist})`);
+                        setCopiedVerse(i);
+                        setTimeout(() => setCopiedVerse(null), 1500);
+                      }}
+                      title="Haz clic para copiar este verso"
+                      className="transition-colors hover:text-blue-300 cursor-pointer select-text relative group/line"
+                    >
+                      {line}
+                      {copiedVerse === i && (
+                        <span className="ml-3 text-xs text-green-400 font-mono">✓ copiado</span>
+                      )}
+                    </p>
                   );
                 })}
               </div>

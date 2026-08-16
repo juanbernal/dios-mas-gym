@@ -31,6 +31,10 @@
       "destination": "/api/common?action=links"
     },
     {
+      "source": "/api/lyrics",
+      "destination": "/api/common?action=lyrics"
+    },
+    {
       "source": "/api/music",
       "destination": "/api/common?action=music"
     },
@@ -49,6 +53,10 @@
     {
       "source": "/link/:id",
       "destination": "/api/common?action=smartlink-ssr&id=:id"
+    },
+    {
+      "source": "/letra/:slug",
+      "destination": "/api/common?action=letra-ssr&slug=:slug"
     },
     {
       "source": "/api/image-proxy",

@@ -64,31 +64,49 @@ const LyricsManager: React.FC = () => {
     const loadAllLyrics = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Published
-            const published = { posts: [] };
-            const publishedItems: LyricItem[] = (published.posts || []).map(p => ({
-                id: p.id,
-                title: p.title,
-                artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
-                content: p.content,
-                status: 'LIVE',
-                date: p.published
-            }));
+            // 1. Fetch from Website API (/api/lyrics)
+            let webItems: LyricItem[] = [];
+            try {
+                const res = await fetch('/api/lyrics');
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = Array.isArray(data) ? data : (data?.lyrics || []);
+                    webItems = list.map((l: any, i: number) => ({
+                        id: l.id || `web-${i}`,
+                        title: l.title || 'Sin título',
+                        artist: l.artist || 'Dios Mas Gym',
+                        content: l.content || l.lyrics || '',
+                        status: 'LIVE' as const,
+                        date: l.date || new Date().toISOString()
+                    }));
+                }
+            } catch (err) {
+                console.error("Error loading web lyrics:", err);
+            }
 
-            // 2. Fetch Drafts
-            (window as any).BLOGGER_STATUS = 'DRAFT';
-            const drafts = { posts: [] };
-            (window as any).BLOGGER_STATUS = undefined;
-            const draftItems: LyricItem[] = (drafts.posts || []).map(p => ({
-                id: p.id,
-                title: p.title,
-                artist: p.labels?.find((l: string) => l.includes('Juan') || l.includes('Dios')) || 'Desconocido',
-                content: p.content,
-                status: 'DRAFT',
-                date: p.published
-            }));
+            // 2. Fetch from Catalog
+            let catalogItems: LyricItem[] = [];
+            try {
+                const [diosCat, juanCat] = await Promise.all([
+                    fetchMusicCatalog('diosmasgym'),
+                    fetchMusicCatalog('juan614')
+                ]);
+                const combined = [...diosCat, ...juanCat];
+                catalogItems = combined
+                    .filter(s => s.lyrics && s.lyrics.trim().length > 0)
+                    .map(s => ({
+                        id: s.id,
+                        title: s.name,
+                        artist: s.artist,
+                        content: s.lyrics!,
+                        status: 'LIVE' as const,
+                        date: s.date || new Date().toISOString()
+                    }));
+            } catch (err) {
+                console.error("Error loading catalog lyrics:", err);
+            }
 
-            // 4. Fetch from Google Sheets
+            // 3. Fetch from Google Sheets
             let sheetItems: LyricItem[] = [];
             if (sheetsSyncUrl) {
                 try {
@@ -105,44 +123,49 @@ const LyricsManager: React.FC = () => {
                     if (res.ok) {
                         try {
                             const data = JSON.parse(text);
-                            // Robust parsing for different possible JSON structures
                             const items = Array.isArray(data) ? data : (data?.data || data?.items || data?.lyrics || []);
                             sheetItems = items.map((l: any, i: number) => ({
                                 id: `sheet-${i}-${Date.now()}`,
                                 title: l.title || l.name || 'Sin título',
                                 artist: l.artist || 'Dios Mas Gym',
                                 content: l.content || l.lyrics || '',
-                                status: 'CLOUD',
+                                status: 'CLOUD' as const,
                                 date: l.date || new Date().toISOString()
                             }));
                         } catch (parseError) {
-                            console.error("Sheets sync parsing error. Response was:", text);
-                            // If it's not JSON, maybe it's an error message from the script
-                            if (text.includes("Error") || text.includes("Unauthorized")) {
-                                showNotification("❌ Error de Nube: " + text.slice(0, 50));
-                            }
+                            console.error("Sheets sync parsing error:", parseError);
                         }
-                    } else {
-                        console.error("Sheets sync fetch error", res.status, text);
                     }
                 } catch (e) {
                     console.error("Sheets sync fetch exception", e);
                 }
             }
 
-            // 5. Fetch Local Items
+            // 4. Fetch Local Items
             const localRaw = localStorage.getItem('lyric_studio_drafts');
             const local = localRaw ? JSON.parse(localRaw) : [];
             const localItems: LyricItem[] = local.map((l: any, i: number) => ({
                 id: `local-${i}`,
-                title: l.name,
+                title: l.name || l.title || 'Borrador',
                 artist: l.artist || 'Dios Mas Gym',
-                content: l.content,
-                status: 'LOCAL',
-                date: l.date
+                content: l.content || '',
+                status: 'LOCAL' as const,
+                date: l.date || new Date().toISOString()
             }));
 
-            setLyrics([...localItems, ...sheetItems, ...draftItems, ...publishedItems]);
+            // Deduplicate by title & artist
+            const seen = new Set<string>();
+            const combinedAll: LyricItem[] = [];
+            
+            for (const item of [...webItems, ...catalogItems, ...sheetItems, ...localItems]) {
+                const key = `${item.artist.toLowerCase()}_${item.title.toLowerCase()}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    combinedAll.push(item);
+                }
+            }
+
+            setLyrics(combinedAll);
         } catch (e) {
             console.error("Error loading lyrics", e);
             showNotification("❌ Error al cargar letras");
@@ -341,34 +364,42 @@ const LyricsManager: React.FC = () => {
         }
     };
 
-    const handleSaveToBloggerCloud = async () => {
-        if (!selectedLyric || !sheetsSyncUrl) return;
+    const handleSaveToWeb = async () => {
+        if (!selectedLyric) return;
         setIsSaving(true);
         try {
-            const queryString = new URLSearchParams({
-                action: 'blogger',
-                secret: SYNC_SECRET,
-                title: selectedLyric.title,
-                artist: selectedLyric.artist,
-                date: new Date().toISOString()
-            }).toString();
-            const autoLabels = [selectedLyric.artist, "Letras", "Música"].filter(Boolean);
-            await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+            const adminPass = localStorage.getItem('dmg_admin_password') || '';
+            const res = await fetch('/api/lyrics', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-password': adminPass
+                },
                 body: JSON.stringify({
-                    action: 'blogger',
-                    secret: SYNC_SECRET,
+                    id: selectedLyric.id,
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
                     date: new Date().toISOString(),
-                    labels: autoLabels,
-                    tags: autoLabels,
-                    labelsString: autoLabels.join(', ')
+                    status: 'LIVE'
                 })
             });
-            showNotification("🚀 [V3.7] ¡CONECTADO A LA NUBE!\nBorrador enviado a Blogger.");
+
+            if (res.ok) {
+                showNotification("✅ Letra guardada en la web e indexable para Google");
+                const newItem: LyricItem = { ...selectedLyric, status: 'LIVE' };
+                setLyrics(prev => [newItem, ...prev.filter(l => l.id !== selectedLyric.id && l.title !== selectedLyric.title)]);
+                setSelectedLyric(newItem);
+                setSavedSignature(getSignature(newItem));
+                
+                // If sheetsSync is configured, also push
+                if (sheetsSyncUrl) {
+                    handleSaveToSheets();
+                }
+            } else {
+                const err = await res.json().catch(() => ({}));
+                showNotification("❌ " + (err.error || 'No se pudo guardar en la web'));
+            }
         } catch (e: any) {
             showNotification("❌ Error: " + e.message);
         } finally {
@@ -911,7 +942,15 @@ ${cleanedLyrics}`;
                                         </button>
                                     </div>
                                      <div className="flex gap-2 w-full md:w-auto">
-                                         {sheetsSyncUrl && (
+                                        <button 
+                                            onClick={handleSaveToWeb}
+                                            disabled={isSaving}
+                                            className="flex-1 md:flex-none px-6 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black uppercase rounded-xl hover:bg-emerald-500/30 transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-3"
+                                            title="Guardar y Publicar en la Web (Indexable en Google)"
+                                        >
+                                            <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-globe'}`}></i> Guardar en Web (SEO)
+                                        </button>
+                                        {sheetsSyncUrl && (
                                             <button 
                                                 onClick={handleSaveToSheets}
                                                 disabled={isSaving}
@@ -919,16 +958,6 @@ ${cleanedLyrics}`;
                                                 title="Sincronizar en Google Sheet"
                                             >
                                                 <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud'}`}></i> Sheets
-                                            </button>
-                                        )}
-                                        {sheetsSyncUrl && (
-                                            <button 
-                                                onClick={handleSaveToBloggerCloud}
-                                                disabled={isSaving}
-                                                className="flex-1 md:flex-none px-6 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase rounded-xl hover:bg-purple-500/30 transition-all shadow-lg shadow-purple-500/10 flex items-center justify-center gap-3"
-                                                title="Publicar en Blogger sin Token"
-                                            >
-                                                <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i> Blogger Cloud
                                             </button>
                                         )}
                                     </div>

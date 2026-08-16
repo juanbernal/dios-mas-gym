@@ -9,7 +9,7 @@ const LinkBioAdmin: React.FC = () => {
         profile: {
             name: "Dios Mas Gym",
             bio: "El Arsenal de Fe | Música, Disciplina y Transformación",
-            avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600"
+            avatar: "/logo-diosmasgym.png"
         },
         links: []
     });

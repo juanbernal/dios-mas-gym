@@ -219,24 +219,33 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+             {/* Ver Letra button */}
+             <a
+                href={`/letra/${activeSong.id || activeSong.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
+                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all border border-emerald-500/30"
+                title="Ver Letra Oficial"
+             >
+                <i className="fas fa-file-lines text-xs md:text-sm"></i>
+             </a>
+
              {videoId ? (
                  <button 
                     onClick={togglePlay}
-                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#4a90d9]/20 hover:text-[#4a90d9] transition-all border border-white/10"
+                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-[#4a90d9]/20 hover:text-[#4a90d9] transition-all border border-white/10"
                     title={isPlaying ? 'Pausar' : 'Reproducir'}
                  >
-                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ${isPlaying ? '' : 'ml-0.5'}`}></i>
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-xs md:text-sm ${isPlaying ? '' : 'ml-0.5'}`}></i>
                  </button>
              ) : (
                  <a 
                     href={activeSong.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12 h-12 flex items-center justify-center rounded-full bg-[#c5a059]/20 hover:bg-[#c5a059] text-[#c5a059] hover:text-black transition-all border border-[#c5a059]/30"
+                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-[#c5a059]/20 hover:bg-[#c5a059] text-[#c5a059] hover:text-black transition-all border border-[#c5a059]/30"
                     title="Escuchar"
                  >
-                    <i className="fas fa-external-link-alt text-sm"></i>
+                    <i className="fas fa-external-link-alt text-xs md:text-sm"></i>
                  </a>
              )}
              <a 
@@ -249,9 +258,10 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
              </a>
              <button 
                 onClick={onClear}
-                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-500 transition-all border border-white/5"
+                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-500 transition-all border border-white/5"
+                title="Cerrar reproductor"
              >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times text-xs md:text-sm"></i>
              </button>
           </div>
         </div>

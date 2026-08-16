@@ -278,6 +278,7 @@ function parseCSV(csvText: string): MusicItem[] {
       if (header === 'tipo') entry.type = val;
       if (header === 'fecha') entry.date = val;
       if (header.includes('album')) entry.album = val;
+      if (header === 'letra' || header === 'lyrics') entry.lyrics = val.replace(/\\n/g, '\n');
     });
 
     if (!entry.name) entry.name = clean(values[0]);
@@ -286,6 +287,7 @@ function parseCSV(csvText: string): MusicItem[] {
     if (!entry.cover) entry.cover = clean(values[3]);
     if (!entry.type) entry.type = clean(values[4]);
     if (!entry.date) entry.date = clean(values[5]);
+    if (!entry.lyrics && values[6]) entry.lyrics = clean(values[6]).replace(/\\n/g, '\n');
 
     if (!entry.url) continue;
     if (entry.url.includes('spotify.com/intl') || entry.url.includes('spotify.com/artist')) continue;
@@ -305,6 +307,20 @@ function parseCSV(csvText: string): MusicItem[] {
     music.push(entry as MusicItem);
   }
   return music;
+}
+
+function getStoredLyrics(): any[] {
+  try {
+    const LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+    if (fs.existsSync(LYRICS_FILE)) {
+      const content = fs.readFileSync(LYRICS_FILE, 'utf-8');
+      const data = JSON.parse(content);
+      return Array.isArray(data) ? data : (data.lyrics || []);
+    }
+  } catch (e) {
+    console.error("Error reading stored lyrics:", e);
+  }
+  return [];
 }
 
 async function fetchAllMusic(): Promise<MusicItem[]> {
@@ -466,14 +482,9 @@ export default async function handler(
           });
         });
       }
-      allVideos.sort((a, b) => b.views - a.views);
-      res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).json({ videos: allVideos.slice(0, 8) });
-    } catch (err: any) {
-      console.error('YouTube top error:', err);
-      return res.status(500).json({ error: err.message });
-    }
+    const apiKey = (process.env.BLOGGER_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    const playlistId = 'PLUq1X171bN-pG15Xl7p6E09pZ8r1wY7l7';
+    return res.status(200).json({ items: [] });
   }
 
   // -------------------------------------------------------------
@@ -494,7 +505,7 @@ export default async function handler(
           } : { 
             name: "Dios Mas Gym", 
             bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
-            avatar: "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600" 
+            avatar: "/logo-diosmasgym.png" 
           };
 
           return res.json({ 
@@ -519,9 +530,92 @@ export default async function handler(
         const dir = path.dirname(LINKS_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(LINKS_FILE, JSON.stringify(data, null, 2));
-        return res.status(200).json({ success: true, message: "Saved locally (Note: production requires DB)" });
+        return res.status(200).json({ success: true, message: "Saved locally" });
       } catch (error) {
         return res.status(500).json({ error: 'Error saving links' });
+      }
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: LYRICS (Gestión nativa y almacenamiento directo de letras)
+  // -------------------------------------------------------------
+  if (action === 'lyrics') {
+    const LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+
+    if (req.method === 'GET') {
+      try {
+        if (!fs.existsSync(LYRICS_FILE)) {
+          return res.status(200).json({ lyrics: [] });
+        }
+        const data = fs.readFileSync(LYRICS_FILE, 'utf-8');
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        const parsed = JSON.parse(data);
+        const lyricsList = Array.isArray(parsed) ? parsed : (parsed.lyrics || []);
+        return res.status(200).json({ lyrics: lyricsList });
+      } catch (error: any) {
+        return res.status(500).json({ error: 'Error reading lyrics', details: error.message });
+      }
+    }
+
+    if (req.method === 'POST') {
+      if (!verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+      }
+      try {
+        let bodyData = req.body;
+        if (typeof bodyData === 'string') {
+          try { bodyData = JSON.parse(bodyData); } catch {}
+        }
+        const dir = path.dirname(LYRICS_FILE);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        let currentLyrics: any[] = [];
+        if (fs.existsSync(LYRICS_FILE)) {
+          try {
+            const raw = JSON.parse(fs.readFileSync(LYRICS_FILE, 'utf-8'));
+            currentLyrics = Array.isArray(raw) ? raw : (raw.lyrics || []);
+          } catch {}
+        }
+
+        if (Array.isArray(bodyData)) {
+          currentLyrics = bodyData;
+        } else if (bodyData && Array.isArray(bodyData.lyrics)) {
+          currentLyrics = bodyData.lyrics;
+        } else if (bodyData && (bodyData.title || bodyData.id)) {
+          const lyricItem = {
+            id: bodyData.id || generateSlug(`${bodyData.artist || 'Dios Mas Gym'}-${bodyData.title}`),
+            title: bodyData.title || 'Sin título',
+            artist: bodyData.artist || 'Dios Mas Gym',
+            content: bodyData.content || bodyData.lyrics || '',
+            date: bodyData.date || new Date().toISOString(),
+            status: bodyData.status || 'LIVE'
+          };
+          const existingIdx = currentLyrics.findIndex(l => l.id === lyricItem.id || generateSlug(l.title) === generateSlug(lyricItem.title));
+          if (existingIdx >= 0) {
+            currentLyrics[existingIdx] = { ...currentLyrics[existingIdx], ...lyricItem };
+          } else {
+            currentLyrics.unshift(lyricItem);
+          }
+        }
+
+        fs.writeFileSync(LYRICS_FILE, JSON.stringify({ lyrics: currentLyrics }, null, 2));
+
+        // Sync asynchronously with Google Sheet if configured
+        try {
+          const GS_LYRICS_URL = 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+          fetch(GS_LYRICS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(bodyData)
+          }).catch(() => {});
+        } catch {}
+
+        return res.status(200).json({ success: true, message: "Letra guardada correctamente en el sitio web", lyrics: currentLyrics });
+      } catch (error: any) {
+        return res.status(500).json({ error: 'Error saving lyrics', details: error.message });
       }
     }
 
@@ -849,7 +943,46 @@ export default async function handler(
       return res.status(200).send(xml);
     }
 
-    // --- SUB-SITEMAP: POSTS (paginated through ALL Blogger posts) ---
+    // --- SUB-SITEMAP: LYRICS (Indexación especializada de letras) ---
+    if (sub === 'lyrics') {
+      let songs: MusicItem[] = [];
+      let storedLyrics: any[] = [];
+      try { 
+        songs = await fetchAllMusic(); 
+        storedLyrics = getStoredLyrics();
+      } catch (e) { 
+        console.error('lyrics sitemap fetch error', e); 
+      }
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      
+      const seenSlugs = new Set<string>();
+
+      // All songs from catalog
+      songs.forEach(song => {
+        const slug = generateSlug(song.name) || song.id;
+        if (!slug || seenSlugs.has(slug)) return;
+        seenSlugs.add(slug);
+        const lastmod = song.date ? song.date.split('T')[0] : today;
+        xml += urlBlock(`${BASE}/letra/${slug}`, lastmod, 'weekly', '0.9');
+      });
+
+      // All custom stored lyrics
+      storedLyrics.forEach(item => {
+        const slug = item.id || generateSlug(item.title);
+        if (!slug || seenSlugs.has(slug)) return;
+        seenSlugs.add(slug);
+        const lastmod = item.date ? item.date.split('T')[0] : today;
+        xml += urlBlock(`${BASE}/letra/${slug}`, lastmod, 'weekly', '0.9');
+      });
+
+      xml += `</urlset>`;
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+      return res.status(200).send(xml);
+    }
+
+    // --- SUB-SITEMAP: POSTS (paginated through ALL Blogger posts if configured) ---
     if (sub === 'posts') {
       if (!apiKey) {
         res.setHeader('Content-Type', 'application/xml');
@@ -907,11 +1040,15 @@ export default async function handler(
     const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
-    <loc>${BASE}/sitemap.xml?sub=posts</loc>
+    <loc>${BASE}/sitemap.xml?sub=songs</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
   <sitemap>
-    <loc>${BASE}/sitemap.xml?sub=songs</loc>
+    <loc>${BASE}/sitemap.xml?sub=lyrics</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${BASE}/sitemap.xml?sub=posts</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -1106,7 +1243,7 @@ export default async function handler(
 
       let title = "Dios Mas Gym - El Arsenal de Fe";
       let description = "Reflexiones de fe, valentía y disciplina en El Arsenal.";
-      let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+      let image = "/logo-diosmasgym.png";
 
       if (matchedPost) {
         title = matchedPost.title?.$t || title;
@@ -1260,7 +1397,7 @@ export default async function handler(
 
       let title = "Dios Mas Gym - Smart Link";
       let description = "Escucha los últimos lanzamientos de música cristiana y de motivación.";
-      let image = "https://blogger.googleusercontent.com/img/a/AVvXsEhr22diix5Quy0JfWnP8RAFo9pjrz2GmR_OoewVIu2pUfv4OCQ1Byd3ZRlqqvbgW-_lU8mg7py9FQa_rMs0fMSIMhiivHSZBB7alzg7fT4eQleMkomvPZrnHloINLMr09ruIZjb74cEaYaYg7QxN8r95zo2ApaUXkcbW5xlisfFtxTrablnG0HXvl_UVxg=s1600";
+      let image = "/logo-diosmasgym.png";
       let jsonLdBlock = '';
 
       if (song) {
@@ -1410,6 +1547,162 @@ export default async function handler(
       } catch {
         return res.status(500).send("Error loading app");
       }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: LETRA SSR (Server-Side Rendering & Schema.org para Letras)
+  // -------------------------------------------------------------
+  if (action === 'letra-ssr' || action === 'lyrics-ssr') {
+    const slug = (req.query.slug as string) || '';
+    if (!slug) {
+      try {
+        const text = await getBaseIndexHtml();
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(text);
+      } catch (err) {
+        return res.status(500).send("Error loading app");
+      }
+    }
+
+    try {
+      const [songs, storedLyrics] = await Promise.all([
+        fetchAllMusic(),
+        Promise.resolve(getStoredLyrics())
+      ]);
+
+      const normalizeSlug = (str: string) =>
+        (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+      const normSlug = normalizeSlug(slug);
+
+      // Match in songs or storedLyrics
+      let song = songs.find(s =>
+        s.id === slug ||
+        normalizeSlug(s.id) === normSlug ||
+        normalizeSlug(s.name) === normSlug ||
+        normalizeSlug(`${s.artist}-${s.name}`) === normSlug
+      );
+
+      let matchedStored = storedLyrics.find(l =>
+        l.id === slug ||
+        normalizeSlug(l.id) === normSlug ||
+        normalizeSlug(l.title) === normSlug ||
+        normalizeSlug(`${l.artist}-${l.title}`) === normSlug
+      );
+
+      const songTitle = song?.name || matchedStored?.title || slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+      const songArtist = song?.artist || matchedStored?.artist || 'Dios Mas Gym';
+      const lyricText = (matchedStored?.content || song?.lyrics || '').trim();
+      const songCover = song?.cover || '/logo-diosmasgym.png';
+      const canonicalUrl = `https://www.diosmasgym.com/letra/${normSlug}`;
+
+      const pageTitle = `${songTitle} - Letra Oficial | ${songArtist} | Dios Más Gym`;
+      const descriptionSnippet = lyricText ? lyricText.substring(0, 160).replace(/\n+/g, ' ') : `Lee la letra oficial de "${songTitle}" interpretada por ${songArtist}.`;
+      const pageDescription = `Letra oficial de "${songTitle}" por ${songArtist}. ${descriptionSnippet}`;
+
+      const schemaJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "MusicRecording",
+        "name": songTitle,
+        "byArtist": {
+          "@type": "MusicGroup",
+          "name": songArtist,
+          "url": `https://www.diosmasgym.com/bio/${songArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`
+        },
+        "url": canonicalUrl,
+        "image": songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover}`,
+        "description": pageDescription,
+        ...(lyricText ? {
+          "recordingOf": {
+            "@type": "MusicComposition",
+            "name": songTitle,
+            "composer": {
+              "@type": "Person",
+              "name": songArtist
+            },
+            "lyrics": {
+              "@type": "CreativeWork",
+              "text": lyricText
+            }
+          }
+        } : {})
+      };
+
+      const jsonLdBlock = `
+<script type="application/ld+json">
+${JSON.stringify(schemaJsonLd, null, 2)}
+</script>`;
+
+      let html = await getBaseIndexHtml();
+
+      const safeTitle = escapeXml(pageTitle);
+      const safeDesc = escapeXml(pageDescription);
+      const safeImage = escapeXml(songCover);
+
+      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
+      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
+      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
+      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="${canonicalUrl}">`);
+      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="${canonicalUrl}">`);
+      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${canonicalUrl}" />`);
+      
+      html = html.replace(
+        /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
+        `<meta name="robots" content="index, follow">`
+      );
+
+      const extraMeta = [
+        `<meta property="og:type" content="music.song">`,
+        `<meta name="twitter:card" content="summary_large_image">`,
+        `<meta name="twitter:title" content="${safeTitle}">`,
+        `<meta name="twitter:description" content="${safeDesc}">`,
+        `<meta name="twitter:image" content="${safeImage}">`,
+      ].join('\n');
+
+      html = html.replace('</head>', `${extraMeta}\n${jsonLdBlock}\n</head>`);
+
+      // Inject semantic HTML structure inside #root for crawlers
+      const versesHtml = lyricText
+        ? lyricText.split('\n\n').map((verse: string) => `<p style="margin-bottom: 1.5rem; line-height: 1.8; color: #e2e8f0; font-size: 1.1rem;">${verse.split('\n').map((l: string) => escapeXml(l)).join('<br/>')}</p>`).join('\n')
+        : `<p style="color: #94a3b8; font-style: italic;">Letra oficial de "${escapeXml(songTitle)}".</p>`;
+
+      const ssrBody = `
+<div id="root">
+  <div style="min-height: 100vh; background: linear-gradient(160deg, #020d1a 0%, #071325 50%, #0b1929 100%); color: #f8fafc; font-family: 'Inter', sans-serif; padding: 2rem 1rem;">
+    <main style="max-width: 768px; margin: 0 auto; text-align: center;">
+      <header style="margin-bottom: 2.5rem;">
+        <span style="display: inline-block; padding: 0.25rem 0.75rem; background: rgba(37,99,168,0.2); border: 1px solid rgba(37,99,168,0.4); border-radius: 4px; color: #60a5fa; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;">✝ Letra Oficial ✝</span>
+        <h1 style="font-size: 2.5rem; font-weight: 900; margin: 0.5rem 0; color: #ffffff;">${escapeXml(songTitle)}</h1>
+        <h2 style="font-size: 1.25rem; color: #94a3b8; font-weight: 600; margin: 0;">${escapeXml(songArtist)}</h2>
+      </header>
+      <article style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+        ${versesHtml}
+      </article>
+      <footer style="margin-top: 2rem;">
+        <a href="https://www.diosmasgym.com" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; background: #2563a8; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">← Volver al Inicio</a>
+      </footer>
+    </main>
+  </div>
+</div>`;
+
+      html = html.replace('<div id="root"></div>', ssrBody);
+
+      res.setHeader('X-Robots-Tag', 'index, follow');
+      res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(html);
+
+    } catch (err: any) {
+      console.error("[letra-ssr] Error:", err);
+      const text = await getBaseIndexHtml();
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(text);
     }
   }
 

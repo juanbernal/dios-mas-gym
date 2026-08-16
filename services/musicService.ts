@@ -275,3 +275,46 @@ export const deduplicateCatalog = (items: MusicItem[]): MusicItem[] => {
   return Array.from(map.values());
 };
 
+/**
+ * Fetches custom saved lyrics directly from the website backend.
+ */
+export const fetchSavedLyrics = async (): Promise<any[]> => {
+  try {
+    const res = await fetch('/api/lyrics');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data?.lyrics || []);
+  } catch (err) {
+    console.error("Error fetching saved lyrics:", err);
+    return [];
+  }
+};
+
+/**
+ * Saves or updates a song lyric directly to the website backend.
+ */
+export const saveLyricToWeb = async (lyric: { id?: string; title: string; artist: string; content: string; status?: string }, adminPassword?: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (adminPassword) {
+      headers['x-admin-password'] = adminPassword;
+    }
+    const res = await fetch('/api/lyrics', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(lyric)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Error al guardar la letra');
+    }
+    return { success: true, message: data.message || 'Letra guardada con éxito' };
+  } catch (err: any) {
+    console.error("Error saving lyric to web:", err);
+    return { success: false, message: err.message || 'Error desconocido al guardar' };
+  }
+};
+
+

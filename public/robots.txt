@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Allow: /link/
+Allow: /letra/
 Allow: /bio/
 
 # Bloquear panel admin y rutas internas de API
@@ -23,3 +24,4 @@ Allow: /
 # Sitemap principal
 Sitemap: https://www.diosmasgym.com/sitemap.xml
 Sitemap: https://www.diosmasgym.com/sitemap.xml?sub=songs
+Sitemap: https://www.diosmasgym.com/sitemap.xml?sub=lyrics
