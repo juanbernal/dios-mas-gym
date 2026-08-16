@@ -316,7 +316,7 @@ async function getStoredLyrics(): Promise<any[]> {
 
   // 1. Try fetching from Google Sheets (most up-to-date)
   try {
-    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&t=${Date.now()}`);
+    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=DMG_SYNC_2026&t=${Date.now()}`);
     if (gsRes.ok) {
       const gsData = await gsRes.json();
       const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -646,18 +646,54 @@ export default async function handler(
 
     const writeLyricsToDisk = (lyrics: any[]) => {
       try {
+        // Save to /tmp (needed for Vercel functions compatibility)
         fs.writeFileSync(TMP_LYRICS_FILE, JSON.stringify({ lyrics }, null, 2));
+        
+        // If we are running locally (not on Vercel), save permanently to data/lyrics.json
+        if (!process.env.VERCEL) {
+          const localPath = path.join(process.cwd(), 'data', 'lyrics.json');
+          fs.writeFileSync(localPath, JSON.stringify({ lyrics }, null, 2));
+          console.log('[lyrics] Letra guardada permanentemente en local:', localPath);
+        }
       } catch (e) {
-        console.error('[lyrics] /tmp write error:', e);
+        console.error('[lyrics] write error:', e);
       }
     };
 
     if (req.method === 'GET') {
       try {
-        // First try to fetch from Google Sheets (most up-to-date)
+        // 1. Try to fetch from CSV_URL_LYRICS (separate published tab)
+        const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
+        if (CSV_URL_LYRICS) {
+          try {
+            const fetchUrl = `${CSV_URL_LYRICS}${CSV_URL_LYRICS.includes('?') ? '&' : '?'}t=${Date.now()}`;
+            const csvData = await robustFetchText(fetchUrl);
+            const parsedItems = parseCSV(csvData);
+            const lyricsFromCsv = parsedItems
+              .filter(item => item.lyrics && item.lyrics.trim().length > 0)
+              .map(item => ({
+                id: item.id,
+                title: item.name,
+                artist: item.artist,
+                content: item.lyrics,
+                date: item.date || new Date().toISOString(),
+                status: 'LIVE'
+              }));
+              
+            if (lyricsFromCsv.length > 0) {
+              writeLyricsToDisk(lyricsFromCsv);
+              res.setHeader('Cache-Control', 'no-store, max-age=0');
+              return res.status(200).json({ lyrics: lyricsFromCsv });
+            }
+          } catch (csvErr) {
+            console.error('[lyrics GET] CSV fetch error:', csvErr);
+          }
+        }
+
+        // 2. Try to fetch from Google Sheets Apps Script (GS_LYRICS_URL)
         if (GS_LYRICS_URL) {
           try {
-            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&t=${Date.now()}`);
+            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=DMG_SYNC_2026&t=${Date.now()}`);
             if (gsRes.ok) {
               const gsData = await gsRes.json();
               const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -723,7 +759,7 @@ export default async function handler(
             await fetch(GS_LYRICS_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({ action: 'save', lyrics: currentLyrics, item: bodyData })
+              body: JSON.stringify({ action: 'save', secret: 'DMG_SYNC_2026', lyrics: currentLyrics, item: bodyData })
             });
           } catch (gsErr) {
             console.error('[lyrics POST] Google Sheets sync error:', gsErr);
