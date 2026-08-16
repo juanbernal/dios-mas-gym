@@ -1392,13 +1392,13 @@ ${cleanedLyrics}`;
                                 onChange={(e) => setNewLyricTitle(e.target.value)}
                                 className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#00ffcc]/50 focus:ring-1 focus:ring-[#00ffcc]/30 transition-all font-medium"
                             />
-                            {newLyricTitle.trim() && catalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
+                            {newLyricTitle.trim() && lyrics.filter(s => s.title.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0c14] border border-white/10 rounded-xl max-h-[200px] overflow-y-auto z-50 shadow-2xl">
-                                    {catalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
+                                    {lyrics.filter(s => s.title.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
                                         <button
-                                            key={song.id}
+                                            key={song.id + song.title}
                                             onClick={() => {
-                                                const newLyric = { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                                const newLyric = { id: song.id, title: song.title, artist: song.artist || 'Dios Mas Gym', content: song.content || '', status: song.status === 'CLOUD' ? 'LOCAL' : song.status, date: new Date().toISOString() };
                                                 setSelectedLyric(newLyric);
                                                 setSavedSignature(getSignature(newLyric));
                                                 setPreviewMode(false);
@@ -1407,7 +1407,7 @@ ${cleanedLyrics}`;
                                             }}
                                             className="w-full flex flex-col text-left px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
                                         >
-                                            <span className="text-white text-sm font-bold">{song.name}</span>
+                                            <span className="text-white text-sm font-bold">{song.title}</span>
                                             <span className="text-[#00ffcc]/60 text-[9px] uppercase tracking-wider">{song.artist}</span>
                                         </button>
                                     ))}
