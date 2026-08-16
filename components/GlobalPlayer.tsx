@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MusicItem } from '../types';
 
 interface GlobalPlayerProps {
@@ -221,13 +222,13 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
           <div className="flex items-center gap-3">
              {/* Ver Letra button */}
-             <a
-                href={`/letra/${activeSong.id || activeSong.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
+             <Link
+                to={`/letra/${activeSong.id || activeSong.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
                 className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all border border-emerald-500/30"
                 title="Ver Letra Oficial"
              >
                 <i className="fas fa-file-lines text-xs md:text-sm"></i>
-             </a>
+             </Link>
 
              {videoId ? (
                  <button 
