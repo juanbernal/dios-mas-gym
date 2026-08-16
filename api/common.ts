@@ -1651,11 +1651,14 @@ export default async function handler(
         normalizeSlug(`${s.artist}-${s.name}`) === normSlug
       );
 
+      const songNormName = song ? normalizeSlug(song.name) : '';
+
       let matchedStored = storedLyrics.find(l =>
         l.id === slug ||
         normalizeSlug(l.id) === normSlug ||
         normalizeSlug(l.title) === normSlug ||
-        normalizeSlug(`${l.artist}-${l.title}`) === normSlug
+        normalizeSlug(`${l.artist}-${l.title}`) === normSlug ||
+        (songNormName && normalizeSlug(l.title) === songNormName)
       );
 
       const songTitle = song?.name || matchedStored?.title || slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());

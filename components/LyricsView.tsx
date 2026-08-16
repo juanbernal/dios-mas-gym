@@ -39,7 +39,8 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
     const matchedSaved = savedLyrics.find(l =>
       l.id === slug ||
       generateSlug(l.title || '') === slug ||
-      generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug
+      generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug ||
+      (matched && generateSlug(l.title || '') === generateSlug(matched.name))
     );
 
     if (matched) {
