@@ -368,7 +368,7 @@ const LyricsManager: React.FC = () => {
         if (!selectedLyric) return;
         setIsSaving(true);
         try {
-            const adminPass = localStorage.getItem('dmg_admin_password') || '';
+            const adminPass = localStorage.getItem('admin_password') || '';
             const res = await fetch('/api/lyrics', {
                 method: 'POST',
                 headers: {
