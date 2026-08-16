@@ -49,6 +49,7 @@ const LyricsManager: React.FC = () => {
     const [showCloudExplorer, setShowCloudExplorer] = useState(false);
     const [showNewLyricModal, setShowNewLyricModal] = useState(false);
     const [newLyricTitle, setNewLyricTitle] = useState('');
+    const [fullCatalog, setFullCatalog] = useState<MusicItem[]>([]);
 
     const showNotification = (msg: string) => {
         setToast({message: msg, show: true});
@@ -92,6 +93,7 @@ const LyricsManager: React.FC = () => {
                     fetchMusicCatalog('juan614')
                 ]);
                 const combined = [...diosCat, ...juanCat];
+                setFullCatalog(combined);
                 catalogItems = combined
                     .filter(s => s.lyrics && s.lyrics.trim().length > 0)
                     .map(s => ({
@@ -1390,15 +1392,27 @@ ${cleanedLyrics}`;
                                 placeholder="Escribe el nombre de la canción..."
                                 value={newLyricTitle}
                                 onChange={(e) => setNewLyricTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newLyricTitle.trim()) {
+                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                        setSelectedLyric(newLyric);
+                                        setSavedSignature(getSignature(newLyric));
+                                        setPreviewMode(false);
+                                        setViewMode('editor');
+                                        setShowNewLyricModal(false);
+                                    } else if (e.key === 'Escape') {
+                                        setShowNewLyricModal(false);
+                                    }
+                                }}
                                 className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#00ffcc]/50 focus:ring-1 focus:ring-[#00ffcc]/30 transition-all font-medium"
                             />
-                            {newLyricTitle.trim() && lyrics.filter(s => s.title.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
+                            {newLyricTitle.trim() && fullCatalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0c14] border border-white/10 rounded-xl max-h-[200px] overflow-y-auto z-50 shadow-2xl">
-                                    {lyrics.filter(s => s.title.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
+                                    {fullCatalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
                                         <button
-                                            key={song.id + song.title}
+                                            key={song.id + song.name}
                                             onClick={() => {
-                                                const newLyric = { id: song.id, title: song.title, artist: song.artist || 'Dios Mas Gym', content: song.content || '', status: song.status === 'CLOUD' ? 'LOCAL' : song.status, date: new Date().toISOString() };
+                                                const newLyric = { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
                                                 setSelectedLyric(newLyric);
                                                 setSavedSignature(getSignature(newLyric));
                                                 setPreviewMode(false);
@@ -1407,7 +1421,7 @@ ${cleanedLyrics}`;
                                             }}
                                             className="w-full flex flex-col text-left px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
                                         >
-                                            <span className="text-white text-sm font-bold">{song.title}</span>
+                                            <span className="text-white text-sm font-bold">{song.name}</span>
                                             <span className="text-[#00ffcc]/60 text-[9px] uppercase tracking-wider">{song.artist}</span>
                                         </button>
                                     ))}
