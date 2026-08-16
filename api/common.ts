@@ -539,17 +539,61 @@ export default async function handler(
   // ACTION: LYRICS (Gestión nativa y almacenamiento directo de letras)
   // -------------------------------------------------------------
   if (action === 'lyrics') {
-    const LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+    // On Vercel, process.cwd() is read-only. Use /tmp for writable storage.
+    // Google Sheets acts as the persistent store; /tmp is the per-instance cache.
+    const TMP_LYRICS_FILE = '/tmp/lyrics.json';
+    const SEED_LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+    const GS_LYRICS_URL = process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+
+    const readLyricsFromDisk = (): any[] => {
+      // 1. Try /tmp (fast cache for this instance)
+      try {
+        if (fs.existsSync(TMP_LYRICS_FILE)) {
+          const raw = JSON.parse(fs.readFileSync(TMP_LYRICS_FILE, 'utf-8'));
+          return Array.isArray(raw) ? raw : (raw.lyrics || []);
+        }
+      } catch {}
+      // 2. Fall back to seed file committed in repo (read-only, but readable)
+      try {
+        if (fs.existsSync(SEED_LYRICS_FILE)) {
+          const raw = JSON.parse(fs.readFileSync(SEED_LYRICS_FILE, 'utf-8'));
+          return Array.isArray(raw) ? raw : (raw.lyrics || []);
+        }
+      } catch {}
+      return [];
+    };
+
+    const writeLyricsToDisk = (lyrics: any[]) => {
+      try {
+        fs.writeFileSync(TMP_LYRICS_FILE, JSON.stringify({ lyrics }, null, 2));
+      } catch (e) {
+        console.error('[lyrics] /tmp write error:', e);
+      }
+    };
 
     if (req.method === 'GET') {
       try {
-        if (!fs.existsSync(LYRICS_FILE)) {
-          return res.status(200).json({ lyrics: [] });
+        // First try to fetch from Google Sheets (most up-to-date)
+        if (GS_LYRICS_URL) {
+          try {
+            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&t=${Date.now()}`);
+            if (gsRes.ok) {
+              const gsData = await gsRes.json();
+              const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
+              if (gsList.length > 0) {
+                // Cache in /tmp for subsequent calls in this instance
+                writeLyricsToDisk(gsList);
+                res.setHeader('Cache-Control', 'no-store, max-age=0');
+                return res.status(200).json({ lyrics: gsList });
+              }
+            }
+          } catch (gsErr) {
+            console.error('[lyrics GET] Google Sheets fetch error:', gsErr);
+          }
         }
-        const data = fs.readFileSync(LYRICS_FILE, 'utf-8');
+        // Fallback to /tmp or seed file
+        const lyricsList = readLyricsFromDisk();
         res.setHeader('Cache-Control', 'no-store, max-age=0');
-        const parsed = JSON.parse(data);
-        const lyricsList = Array.isArray(parsed) ? parsed : (parsed.lyrics || []);
         return res.status(200).json({ lyrics: lyricsList });
       } catch (error: any) {
         return res.status(500).json({ error: 'Error reading lyrics', details: error.message });
@@ -565,16 +609,8 @@ export default async function handler(
         if (typeof bodyData === 'string') {
           try { bodyData = JSON.parse(bodyData); } catch {}
         }
-        const dir = path.dirname(LYRICS_FILE);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-        let currentLyrics: any[] = [];
-        if (fs.existsSync(LYRICS_FILE)) {
-          try {
-            const raw = JSON.parse(fs.readFileSync(LYRICS_FILE, 'utf-8'));
-            currentLyrics = Array.isArray(raw) ? raw : (raw.lyrics || []);
-          } catch {}
-        }
+        let currentLyrics = readLyricsFromDisk();
 
         if (Array.isArray(bodyData)) {
           currentLyrics = bodyData;
@@ -597,19 +633,24 @@ export default async function handler(
           }
         }
 
-        fs.writeFileSync(LYRICS_FILE, JSON.stringify({ lyrics: currentLyrics }, null, 2));
+        // Save to /tmp (fast, for this instance)
+        writeLyricsToDisk(currentLyrics);
 
-        // Sync asynchronously with Google Sheet if configured
-        try {
-          const GS_LYRICS_URL = 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
-          fetch(GS_LYRICS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(bodyData)
-          }).catch(() => {});
-        } catch {}
+        // Sync to Google Sheets (primary persistent store — AWAIT to ensure it saves)
+        if (GS_LYRICS_URL) {
+          try {
+            await fetch(GS_LYRICS_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ action: 'save', lyrics: currentLyrics, item: bodyData })
+            });
+          } catch (gsErr) {
+            console.error('[lyrics POST] Google Sheets sync error:', gsErr);
+            // Non-fatal — data is already in /tmp
+          }
+        }
 
-        return res.status(200).json({ success: true, message: "Letra guardada correctamente en el sitio web", lyrics: currentLyrics });
+        return res.status(200).json({ success: true, message: 'Letra guardada correctamente en el sitio web', lyrics: currentLyrics });
       } catch (error: any) {
         return res.status(500).json({ error: 'Error saving lyrics', details: error.message });
       }
@@ -617,6 +658,7 @@ export default async function handler(
 
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
 
   // -------------------------------------------------------------
   // ACTION: MUSIC
