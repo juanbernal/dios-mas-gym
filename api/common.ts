@@ -309,11 +309,39 @@ function parseCSV(csvText: string): MusicItem[] {
   return music;
 }
 
-function getStoredLyrics(): any[] {
+async function getStoredLyrics(): Promise<any[]> {
+  const TMP_LYRICS_FILE = '/tmp/lyrics.json';
+  const SEED_LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+  const GS_LYRICS_URL = process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+
+  // 1. Try fetching from Google Sheets (most up-to-date)
   try {
-    const LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
-    if (fs.existsSync(LYRICS_FILE)) {
-      const content = fs.readFileSync(LYRICS_FILE, 'utf-8');
+    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&t=${Date.now()}`);
+    if (gsRes.ok) {
+      const gsData = await gsRes.json();
+      const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
+      if (gsList.length > 0) {
+        try { fs.writeFileSync(TMP_LYRICS_FILE, JSON.stringify({ lyrics: gsList })); } catch {}
+        return gsList;
+      }
+    }
+  } catch (e) {
+    console.error("[getStoredLyrics] Google Sheets fetch error:", e);
+  }
+
+  // 2. Try /tmp
+  try {
+    if (fs.existsSync(TMP_LYRICS_FILE)) {
+      const content = fs.readFileSync(TMP_LYRICS_FILE, 'utf-8');
+      const data = JSON.parse(content);
+      return Array.isArray(data) ? data : (data.lyrics || []);
+    }
+  } catch (e) {}
+
+  // 3. Try repo seed
+  try {
+    if (fs.existsSync(SEED_LYRICS_FILE)) {
+      const content = fs.readFileSync(SEED_LYRICS_FILE, 'utf-8');
       const data = JSON.parse(content);
       return Array.isArray(data) ? data : (data.lyrics || []);
     }
