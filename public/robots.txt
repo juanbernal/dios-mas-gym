@@ -6,7 +6,6 @@ Allow: /bio/
 
 # Bloquear panel admin y rutas internas de API
 Disallow: /admin/
-Disallow: /admin
 Disallow: /api/
 
 # Bloquear parámetros de caché/debug que generan contenido duplicado
@@ -21,7 +20,5 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-# Sitemap principal
+# Sitemap principal (el índice ya referencia todos los sub-sitemaps)
 Sitemap: https://www.diosmasgym.com/sitemap.xml
-Sitemap: https://www.diosmasgym.com/sitemap.xml?sub=songs
-Sitemap: https://www.diosmasgym.com/sitemap.xml?sub=lyrics

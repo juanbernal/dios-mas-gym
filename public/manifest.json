@@ -1,24 +1,34 @@
 {
-  "short_name": "Panel Arsenal",
-  "name": "Panel de Control Diosmasgym",
+  "short_name": "Dios Mas Gym",
+  "name": "Dios Mas Gym | El Arsenal de Fe",
   "icons": [
     {
       "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": "/admin",
-  "scope": "/admin",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#05070a",
-  "theme_color": "#c5a059",
-  "description": "Centro de mando para Diosmasgym Records."
+  "theme_color": "#05070a",
+  "description": "El Arsenal de Fe — Música cristiana, rap cristiano y corridos de motivación de Dios Mas Gym y Juan 614.",
+  "categories": ["music", "entertainment"],
+  "lang": "es",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
 }

@@ -382,7 +382,21 @@ export default async function handler(
       return res.status(400).json({ error: 'URL parameter is required' });
     }
 
+    // Security: only allow known image CDN domains to prevent SSRF
+    const ALLOWED_IMAGE_DOMAINS = [
+      'i.ytimg.com', 'img.youtube.com', 'i1.sndcdn.com', 'i2.sndcdn.com', 'i3.sndcdn.com',
+      'lh3.googleusercontent.com', 'lh4.googleusercontent.com', 'lh5.googleusercontent.com',
+      'blogger.googleusercontent.com', 'storage.googleapis.com', 'i.scdn.co',
+      'mosaic.scdn.co', 'seeded-session-images.scdn.co', 'lineup-images.scdn.co',
+      'is1-ssl.mzstatic.com', 'is2-ssl.mzstatic.com', 'is3-ssl.mzstatic.com',
+      'resources.tidal.com', 'cdns-images.dzcdn.net'
+    ];
     try {
+      const parsedUrl = new URL(imageUrl);
+      if (!ALLOWED_IMAGE_DOMAINS.some(d => parsedUrl.hostname.endsWith(d))) {
+        return res.status(403).json({ error: 'Domain not allowed for proxy' });
+      }
+
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
 
@@ -411,28 +425,7 @@ export default async function handler(
     }
   }
 
-  // -------------------------------------------------------------
-  // ACTION: DEBUG SSR (Temporary diagnostic endpoint)
-  // -------------------------------------------------------------
-  if (action === 'debug-ssr') {
-    const slug = (req.query.slug as string) || 'reflexion-superficial';
-    const targetSlug = slug.toLowerCase();
-    const feedUrl = `https://www.diosmasgym.com/feeds/posts/default?alt=json&max-results=50&orderby=published`;
-    try {
-      const feedResp = await fetch(feedUrl);
-      const feedData = await feedResp.json();
-      const entries: any[] = feedData?.feed?.entry || [];
-      const results = entries.map((e: any) => {
-        const altLink = (e.link || []).find((l: any) => l.rel === 'alternate');
-        const entrySlug = (altLink?.href?.split('/').pop()?.replace('.html', '') || '').toLowerCase();
-        return { title: e.title?.$t, slug: entrySlug, match: entrySlug === targetSlug || entrySlug.startsWith(targetSlug.slice(0, 25)) };
-      });
-      const matched = results.find(r => r.match);
-      return res.status(200).json({ slug, feedUrl, total: entries.length, matched, first5: results.slice(0, 5) });
-    } catch (err: any) {
-      return res.status(200).json({ error: err.message, feedUrl });
-    }
-  }
+  // debug-ssr endpoint removed from production for security
 
   // -------------------------------------------------------------
   // ACTION: YOUTUBE TOP VIDEOS (server-side — bypasses API key referrer restriction)
@@ -482,9 +475,12 @@ export default async function handler(
           });
         });
       }
-    const apiKey = (process.env.BLOGGER_API_KEY || '').trim().replace(/^["']|["']$/g, '');
-    const playlistId = 'PLUq1X171bN-pG15Xl7p6E09pZ8r1wY7l7';
-    return res.status(200).json({ items: [] });
+      allVideos.sort((a: any, b: any) => b.views - a.views);
+      return res.status(200).json({ items: allVideos });
+    } catch (err: any) {
+      console.error('[youtube-top] Error:', err);
+      return res.status(200).json({ items: [] });
+    }
   }
 
   // -------------------------------------------------------------
@@ -663,7 +659,7 @@ export default async function handler(
       if (refresh) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       } else {
-        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+        res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
       }
       
       res.setHeader('Content-Type', 'text/csv');
@@ -898,7 +894,7 @@ export default async function handler(
       return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
-    if (INPUT_KEY === MASTER_KEY) {
+    if (timingSafeCompare(INPUT_KEY, MASTER_KEY)) {
       return res.status(200).json({ success: true, message: 'Authenticated successfully' });
     } else {
       return res.status(401).json({ success: false, message: 'Invalid password' });
@@ -1639,7 +1635,9 @@ ${JSON.stringify(schemaJsonLd, null, 2)}
 
       const safeTitle = escapeXml(pageTitle);
       const safeDesc = escapeXml(pageDescription);
-      const safeImage = escapeXml(songCover);
+      // Always use absolute URL for og:image (Facebook/WhatsApp won't resolve relative URLs)
+      const absoluteSongCover = songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover.startsWith('/') ? '' : '/'}${songCover}`;
+      const safeImage = escapeXml(absoluteSongCover);
 
       html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
       html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);

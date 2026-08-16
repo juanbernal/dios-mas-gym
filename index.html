@@ -69,7 +69,7 @@
       "description": "Música cristiana, rap cristiano y corridos de motivación. Disciplina, valentía y fe.",
       "genre": ["Música Cristiana", "Rap Cristiano", "Corridos"],
       "sameAs": [
-        "https://open.spotify.com/artist/diosmasgym",
+        "https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do",
         "https://www.youtube.com/@diosmasgym",
         "https://www.instagram.com/diosmasgym"
       ],
@@ -145,7 +145,6 @@
                 notifyButton: { enable: false },
                 serviceWorkerParam: { scope: '/' },
                 serviceWorkerPath: '/OneSignalSDKWorker.js',
-                allowLocalhostAsSecureOrigin: true,
             });
         });
     </script>
@@ -154,21 +153,26 @@
     <script>
         // MASTER RESET SCRIPT (v5.0.6)
         const APP_VERSION = '5.0.6';
-        if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
-            console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
-            localStorage.setItem('app_version', APP_VERSION);
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) { registration.unregister(); }
-                });
+        try {
+            if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
+                console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
+                localStorage.setItem('app_version', APP_VERSION);
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) { registration.unregister(); }
+                    });
+                }
+                if (window.caches) {
+                    caches.keys().then(function(names) {
+                        for (let name of names) caches.delete(name);
+                    });
+                }
+                // Only reload if localStorage write succeeded (avoids infinite loop in private mode)
+                if (localStorage.getItem('app_version') === APP_VERSION) {
+                    setTimeout(() => { window.location.reload(true); }, 500);
+                }
             }
-            if (window.caches) {
-                caches.keys().then(function(names) {
-                    for (let name of names) caches.delete(name);
-                });
-            }
-            setTimeout(() => { window.location.reload(true); }, 500);
-        }
+        } catch(e) { /* localStorage blocked, skip reset */ }
     </script>
     <script>
       // Backward compatibility for old hash URLs (#/post/...)
