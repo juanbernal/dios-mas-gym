@@ -891,6 +891,7 @@ ${cleanedLyrics}`;
                                         )}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/40 mr-2">ARTISTA:</span>
                                         <button 
                                             onClick={() => setSelectedLyric({...selectedLyric, artist: 'Dios Mas Gym'})}
                                             className={`text-[7px] md:text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Dios Mas Gym' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
@@ -1370,39 +1371,48 @@ ${cleanedLyrics}`;
                 <div className="bg-[#0a0c14] border border-white/10 rounded-3xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
                     <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-gradient-to-r from-[#00ffcc]/10 to-transparent">
                         <div className="w-12 h-12 bg-[#00ffcc]/10 rounded-2xl flex items-center justify-center text-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.1)]">
-                            <i className="fas fa-music text-xl"></i>
+                            <i className="fas fa-search text-xl"></i>
                         </div>
                         <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-white">Nueva <span className="text-[#00ffcc]">Letra</span></h3>
-                            <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/40">Crear un borrador local</p>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-white">Buscar <span className="text-[#00ffcc]">Canción</span></h3>
+                            <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/40">Selecciona del catálogo</p>
                         </div>
                     </div>
                     <div className="p-8">
                         <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">
-                            Título de la Canción
+                            Buscar en el catálogo o escribir nuevo
                         </label>
                         <div className="relative">
-                            <i className="fas fa-pen-nib absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
+                            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
                             <input
                                 autoFocus
                                 type="text"
-                                placeholder="Ej: Fuerte y Valiente..."
+                                placeholder="Escribe el nombre de la canción..."
                                 value={newLyricTitle}
                                 onChange={(e) => setNewLyricTitle(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && newLyricTitle.trim()) {
-                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
-                                        setSelectedLyric(newLyric);
-                                        setSavedSignature(getSignature(newLyric));
-                                        setPreviewMode(false);
-                                        setViewMode('editor');
-                                        setShowNewLyricModal(false);
-                                    } else if (e.key === 'Escape') {
-                                        setShowNewLyricModal(false);
-                                    }
-                                }}
                                 className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#00ffcc]/50 focus:ring-1 focus:ring-[#00ffcc]/30 transition-all font-medium"
                             />
+                            {newLyricTitle.trim() && catalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0c14] border border-white/10 rounded-xl max-h-[200px] overflow-y-auto z-50 shadow-2xl">
+                                    {catalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
+                                        <button
+                                            key={song.id}
+                                            onClick={() => {
+                                                const newLyric = { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                                setSelectedLyric(newLyric);
+                                                setSavedSignature(getSignature(newLyric));
+                                                setPreviewMode(false);
+                                                setViewMode('editor');
+                                                setShowNewLyricModal(false);
+                                            }}
+                                            className="w-full flex flex-col text-left px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
+                                        >
+                                            <span className="text-white text-sm font-bold">{song.name}</span>
+                                            <span className="text-[#00ffcc]/60 text-[9px] uppercase tracking-wider">{song.artist}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3">
@@ -1426,7 +1436,7 @@ ${cleanedLyrics}`;
                             disabled={!newLyricTitle.trim()}
                             className="px-8 py-3 bg-[#00ffcc] text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.2)]"
                         >
-                            Crear
+                            Crear Manual
                         </button>
                     </div>
                 </div>

@@ -516,30 +516,61 @@ export default async function handler(
   // -------------------------------------------------------------
   if (action === 'links') {
     const artist = req.query.artist as string;
-    const fileName = artist === 'juan614' ? 'links_juan614.json' : 'links.json';
-    const LINKS_FILE = path.join(process.cwd(), 'data', fileName);
+    const isJuan = artist === 'juan614';
+    const fileName = isJuan ? 'links_juan614.json' : 'links.json';
+    const TMP_LINKS_FILE = path.join('/tmp', fileName);
+    const SEED_LINKS_FILE = path.join(process.cwd(), 'data', fileName);
+    // Utilizamos un GS_LINKS_URL separado o reutilizamos el de lyrics si el usuario configura su Apps Script para manejar "action=save-links"
+    const GS_LINKS_URL = process.env.GS_LINKS_URL || process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+
+    const defaultProfile = isJuan ? {
+      name: "Juan 614",
+      bio: "Corridos, banda sinaloense y calle con propósito",
+      avatar: "/logo-juan614-v2.jpg"
+    } : { 
+      name: "Dios Mas Gym", 
+      bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
+      avatar: "/logo-diosmasgym.png" 
+    };
+
+    const readLinksFromDisk = () => {
+      try {
+        if (fs.existsSync(TMP_LINKS_FILE)) {
+          return JSON.parse(fs.readFileSync(TMP_LINKS_FILE, 'utf-8'));
+        }
+      } catch {}
+      try {
+        if (fs.existsSync(SEED_LINKS_FILE)) {
+          return JSON.parse(fs.readFileSync(SEED_LINKS_FILE, 'utf-8'));
+        }
+      } catch {}
+      return { links: [], profile: defaultProfile };
+    };
 
     if (req.method === 'GET') {
       try {
-        if (!fs.existsSync(LINKS_FILE)) {
-          const defaultProfile = artist === 'juan614' ? {
-            name: "Juan 614",
-            bio: "Corridos, banda sinaloense y calle con propósito",
-            avatar: "/logo-juan614-v2.jpg"
-          } : { 
-            name: "Dios Mas Gym", 
-            bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
-            avatar: "/logo-diosmasgym.png" 
-          };
-
-          return res.json({ 
-            links: [], 
-            profile: defaultProfile 
-          });
+        // 1. Try fetching from Google Sheets (most up-to-date)
+        if (GS_LINKS_URL) {
+          try {
+            const gsRes = await fetch(`${GS_LINKS_URL}?action=list-links&artist=${isJuan ? 'juan614' : 'diosmasgym'}&t=${Date.now()}`);
+            if (gsRes.ok) {
+              const gsData = await gsRes.json();
+              if (gsData && gsData.links) {
+                // Cache in /tmp
+                try { fs.writeFileSync(TMP_LINKS_FILE, JSON.stringify(gsData, null, 2)); } catch {}
+                res.setHeader('Cache-Control', 'no-store, max-age=0');
+                return res.status(200).json(gsData);
+              }
+            }
+          } catch (e) {
+            console.error('[links GET] Google Sheets fetch error:', e);
+          }
         }
-        const data = fs.readFileSync(LINKS_FILE, 'utf-8');
+        
+        // 2. Fallback to /tmp or seed
+        const localData = readLinksFromDisk();
         res.setHeader('Cache-Control', 'no-store, max-age=0');
-        return res.status(200).json(JSON.parse(data));
+        return res.status(200).json(localData);
       } catch (error) {
         return res.status(500).json({ error: 'Error reading links' });
       }
@@ -551,10 +582,32 @@ export default async function handler(
       }
       try {
         const data = req.body;
-        const dir = path.dirname(LINKS_FILE);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(LINKS_FILE, JSON.stringify(data, null, 2));
-        return res.status(200).json({ success: true, message: "Saved locally" });
+        
+        // 1. Save to /tmp
+        try {
+          fs.writeFileSync(TMP_LINKS_FILE, JSON.stringify(data, null, 2));
+        } catch (e) {
+          console.error('[links POST] /tmp write error:', e);
+        }
+
+        // 2. Sync to Google Sheets
+        if (GS_LINKS_URL) {
+          try {
+            await fetch(GS_LINKS_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ 
+                action: 'save-links', 
+                artist: isJuan ? 'juan614' : 'diosmasgym',
+                data: data 
+              })
+            });
+          } catch (e) {
+            console.error('[links POST] Google Sheets sync error:', e);
+          }
+        }
+
+        return res.status(200).json({ success: true, message: "Saved locally and synced to GS" });
       } catch (error) {
         return res.status(500).json({ error: 'Error saving links' });
       }
