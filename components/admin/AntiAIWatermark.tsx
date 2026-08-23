@@ -9,7 +9,7 @@ const AntiAIWatermark: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark' | 'frames'>('logo');
     
     // Logo States
-    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'none'>('diosmasgym');
+    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'juan614' | 'none'>('diosmasgym');
     const [logoSize, setLogoSize] = useState<number>(19); // 19% default size
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
@@ -79,9 +79,11 @@ const AntiAIWatermark: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const diosmasgymLogoRef = useRef<HTMLImageElement>(new Image());
+    const juan614LogoRef = useRef<HTMLImageElement>(new Image());
 
     useEffect(() => {
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
+        juan614LogoRef.current.src = '/logo-juan614.jpg';
     }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -304,6 +306,7 @@ const AntiAIWatermark: React.FC = () => {
 
         let logoToDraw = null;
         if (logoSelection === 'diosmasgym') logoToDraw = diosmasgymLogoRef.current;
+        if (logoSelection === 'juan614') logoToDraw = juan614LogoRef.current;
 
         if (logoToDraw && logoToDraw.complete && logoToDraw.naturalWidth > 0) {
             const aspect = logoToDraw.height / logoToDraw.width;
@@ -1692,12 +1695,18 @@ const AntiAIWatermark: React.FC = () => {
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
                                     <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Sello Oficial</label>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-3 gap-2">
                                         <button 
                                             onClick={() => setLogoSelection('diosmasgym')}
                                             className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'diosmasgym' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
                                         >
                                             🏆 Diosmasgym
+                                        </button>
+                                        <button 
+                                            onClick={() => setLogoSelection('juan614')}
+                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'juan614' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
+                                        >
+                                            👑 Juan 614
                                         </button>
                                         <button 
                                             onClick={() => setLogoSelection('none')}
