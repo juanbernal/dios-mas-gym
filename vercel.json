@@ -67,6 +67,10 @@
       "destination": "/api/common?action=sheet-proxy"
     },
     {
+      "source": "/api/og-image",
+      "destination": "/api/og-image"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

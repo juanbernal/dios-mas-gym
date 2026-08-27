@@ -1562,6 +1562,9 @@ export default async function handler(
           image = song.cover;
         }
 
+        // Use branded OG image endpoint for better social sharing
+        const ogImageUrl = `https://www.diosmasgym.com/api/og-image?title=${encodeURIComponent(song.name)}&artist=${encodeURIComponent(song.artist)}&cover=${encodeURIComponent(song.cover || '')}&type=song`;
+
         jsonLdBlock = `
 <script type="application/ld+json">
 {
@@ -1574,10 +1577,23 @@ export default async function handler(
     "url": ${JSON.stringify(`https://www.diosmasgym.com/bio/${song.artist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
   },
   "url": ${JSON.stringify(`https://www.diosmasgym.com/link/${song.id}`)},
-  "image": ${JSON.stringify(image)},
+  "image": ${JSON.stringify(ogImageUrl)},
   "description": ${JSON.stringify(description)}
 }
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.diosmasgym.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Música", "item": "https://www.diosmasgym.com/" },
+    { "@type": "ListItem", "position": 3, "name": ${JSON.stringify(song.name)}, "item": ${JSON.stringify(`https://www.diosmasgym.com/link/${song.id}`)} }
+  ]
+}
 </script>`;
+        // Override image with branded OG image
+        image = ogImageUrl;
       } else if (id === 'custom' || (req.query.title && req.query.artist)) {
         const qTitle = req.query.title as string;
         const qArtist = req.query.artist as string;
@@ -1587,6 +1603,9 @@ export default async function handler(
         if (qTitle && qArtist) {
           title = `${qTitle} - ${qArtist}`;
           description = `Escucha "${qTitle}" de ${qArtist} en Spotify, YouTube, Apple Music, Deezer y más plataformas de streaming.`;
+
+          // Use branded OG image endpoint for custom smart links too
+          const ogImageUrl = `https://www.diosmasgym.com/api/og-image?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&type=song`;
           if (qCover) {
             image = qCover;
           }
@@ -1603,10 +1622,23 @@ export default async function handler(
     "url": ${JSON.stringify(`https://www.diosmasgym.com/bio/${qArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`)}
   },
   "url": ${JSON.stringify(`https://www.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}&cover=${encodeURIComponent(qCover || '')}&url=${encodeURIComponent(qUrl || '')}`)},
-  "image": ${JSON.stringify(image)},
+  "image": ${JSON.stringify(ogImageUrl)},
   "description": ${JSON.stringify(description)}
 }
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.diosmasgym.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Música", "item": "https://www.diosmasgym.com/" },
+    { "@type": "ListItem", "position": 3, "name": ${JSON.stringify(qTitle)}, "item": ${JSON.stringify(`https://www.diosmasgym.com/link/custom?title=${encodeURIComponent(qTitle)}&artist=${encodeURIComponent(qArtist)}`)} }
+  ]
+}
 </script>`;
+          // Override image with branded OG image
+          image = ogImageUrl;
         }
       }
 
@@ -1760,6 +1792,12 @@ export default async function handler(
       const descriptionSnippet = lyricText ? lyricText.substring(0, 160).replace(/\n+/g, ' ') : `Lee la letra oficial de "${songTitle}" interpretada por ${songArtist}.`;
       const pageDescription = `Letra oficial de "${songTitle}" por ${songArtist}. ${descriptionSnippet}`;
 
+      // Calculate absolute cover URL first (needed for ogImageUrl)
+      const absoluteSongCover = songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover.startsWith('/') ? '' : '/'}${songCover}`;
+
+      // Branded OG image URL for letra pages
+      const ogImageUrl = `https://www.diosmasgym.com/api/og-image?title=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(songArtist)}&cover=${encodeURIComponent(absoluteSongCover)}&type=lyrics`;
+
       const schemaJsonLd = {
         "@context": "https://schema.org",
         "@type": "MusicRecording",
@@ -1770,7 +1808,7 @@ export default async function handler(
           "url": `https://www.diosmasgym.com/bio/${songArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}`
         },
         "url": canonicalUrl,
-        "image": songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover}`,
+        "image": ogImageUrl,
         "description": pageDescription,
         ...(lyricText ? {
           "recordingOf": {
@@ -1788,18 +1826,30 @@ export default async function handler(
         } : {})
       };
 
+      const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.diosmasgym.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Letras", "item": "https://www.diosmasgym.com/letras" },
+          { "@type": "ListItem", "position": 3, "name": songTitle, "item": canonicalUrl }
+        ]
+      };
+
       const jsonLdBlock = `
 <script type="application/ld+json">
 ${JSON.stringify(schemaJsonLd, null, 2)}
+</script>
+<script type="application/ld+json">
+${JSON.stringify(breadcrumbJsonLd, null, 2)}
 </script>`;
 
       let html = await getBaseIndexHtml();
 
       const safeTitle = escapeXml(pageTitle);
       const safeDesc = escapeXml(pageDescription);
-      // Always use absolute URL for og:image (Facebook/WhatsApp won't resolve relative URLs)
-      const absoluteSongCover = songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover.startsWith('/') ? '' : '/'}${songCover}`;
-      const safeImage = escapeXml(absoluteSongCover);
+      // Use branded OG image for social sharing meta tags
+      const safeImage = escapeXml(ogImageUrl);
 
       html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
       html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
