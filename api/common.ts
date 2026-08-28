@@ -1104,7 +1104,7 @@ export default async function handler(
       let storedLyrics: any[] = [];
       try { 
         songs = await fetchAllMusic(); 
-        storedLyrics = getStoredLyrics();
+        storedLyrics = await getStoredLyrics();
       } catch (e) { 
         console.error('lyrics sitemap fetch error', e); 
       }

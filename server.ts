@@ -45,6 +45,11 @@ async function startServer() {
     commonHandler(req as any, res as any);
   });
 
+  app.all("/api/lyrics", (req, res) => {
+    req.query.action = 'lyrics';
+    commonHandler(req as any, res as any);
+  });
+
   app.post("/api/verify-password", (req, res) => {
     req.query.action = 'verify-password';
     commonHandler(req as any, res as any);
