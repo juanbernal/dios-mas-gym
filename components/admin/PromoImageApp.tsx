@@ -1759,7 +1759,7 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
                       <div style={{ width: config.title * 2.8, height: config.title * 1.4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                         <img
-                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.jpg' : '/logo-diosmasgym.png'}
+                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
                           style={{
                             maxWidth: '100%',
                             maxHeight: '100%',

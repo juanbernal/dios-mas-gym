@@ -14,7 +14,7 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
   const description = isDios
     ? "Urbano cristiano, disciplina y fe en movimiento"
     : "Corridos, banda sinaloense y calle con propósito";
-  const artistLogo = isDios ? '/logo-diosmasgym.png' : '/logo-juan614-v2.jpg';
+  const artistLogo = isDios ? '/logo-diosmasgym.png' : '/logo-juan614-v2.png';
   const artistUrl = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
   const accentBlue = isDios ? '#2563a8' : '#1e3a5f';
 

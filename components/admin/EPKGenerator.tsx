@@ -84,7 +84,7 @@ const EPKGenerator: React.FC = () => {
                         { title: 'Fe Intacta', streams: '85K' },
                         { title: 'Disciplina', streams: '50K' }
                     ]);
-                    setRandomCover(isJuan ? "/logo-juan614-v2.jpg" : "/logo-diosmasgym.png");
+                    setRandomCover(isJuan ? "/logo-juan614-v2.png" : "/logo-diosmasgym.png");
                     
                     setStats({
                         spotify: '10K+',
@@ -226,7 +226,7 @@ const EPKGenerator: React.FC = () => {
                                         inset: 0,
                                         width: '100%',
                                         height: '100%',
-                                        backgroundImage: `url(${getCorsFriendlyUrl(randomCover || (isJuan ? "/logo-juan614-v2.jpg" : "/logo-diosmasgym.png"))})`,
+                                        backgroundImage: `url(${getCorsFriendlyUrl(randomCover || (isJuan ? "/logo-juan614-v2.png" : "/logo-diosmasgym.png"))})`,
                                         backgroundSize: 'cover',
                                         backgroundPosition: 'center',
                                         backgroundRepeat: 'no-repeat'

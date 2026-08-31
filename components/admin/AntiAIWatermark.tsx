@@ -83,7 +83,7 @@ const AntiAIWatermark: React.FC = () => {
 
     useEffect(() => {
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
-        juan614LogoRef.current.src = '/logo-juan614.jpg';
+        juan614LogoRef.current.src = '/logo-juan614.png';
     }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

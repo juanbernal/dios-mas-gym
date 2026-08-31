@@ -526,7 +526,7 @@ export default async function handler(
     const defaultProfile = isJuan ? {
       name: "Juan 614",
       bio: "Corridos, banda sinaloense y calle con propósito",
-      avatar: "/logo-juan614-v2.jpg"
+      avatar: "/logo-juan614-v2.png"
     } : { 
       name: "Dios Mas Gym", 
       bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
@@ -1225,7 +1225,7 @@ export default async function handler(
       ? 'Corridos tumbados, banda sinaloense y calle con propósito. Música cristiana con identidad.'
       : 'El Arsenal de Fe — Música cristiana, rap y corridos de motivación. Reflexiones de disciplina, valentía y fe.';
     const image = isJuan
-      ? 'https://www.diosmasgym.com/logo-juan614-v2.jpg'
+      ? 'https://www.diosmasgym.com/logo-juan614-v2.png'
       : 'https://www.diosmasgym.com/icon-512.png';
     const canonicalUrl = `https://www.diosmasgym.com/bio/${artist.toLowerCase()}`;
     const title = `${name} | Bio — El Arsenal de Fe`;

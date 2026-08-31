@@ -56,7 +56,7 @@ const LinkBioPublic: React.FC = () => {
                     console.warn("API returned empty data, using fallback.");
                     if (artist === 'juan614') {
                         setData({
-                            profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.jpg" },
+                            profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.png" },
                             links: []
                         });
                     } else {
@@ -69,7 +69,7 @@ const LinkBioPublic: React.FC = () => {
                 console.error("Error loading bio links, using fallback:", err);
                 if (artist === 'juan614') {
                     setData({
-                        profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.jpg" },
+                        profile: { name: "Juan 614", bio: "Corridos, banda sinaloense y calle con propósito", avatar: "/logo-juan614-v2.png" },
                         links: []
                     });
                 } else {
