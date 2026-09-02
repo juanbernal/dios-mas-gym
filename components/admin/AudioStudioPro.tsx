@@ -436,7 +436,7 @@ const AudioStudioPro:React.FC=()=>{
               <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
                 <i className="fas fa-layer-group text-purple-400"></i> Separador de Pistas (IA)
               </h2>
-              <p className="text-white/30 text-xs mt-1">Extrae voces, batería, bajo y melodía usando Inteligencia Artificial.</p>
+              <p className="text-white/30 text-xs mt-1">Extrae voces, batería, bajo, piano, guitarra y melodía usando Inteligencia Artificial.</p>
             </div>
             
             {!aiStems ? (
@@ -466,14 +466,18 @@ const AudioStudioPro:React.FC=()=>{
                       <i className={`fas ${
                         name==='vocals' ? 'fa-microphone' :
                         name==='drums' ? 'fa-drum' :
-                        name==='bass' ? 'fa-guitar' : 'fa-music'
+                        name==='bass' ? 'fa-guitar' : 
+                        name==='piano' ? 'fa-compact-disc' : 
+                        name==='guitar' ? 'fa-bolt' : 'fa-music'
                       } text-2xl text-purple-400`}></i>
                     </div>
                     <div className="flex-1">
                       <p className="text-white font-bold uppercase tracking-widest text-[10px] mb-2">
                         {name==='vocals' ? 'Voces (Acapella)' :
                          name==='drums' ? 'Batería (Drums)' :
-                         name==='bass' ? 'Bajo (Bass)' : 'Otros (Melodía)'}
+                         name==='bass' ? 'Bajo (Bass)' : 
+                         name==='piano' ? 'Piano / Teclados' :
+                         name==='guitar' ? 'Guitarra (Guitar)' : 'Otros (Melodía)'}
                       </p>
                       <audio src={url as string} controls className="w-full h-8" />
                     </div>

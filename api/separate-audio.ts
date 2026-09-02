@@ -20,7 +20,8 @@ export default async function handler(req: Request, res: Response) {
         body: JSON.stringify({
           version: "abf8fe28e407afa6d8e41e86a759caccc0af8e49c3c68016006b62cb0968441e", // htdemucs
           input: {
-            audio: audioUrl
+            audio: audioUrl,
+            model_name: "htdemucs_6s"
           }
         }),
       });
