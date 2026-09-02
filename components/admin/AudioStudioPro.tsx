@@ -168,7 +168,7 @@ const AudioStudioPro:React.FC=()=>{
       if(meta.trackNumber)frames.push(mktf('TRCK',meta.trackNumber));
       if(meta.comment){const lb=enc.encode('spa');const tb=enc.encode(meta.comment);const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='COMM';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       setExportPct(55);
-      if(cov&&cov.length>0){
+      if(cov&&cov.length>0 && !fi.name.toLowerCase().endsWith('.wav')){
         const mb=enc.encode('image/jpeg');const d=new Uint8Array(1+mb.length+1+1+1+cov.length);
         let pos=0;d[pos++]=0;d.set(mb,pos);pos+=mb.length;d[pos++]=0;d[pos++]=3;d[pos++]=0;d.set(cov,pos);
         const fr=new Uint8Array(10+d.length);const id='APIC';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);
