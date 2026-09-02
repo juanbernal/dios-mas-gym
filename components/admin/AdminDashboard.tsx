@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog, deduplicateCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import WeeklyContentAssistant from './WeeklyContentAssistant';
-import AppleMusicImporter from './AppleMusicImporter';
-import { useOneSignal } from '../../services/useOneSignal';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -24,7 +22,7 @@ const AdminDashboard: React.FC = () => {
     const [showCatalogModal, setShowCatalogModal] = useState(false);
     const [catalogFilter, setCatalogFilter] = useState<'oficiales' | 'unicas' | 'raw' | 'diosmasgym' | 'juan614'>('oficiales');
     const [catalogSearch, setCatalogSearch] = useState('');
-    const push = useOneSignal();
+
 
     const loadMusicCatalog = async (forceRefresh = false) => {
         setIsSyncingMusic(true);
@@ -163,15 +161,6 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
-            id: 'social-post',
-            title: 'Viral Post Generator',
-            description: 'Convierte letras y títulos en publicaciones de alto impacto para redes sociales con IA estratégica.',
-            icon: 'fa-bullhorn',
-            color: '#fbbf24',
-            route: '/admin/social-post',
-            category: 'Marketing & Social'
-        },
-        {
             id: 'smart-links',
             title: 'Smart Links',
             description: 'Genera enlaces únicos (Pre-Saves) para tus canciones con landing pages dinámicas para cada artista.',
@@ -226,15 +215,6 @@ const AdminDashboard: React.FC = () => {
             category: 'Métricas & Audiencia'
         },
         {
-            id: 'seo-dashboard',
-            title: 'Dashboard SEO',
-            description: 'Auditoría de indexado en Google, Core Web Vitals en tiempo real, meta tags, sitemap y robots.txt.',
-            icon: 'fa-magnifying-glass-chart',
-            color: '#10b981',
-            route: '/admin/seo-dashboard',
-            category: 'Métricas & Audiencia'
-        },
-        {
             id: 'maintenance',
             title: 'Control de Mantenimiento',
             description: 'Activa o desactiva el modo de mantenimiento global de la página y configura el video animado.',
@@ -262,22 +242,13 @@ const AdminDashboard: React.FC = () => {
             category: 'Marketing & Social'
         },
         {
-            id: 'apple-music',
-            title: 'Apple Music Importer',
-            description: 'Encuentra y extrae el catálogo faltante directamente desde Apple Music.',
-            icon: 'fab fa-apple',
-            color: '#111111',
-            route: '/admin/apple-music',
-            category: 'Gestión y Utilidades'
-        },
-        {
-            id: 'push-notifications',
-            title: 'Push Notifications + Scheduler',
-            description: 'Envía alertas instantáneas o prográmalas para el futuro. Cola de notificaciones con historial de envíos.',
-            icon: 'fa-bell',
-            color: '#f43f5e',
-            route: '/admin/push-notifications',
-            category: 'Marketing & Social'
+            id: 'audio-studio',
+            title: 'Audio Studio Pro',
+            description: 'Estudio completo para tu música: sube tu WAV/MP3, edita metadatos ID3, añade tu marca de agua al artwork, visualiza la forma de onda y exporta con todo corregido.',
+            icon: 'fa-waveform-lines',
+            color: '#a855f7',
+            route: '/admin/audio-studio',
+            category: 'Estudio de Música'
         }
     ];
 
@@ -502,17 +473,6 @@ const AdminDashboard: React.FC = () => {
                                 className="w-full bg-[#0f111a] border border-white/10 rounded-full pl-11 pr-5 py-3 text-xs text-white outline-none focus:border-[#4a90d9]/40"
                             />
                         </div>
-                        {push.isSupported && (
-                            <button 
-                                onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
-                                className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-3 px-5 py-2.5 rounded-full border transition-all ${
-                                    push.isSubscribed ? 'border-[#4a90d9]/40 text-[#4a90d9]' : 'border-white/10 text-white/30'
-                                }`}
-                            >
-                                <i className={`fas ${push.isSubscribed ? 'fa-bell' : 'fa-bell-slash'}`}></i>
-                                {push.isSubscribed ? 'Notificaciones On' : 'Activar Alertas'}
-                            </button>
-                        )}
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-8">

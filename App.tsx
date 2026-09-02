@@ -36,7 +36,6 @@ const CanvasCreator = React.lazy(() => import('./components/admin/CanvasCreator'
 const LyricStudio = React.lazy(() => import('./components/admin/LyricStudio'));
 const ProximosLanzamientos = React.lazy(() => import('./components/admin/ProximosLanzamientos'));
 const LyricCleaner = React.lazy(() => import('./components/admin/LyricCleaner'));
-const SocialPostGenerator = React.lazy(() => import('./components/admin/SocialPostGenerator'));
 const AIPressRelease = React.lazy(() => import('./components/admin/AIPressRelease'));
 const MetadataTagger = React.lazy(() => import('./components/admin/MetadataTagger'));
 const LinkBioAdmin = React.lazy(() => import('./components/admin/LinkBioAdmin'));
@@ -45,7 +44,6 @@ const SmartLinkVideoGenerator = React.lazy(() => import('./components/admin/Smar
 const LyricsManager = React.lazy(() => import('./components/admin/LyricsManager'));
 const ContentCalendar = React.lazy(() => import('./components/admin/ContentCalendar'));
 const AntiAIWatermark = React.lazy(() => import('./components/admin/AntiAIWatermark'));
-const PushNotificationsAdmin = React.lazy(() => import('./components/admin/PushNotificationsAdmin'));
 const AnalyticsDashboard = React.lazy(() => import('./components/admin/AnalyticsDashboard'));
 const MusicVideoPromptGenerator = React.lazy(() => import('./components/admin/MusicVideoPromptGenerator'));
 const CustomPromoCreator = React.lazy(() => import('./components/admin/CustomPromoCreator'));
@@ -53,12 +51,11 @@ const SplitSheetGenerator = React.lazy(() => import('./components/admin/SplitShe
 const MaintenanceAdmin = React.lazy(() => import('./components/admin/MaintenanceAdmin'));
 const MunicionFe = React.lazy(() => import('./components/admin/MunicionFe'));
 const Top5SocialGenerator = React.lazy(() => import('./components/admin/Top5SocialGenerator'));
-const AppleMusicImporter = React.lazy(() => import('./components/admin/AppleMusicImporter'));
 const StoryCountdownCreator = React.lazy(() => import('./components/admin/StoryCountdownCreator'));
 const PostScheduler = React.lazy(() => import('./components/admin/PostScheduler'));
 const MusicPromoHub = React.lazy(() => import('./components/admin/MusicPromoHub'));
-const SEODashboard = React.lazy(() => import('./components/admin/SEODashboard'));
 const WeeklyContentAssistant = React.lazy(() => import('./components/admin/WeeklyContentAssistant'));
+const AudioStudioPro = React.lazy(() => import('./components/admin/AudioStudioPro'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -431,7 +428,6 @@ const App: React.FC = () => {
                 <Route path="lyric-studio" element={<AdminAuthWrapper><LyricStudio/></AdminAuthWrapper>} />
                 <Route path="lyric-cleaner" element={<AdminAuthWrapper><LyricCleaner/></AdminAuthWrapper>} />
                 <Route path="proximos-lanzamientos" element={<AdminAuthWrapper><ProximosLanzamientos/></AdminAuthWrapper>} />
-                <Route path="social-post" element={<AdminAuthWrapper><SocialPostGenerator/></AdminAuthWrapper>} />
                 <Route path="press-release" element={<AdminAuthWrapper><AIPressRelease/></AdminAuthWrapper>} />
                 <Route path="metadata-tagger" element={<AdminAuthWrapper><MetadataTagger/></AdminAuthWrapper>} />
                 <Route path="links" element={<AdminAuthWrapper><LinkBioAdmin/></AdminAuthWrapper>} />
@@ -440,7 +436,6 @@ const App: React.FC = () => {
                 <Route path="lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
                 <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
-                <Route path="push-notifications" element={<AdminAuthWrapper><PushNotificationsAdmin/></AdminAuthWrapper>} />
                 <Route path="analytics" element={<AdminAuthWrapper><AnalyticsDashboard/></AdminAuthWrapper>} />
                 <Route path="music-video-prompt" element={<AdminAuthWrapper><MusicVideoPromptGenerator/></AdminAuthWrapper>} />
                 <Route path="custom-promo" element={<AdminAuthWrapper><CustomPromoCreator/></AdminAuthWrapper>} />
@@ -448,12 +443,11 @@ const App: React.FC = () => {
                 <Route path="maintenance" element={<AdminAuthWrapper><MaintenanceAdmin/></AdminAuthWrapper>} />
                 <Route path="municion-fe" element={<AdminAuthWrapper><MunicionFe/></AdminAuthWrapper>} />
                 <Route path="top5-social" element={<AdminAuthWrapper><Top5SocialGenerator/></AdminAuthWrapper>} />
-                <Route path="apple-music" element={<AdminAuthWrapper><AppleMusicImporter/></AdminAuthWrapper>} />
                 <Route path="story-countdown" element={<AdminAuthWrapper><StoryCountdownCreator/></AdminAuthWrapper>} />
                 <Route path="post-scheduler" element={<AdminAuthWrapper><PostScheduler/></AdminAuthWrapper>} />
                 <Route path="music-promo-hub" element={<AdminAuthWrapper><MusicPromoHub/></AdminAuthWrapper>} />
-                <Route path="seo-dashboard" element={<AdminAuthWrapper><SEODashboard/></AdminAuthWrapper>} />
                 <Route path="weekly-content" element={<AdminAuthWrapper><WeeklyContentAssistant catalog={combinedCatalog}/></AdminAuthWrapper>} />
+                <Route path="audio-studio" element={<AdminAuthWrapper><AudioStudioPro/></AdminAuthWrapper>} />
               </Routes>
             </React.Suspense>
           } />
