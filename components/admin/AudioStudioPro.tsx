@@ -57,7 +57,7 @@ const AudioStudioPro:React.FC=()=>{
   const navigate=useNavigate();
   const [tab,setTab]=useState<TabId>('loader');
   const [fi,setFi]=useState<AudioFileInfo|null>(null);
-  const [meta,setMeta]=useState<AudioMetadata>({title:'',artist:'',album:'',year:'',genre:'Gospel',composer:'',bpm:'',comment:'',isrc:'',label:'',trackNumber:'1'});
+  const [meta,setMeta]=useState<AudioMetadata>({title:'',artist:'Diosmasgym',album:'',year:'',genre:'Gospel',composer:'Juan Bernal',bpm:'',comment:'',isrc:'',label:'Diosmasgym Records',trackNumber:'1'});
   const [drag,setDrag]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
   const [wave,setWave]=useState<Float32Array|null>(null);
@@ -96,7 +96,7 @@ const AudioStudioPro:React.FC=()=>{
       const info:AudioFileInfo={name:file.name,size:file.size,type:file.type||(file.name.endsWith('.wav')?'audio/wav':'audio/mpeg'),duration:ab.duration,sampleRate:ab.sampleRate,channels:ab.numberOfChannels,bitDepth:file.name.endsWith('.wav')?'16/24-bit PCM':'Comprimido',arrayBuffer:buf,objectUrl:url,coverArtUrl:coverUrl,coverArtBytes:coverBytes};
       setFi(info);
       const guess=file.name.replace(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i,'').replace(/[_-]/g,' ');
-      setMeta({title:tags.title||guess,artist:tags.artist||'',album:tags.album||'',year:tags.year||String(new Date().getFullYear()),genre:tags.genre||'Gospel',composer:tags.composer||'',bpm:tags.bpm||'',comment:tags.comment||'',isrc:tags.isrc||'',label:tags.label||'',trackNumber:tags.trackNumber||'1'});
+      setMeta({title:tags.title||guess,artist:tags.artist||'Diosmasgym',album:tags.album||'',year:tags.year||String(new Date().getFullYear()),genre:tags.genre||'Gospel',composer:'Juan Bernal',bpm:tags.bpm||'',comment:tags.comment||'',isrc:tags.isrc||'',label:'Diosmasgym Records',trackNumber:tags.trackNumber||'1'});
       setDirty(false);setArtPrev(coverUrl);setArtFile(null);
       if(ab.duration>0){
         const ch=ab.getChannelData(0);const samples=800;const bsz=Math.floor(ch.length/samples);
@@ -183,7 +183,20 @@ const AudioStudioPro:React.FC=()=>{
       const ob=new Uint8Array(fi.arrayBuffer);let as2=0;
       if(ob[0]===0x49&&ob[1]===0x44&&ob[2]===0x33){const os=((ob[6]&0x7f)<<21)|((ob[7]&0x7f)<<14)|((ob[8]&0x7f)<<7)|(ob[9]&0x7f);as2=10+os;}
       setExportPct(90);
-      const ad=ob.slice(as2);const ff=new Uint8Array(hdr.length+ad.length);ff.set(hdr,0);ff.set(ad,hdr.length);
+      const ad=ob.slice(as2);
+      let ff: Uint8Array;
+      if (fi.name.toLowerCase().endsWith('.wav') && ob[0]===0x52 && ob[1]===0x49 && ob[2]===0x46 && ob[3]===0x46) {
+        const sz = hdr.length; const pad = sz % 2;
+        ff = new Uint8Array(ob.length + 8 + sz + pad);
+        ff.set(ob, 0);
+        const dv = new DataView(ff.buffer);
+        dv.setUint32(4, dv.getUint32(4, true) + 8 + sz + pad, true);
+        ff[ob.length]=0x69; ff[ob.length+1]=0x64; ff[ob.length+2]=0x33; ff[ob.length+3]=0x20;
+        dv.setUint32(ob.length+4, sz, true);
+        ff.set(hdr, ob.length+8);
+      } else {
+        ff = new Uint8Array(hdr.length+ad.length); ff.set(hdr,0); ff.set(ad,hdr.length);
+      }
       const ext=fi.name.split('.').pop()||'mp3';const sn=(meta.title||fi.name.replace(/\.[^.]+$/,'')).replace(/[<>:"/\\|?*]/g,'').trim();
       const bl=new Blob([ff],{type:fi.type||'audio/mpeg'});const u=URL.createObjectURL(bl);
       const a=document.createElement('a');a.href=u;a.download=`${sn}.${ext}`;a.click();URL.revokeObjectURL(u);
@@ -199,11 +212,11 @@ const AudioStudioPro:React.FC=()=>{
     {id:'waveform',l:'Forma de Onda',i:'fa-waveform-lines',dis:!fi},
     {id:'export',l:'Exportar',i:'fa-file-arrow-down',dis:!fi},
   ];
-  const FLD=({k,label,icon,ph,full,ml}:{k:keyof AudioMetadata;label:string;icon:string;ph:string;full?:boolean;ml?:number})=>(
+  const FLD=({k,label,icon,ph,full,ml,ro}:{k:keyof AudioMetadata;label:string;icon:string;ph:string;full?:boolean;ml?:number;ro?:boolean})=>(
     <div className={full?'md:col-span-2':''}>
       <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2 mb-2"><i className={`fas ${icon} text-purple-400/60`}></i>{label}</label>
-      <input type="text" maxLength={ml} value={meta[k]} onChange={e=>{setMeta(p=>({...p,[k]:e.target.value}));setDirty(true);}} placeholder={ph}
-        className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50 transition-all"/>
+      <input type="text" maxLength={ml} value={meta[k]} onChange={e=>{if(!ro){setMeta(p=>({...p,[k]:e.target.value}));setDirty(true);}}} placeholder={ph} readOnly={ro}
+        className={`w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50 transition-all ${ro?'opacity-60 cursor-not-allowed':''}`}/>
     </div>
   );
 
@@ -264,13 +277,19 @@ const AudioStudioPro:React.FC=()=>{
             <div className="flex items-center justify-between mb-8"><div><h2 className="text-2xl font-serif italic text-white">Metadatos ID3</h2><p className="text-white/30 text-xs mt-1">Los cambios se aplican al exportar.</p></div>{dirty&&<span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 animate-pulse flex items-center gap-2"><i className="fas fa-circle text-[6px]"></i>Sin exportar</span>}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <FLD k="title" label="Título" icon="fa-music" ph="Nombre de la canción" full/>
-              <FLD k="artist" label="Artista" icon="fa-microphone" ph="Diosmasgym / Juan 614"/>
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2 mb-2"><i className="fas fa-microphone text-purple-400/60"></i>Artista</label>
+                <select value={meta.artist} onChange={e=>{setMeta(p=>({...p,artist:e.target.value}));setDirty(true);}} className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 transition-all">
+                  <option value="Diosmasgym">Diosmasgym</option>
+                  <option value="Juan 614">Juan 614</option>
+                </select>
+              </div>
               <FLD k="album" label="Álbum / EP" icon="fa-compact-disc" ph="Nombre del álbum"/>
               <FLD k="year" label="Año" icon="fa-calendar" ph="2026" ml={4}/>
               <FLD k="trackNumber" label="Pista #" icon="fa-list-ol" ph="1"/>
               <FLD k="bpm" label="BPM" icon="fa-metronome" ph="120"/>
-              <FLD k="composer" label="Compositor" icon="fa-pen-nib" ph="Nombre del compositor"/>
-              <FLD k="label" label="Sello / Label" icon="fa-building" ph="Mando Ejecutivo Records"/>
+              <FLD k="composer" label="Compositor" icon="fa-pen-nib" ph="Nombre del compositor" ro/>
+              <FLD k="label" label="Sello / Label" icon="fa-building" ph="Mando Ejecutivo Records" ro/>
               <FLD k="isrc" label="ISRC" icon="fa-barcode" ph="US-XXX-26-00001" ml={12}/>
               <FLD k="comment" label="Comentario" icon="fa-comment" ph="Notas adicionales..."/>
               <div>
