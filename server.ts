@@ -8,6 +8,7 @@ import https from "https";
 import http from "http";
 import arsenalHandler from "./api/arsenal.ts";
 import commonHandler from "./api/common.ts";
+import separateAudioHandler from "./api/separate-audio.ts";
 
 dotenv.config({ path: ".env.local" });
 
@@ -33,6 +34,10 @@ async function startServer() {
 
   app.all("/api/common", (req, res) => {
     commonHandler(req as any, res as any);
+  });
+
+  app.all("/api/separate-audio", (req, res) => {
+    separateAudioHandler(req as any, res as any);
   });
 
   app.get("/api/music", (req, res) => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface AudioMetadata { title:string; artist:string; album:string; year:string; genre:string; composer:string; bpm:string; comment:string; isrc:string; label:string; trackNumber:string; }
 interface AudioFileInfo { name:string; size:number; type:string; duration:number; sampleRate:number; channels:number; bitDepth:string; arrayBuffer:ArrayBuffer; objectUrl:string; coverArtUrl:string|null; coverArtBytes:Uint8Array|null; }
-type TabId = 'loader'|'metadata'|'artwork'|'waveform'|'export';
+type TabId = 'loader'|'metadata'|'artwork'|'waveform'|'stems'|'export';
 
 function readID3v2(buffer:ArrayBuffer):{tags:Partial<AudioMetadata>;coverBytes:Uint8Array|null}{
   const tags:Partial<AudioMetadata>={};let coverBytes:Uint8Array|null=null;
@@ -72,6 +72,9 @@ const AudioStudioPro:React.FC=()=>{
   const [exportPct,setExportPct]=useState(0);
   const [exporting,setExporting]=useState(false);
   const [dirty,setDirty]=useState(false);
+  const [aiStems,setAiStems]=useState<Record<string,string>|null>(null);
+  const [isExtracting,setIsExtracting]=useState(false);
+  const [extractStatus,setExtractStatus]=useState('');
   const [notif,setNotif]=useState<{m:string;t:'ok'|'err'}|null>(null);
   const fRef=useRef<HTMLInputElement>(null);
   const aRef=useRef<HTMLInputElement>(null);
@@ -205,11 +208,60 @@ const AudioStudioPro:React.FC=()=>{
     finally{setExporting(false);}
   };
 
+  const extractStems = async () => {
+    if (!fi) return;
+    setIsExtracting(true);
+    setExtractStatus('Subiendo audio a servidor temporal...');
+    try {
+      const blob = new Blob([fi.arrayBuffer], { type: fi.type });
+      const formData = new FormData();
+      formData.append('file', blob, fi.name);
+      
+      const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData?.data?.url) throw new Error('Error subiendo archivo');
+      const directUrl = uploadData.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+
+      setExtractStatus('Iniciando Inteligencia Artificial...');
+      const repRes = await fetch('/api/separate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioUrl: directUrl })
+      });
+      const repData = await repRes.json();
+      if (repData.error) throw new Error(repData.error);
+      
+      let predictionId = repData.id;
+      let result = repData;
+      
+      while (result.status !== 'succeeded' && result.status !== 'failed') {
+        setExtractStatus(`Procesando (${result.status})... esto puede tomar 1 o 2 minutos`);
+        await new Promise(r => setTimeout(r, 4000));
+        const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`);
+        result = await checkRes.json();
+      }
+      
+      if (result.status === 'failed') throw new Error('Falló la separación IA');
+      
+      setAiStems(result.output);
+      notify('¡Pistas separadas con éxito!');
+    } catch (e: any) {
+      notify(`Error: ${e.message}`, 'err');
+    } finally {
+      setIsExtracting(false);
+      setExtractStatus('');
+    }
+  };
+
   const tabs2:{id:TabId;l:string;i:string;dis?:boolean}[]=[
     {id:'loader',l:'Cargador',i:'fa-upload'},
     {id:'metadata',l:'Metadatos',i:'fa-tags',dis:!fi},
     {id:'artwork',l:'Artwork & Marca',i:'fa-image',dis:!fi},
     {id:'waveform',l:'Forma de Onda',i:'fa-waveform-lines',dis:!fi},
+    {id:'stems',l:'Separador IA',i:'fa-layer-group',dis:!fi},
     {id:'export',l:'Exportar',i:'fa-file-arrow-down',dis:!fi},
   ];
   const FLD=({k,label,icon,ph,full,ml,ro}:{k:keyof AudioMetadata;label:string;icon:string;ph:string;full?:boolean;ml?:number;ro?:boolean})=>(
@@ -374,6 +426,77 @@ const AudioStudioPro:React.FC=()=>{
             </>:<div className="text-center py-20 text-white/20"><i className="fas fa-waveform-lines text-5xl mb-4 block opacity-20"></i><p>No se pudo decodificar el audio en el navegador.</p></div>}
           </div>
         )}
+
+        {tab==='stems'&&fi&&(
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
+                <i className="fas fa-layer-group text-purple-400"></i> Separador de Pistas (IA)
+              </h2>
+              <p className="text-white/30 text-xs mt-1">Extrae voces, batería, bajo y melodía usando Inteligencia Artificial.</p>
+            </div>
+            
+            {!aiStems ? (
+              <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-10 text-center">
+                <i className="fas fa-brain text-5xl text-purple-500/20 mb-6 block"></i>
+                <h3 className="text-white font-bold text-lg mb-2">Dividir con Inteligencia Artificial</h3>
+                <p className="text-white/40 text-sm mb-8 max-w-lg mx-auto">
+                  Usamos el modelo avanzado <strong>Demucs</strong> para aislar las pistas. Tu audio será procesado en servidores de alto rendimiento.
+                </p>
+                <button 
+                  onClick={extractStems} 
+                  disabled={isExtracting}
+                  className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
+                >
+                  <i className={`fas ${isExtracting ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'} text-lg`}></i>
+                  {isExtracting ? 'Extrayendo pistas...' : 'Extraer Stems Ahora'}
+                </button>
+                {extractStatus && (
+                  <p className="mt-6 text-purple-300 text-xs font-mono animate-pulse">{extractStatus}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(aiStems).map(([name, url]) => (
+                  <div key={name} className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-6 flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                      <i className={`fas ${
+                        name==='vocals' ? 'fa-microphone' :
+                        name==='drums' ? 'fa-drum' :
+                        name==='bass' ? 'fa-guitar' : 'fa-music'
+                      } text-2xl text-purple-400`}></i>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold uppercase tracking-widest text-[10px] mb-2">
+                        {name==='vocals' ? 'Voces (Acapella)' :
+                         name==='drums' ? 'Batería (Drums)' :
+                         name==='bass' ? 'Bajo (Bass)' : 'Otros (Melodía)'}
+                      </p>
+                      <audio src={url as string} controls className="w-full h-8" />
+                    </div>
+                    <a 
+                      href={url as string} 
+                      download={`${fi.name.replace(/\.[^.]+$/, '')}_${name}.mp3`}
+                      className="w-12 h-12 rounded-xl bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 flex items-center justify-center text-white/50 hover:text-purple-300 transition-all shrink-0"
+                    >
+                      <i className="fas fa-download"></i>
+                    </a>
+                  </div>
+                ))}
+                
+                <div className="mt-8 text-center">
+                  <button 
+                    onClick={() => setAiStems(null)}
+                    className="text-white/40 hover:text-white text-[9px] font-black uppercase tracking-widest transition-all"
+                  >
+                    <i className="fas fa-arrow-rotate-left mr-2"></i> Separar otro archivo
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
 
         {tab==='export'&&fi&&(
           <div className="max-w-2xl mx-auto">
