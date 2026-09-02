@@ -282,7 +282,10 @@ const AudioStudioPro:React.FC=()=>{
             <button onClick={()=>navigate('/admin')} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"><i className="fas fa-arrow-left text-sm"></i></button>
             <div>
               <p className="text-[8px] font-black uppercase tracking-[0.5em] text-purple-400">Mando Ejecutivo</p>
-              <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="fas fa-waveform-lines text-purple-400"></i>Audio Studio Pro</h1>
+              <h1 className="text-white font-bold text-lg flex items-center gap-2">
+                <i className="fas fa-waveform-lines text-purple-400"></i>Audio Studio Pro
+                <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-mono border border-purple-500/30">v1.1</span>
+              </h1>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-3 text-[9px] font-black uppercase tracking-widest">
