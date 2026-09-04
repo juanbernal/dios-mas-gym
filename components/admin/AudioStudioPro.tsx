@@ -80,6 +80,7 @@ const AudioStudioPro:React.FC=()=>{
   const aRef=useRef<HTMLInputElement>(null);
   const wRef=useRef<HTMLCanvasElement>(null);
   const cRef=useRef<HTMLCanvasElement>(null);
+  const abortControllerRef=useRef<AbortController|null>(null);
 
   const notify=(m:string,t:'ok'|'err'='ok')=>{setNotif({m,t});setTimeout(()=>setNotif(null),3500);};
 
@@ -211,6 +212,7 @@ const AudioStudioPro:React.FC=()=>{
   const extractStems = async () => {
     if (!fi) return;
     setIsExtracting(true);
+    abortControllerRef.current = new AbortController();
     setExtractStatus('Subiendo audio a servidor temporal...');
     try {
       const blob = new Blob([fi.arrayBuffer], { type: fi.type });
@@ -219,7 +221,8 @@ const AudioStudioPro:React.FC=()=>{
       
       const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: abortControllerRef.current.signal
       });
       const uploadData = await uploadRes.json();
       if (!uploadData?.data?.url) throw new Error('Error subiendo archivo');
@@ -229,31 +232,59 @@ const AudioStudioPro:React.FC=()=>{
       const repRes = await fetch('/api/separate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioUrl: directUrl })
+        body: JSON.stringify({ audioUrl: directUrl }),
+        signal: abortControllerRef.current.signal
       });
       const repData = await repRes.json();
       if (repData.error) throw new Error(repData.error);
       
-      let predictionId = repData.id;
+      const predictionId = repData.id;
       let result = repData;
-      
+      let elapsedSec = 0;
+      const MAX_WAIT_SEC = 720;
+      const POLL_INTERVAL = 5000;
+
+      const statusMessages: Record<string, string> = {
+        starting: '🔄 Iniciando GPU en Replicate...',
+        processing: '⚙️ IA procesando...',
+        succeeded: '✅ ¡Listo!',
+        failed: '❌ Falló el procesamiento',
+      };
+
       while (result.status !== 'succeeded' && result.status !== 'failed') {
-        setExtractStatus(`Procesando (${result.status})... esto puede tomar 1 o 2 minutos`);
-        await new Promise(r => setTimeout(r, 4000));
-        const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`);
-        result = await checkRes.json();
+        if (elapsedSec >= MAX_WAIT_SEC) throw new Error('Tiempo agotado (12 min).');
+        const mins = Math.floor(elapsedSec / 60);
+        const secs = elapsedSec % 60;
+        const timerStr = elapsedSec > 0 ? ` — ${mins}m ${String(secs).padStart(2,'0')}s` : '';
+        const msg = statusMessages[result.status] || `Procesando (${result.status})...`;
+        setExtractStatus(`${msg}${timerStr}`);
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        elapsedSec += POLL_INTERVAL / 1000;
+        try {
+          const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`, { signal: abortControllerRef.current.signal });
+          if (!checkRes.ok) continue;
+          const checkData = await checkRes.json();
+          if (checkData.error) continue;
+          result = checkData;
+        } catch (pollErr) { continue; }
       }
       
-      if (result.status === 'failed') throw new Error('Falló la separación IA');
-      
+      if (result.status === 'failed') throw new Error(`Falló: ${result.error || 'Razón desconocida'}`);
       setAiStems(result.output);
       notify('¡Pistas separadas con éxito!');
     } catch (e: any) {
-      notify(`Error: ${e.message}`, 'err');
+      if (e.name !== 'AbortError') notify(`Error: ${e.message}`, 'err');
     } finally {
       setIsExtracting(false);
       setExtractStatus('');
+      abortControllerRef.current = null;
     }
+  };
+
+  const cancelExtract = () => {
+    abortControllerRef.current?.abort();
+    setIsExtracting(false);
+    setExtractStatus('');
   };
 
   const tabs2:{id:TabId;l:string;i:string;dis?:boolean}[]=[
@@ -446,16 +477,40 @@ const AudioStudioPro:React.FC=()=>{
                 <p className="text-white/40 text-sm mb-8 max-w-lg mx-auto">
                   Usamos el modelo avanzado <strong>Demucs</strong> para aislar las pistas. Tu audio será procesado en servidores de alto rendimiento.
                 </p>
-                <button 
-                  onClick={extractStems} 
-                  disabled={isExtracting}
-                  className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
-                >
-                  <i className={`fas ${isExtracting ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'} text-lg`}></i>
-                  {isExtracting ? 'Extrayendo pistas...' : 'Extraer Stems Ahora'}
-                </button>
+                {!isExtracting ? (
+                  <button 
+                    onClick={extractStems} 
+                    className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
+                  >
+                    <i className="fas fa-wand-magic-sparkles text-lg"></i>
+                    Extraer Stems Ahora
+                  </button>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <button 
+                      disabled
+                      className="px-8 py-4 bg-purple-600 opacity-70 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30 cursor-not-allowed"
+                    >
+                      <i className="fas fa-spinner fa-spin text-lg"></i>
+                      Extrayendo pistas...
+                    </button>
+                    <button
+                      onClick={cancelExtract}
+                      className="px-5 py-2 bg-red-900/40 hover:bg-red-800/60 border border-red-500/30 text-red-300 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      <i className="fas fa-xmark mr-2"></i>Cancelar
+                    </button>
+                  </div>
+                )}
                 {extractStatus && (
-                  <p className="mt-6 text-purple-300 text-xs font-mono animate-pulse">{extractStatus}</p>
+                  <div className="mt-6 space-y-2">
+                    <p className="text-purple-300 text-xs font-mono animate-pulse">{extractStatus}</p>
+                    {extractStatus.includes('cold start') || extractStatus.includes('Iniciando GPU') ? (
+                      <p className="text-white/25 text-[10px]">
+                        ⏳ La primera vez el modelo tarda en arrancar la GPU (3-8 min). Las siguientes veces es mucho más rápido.
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             ) : (
