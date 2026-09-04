@@ -467,7 +467,7 @@ const AudioStudioPro:React.FC=()=>{
               <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
                 <i className="fas fa-layer-group text-purple-400"></i> Separador de Pistas (IA)
               </h2>
-              <p className="text-white/30 text-xs mt-1">Extrae voces, batería, bajo, piano, guitarra y melodía usando Inteligencia Artificial.</p>
+              <p className="text-white/30 text-xs mt-1">Aisla Voces (Acapella), Beat (Batería), Bajo y Melodía instrumental con IA de estudio.</p>
             </div>
             
             {!aiStems ? (
@@ -529,17 +529,18 @@ const AudioStudioPro:React.FC=()=>{
                     <div className="flex-1">
                       <p className="text-white font-bold uppercase tracking-widest text-[10px] mb-2">
                         {name==='vocals' ? 'Voces (Acapella)' :
-                         name==='drums' ? 'Batería (Drums)' :
+                         name==='drums' ? 'Batería (Drums / Beat)' :
                          name==='bass' ? 'Bajo (Bass)' : 
                          name==='piano' ? 'Piano / Teclados' :
-                         name==='guitar' ? 'Guitarra (Guitar)' : 'Otros (Melodía)'}
+                         name==='guitar' ? 'Guitarra (Guitar)' : 'Instrumental / Otros (Melodía)'}
                       </p>
                       <audio src={url as string} controls className="w-full h-8" />
                     </div>
                     <a 
                       href={url as string} 
-                      download={`${fi.name.replace(/\.[^.]+$/, '')}_${name}.mp3`}
+                      download={`${fi.name.replace(/\.[^.]+$/, '')}_${name}.wav`}
                       className="w-12 h-12 rounded-xl bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 flex items-center justify-center text-white/50 hover:text-purple-300 transition-all shrink-0"
+                      title="Descargar en calidad WAV"
                     >
                       <i className="fas fa-download"></i>
                     </a>

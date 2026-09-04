@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953', // cjwbw/demucs official latest
           input: {
             audio: audioUrl,
-            model_name: 'htdemucs_6s',
+            model_name: 'htdemucs', // 4 stems: vocals, drums, bass, other (súper rápido y ultra calidad)
           },
         }),
       });
