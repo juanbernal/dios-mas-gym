@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 
 interface AudioMetadata { title:string; artist:string; album:string; year:string; genre:string; composer:string; bpm:string; comment:string; isrc:string; label:string; trackNumber:string; }
 interface AudioFileInfo { name:string; size:number; type:string; duration:number; sampleRate:number; channels:number; bitDepth:string; arrayBuffer:ArrayBuffer; objectUrl:string; coverArtUrl:string|null; coverArtBytes:Uint8Array|null; }
@@ -75,6 +76,12 @@ const AudioStudioPro:React.FC=()=>{
   const [aiStems,setAiStems]=useState<Record<string,string>|null>(null);
   const [isExtracting,setIsExtracting]=useState(false);
   const [extractStatus,setExtractStatus]=useState('');
+  const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_6s'>('htdemucs');
+  const [isZipping,setIsZipping]=useState(false);
+  const [zipProgress,setZipProgress]=useState('');
+  const [downloadingStem,setDownloadingStem]=useState<string|null>(null);
+  const [selectedStemsToZip,setSelectedStemsToZip]=useState<Record<string,boolean>>({});
+  const [showGenreTips,setShowGenreTips]=useState(false);
   const [notif,setNotif]=useState<{m:string;t:'ok'|'err'}|null>(null);
   const fRef=useRef<HTMLInputElement>(null);
   const aRef=useRef<HTMLInputElement>(null);
@@ -209,6 +216,146 @@ const AudioStudioPro:React.FC=()=>{
     finally{setExporting(false);}
   };
 
+  const getStemInfo = (name: string) => {
+    switch (name) {
+      case 'vocals':
+        return {
+          title: 'Voces (Acapella)',
+          desc: 'Voz principal, segundas y coros limpios',
+          icon: 'fa-microphone',
+          color: 'text-purple-400',
+          genreHint: 'Voz limpia sin instrumentos — ideal para remix o master'
+        };
+      case 'drums':
+        return {
+          title: 'Batería / Percusiones (Beat)',
+          desc: 'Bombos, cajas, hi-hats, tambora sinaloense o tarolas',
+          icon: 'fa-drum',
+          color: 'text-amber-400',
+          genreHint: 'Banda: Tambora y tarolas | Rap/Pop: Beats y 808 hi-hats'
+        };
+      case 'bass':
+        return {
+          title: 'Bajo / Tololoche / Tuba',
+          desc: 'Línea de bajo eléctrico, 808 sub-bass, tololoche o tuba sinaloense',
+          icon: 'fa-guitar',
+          color: 'text-emerald-400',
+          genreHint: 'Corridos: Tololoche/Bajo quinto | Banda: Tuba | Rap: 808'
+        };
+      case 'guitar':
+        return {
+          title: 'Guitarras / Requinto / Docerola',
+          desc: 'Requintos sierreños, docerolas, guitarras acústicas y eléctricas',
+          icon: 'fa-guitar',
+          color: 'text-cyan-400',
+          genreHint: 'Corridos Tumbados: ¡Aquí se extrae tu requinto y armonía!'
+        };
+      case 'piano':
+        return {
+          title: 'Piano / Teclados / Acordeón',
+          desc: 'Pianos acústicos, sintetizadores melódicos, teclados o acordeón',
+          icon: 'fa-compact-disc',
+          color: 'text-pink-400',
+          genreHint: 'Pop Latino y Baladas: Pianos y sintetizadores de acordes'
+        };
+      case 'other':
+      default:
+        return {
+          title: 'Instrumental / Metales / Otros',
+          desc: 'Metales (trompetas, clarinetes, trombones), sintetizadores y arreglos',
+          icon: 'fa-music',
+          color: 'text-indigo-400',
+          genreHint: 'Banda: Sección de metales y vientos | Corridos: Charchetas'
+        };
+    }
+  };
+
+  const downloadSingleStem = async (url: string, stemName: string) => {
+    try {
+      setDownloadingStem(stemName);
+      const baseName = (meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${baseName}_${stemName}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      notify(`✅ Pista "${stemName}.wav" descargada`);
+    } catch (e: any) {
+      console.warn('Descarga por blob falló, usando descarga segura:', e);
+      // Fallback seguro que NO recarga ni abandona la pestaña actual
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      const baseName = (meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
+      a.download = `${baseName}_${stemName}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      setDownloadingStem(null);
+    }
+  };
+
+  const downloadZip = async () => {
+    if (!aiStems || !fi) return;
+    const stemsToExport = Object.entries(aiStems).filter(([name]) => selectedStemsToZip[name] !== false);
+    if (stemsToExport.length === 0) {
+      notify('Selecciona al menos una pista para descargar el ZIP', 'err');
+      return;
+    }
+
+    setIsZipping(true);
+    setZipProgress('Iniciando descarga de pistas...');
+    try {
+      const zip = new JSZip();
+      const baseName = (meta.title || fi.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
+      const folder = zip.folder(`${baseName}_Stems`) || zip;
+
+      let count = 0;
+      for (const [name, url] of stemsToExport) {
+        count++;
+        setZipProgress(`Descargando pista ${count} de ${stemsToExport.length} (${name})...`);
+        const res = await fetch(url as string);
+        if (!res.ok) throw new Error(`Error descargando pista ${name}`);
+        const arrayBuf = await res.arrayBuffer();
+        folder.file(`${baseName}_${name}.wav`, arrayBuf);
+      }
+
+      setZipProgress('Comprimiendo archivo ZIP...');
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      }, (metadata) => {
+        setZipProgress(`Comprimiendo ZIP: ${Math.round(metadata.percent)}%`);
+      });
+
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = zipUrl;
+      a.download = `${baseName}_Stems_Separados.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(zipUrl);
+
+      notify('✅ ¡Todas las pistas descargadas en archivo ZIP!');
+    } catch (err: any) {
+      console.error('Error generando ZIP:', err);
+      notify(`Error al crear ZIP: ${err.message}`, 'err');
+    } finally {
+      setIsZipping(false);
+      setZipProgress('');
+    }
+  };
+
   const extractStems = async () => {
     if (!fi) return;
     setIsExtracting(true);
@@ -232,7 +379,7 @@ const AudioStudioPro:React.FC=()=>{
       const repRes = await fetch('/api/separate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioUrl: directUrl }),
+        body: JSON.stringify({ audioUrl: directUrl, model_name: selectedModel }),
         signal: abortControllerRef.current.signal
       });
       const repData = await repRes.json();
@@ -289,6 +436,9 @@ const AudioStudioPro:React.FC=()=>{
         throw new Error('Replicate terminó pero no devolvió las pistas de audio.');
       }
       setAiStems(result.output);
+      const initialSel: Record<string, boolean> = {};
+      Object.keys(result.output).forEach(k => { initialSel[k] = true; });
+      setSelectedStemsToZip(initialSel);
       notify('¡Pistas separadas con éxito!');
     } catch (e: any) {
       if (e.name !== 'AbortError') notify(`Error: ${e.message}`, 'err');
@@ -481,27 +631,124 @@ const AudioStudioPro:React.FC=()=>{
 
         {tab==='stems'&&fi&&(
           <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
-              <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
-                <i className="fas fa-layer-group text-purple-400"></i> Separador de Pistas (IA)
-              </h2>
-              <p className="text-white/30 text-xs mt-1">Aisla Voces (Acapella), Beat (Batería), Bajo y Melodía instrumental con IA de estudio.</p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
+                  <i className="fas fa-layer-group text-purple-400"></i> Separador de Pistas (IA)
+                </h2>
+                <p className="text-white/40 text-xs mt-1">Aisla Acapella, Batería, Bajo, Guitarras/Requinto, Pianos o Metales con IA de estudio.</p>
+              </div>
+              <button 
+                onClick={() => setShowGenreTips(!showGenreTips)}
+                className="self-start md:self-auto px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all"
+              >
+                <i className="fas fa-circle-question text-purple-400"></i>
+                {showGenreTips ? 'Ocultar Guía de Géneros' : '¿Cómo se separan tus géneros?'}
+              </button>
             </div>
+
+            {showGenreTips && (
+              <div className="mb-8 p-6 bg-[#0f111a] border border-purple-500/30 rounded-2xl animate-fade-in text-xs space-y-4">
+                <p className="text-purple-300 font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+                  <i className="fas fa-sliders text-purple-400"></i> Guía rápida según tu género musical:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white/[0.03] p-4 rounded-xl border border-white/5 space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2"><span className="text-base">🇲🇽</span> Corridos Tumbados / Sierreño</p>
+                    <p className="text-white/60 text-[11px]">Usa <strong className="text-purple-300">6 Pistas</strong>: Tu <strong>Requinto y Docerola</strong> se separan en la pista de <em>Guitarras</em>, el <strong>Tololoche / Bajoloche</strong> en <em>Bajo</em>, y <strong>Charchetas / Trombones</strong> en <em>Otros</em>.</p>
+                  </div>
+                  <div className="bg-white/[0.03] p-4 rounded-xl border border-white/5 space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2"><span className="text-base">🎺</span> Banda Sinaloense</p>
+                    <p className="text-white/60 text-[11px]">Usa <strong className="text-purple-300">4 Pistas</strong>: La <strong>Tuba</strong> va a <em>Bajo</em>, la <strong>Tambora y Tarolas</strong> van a <em>Batería</em>, y los <strong>Clarinetes, Trompetas y Trombones</strong> a <em>Otros/Metales</em>.</p>
+                  </div>
+                  <div className="bg-white/[0.03] p-4 rounded-xl border border-white/5 space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2"><span className="text-base">🎤</span> Rap / Trap / Hip-Hop</p>
+                    <p className="text-white/60 text-[11px]">Usa <strong className="text-purple-300">4 Pistas</strong>: Obtienes la <strong>Voz Acapella</strong> limpia, el <strong>Beat</strong> (bombos, cajas, hi-hats), el <strong>Bajo 808</strong> aislado y los <strong>Samples/Sintetizadores</strong> en Otros.</p>
+                  </div>
+                  <div className="bg-white/[0.03] p-4 rounded-xl border border-white/5 space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2"><span className="text-base">🎹</span> Pop Latino / Acústico</p>
+                    <p className="text-white/60 text-[11px]">Usa <strong className="text-purple-300">6 Pistas</strong> si contiene guitarras acústicas o pianos protagónicos, o <strong>4 Pistas</strong> para reggaetón y pop comercial rítmico.</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {!aiStems ? (
-              <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-10 text-center">
-                <i className="fas fa-brain text-5xl text-purple-500/20 mb-6 block"></i>
-                <h3 className="text-white font-bold text-lg mb-2">Dividir con Inteligencia Artificial</h3>
-                <p className="text-white/40 text-sm mb-8 max-w-lg mx-auto">
-                  Usamos el modelo avanzado <strong>Demucs</strong> para aislar las pistas. Tu audio será procesado en servidores de alto rendimiento.
+              <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-8 md:p-10 text-center">
+                <i className="fas fa-brain text-5xl text-purple-500/20 mb-4 block"></i>
+                <h3 className="text-white font-bold text-lg mb-2">Dividir Pistas con Inteligencia Artificial</h3>
+                <p className="text-white/40 text-xs mb-8 max-w-xl mx-auto">
+                  Elige la configuración de separación según los instrumentos de tu canción:
                 </p>
+
+                {/* Selector de Modelo / Número de Pistas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-8 text-left">
+                  <div 
+                    onClick={() => !isExtracting && setSelectedModel('htdemucs')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'htdemucs' 
+                        ? 'bg-purple-600/15 border-purple-500 shadow-lg shadow-purple-950/40' 
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 font-bold text-xs flex items-center justify-center">4</span>
+                        <h4 className="text-white font-bold text-sm">4 Pistas (Estándar)</h4>
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="modelSelect" 
+                        checked={selectedModel === 'htdemucs'} 
+                        onChange={() => setSelectedModel('htdemucs')}
+                        className="accent-purple-500" 
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">Voces, Batería/Percusión, Bajo/Tuba e Instrumental/Otros.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-bold">Rap / Trap</span>
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">Banda Sinaloense</span>
+                      <span className="text-[9px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-md font-bold">Pop Latino</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => !isExtracting && setSelectedModel('htdemucs_6s')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'htdemucs_6s' 
+                        ? 'bg-purple-600/15 border-purple-500 shadow-lg shadow-purple-950/40' 
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs flex items-center justify-center">6</span>
+                        <h4 className="text-white font-bold text-sm">6 Pistas (Detallado)</h4>
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="modelSelect" 
+                        checked={selectedModel === 'htdemucs_6s'} 
+                        onChange={() => setSelectedModel('htdemucs_6s')}
+                        className="accent-purple-500" 
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">Voces, Batería, Bajo, <strong>Guitarras/Requintos</strong>, Pianos y Otros.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-md font-bold">Corridos Tumbados</span>
+                      <span className="text-[9px] bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded-md font-bold">Sierreño</span>
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold">Acústico</span>
+                    </div>
+                  </div>
+                </div>
+
                 {!isExtracting ? (
                   <button 
                     onClick={extractStems} 
                     className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
                   >
                     <i className="fas fa-wand-magic-sparkles text-lg"></i>
-                    Extraer Stems Ahora
+                    Extraer {selectedModel === 'htdemucs' ? '4 Pistas' : '6 Pistas'} Ahora
                   </button>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
@@ -532,38 +779,122 @@ const AudioStudioPro:React.FC=()=>{
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {Object.entries(aiStems).map(([name, url]) => (
-                  <div key={name} className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-6 flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                      <i className={`fas ${
-                        name==='vocals' ? 'fa-microphone' :
-                        name==='drums' ? 'fa-drum' :
-                        name==='bass' ? 'fa-guitar' : 
-                        name==='piano' ? 'fa-compact-disc' : 
-                        name==='guitar' ? 'fa-bolt' : 'fa-music'
-                      } text-2xl text-purple-400`}></i>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-bold uppercase tracking-widest text-[10px] mb-2">
-                        {name==='vocals' ? 'Voces (Acapella)' :
-                         name==='drums' ? 'Batería (Drums / Beat)' :
-                         name==='bass' ? 'Bajo (Bass)' : 
-                         name==='piano' ? 'Piano / Teclados' :
-                         name==='guitar' ? 'Guitarra (Guitar)' : 'Instrumental / Otros (Melodía)'}
-                      </p>
-                      <audio src={url as string} controls className="w-full h-8" />
-                    </div>
-                    <a 
-                      href={url as string} 
-                      download={`${fi.name.replace(/\.[^.]+$/, '')}_${name}.wav`}
-                      className="w-12 h-12 rounded-xl bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 flex items-center justify-center text-white/50 hover:text-purple-300 transition-all shrink-0"
-                      title="Descargar en calidad WAV"
-                    >
-                      <i className="fas fa-download"></i>
-                    </a>
+              <div className="space-y-6">
+                {/* Barra de Descarga en Bloque / ZIP */}
+                <div className="bg-[#0f111a] border border-purple-500/30 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-purple-950/20">
+                  <div>
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <i className="fas fa-circle-check text-green-400"></i>
+                      ¡Pistas Separadas Listas! ({Object.keys(aiStems).length} pistas)
+                    </h3>
+                    <p className="text-white/40 text-xs mt-0.5">
+                      Descarga todo de un solo jalón en un archivo ZIP comprimido sin salir de la página.
+                    </p>
                   </div>
-                ))}
+                  
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                      onClick={downloadZip}
+                      disabled={isZipping || Object.values(selectedStemsToZip).filter(Boolean).length === 0}
+                      className="flex-1 md:flex-initial px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-purple-900/40 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <i className={`fas ${isZipping ? 'fa-spinner fa-spin' : 'fa-file-zipper'} text-sm`}></i>
+                      {isZipping ? 'Comprimiendo...' : `Descargar Todo en ZIP (${Object.values(selectedStemsToZip).filter(Boolean).length})`}
+                    </button>
+                    
+                    <button 
+                      onClick={() => setAiStems(null)}
+                      title="Separar otro audio"
+                      className="px-4 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs font-bold transition-all"
+                    >
+                      <i className="fas fa-rotate-left"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {isZipping && (
+                  <div className="bg-purple-950/30 border border-purple-500/30 rounded-2xl p-4 text-center">
+                    <p className="text-purple-300 text-xs font-mono animate-pulse">{zipProgress}</p>
+                  </div>
+                )}
+
+                {/* Controles de Selección Rápida */}
+                <div className="flex items-center justify-between text-xs px-2">
+                  <div className="flex items-center gap-4 text-white/50 text-[11px]">
+                    <span>Pistas para el ZIP:</span>
+                    <button 
+                      onClick={() => {
+                        const all: Record<string, boolean> = {};
+                        Object.keys(aiStems).forEach(k => { all[k] = true; });
+                        setSelectedStemsToZip(all);
+                      }}
+                      className="text-purple-400 hover:underline font-bold"
+                    >
+                      Marcar todas
+                    </button>
+                    <button 
+                      onClick={() => setSelectedStemsToZip({})}
+                      className="text-white/40 hover:underline"
+                    >
+                      Desmarcar todas
+                    </button>
+                  </div>
+                  <span className="text-white/30 text-[10px]">
+                    Audio original: {fi.name}
+                  </span>
+                </div>
+
+                {/* Lista de Pistas */}
+                <div className="space-y-4">
+                  {Object.entries(aiStems).map(([name, url]) => {
+                    const info = getStemInfo(name);
+                    const isSelected = selectedStemsToZip[name] !== false;
+                    const isDownloadingThis = downloadingStem === name;
+
+                    return (
+                      <div key={name} className="bg-[#0f111a] border border-white/5 hover:border-purple-500/30 rounded-[2rem] p-6 flex flex-col md:flex-row items-start md:items-center gap-5 transition-all">
+                        {/* Checkbox para el ZIP */}
+                        <div className="flex items-center gap-4 shrink-0">
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            onChange={() => setSelectedStemsToZip(p => ({ ...p, [name]: !isSelected }))}
+                            className="w-5 h-5 rounded-lg accent-purple-500 cursor-pointer" 
+                            title="Incluir en el archivo ZIP"
+                          />
+                          <div className={`w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0`}>
+                            <i className={`fas ${info.icon} text-2xl ${info.color}`}></i>
+                          </div>
+                        </div>
+
+                        {/* Info de la pista y audio player */}
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                            <p className="text-white font-bold uppercase tracking-wider text-xs">
+                              {info.title}
+                            </p>
+                            <span className="text-[9px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full text-white/50">
+                              {info.genreHint}
+                            </span>
+                          </div>
+                          <p className="text-white/40 text-[11px] mb-2">{info.desc}</p>
+                          <audio src={url as string} controls className="w-full h-8" />
+                        </div>
+
+                        {/* Botón de Descarga Individual Segura (sin perder la página) */}
+                        <button 
+                          onClick={() => downloadSingleStem(url as string, name)}
+                          disabled={isDownloadingThis}
+                          className="w-full md:w-12 h-12 rounded-xl bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 flex items-center justify-center text-white/50 hover:text-purple-300 transition-all shrink-0 disabled:opacity-50"
+                          title="Descargar pista individual en WAV sin recargar"
+                        >
+                          <i className={`fas ${isDownloadingThis ? 'fa-spinner fa-spin' : 'fa-download'}`}></i>
+                          <span className="md:hidden ml-2 text-xs font-bold">Descargar {name}.wav</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
                 
                 <div className="mt-8 text-center">
                   <button 

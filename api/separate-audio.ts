@@ -18,10 +18,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST: iniciar separación de pistas
     if (req.method === 'POST') {
-      let { audioUrl } = req.body as { audioUrl?: string };
+      let { audioUrl, model_name } = req.body as { audioUrl?: string; model_name?: string };
       if (!audioUrl) {
         return res.status(400).json({ error: 'audioUrl es requerido' });
       }
+
+      // Validar modelo seleccionado: 'htdemucs' (4 stems) o 'htdemucs_6s' (6 stems)
+      const selectedModel = (model_name === 'htdemucs_6s') ? 'htdemucs_6s' : 'htdemucs';
 
       // Si viene de tmpfiles.org, resolver el enlace de descarga directo real (WAV binario)
       // porque tmpfiles.org/dl/ID/name.wav ahora redirige a una página HTML con el botón de descarga
@@ -50,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953', // cjwbw/demucs official latest
           input: {
             audio: audioUrl,
-            model_name: 'htdemucs', // 4 stems
+            model_name: selectedModel,
             clip_mode: 'rescale',   // Evita clipping y reduce picos de memoria en WAV
             shifts: 1,              // Evita Out Of Memory en audios largos o WAV pesados
             float32: false,         // Evita duplicar el uso de memoria RAM (2x)
