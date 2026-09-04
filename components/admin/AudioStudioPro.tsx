@@ -262,14 +262,32 @@ const AudioStudioPro:React.FC=()=>{
         elapsedSec += POLL_INTERVAL / 1000;
         try {
           const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`, { signal: abortControllerRef.current.signal });
-          if (!checkRes.ok) continue;
+          if (!checkRes.ok) {
+            console.warn('[Demucs] Polling HTTP error:', checkRes.status);
+            continue;
+          }
           const checkData = await checkRes.json();
-          if (checkData.error) continue;
-          result = checkData;
-        } catch (pollErr) { continue; }
+          if (checkData.error) {
+            console.warn('[Demucs] Error en respuesta de polling:', checkData.error);
+            setExtractStatus(`⚠️ ${checkData.error} (reintentando...)`);
+            continue;
+          }
+          if (checkData.status) {
+            result = checkData;
+            console.log('[Demucs] Status:', checkData.status, checkData);
+          }
+        } catch (pollErr) {
+          console.warn('[Demucs] Excepción durante polling:', pollErr);
+          continue;
+        }
       }
       
-      if (result.status === 'failed') throw new Error(`Falló: ${result.error || 'Razón desconocida'}`);
+      if (result.status === 'failed' || result.status === 'canceled') {
+        throw new Error(`Replicate: ${result.error || 'El procesamiento fue cancelado o falló'}`);
+      }
+      if (!result.output) {
+        throw new Error('Replicate terminó pero no devolvió las pistas de audio.');
+      }
       setAiStems(result.output);
       notify('¡Pistas separadas con éxito!');
     } catch (e: any) {
