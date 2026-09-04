@@ -1,6 +1,10 @@
 {
+  "id": "diosmasgym-pwa-v1",
   "short_name": "Dios Mas Gym",
   "name": "Dios Mas Gym | El Arsenal de Fe",
+  "description": "El Arsenal de Fe — Música cristiana, rap cristiano y corridos de motivación de Dios Mas Gym y Juan 614.",
+  "lang": "es",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -21,14 +25,45 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "background_color": "#05070a",
   "theme_color": "#05070a",
-  "description": "El Arsenal de Fe — Música cristiana, rap cristiano y corridos de motivación de Dios Mas Gym y Juan 614.",
-  "categories": ["music", "entertainment"],
-  "lang": "es",
   "orientation": "portrait-primary",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "categories": ["music", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Buscar música",
+      "short_name": "Buscar",
+      "description": "Busca canciones, artistas y letras",
+      "url": "/buscar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mi Bio — Diosmasgym",
+      "short_name": "Bio",
+      "description": "Perfil de Dios Mas Gym con todos los links",
+      "url": "/bio/diosmasgym",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Testimonios",
+      "short_name": "Testimonios",
+      "description": "Testimonios de la comunidad El Arsenal de Fe",
+      "url": "/testimonios",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dios Mas Gym — El Arsenal de Fe"
+    }
+  ]
 }

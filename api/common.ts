@@ -1079,13 +1079,15 @@ export default async function handler(
       let songs: MusicItem[] = [];
       try { songs = await fetchAllMusic(); } catch (e) { console.error('songs fetch error', e); }
 
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
       
       // Static pages in the songs sitemap
       xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
       xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/testimonios`, today, 'monthly', '0.7');
+      xml += urlBlock(`${BASE}/buscar`, today, 'weekly', '0.6');
 
       songs.forEach(song => {
         if (!song.id) return;

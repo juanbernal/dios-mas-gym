@@ -3,6 +3,8 @@ Allow: /
 Allow: /link/
 Allow: /letra/
 Allow: /bio/
+Allow: /testimonios
+Allow: /buscar
 
 # Bloquear panel admin y rutas internas de API
 Disallow: /admin/
@@ -12,13 +14,33 @@ Disallow: /api/
 Disallow: /*?m=1
 Disallow: /*?reset
 Disallow: /*?debug
+Disallow: /*?source=pwa
 
 # Bots de motores de búsqueda — acceso completo al sitio público
 User-agent: Googlebot
 Allow: /
 
+User-agent: Googlebot-Image
+Allow: /
+
 User-agent: Bingbot
 Allow: /
+
+# Bloquear bots agresivos de scraping de IA
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
 
 # Sitemap principal (el índice ya referencia todos los sub-sitemaps)
 Sitemap: https://www.diosmasgym.com/sitemap.xml

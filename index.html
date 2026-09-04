@@ -2,13 +2,23 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- PWA_VERSION: 5.0.6 -->
+    <!-- PWA_VERSION: 5.0.7 -->
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dios Mas Gym | Música Cristiana, Rap y Corridos de Fe</title>
     <meta name="description" content="El Arsenal de Fe: música cristiana, rap cristiano y corridos de motivación de Diosmasgym y Juan 614. Disciplina, valentía y fe para tu vida diaria.">
+    <meta name="author" content="Juan Bernal / Dios Mas Gym">
+    <meta name="keywords" content="música cristiana, rap cristiano, corridos de fe, diosmasgym, juan 614, El Arsenal de Fe, música motivación cristiana, letras cristianas">
+    <meta name="color-scheme" content="dark">
     <link rel="canonical" href="https://www.diosmasgym.com/" />
+
+    <!-- hreflang — cobertura hispana -->
+    <link rel="alternate" hreflang="es" href="https://www.diosmasgym.com/" />
+    <link rel="alternate" hreflang="es-MX" href="https://www.diosmasgym.com/" />
+    <link rel="alternate" hreflang="es-US" href="https://www.diosmasgym.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.diosmasgym.com/" />
+
     <!-- Feed RSS discovery -->
     <link rel="alternate" type="application/rss+xml" title="Dios Mas Gym - El Arsenal de Fe" href="https://www.diosmasgym.com/feed.xml" />
     <!-- SSR routes (smartlinks, posts) override this tag dynamically -->
@@ -17,7 +27,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dios Mas Gym">
     <link rel="icon" type="image/png" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
 
     <!-- ===== PERFORMANCE: DNS preconnects para recursos externos ===== -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,10 +55,14 @@
     <meta property="og:title" content="Dios Mas Gym | Música Cristiana, Rap y Corridos de Fe">
     <meta property="og:description" content="El Arsenal de Fe: música cristiana, rap cristiano y corridos de motivación de Diosmasgym y Juan 614. Disciplina, valentía y fe.">
     <meta property="og:image" content="https://www.diosmasgym.com/icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Dios Mas Gym - El Arsenal de Fe">
     <meta property="og:url" content="https://www.diosmasgym.com/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Dios Mas Gym">
     <meta property="og:locale" content="es_MX">
+    <meta property="og:locale:alternate" content="es_US">
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@diosmasgym">
@@ -66,6 +84,9 @@
       "image": "https://www.diosmasgym.com/icon-512.png",
       "description": "Música cristiana, rap cristiano y corridos de motivación. Disciplina, valentía y fe.",
       "genre": ["Música Cristiana", "Rap Cristiano", "Corridos"],
+      "foundingDate": "2019",
+      "areaServed": ["MX", "US", "LA"],
+      "inLanguage": "es",
       "sameAs": [
         "https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do",
         "https://www.youtube.com/@diosmasgym",
@@ -78,6 +99,24 @@
           "alternateName": "Juan 614"
         }
       ]
+    }
+    </script>
+
+    <!-- JSON-LD: WebSite with Sitelinks Searchbox -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Dios Mas Gym",
+      "url": "https://www.diosmasgym.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://www.diosmasgym.com/buscar?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
     }
     </script>
 
@@ -95,7 +134,8 @@
               artist: "Externa" 
             },
             timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent
+            // No enviamos userAgent completo por privacidad
+            platform: navigator.platform || 'unknown'
           };
 
           try {
@@ -129,7 +169,7 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-ZL60YWDMDD');
+      gtag('config', 'G-ZL60YWDMDD', { anonymize_ip: true });
     </script>
 
     <!-- OneSignal — defer para no bloquear render crítico -->
@@ -149,8 +189,8 @@
 </head>
 <body class="flex flex-col">
     <script>
-        // MASTER RESET SCRIPT (v5.0.6)
-        const APP_VERSION = '5.0.6';
+        // MASTER RESET SCRIPT (v5.0.7)
+        const APP_VERSION = '5.0.7';
         try {
             if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
                 console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
