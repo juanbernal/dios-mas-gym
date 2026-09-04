@@ -33,7 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953', // cjwbw/demucs official latest
           input: {
             audio: audioUrl,
-            model_name: 'htdemucs', // 4 stems: vocals, drums, bass, other (súper rápido y ultra calidad)
+            model_name: 'htdemucs', // 4 stems
+            clip_mode: 'rescale',   // Evita clipping y reduce picos de memoria en WAV
+            shifts: 1,              // Evita Out Of Memory en audios largos o WAV pesados
+            float32: false,         // Evita duplicar el uso de memoria RAM (2x)
+            overlap: 0.25,
+            output_format: 'wav',   // Genera salida en WAV puro
           },
         }),
       });
