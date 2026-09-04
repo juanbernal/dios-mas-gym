@@ -18,9 +18,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST: iniciar separación de pistas
     if (req.method === 'POST') {
-      const { audioUrl } = req.body as { audioUrl?: string };
+      let { audioUrl } = req.body as { audioUrl?: string };
       if (!audioUrl) {
         return res.status(400).json({ error: 'audioUrl es requerido' });
+      }
+
+      // Si viene de tmpfiles.org, resolver el enlace de descarga directo real (WAV binario)
+      // porque tmpfiles.org/dl/ID/name.wav ahora redirige a una página HTML con el botón de descarga
+      if (audioUrl.includes('tmpfiles.org')) {
+        try {
+          const pageUrl = audioUrl.replace('/dl/', '/');
+          const pageRes = await fetch(pageUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+          const html = await pageRes.text();
+          const match = html.match(/href=["'](https?:\/\/tmpfiles\.org\/dl\/[^"']+)["']/);
+          if (match && match[1]) {
+            audioUrl = match[1];
+            console.log('[separate-audio] Enlace directo real resuelto:', audioUrl);
+          }
+        } catch (e) {
+          console.warn('[separate-audio] No se pudo resolver enlace directo de tmpfiles:', e);
+        }
       }
 
       const response = await fetch('https://api.replicate.com/v1/predictions', {
