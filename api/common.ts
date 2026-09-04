@@ -186,6 +186,7 @@ interface MusicItem {
   type: string;
   date: string;
   album?: string;
+  lyrics?: string;
 }
 
 function generateSlug(text: string): string {

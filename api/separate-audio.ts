@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          version: 'abf8fe28e407afa6d8e41e86a759caccc0af8e49c3c68016006b62cb0968441e', // htdemucs
+          version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953', // cjwbw/demucs official latest
           input: {
             audio: audioUrl,
             model_name: 'htdemucs_6s',
