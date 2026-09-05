@@ -1,7 +1,12 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
-import { saveLyricToWeb } from '../../services/musicService';
+import { fetchMusicCatalog, fetchSavedLyrics, saveLyricToWeb } from '../../services/musicService';
+import { MusicItem } from '../../types';
+
+const generateSlug = (text: string) => {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
 
 interface AudioMetadata {
   title: string;
@@ -164,6 +169,15 @@ const AudioStudioPro:React.FC=()=>{
   const [isSavingLyric,setIsSavingLyric]=useState(false);
   const [dragLyric,setDragLyric]=useState(false);
   const [autoCleanLyrics,setAutoCleanLyrics]=useState(true);
+  // Estado del Catálogo Oficial (Google Sheets) y Letras Web
+  const [catalog, setCatalog] = useState<MusicItem[]>([]);
+  const [savedLyrics, setSavedLyrics] = useState<any[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogArtistFilter, setCatalogArtistFilter] = useState<'ALL' | 'Diosmasgym' | 'Juan 614'>('ALL');
+  const [catalogLyricsFilter, setCatalogLyricsFilter] = useState<'ALL' | 'WITH' | 'WITHOUT'>('ALL');
+  const [selectedCatalogSong, setSelectedCatalogSong] = useState<MusicItem | null>(null);
+  const [showCatalogSection, setShowCatalogSection] = useState(true);
   const fRef=useRef<HTMLInputElement>(null);
   const aRef=useRef<HTMLInputElement>(null);
   const lyricFileRef=useRef<HTMLInputElement>(null);
@@ -324,6 +338,107 @@ const AudioStudioPro:React.FC=()=>{
     notify('Marcas de tiempo (LRC) eliminadas');
   };
 
+  // Carga del catálogo oficial de canciones (Google Sheets) y letras ya guardadas en la web
+  const loadCatalogData = useCallback(async (force = false) => {
+    setLoadingCatalog(true);
+    try {
+      const [dios, juan, saved] = await Promise.all([
+        fetchMusicCatalog('diosmasgym', force),
+        fetchMusicCatalog('juan614', force),
+        fetchSavedLyrics()
+      ]);
+      const combined = [...(dios || []), ...(juan || [])];
+      setCatalog(combined);
+      if (Array.isArray(saved)) {
+        setSavedLyrics(saved);
+      }
+    } catch (e) {
+      console.error('Error cargando catálogo de Google Sheets:', e);
+    } finally {
+      setLoadingCatalog(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCatalogData();
+  }, [loadCatalogData]);
+
+  const getSongLyricContent = useCallback((song: MusicItem): string => {
+    if (song.lyrics && song.lyrics.trim()) return song.lyrics;
+    const songSlug = generateSlug(song.name);
+    const saved = savedLyrics.find(l => 
+      l.id === song.id || 
+      generateSlug(l.title || '') === songSlug ||
+      (l.artist && generateSlug(`${l.artist}-${l.title}`) === generateSlug(`${song.artist}-${song.name}`))
+    );
+    return saved?.content || '';
+  }, [savedLyrics]);
+
+  const handleLinkSong = useCallback((song: MusicItem) => {
+    setSelectedCatalogSong(song);
+    const existingLyric = getSongLyricContent(song);
+    const isJuan = (song.artist || '').toLowerCase().includes('614');
+    const artistName = isJuan ? 'Juan 614' : 'Diosmasgym';
+    const defaultGenre = isJuan ? 'Corrido Tumbado' : 'Rap';
+    
+    let songYear = String(new Date().getFullYear());
+    if (song.date) {
+      const d = new Date(song.date);
+      if (!isNaN(d.getFullYear())) songYear = String(d.getFullYear());
+    }
+
+    setMeta(prev => ({
+      ...prev,
+      title: song.name || prev.title,
+      artist: artistName,
+      album: song.album || song.name || prev.album,
+      year: songYear,
+      genre: isJuan ? 'Corrido Tumbado' : (prev.genre || defaultGenre),
+      composer: 'Juan Bernal',
+      label: 'Diosmasgym records',
+      lyrics: existingLyric || prev.lyrics || ''
+    }));
+
+    if (song.cover) {
+      setArtPrev(song.cover);
+    }
+
+    setDirty(true);
+    notify(`Canción "${song.name}" vinculada del catálogo web`);
+  }, [getSongLyricContent]);
+
+  const handleUnlinkSong = () => {
+    setSelectedCatalogSong(null);
+    notify('Canción desvinculada del catálogo');
+  };
+
+  const filteredCatalog = useMemo(() => {
+    return catalog.filter(song => {
+      // 1. Filtro de Artista
+      if (catalogArtistFilter === 'Diosmasgym') {
+        if ((song.artist || '').toLowerCase().includes('614')) return false;
+      } else if (catalogArtistFilter === 'Juan 614') {
+        if (!(song.artist || '').toLowerCase().includes('614')) return false;
+      }
+
+      // 2. Filtro de Letras
+      const hasLyric = Boolean(getSongLyricContent(song));
+      if (catalogLyricsFilter === 'WITH' && !hasLyric) return false;
+      if (catalogLyricsFilter === 'WITHOUT' && hasLyric) return false;
+
+      // 3. Búsqueda por texto
+      if (catalogSearch.trim()) {
+        const q = catalogSearch.toLowerCase().trim();
+        const matchName = (song.name || '').toLowerCase().includes(q);
+        const matchArtist = (song.artist || '').toLowerCase().includes(q);
+        const matchAlbum = (song.album || '').toLowerCase().includes(q);
+        return matchName || matchArtist || matchAlbum;
+      }
+
+      return true;
+    });
+  }, [catalog, catalogArtistFilter, catalogLyricsFilter, catalogSearch, getSongLyricContent]);
+
   const handleSaveLyricToCatalog = async () => {
     if (!meta.lyrics || !meta.lyrics.trim()) {
       notify('No hay letra para guardar', 'err');
@@ -331,16 +446,43 @@ const AudioStudioPro:React.FC=()=>{
     }
     setIsSavingLyric(true);
     try {
+      const songTitle = meta.title || selectedCatalogSong?.name || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título';
+      const songId = selectedCatalogSong?.id || generateSlug(songTitle);
+      const adminPass = localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || '';
+
       const res = await saveLyricToWeb({
-        title: meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título',
+        id: songId,
+        title: songTitle,
         artist: meta.artist,
         content: meta.lyrics.trim(),
         status: 'LIVE'
-      });
+      }, adminPass);
+
       if (res.success) {
-        notify('✅ Letra guardada y sincronizada con el catálogo web');
+        notify('✅ Letra guardada y publicada directamente en el sitio web');
+        const updatedItem = {
+          id: songId,
+          title: songTitle,
+          artist: meta.artist,
+          content: meta.lyrics.trim(),
+          date: new Date().toISOString(),
+          status: 'LIVE'
+        };
+        setSavedLyrics(prev => {
+          const idx = prev.findIndex(l => l.id === songId || generateSlug(l.title || '') === generateSlug(songTitle));
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], ...updatedItem };
+            return copy;
+          }
+          return [updatedItem, ...prev];
+        });
+        if (selectedCatalogSong) {
+          setSelectedCatalogSong(prev => prev ? { ...prev, lyrics: meta.lyrics } : null);
+          setCatalog(prev => prev.map(s => (s.id === selectedCatalogSong.id || generateSlug(s.name) === generateSlug(songTitle)) ? { ...s, lyrics: meta.lyrics } : s));
+        }
       } else {
-        notify(res.message || 'Error al guardar letra', 'err');
+        notify(res.message || 'Error al guardar letra en el sitio web', 'err');
       }
     } catch (err: any) {
       notify(`Error: ${err.message}`, 'err');
@@ -390,10 +532,30 @@ const AudioStudioPro:React.FC=()=>{
         for(let i=0;i<ch.length;i++){if(Math.abs(ch[i])<thr){if(ss===-1)ss=i;}else{if(ss!==-1&&(i-ss)>=min)ds.push({start:ss/ab.sampleRate,end:i/ab.sampleRate});ss=-1;}}
         setSilences(ds);ac.close();
       }
+
+      // Auto-vincular si coincide con alguna canción del catálogo de Google Sheets
+      const searchTitle = (tags.title || guess).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (searchTitle && catalog.length > 0) {
+        const found = catalog.find(s => {
+          const sKey = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return sKey === searchTitle || (sKey.length > 4 && (searchTitle.includes(sKey) || sKey.includes(searchTitle)));
+        });
+        if (found) {
+          setSelectedCatalogSong(found);
+          const existingLyric = getSongLyricContent(found);
+          if (existingLyric && !tags.lyrics) {
+            setMeta(m => ({ ...m, lyrics: existingLyric }));
+          }
+          if (found.cover && !coverUrl) {
+            setArtPrev(found.cover);
+          }
+        }
+      }
+
       setTab('metadata');
     }catch(e:any){notify(`Error: ${e.message}`,'err');}
     finally{setAnalyzing(false);}
-  },[]);
+  },[catalog, getSongLyricContent]);
 
   const onDrop=useCallback((e:React.DragEvent)=>{e.preventDefault();setDrag(false);const f=e.dataTransfer.files[0];if(f)loadFile(f);},[loadFile]);
 
@@ -549,6 +711,15 @@ const AudioStudioPro:React.FC=()=>{
     }
     if (fi?.coverArtBytes) {
       return fi.coverArtBytes;
+    }
+    if (artPrev && (artPrev.startsWith('http') || artPrev.startsWith('data:'))) {
+      try {
+        const res = await fetch(artPrev);
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          return new Uint8Array(ab);
+        }
+      } catch { /* ignore */ }
     }
     return null;
   };
@@ -897,7 +1068,7 @@ const AudioStudioPro:React.FC=()=>{
 
   const tabs2:{id:TabId;l:string;i:string;dis?:boolean}[]=[
     {id:'loader',l:'Cargador',i:'fa-upload'},
-    {id:'metadata',l:'Metadatos',i:'fa-tags',dis:!fi},
+    {id:'metadata',l:'Metadatos & Letras',i:'fa-tags'},
     {id:'artwork',l:'Artwork & Marca',i:'fa-image',dis:!fi},
     {id:'waveform',l:'Forma de Onda',i:'fa-waveform-lines',dis:!fi},
     {id:'stems',l:'Separador IA',i:'fa-layer-group',dis:!fi},
@@ -949,6 +1120,18 @@ const AudioStudioPro:React.FC=()=>{
               {analyzing?<div className="flex flex-col items-center gap-4"><div className="w-20 h-20 rounded-3xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center"><i className="fas fa-spinner fa-spin text-3xl text-purple-400"></i></div><p className="text-purple-300 font-bold">Analizando...</p><p className="text-white/30 text-xs">Leyendo metadatos ID3 y decodificando audio</p></div>
               :<div className="flex flex-col items-center gap-6"><div className="w-20 h-20 rounded-3xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center"><i className="fas fa-waveform-lines text-3xl text-purple-400"></i></div><div><p className="text-white font-bold text-lg mb-1">Arrastra tu audio aquí</p><p className="text-white/30 text-sm">o haz clic para seleccionar</p></div><div className="flex flex-wrap justify-center gap-2">{['WAV','MP3','FLAC','AIFF','M4A'].map(f=><span key={f} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-white/40">{f}</span>)}</div></div>}
             </div>
+            {!fi && (
+              <div className="mt-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => setTab('metadata')}
+                  className="inline-flex items-center gap-2.5 px-6 py-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-2xl text-purple-300 hover:text-white text-xs font-bold transition-all shadow-lg shadow-purple-950/20"
+                >
+                  <i className="fas fa-pen-fancy text-purple-400"></i>
+                  <span>¿Deseas redactar o vincular letras del catálogo? <strong>Ir a Metadatos & Letras →</strong></span>
+                </button>
+              </div>
+            )}
             {fi&&!analyzing&&(
               <div className="mt-8 bg-[#0f111a] border border-white/5 rounded-[2rem] p-8">
                 <div className="flex items-center gap-4 mb-6">
@@ -966,9 +1149,289 @@ const AudioStudioPro:React.FC=()=>{
           </div>
         )}
 
-        {tab==='metadata'&&fi&&(
+        {tab==='metadata'&&(
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-8"><div><h2 className="text-2xl font-serif italic text-white">Metadatos ID3</h2><p className="text-white/30 text-xs mt-1">Los cambios se aplican al exportar.</p></div>{dirty&&<span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 animate-pulse flex items-center gap-2"><i className="fas fa-circle text-[6px]"></i>Sin exportar</span>}</div>
+            {/* Banner si se trabaja directamente sin audio */}
+            {!fi && (
+              <div className="mb-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                    <i className="fas fa-feather-pointed text-purple-400 text-sm"></i>
+                  </div>
+                  <div>
+                    <p className="text-white text-xs font-bold">Modo Creador de Letras y Metadatos</p>
+                    <p className="text-white/40 text-[11px]">Puedes redactar letras, vincular canciones del catálogo y guardar directamente en el sitio web sin necesidad de subir un audio.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTab('loader')}
+                  className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 hover:text-white text-[10px] font-bold tracking-wider transition-all flex items-center gap-2 whitespace-nowrap"
+                >
+                  <i className="fas fa-file-audio text-purple-400"></i>
+                  Subir Archivo de Audio
+                </button>
+              </div>
+            )}
+
+            {/* SECCIÓN VINCULAR CANCIÓN DEL CATÁLOGO WEB (GOOGLE SHEETS) */}
+            <div className="mb-8 bg-[#0f111a] border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600/30 to-indigo-600/30 border border-purple-500/30 flex items-center justify-center shrink-0">
+                    <i className="fas fa-table-cells-large text-xl text-purple-400"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg flex items-center gap-2.5">
+                      Vincular Canción del Catálogo Web
+                      <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-mono border border-purple-500/30">
+                        {catalog.length} Canciones en Google Sheets
+                      </span>
+                    </h3>
+                    <p className="text-white/40 text-xs mt-0.5">
+                      Selecciona cualquier tema para autorellenar portada, título, artista, año, sello discográfico y letra oficial.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadCatalogData(true)}
+                    disabled={loadingCatalog}
+                    className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-40"
+                    title="Recargar catálogo desde Google Sheets"
+                  >
+                    <i className={`fas fa-rotate ${loadingCatalog ? 'fa-spin text-purple-400' : ''}`}></i>
+                    <span>{loadingCatalog ? 'Actualizando...' : 'Recargar Google Sheet'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCatalogSection(!showCatalogSection)}
+                    className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                  >
+                    <i className={`fas ${showCatalogSection ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                    <span>{showCatalogSection ? 'Ocultar' : 'Mostrar'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tarjeta de Canción Vinculada */}
+              {selectedCatalogSong && (
+                <div className="mb-6 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/20 to-purple-950/40 border border-purple-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-black/60 border border-purple-500/30 shrink-0">
+                      {selectedCatalogSong.cover ? (
+                        <img src={selectedCatalogSong.cover} alt={selectedCatalogSong.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-purple-400">
+                          <i className="fas fa-music text-lg"></i>
+                        </div>
+                      )}
+                      <span className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0f111a]" title="Vinculado activo"></span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          {selectedCatalogSong.artist}
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
+                          <i className="fas fa-circle-check"></i> Canción Vinculada
+                        </span>
+                        {getSongLyricContent(selectedCatalogSong) ? (
+                          <span className="text-[9px] font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            ✓ Con Letra en el Sitio
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                            ⚠️ Sin Letra en el Sitio
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-white font-bold text-base truncate mt-0.5">{selectedCatalogSong.name}</h4>
+                      <p className="text-white/40 text-[11px] truncate">
+                        {selectedCatalogSong.album ? `${selectedCatalogSong.album} • ` : ''}
+                        Sello: <span className="text-purple-300 font-medium">Diosmasgym records</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`/lyrics/${generateSlug(selectedCatalogSong.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                    >
+                      <i className="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                      Ver en el Sitio
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleUnlinkSong}
+                      className="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                    >
+                      <i className="fas fa-link-slash text-[10px]"></i>
+                      Desvincular
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Buscador y lista desplegable de canciones */}
+              {showCatalogSection && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div className="md:col-span-6 relative">
+                      <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                      <input
+                        type="text"
+                        value={catalogSearch}
+                        onChange={e => setCatalogSearch(e.target.value)}
+                        placeholder="Buscar por título, artista o álbum..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-purple-500/50"
+                      />
+                      {catalogSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCatalogSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                        >
+                          <i className="fas fa-xmark text-xs"></i>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Filtro por Artista */}
+                    <div className="md:col-span-3 flex items-center bg-black/40 border border-white/10 rounded-xl p-1 gap-1">
+                      {(['ALL', 'Diosmasgym', 'Juan 614'] as const).map(af => (
+                        <button
+                          key={af}
+                          type="button"
+                          onClick={() => setCatalogArtistFilter(af)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                            catalogArtistFilter === af
+                              ? 'bg-purple-600 text-white shadow'
+                              : 'text-white/40 hover:text-white'
+                          }`}
+                        >
+                          {af === 'ALL' ? 'Todos' : af}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Filtro por Letras */}
+                    <div className="md:col-span-3 flex items-center bg-black/40 border border-white/10 rounded-xl p-1 gap-1">
+                      {([
+                        { id: 'ALL', l: 'Todas' },
+                        { id: 'WITH', l: 'Con Letra' },
+                        { id: 'WITHOUT', l: 'Sin Letra' }
+                      ] as const).map(lf => (
+                        <button
+                          key={lf.id}
+                          type="button"
+                          onClick={() => setCatalogLyricsFilter(lf.id)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                            catalogLyricsFilter === lf.id
+                              ? 'bg-purple-600 text-white shadow'
+                              : 'text-white/40 hover:text-white'
+                          }`}
+                        >
+                          {lf.l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Lista de Canciones */}
+                  <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+                    {loadingCatalog ? (
+                      <div className="p-8 text-center text-white/40">
+                        <i className="fas fa-spinner fa-spin text-2xl text-purple-400 mb-3 block"></i>
+                        <p className="text-xs font-bold">Cargando catálogo oficial de Google Sheets...</p>
+                      </div>
+                    ) : filteredCatalog.length === 0 ? (
+                      <div className="p-8 text-center text-white/30 border border-dashed border-white/10 rounded-2xl">
+                        <i className="fas fa-music-slash text-2xl mb-2 block"></i>
+                        <p className="text-xs">No se encontraron canciones en el catálogo con los filtros aplicados.</p>
+                      </div>
+                    ) : (
+                      filteredCatalog.map(song => {
+                        const isSelected = selectedCatalogSong?.id === song.id || (selectedCatalogSong && generateSlug(selectedCatalogSong.name) === generateSlug(song.name));
+                        const hasLyric = Boolean(getSongLyricContent(song));
+                        const isJuan = (song.artist || '').toLowerCase().includes('614');
+
+                        return (
+                          <div
+                            key={song.id || song.name}
+                            onClick={() => handleLinkSong(song)}
+                            className={`group p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-purple-900/30 border-purple-500/60 ring-1 ring-purple-500/40 shadow-lg'
+                                : 'bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-purple-500/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-11 h-11 rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0 relative">
+                                {song.cover ? (
+                                  <img src={song.cover} alt={song.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-white/20">
+                                    <i className="fas fa-music text-xs"></i>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                    isJuan ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                  }`}>
+                                    {isJuan ? 'Juan 614' : 'Diosmasgym'}
+                                  </span>
+                                  {hasLyric ? (
+                                    <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                                      <i className="fas fa-check text-[7px]"></i> Con Letra Web
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
+                                      + Sin Letra
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`font-bold text-xs truncate mt-0.5 ${isSelected ? 'text-purple-300' : 'text-white group-hover:text-purple-200'}`}>
+                                  {song.name}
+                                </p>
+                                <p className="text-white/30 text-[10px] truncate">
+                                  {song.album ? `${song.album} • ` : ''}Sello: Diosmasgym records
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleLinkSong(song);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                                  isSelected
+                                    ? 'bg-purple-600 text-white shadow'
+                                    : 'bg-white/5 hover:bg-purple-600 text-white/60 hover:text-white'
+                                }`}
+                              >
+                                <i className={`fas ${isSelected ? 'fa-check' : 'fa-link'}`}></i>
+                                <span>{isSelected ? 'Vinculada' : 'Vincular'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between mb-8"><div><h2 className="text-2xl font-serif italic text-white">Metadatos ID3</h2><p className="text-white/30 text-xs mt-1">Los cambios se aplican al exportar y se guardan con la letra.</p></div>{dirty&&<span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 animate-pulse flex items-center gap-2"><i className="fas fa-circle text-[6px]"></i>Sin exportar</span>}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <FLD k="title" label="Título" icon="fa-music" ph="Nombre de la canción" full/>
               <div>
@@ -1253,15 +1716,27 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {meta.title && (
+                      <a
+                        href={`/lyrics/${generateSlug(meta.title)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                        title="Ver página de la letra en el sitio web"
+                      >
+                        <i className="fas fa-arrow-up-right-from-square text-[9px] text-purple-400"></i>
+                        <span>Ver en la Web</span>
+                      </a>
+                    )}
                     <button
                       type="button"
                       disabled={isSavingLyric || !meta.lyrics || !meta.lyrics.trim()}
                       onClick={handleSaveLyricToCatalog}
-                      className="px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold uppercase tracking-wider rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Guardar esta letra en la base de datos web"
+                      className="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-emerald-950/40"
+                      title="Guardar y publicar esta letra directamente en la base de datos del sitio web"
                     >
                       <i className={`fas ${isSavingLyric ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
-                      {isSavingLyric ? 'Guardando...' : 'Sincronizar a Catálogo Web'}
+                      <span>{isSavingLyric ? 'Guardando en el Sitio...' : 'Guardar y Publicar en el Sitio Web'}</span>
                     </button>
                   </div>
                 </div>
