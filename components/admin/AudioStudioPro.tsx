@@ -1,8 +1,22 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
+import { saveLyricToWeb } from '../../services/musicService';
 
-interface AudioMetadata { title:string; artist:string; album:string; year:string; genre:string; composer:string; bpm:string; comment:string; isrc:string; label:string; trackNumber:string; }
+interface AudioMetadata {
+  title: string;
+  artist: string;
+  album: string;
+  year: string;
+  genre: string;
+  composer: string;
+  bpm: string;
+  comment: string;
+  isrc: string;
+  label: string;
+  trackNumber: string;
+  lyrics?: string;
+}
 interface AudioFileInfo { name:string; size:number; type:string; duration:number; sampleRate:number; channels:number; bitDepth:string; arrayBuffer:ArrayBuffer; objectUrl:string; coverArtUrl:string|null; coverArtBytes:Uint8Array|null; }
 type TabId = 'loader'|'metadata'|'artwork'|'waveform'|'stems'|'export';
 
@@ -39,6 +53,21 @@ function readID3v2(buffer:ArrayBuffer):{tags:Partial<AudioMetadata>;coverBytes:U
       case 'TSRC':tags.isrc=tv();break;
       case 'TPUB':tags.label=tv();break;
       case 'TRCK':tags.trackNumber=tv();break;
+      case 'USLT':{
+        let is=ds+1;
+        is+=3; // skip language code (3 bytes)
+        if(enc===1||enc===2){
+          while(is+1<ds+fsz&&!(bytes[is]===0x00&&bytes[is+1]===0x00))is+=2;
+          is+=2;
+        }else{
+          while(is<ds+fsz&&bytes[is]!==0x00)is++;
+          is++;
+        }
+        if(is<ds+fsz){
+          tags.lyrics=readStr(is,ds+fsz-is,enc);
+        }
+        break;
+      }
       case 'APIC':{
         let is=ds+1;while(is<ds+fsz&&bytes[is]!==0x00)is++;is++;is++;
         while(is<ds+fsz&&bytes[is]!==0x00)is++;is++;
@@ -50,7 +79,43 @@ function readID3v2(buffer:ArrayBuffer):{tags:Partial<AudioMetadata>;coverBytes:U
   return{tags,coverBytes};
 }
 const ID3G:Record<number,string>={0:'Blues',1:'Classic Rock',7:'Hip-Hop',9:'Metal',13:'Pop',14:'R&B',15:'Rap',16:'Reggae',17:'Rock',20:'Alternative',38:'Gospel',61:'Christian Rap',86:'Latin',140:'Contemporary Christian',141:'Christian Rock',142:'Merengue',143:'Salsa'};
-const GENRES=['Gospel','Worship','Christian Rap','Christian Rock','Contemporary Christian','Pop','Hip-Hop','R&B','Rock','Reggae','Latin','Salsa','Merengue','Cumbia','Urbano','Trap','Soul','Blues','Jazz','Electronic','Dance','Alternative','Folk','Country','Metal'];
+
+export const DIOSMASGYM_GENRES = ['Rap', 'Pop Latino', 'Reggaeton', 'Worship'] as const;
+export const JUAN614_GENRES = ['Banda Sinaloense', 'Corrido Tumbado', 'Bélico'] as const;
+
+const GENRES = [
+  'Rap',
+  'Pop Latino',
+  'Reggaeton',
+  'Worship',
+  'Banda Sinaloense',
+  'Corrido Tumbado',
+  'Bélico',
+  'Gospel',
+  'Christian Rap',
+  'Christian Rock',
+  'Contemporary Christian',
+  'Pop',
+  'Hip-Hop',
+  'R&B',
+  'Rock',
+  'Reggae',
+  'Latin',
+  'Salsa',
+  'Merengue',
+  'Cumbia',
+  'Urbano',
+  'Trap',
+  'Soul',
+  'Blues',
+  'Jazz',
+  'Electronic',
+  'Dance',
+  'Alternative',
+  'Folk',
+  'Country',
+  'Metal'
+];
 const fmtB=(b:number)=>b<1048576?`${(b/1024).toFixed(1)} KB`:`${(b/1048576).toFixed(2)} MB`;
 const fmtD=(s:number)=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 
@@ -58,7 +123,20 @@ const AudioStudioPro:React.FC=()=>{
   const navigate=useNavigate();
   const [tab,setTab]=useState<TabId>('loader');
   const [fi,setFi]=useState<AudioFileInfo|null>(null);
-  const [meta,setMeta]=useState<AudioMetadata>({title:'',artist:'Diosmasgym',album:'',year:'',genre:'Gospel',composer:'Juan Bernal',bpm:'',comment:'',isrc:'',label:'Diosmasgym Records',trackNumber:'1'});
+  const [meta,setMeta]=useState<AudioMetadata>({
+    title:'',
+    artist:'Diosmasgym',
+    album:'',
+    year:String(new Date().getFullYear()),
+    genre:'Rap',
+    composer:'Juan Bernal',
+    bpm:'',
+    comment:'',
+    isrc:'',
+    label:'Diosmasgym records',
+    trackNumber:'1',
+    lyrics:''
+  });
   const [drag,setDrag]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
   const [wave,setWave]=useState<Float32Array|null>(null);
@@ -83,13 +161,193 @@ const AudioStudioPro:React.FC=()=>{
   const [selectedStemsToZip,setSelectedStemsToZip]=useState<Record<string,boolean>>({});
   const [showGenreTips,setShowGenreTips]=useState(false);
   const [notif,setNotif]=useState<{m:string;t:'ok'|'err'}|null>(null);
+  const [isSavingLyric,setIsSavingLyric]=useState(false);
+  const [dragLyric,setDragLyric]=useState(false);
+  const [autoCleanLyrics,setAutoCleanLyrics]=useState(true);
   const fRef=useRef<HTMLInputElement>(null);
   const aRef=useRef<HTMLInputElement>(null);
+  const lyricFileRef=useRef<HTMLInputElement>(null);
   const wRef=useRef<HTMLCanvasElement>(null);
   const cRef=useRef<HTMLCanvasElement>(null);
   const abortControllerRef=useRef<AbortController|null>(null);
 
   const notify=(m:string,t:'ok'|'err'='ok')=>{setNotif({m,t});setTimeout(()=>setNotif(null),3500);};
+
+  const cleanLyricsText = (raw: string): string => {
+    if (!raw || !raw.trim()) return '';
+    let text = raw;
+
+    // 1. Eliminar etiquetas [Intro], [Chorus], [Verso], timestamps [00:12.34], etc.
+    let previousText = '';
+    while (text !== previousText) {
+      previousText = text;
+      text = text.replace(/\[[^[\]]*\]/g, '');
+    }
+
+    const normalizeLine = (line: string) => {
+      let t = line.trim();
+      if (!t) return '';
+
+      // Reemplazar comillas raras por estándar
+      t = t.replace(/[‘’´`]/g, "'").replace(/[“”]/g, '"');
+
+      // Eliminar espacios de cero ancho y no divisibles
+      t = t.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ');
+
+      // Reemplazar múltiples espacios por uno solo
+      t = t.replace(/\s+/g, ' ');
+
+      // Reglas Musixmatch / Streaming: NO puntuación al inicio ni al final
+      t = t.replace(/^[.,;:\-!?"'()[\]]+/, '');
+      t = t.replace(/[.,;:\-!?"'()[\]]+$/, '');
+
+      // Transformar gritos en mayúsculas a minúsculas
+      const letters = t.replace(/[^a-zA-ZáéíóúñÁÉÍÓÚÑ]/g, '');
+      const upperCount = letters.split('').filter(l => l === l.toUpperCase()).length;
+      if (letters.length > 0 && (upperCount / letters.length) > 0.6) {
+        t = t.toLowerCase();
+      }
+
+      t = t.trim();
+
+      // Primera letra en mayúscula (Regla de Musixmatch / Streaming)
+      if (t.length > 0) {
+        t = t.charAt(0).toUpperCase() + t.slice(1);
+      }
+
+      // Asegurar mayúsculas para nombres divinos
+      t = t.replace(/\bdios\b/gi, 'Dios');
+      t = t.replace(/\bjesucristo\b/gi, 'Jesucristo');
+      t = t.replace(/\bjesús\b/gi, 'Jesús');
+      t = t.replace(/\bjesus\b/gi, 'Jesús');
+      t = t.replace(/\bseñor\b/gi, 'Señor');
+      t = t.replace(/\bespíritu\s+santo\b/gi, 'Espíritu Santo');
+      t = t.replace(/\bespiritu\s+santo\b/gi, 'Espíritu Santo');
+
+      return t;
+    };
+
+    // Separar líneas muy largas (>65 caracteres)
+    const rawLines = text.split('\n');
+    const splitRawLines: string[] = [];
+    rawLines.forEach(l => {
+      let remaining = l;
+      while (remaining.length > 65) {
+        let splitIndex = remaining.lastIndexOf(' ', 65);
+        if (splitIndex === -1) splitIndex = 65;
+        splitRawLines.push(remaining.substring(0, splitIndex));
+        remaining = remaining.substring(splitIndex);
+      }
+      if (remaining.trim().length > 0) {
+        splitRawLines.push(remaining);
+      }
+    });
+
+    const lines = splitRawLines.map(normalizeLine).filter(l => l.trim() !== '');
+
+    const hasExistingStructure = raw.includes('\n\n');
+    const formatted: string[] = [];
+
+    if (hasExistingStructure) {
+      const blocks = text.split(/\n\s*\n/);
+      blocks.forEach(block => {
+        const bLines = block.split('\n').map(normalizeLine).filter(l => l.trim() !== '');
+        if (bLines.length > 0) {
+          formatted.push(...bLines);
+          formatted.push('');
+        }
+      });
+      if (formatted.length > 0 && formatted[formatted.length - 1] === '') {
+        formatted.pop();
+      }
+    } else {
+      lines.forEach((line, i) => {
+        formatted.push(line);
+        if ((i + 1) % 4 === 0 && i !== lines.length - 1) {
+          formatted.push('');
+        }
+      });
+    }
+
+    let finalOutput = formatted.join('\n');
+    finalOutput = finalOutput.replace(/\n{3,}/g, '\n\n');
+    return finalOutput.trim();
+  };
+
+  const applyLyricCleaner = () => {
+    if (!meta.lyrics || !meta.lyrics.trim()) {
+      notify('No hay letra para limpiar', 'err');
+      return;
+    }
+    const cleaned = cleanLyricsText(meta.lyrics);
+    setMeta(p => ({ ...p, lyrics: cleaned }));
+    setDirty(true);
+    notify('✨ Limpiador aplicado (Musixmatch / Streaming / Mayúsculas divinas)');
+  };
+
+  const handleLyricUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (typeof content === 'string') {
+        const finalContent = autoCleanLyrics ? cleanLyricsText(content) : content.trim();
+        setMeta(p => ({ ...p, lyrics: finalContent }));
+        setDirty(true);
+        notify(`✅ Letra cargada${autoCleanLyrics ? ' y optimizada con Limpiador' : ''} desde "${file.name}"`);
+      }
+    };
+    reader.onerror = () => notify('Error al leer el archivo de letra', 'err');
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const handlePasteLyrics = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        const finalContent = autoCleanLyrics ? cleanLyricsText(text) : text.trim();
+        setMeta(p => ({ ...p, lyrics: finalContent }));
+        setDirty(true);
+        notify(`✅ Letra pegada${autoCleanLyrics ? ' y optimizada con Limpiador' : ''}`);
+      } else {
+        notify('El portapapeles no contiene texto', 'err');
+      }
+    } catch {
+      notify('No se pudo acceder al portapapeles. Pégala directamente en el cuadro de texto.', 'err');
+    }
+  };
+
+  const stripTimestamps = () => {
+    if (!meta.lyrics) return;
+    const cleaned = meta.lyrics.replace(/\[\d{2}:\d{2}(?:\.\d{1,3})?\]\s*/g, '');
+    setMeta(p => ({ ...p, lyrics: cleaned.trim() }));
+    setDirty(true);
+    notify('Marcas de tiempo (LRC) eliminadas');
+  };
+
+  const handleSaveLyricToCatalog = async () => {
+    if (!meta.lyrics || !meta.lyrics.trim()) {
+      notify('No hay letra para guardar', 'err');
+      return;
+    }
+    setIsSavingLyric(true);
+    try {
+      const res = await saveLyricToWeb({
+        title: meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título',
+        artist: meta.artist,
+        content: meta.lyrics.trim(),
+        status: 'LIVE'
+      });
+      if (res.success) {
+        notify('✅ Letra guardada y sincronizada con el catálogo web');
+      } else {
+        notify(res.message || 'Error al guardar letra', 'err');
+      }
+    } catch (err: any) {
+      notify(`Error: ${err.message}`, 'err');
+    } finally {
+      setIsSavingLyric(false);
+    }
+  };
 
   const loadFile=useCallback(async(file:File)=>{
     if(!file.type.includes('audio')&&!file.name.match(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i)){notify('Formato no soportado. Usa WAV, MP3, FLAC, AIFF o M4A.','err');return;}
@@ -107,7 +365,21 @@ const AudioStudioPro:React.FC=()=>{
       const info:AudioFileInfo={name:file.name,size:file.size,type:file.type||(file.name.endsWith('.wav')?'audio/wav':'audio/mpeg'),duration:ab.duration,sampleRate:ab.sampleRate,channels:ab.numberOfChannels,bitDepth:file.name.endsWith('.wav')?'16/24-bit PCM':'Comprimido',arrayBuffer:buf,objectUrl:url,coverArtUrl:coverUrl,coverArtBytes:coverBytes};
       setFi(info);
       const guess=file.name.replace(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i,'').replace(/[_-]/g,' ');
-      setMeta({title:tags.title||guess,artist:tags.artist||'Diosmasgym',album:tags.album||'',year:tags.year||String(new Date().getFullYear()),genre:tags.genre||'Gospel',composer:'Juan Bernal',bpm:tags.bpm||'',comment:tags.comment||'',isrc:tags.isrc||'',label:'Diosmasgym Records',trackNumber:tags.trackNumber||'1'});
+      const defaultGenre = (tags.artist === 'Juan 614') ? 'Corrido Tumbado' : 'Rap';
+      setMeta({
+        title:tags.title||guess,
+        artist:tags.artist||'Diosmasgym',
+        album:tags.album||'',
+        year:tags.year||String(new Date().getFullYear()),
+        genre:tags.genre||defaultGenre,
+        composer:tags.composer||'Juan Bernal',
+        bpm:tags.bpm||'',
+        comment:tags.comment||'',
+        isrc:tags.isrc||'',
+        label:'Diosmasgym records',
+        trackNumber:tags.trackNumber||'1',
+        lyrics:tags.lyrics||''
+      });
       setDirty(false);setArtPrev(coverUrl);setArtFile(null);
       if(ab.duration>0){
         const ch=ab.getChannelData(0);const samples=800;const bsz=Math.floor(ch.length/samples);
@@ -178,6 +450,7 @@ const AudioStudioPro:React.FC=()=>{
       if(meta.label)frames.push(mktf('TPUB',meta.label));
       if(meta.trackNumber)frames.push(mktf('TRCK',meta.trackNumber));
       if(meta.comment){const lb=enc.encode('spa');const tb=enc.encode(meta.comment);const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='COMM';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
+      if(meta.lyrics&&meta.lyrics.trim()){const lb=enc.encode('spa');const tb=enc.encode(meta.lyrics.trim());const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='USLT';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       setExportPct(55);
       if(cov&&cov.length>0 && !fi.name.toLowerCase().endsWith('.wav')){
         const mb=enc.encode('image/jpeg');const d=new Uint8Array(1+mb.length+1+1+1+cov.length);
@@ -533,7 +806,22 @@ const AudioStudioPro:React.FC=()=>{
               <FLD k="title" label="Título" icon="fa-music" ph="Nombre de la canción" full/>
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2 mb-2"><i className="fas fa-microphone text-purple-400/60"></i>Artista</label>
-                <select value={meta.artist} onChange={e=>{setMeta(p=>({...p,artist:e.target.value}));setDirty(true);}} className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 transition-all">
+                <select
+                  value={meta.artist}
+                  onChange={e=>{
+                    const nextArtist = e.target.value;
+                    const defaultGenre = nextArtist === 'Juan 614' ? 'Corrido Tumbado' : 'Rap';
+                    const artistGenres = nextArtist === 'Juan 614' ? (JUAN614_GENRES as readonly string[]) : (DIOSMASGYM_GENRES as readonly string[]);
+                    setMeta(p=>({
+                      ...p,
+                      artist: nextArtist,
+                      label: 'Diosmasgym records',
+                      genre: artistGenres.includes(p.genre) ? p.genre : defaultGenre
+                    }));
+                    setDirty(true);
+                  }}
+                  className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 transition-all"
+                >
                   <option value="Diosmasgym">Diosmasgym</option>
                   <option value="Juan 614">Juan 614</option>
                 </select>
@@ -543,25 +831,273 @@ const AudioStudioPro:React.FC=()=>{
               <FLD k="trackNumber" label="Pista #" icon="fa-list-ol" ph="1"/>
               <FLD k="bpm" label="BPM" icon="fa-metronome" ph="120"/>
               <FLD k="composer" label="Compositor" icon="fa-pen-nib" ph="Nombre del compositor" ro/>
-              <FLD k="label" label="Sello / Label" icon="fa-building" ph="Mando Ejecutivo Records" ro/>
+              <FLD k="label" label="Sello / Label" icon="fa-building" ph="Diosmasgym records" ro/>
               <FLD k="isrc" label="ISRC" icon="fa-barcode" ph="US-XXX-26-00001" ml={12}/>
               <FLD k="comment" label="Comentario" icon="fa-comment" ph="Notas adicionales..."/>
               <div>
-                <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2 mb-2"><i className="fas fa-tag text-purple-400/60"></i>Género</label>
-                <select value={meta.genre} onChange={e=>{setMeta(p=>({...p,genre:e.target.value}));setDirty(true);}} className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 mb-2">
-                  {GENRES.map(g=><option key={g} value={g}>{g}</option>)}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                    <i className="fas fa-tag text-purple-400/60"></i>Género ({meta.artist})
+                  </label>
+                  <span className="text-[8px] font-bold text-purple-400 uppercase tracking-wider">
+                    {meta.artist === 'Juan 614' ? 'Banda / Corrido' : 'Urbano / Worship'}
+                  </span>
+                </div>
+
+                {/* Botones de Géneros Oficiales del Artista */}
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {(meta.artist === 'Juan 614' ? JUAN614_GENRES : DIOSMASGYM_GENRES).map(g => {
+                    const active = meta.genre.toLowerCase() === g.toLowerCase();
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => {
+                          setMeta(p => ({ ...p, genre: g, label: 'Diosmasgym records' }));
+                          setDirty(true);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border ${
+                          active
+                            ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-900/40 scale-105'
+                            : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <i className={`fas ${active ? 'fa-circle-check text-[10px]' : 'fa-circle-dot text-[8px] opacity-40'}`}></i>
+                        {g}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <select
+                  value={meta.genre}
+                  onChange={e=>{setMeta(p=>({...p,genre:e.target.value,label:'Diosmasgym records'}));setDirty(true);}}
+                  className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 mb-2"
+                >
+                  <optgroup label={`Géneros de ${meta.artist}`}>
+                    {(meta.artist === 'Juan 614' ? JUAN614_GENRES : DIOSMASGYM_GENRES).map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Otros Géneros">
+                    {GENRES.filter(g => !(meta.artist === 'Juan 614' ? (JUAN614_GENRES as readonly string[]) : (DIOSMASGYM_GENRES as readonly string[])).includes(g)).map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </optgroup>
                 </select>
-                <input type="text" value={meta.genre} onChange={e=>{setMeta(p=>({...p,genre:e.target.value}));setDirty(true);}} placeholder="O escribe género personalizado..."
-                  className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50"/>
+
+                <input
+                  type="text"
+                  value={meta.genre}
+                  onChange={e=>{setMeta(p=>({...p,genre:e.target.value,label:'Diosmasgym records'}));setDirty(true);}}
+                  placeholder="O escribe género personalizado..."
+                  className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50"
+                />
               </div>
             </div>
+
+            {/* Plantillas Rápidas con Sello Fijo Diosmasgym records */}
             <div className="mt-8 bg-[#0f111a] border border-white/5 rounded-[2rem] p-6">
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-4">Plantillas Rápidas</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Plantillas Rápidas</p>
+                <span className="text-[8px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <i className="fas fa-lock text-[7px]"></i>Sello fijo: Diosmasgym records
+                </span>
+              </div>
               <div className="flex flex-wrap gap-3">
-                {[{l:'Diosmasgym',d:{artist:'Diosmasgym',label:'Mando Ejecutivo Records',genre:'Gospel',year:String(new Date().getFullYear())}},{l:'Juan 614',d:{artist:'Juan 614',label:'Mando Ejecutivo Records',genre:'Christian Rap',year:String(new Date().getFullYear())}}].map(tpl=>(
-                  <button key={tpl.l} onClick={()=>{setMeta(p=>({...p,...tpl.d}));setDirty(true);notify(`Plantilla "${tpl.l}" aplicada`);}} className="px-5 py-2.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-purple-300 text-[9px] font-black uppercase tracking-widest hover:bg-purple-500/20 transition-all"><i className="fas fa-bolt mr-2"></i>{tpl.l}</button>
+                {[
+                  {
+                    l: 'Diosmasgym',
+                    d: { artist: 'Diosmasgym', label: 'Diosmasgym records', genre: 'Rap', year: String(new Date().getFullYear()) },
+                    sub: 'Rap · Pop Latino · Reggaeton · Worship'
+                  },
+                  {
+                    l: 'Juan 614',
+                    d: { artist: 'Juan 614', label: 'Diosmasgym records', genre: 'Corrido Tumbado', year: String(new Date().getFullYear()) },
+                    sub: 'Banda Sinaloense · Corrido Tumbado · Bélico'
+                  }
+                ].map(tpl=>(
+                  <button
+                    key={tpl.l}
+                    onClick={()=>{
+                      setMeta(p=>({...p,...tpl.d,label:'Diosmasgym records'}));
+                      setDirty(true);
+                      notify(`Plantilla "${tpl.l}" aplicada (Sello: Diosmasgym records)`);
+                    }}
+                    className="px-5 py-3 bg-purple-500/10 border border-purple-500/30 rounded-2xl text-purple-300 hover:bg-purple-500/20 transition-all flex flex-col items-start gap-0.5 text-left"
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <i className="fas fa-bolt text-purple-400"></i>{tpl.l}
+                    </span>
+                    <span className="text-[8px] text-white/40 normal-case font-medium">{tpl.sub}</span>
+                  </button>
                 ))}
-                <button onClick={()=>{setMeta({title:'',artist:'',album:'',year:'',genre:'Gospel',composer:'',bpm:'',comment:'',isrc:'',label:'',trackNumber:'1'});setDirty(true);notify('Metadatos limpiados');}} className="px-5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"><i className="fas fa-trash mr-2"></i>Limpiar</button>
+                <button
+                  onClick={()=>{
+                    setMeta({title:'',artist:'Diosmasgym',album:'',year:String(new Date().getFullYear()),genre:'Rap',composer:'Juan Bernal',bpm:'',comment:'',isrc:'',label:'Diosmasgym records',trackNumber:'1',lyrics:''});
+                    setDirty(true);
+                    notify('Metadatos limpiados');
+                  }}
+                  className="px-5 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all flex items-center gap-2 self-center ml-auto"
+                >
+                  <i className="fas fa-trash mr-1"></i>Limpiar
+                </button>
+              </div>
+            </div>
+
+            {/* Sección de Subida y Gestión de Letra de la Canción */}
+            <div className="mt-8 bg-[#0f111a] border border-white/5 rounded-[2rem] p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-white font-bold text-lg flex items-center gap-2.5">
+                    <i className="fas fa-align-left text-purple-400"></i>
+                    Letra de la Canción (Lyrics)
+                  </h3>
+                  <p className="text-white/40 text-xs mt-1">
+                    Sube tu archivo de letra o pégala aquí. Se incrusta directamente en los metadatos ID3 (USLT) de tu audio y puedes sincronizarla al catálogo web.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={lyricFileRef}
+                    type="file"
+                    accept=".txt,.lrc,.srt,.md,text/*"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) handleLyricUpload(f);
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => lyricFileRef.current?.click()}
+                    className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-purple-950/40"
+                  >
+                    <i className="fas fa-file-arrow-up"></i>
+                    Subir Archivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePasteLyrics}
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                    title="Pegar texto del portapapeles"
+                  >
+                    <i className="fas fa-clipboard"></i>
+                    Pegar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyLyricCleaner}
+                    disabled={!meta.lyrics || !meta.lyrics.trim()}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-purple-950/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Aplica reglas de formato profesional (Musixmatch / Streaming: quita corchetes, normaliza puntuación, mayúsculas y nombres divinos)"
+                  >
+                    <i className="fas fa-wand-magic-sparkles text-amber-300"></i>
+                    Limpiador de Letras
+                  </button>
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-white/60 cursor-pointer select-none bg-white/[0.03] border border-white/10 px-3 py-2 rounded-xl hover:border-purple-500/30">
+                    <input
+                      type="checkbox"
+                      checked={autoCleanLyrics}
+                      onChange={e => setAutoCleanLyrics(e.target.checked)}
+                      className="accent-purple-500 w-3.5 h-3.5 rounded cursor-pointer"
+                    />
+                    <span>Auto-limpiar</span>
+                  </label>
+                  {meta.lyrics && /\[\d{2}:\d{2}/.test(meta.lyrics) && (
+                    <button
+                      type="button"
+                      onClick={stripTimestamps}
+                      className="px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                      title="Quitar marcas de tiempo de archivo LRC"
+                    >
+                      <i className="fas fa-clock"></i>
+                      Quitar Timestamps LRC
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/lyric-cleaner', { state: { initialLyrics: meta.lyrics || '' } })}
+                    className="px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+                    title="Abrir en estudio completo de Limpiador de Letras"
+                  >
+                    <i className="fas fa-arrow-up-right-from-square text-[9px]"></i>
+                    Estudio
+                  </button>
+                  {meta.lyrics && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMeta(p => ({ ...p, lyrics: '' }));
+                        setDirty(true);
+                        notify('Letra borrada');
+                      }}
+                      className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                      title="Limpiar letra"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Zona de Drop y Edición de Letra */}
+              <div
+                onDragOver={e => { e.preventDefault(); setDragLyric(true); }}
+                onDragLeave={() => setDragLyric(false)}
+                onDrop={e => {
+                  e.preventDefault();
+                  setDragLyric(false);
+                  const f = e.dataTransfer.files[0];
+                  if (f) handleLyricUpload(f);
+                }}
+                className={`relative rounded-2xl border transition-all ${
+                  dragLyric
+                    ? 'border-purple-400 bg-purple-500/10'
+                    : 'border-white/10 bg-black/40'
+                }`}
+              >
+                <textarea
+                  value={meta.lyrics || ''}
+                  onChange={e => {
+                    setMeta(p => ({ ...p, lyrics: e.target.value }));
+                    setDirty(true);
+                  }}
+                  rows={10}
+                  placeholder={`Arrastra aquí tu archivo .txt, .lrc o .srt, o escribe/pega la letra completa de la canción...\n\nEjemplo:\n[Verso 1]\nCon la fe puesta en alto y la mirada al cielo...\n\n[Coro]\nDios más gym, fuerza y devoción...`}
+                  className="w-full bg-transparent p-5 text-sm text-white placeholder-white/20 outline-none resize-y font-sans leading-relaxed"
+                />
+
+                {/* Barra de estado y sincronización */}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-white/5 bg-white/[0.02] text-[10px] font-mono text-white/40 rounded-b-2xl">
+                  <div className="flex items-center gap-4">
+                    <span>
+                      <strong className="text-purple-400">{meta.lyrics ? meta.lyrics.split('\n').filter(l => l.trim()).length : 0}</strong> versos
+                    </span>
+                    <span>•</span>
+                    <span>
+                      <strong className="text-purple-400">{meta.lyrics ? meta.lyrics.trim().split(/\s+/).filter(Boolean).length : 0}</strong> palabras
+                    </span>
+                    <span>•</span>
+                    <span>
+                      <strong className="text-purple-400">{meta.lyrics ? meta.lyrics.length : 0}</strong> caracteres
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isSavingLyric || !meta.lyrics || !meta.lyrics.trim()}
+                      onClick={handleSaveLyricToCatalog}
+                      className="px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold uppercase tracking-wider rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Guardar esta letra en la base de datos web"
+                    >
+                      <i className={`fas ${isSavingLyric ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
+                      {isSavingLyric ? 'Guardando...' : 'Sincronizar a Catálogo Web'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -916,7 +1452,7 @@ const AudioStudioPro:React.FC=()=>{
             <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-8 mb-6">
               <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-5">Resumen</p>
               <div className="space-y-3">
-                {[{l:'Título',v:meta.title||'—',i:'fa-music'},{l:'Artista',v:meta.artist||'—',i:'fa-microphone'},{l:'Álbum',v:meta.album||'—',i:'fa-compact-disc'},{l:'Año',v:meta.year||'—',i:'fa-calendar'},{l:'Género',v:meta.genre||'—',i:'fa-tag'},{l:'Sello',v:meta.label||'—',i:'fa-building'},{l:'ISRC',v:meta.isrc||'—',i:'fa-barcode'},{l:'BPM',v:meta.bpm||'—',i:'fa-metronome'},{l:'Artwork',v:artFile?artFile.name:(fi.coverArtUrl?'Original del archivo':'Sin artwork'),i:'fa-image'}].map(item=>(
+                {[{l:'Título',v:meta.title||'—',i:'fa-music'},{l:'Artista',v:meta.artist||'—',i:'fa-microphone'},{l:'Álbum',v:meta.album||'—',i:'fa-compact-disc'},{l:'Año',v:meta.year||'—',i:'fa-calendar'},{l:'Género',v:meta.genre||'—',i:'fa-tag'},{l:'Sello',v:meta.label||'—',i:'fa-building'},{l:'Letra',v:meta.lyrics?.trim()?`${meta.lyrics.trim().split('\n').filter(Boolean).length} versos listos (ID3)`:'Sin letra cargada',i:'fa-align-left'},{l:'ISRC',v:meta.isrc||'—',i:'fa-barcode'},{l:'BPM',v:meta.bpm||'—',i:'fa-metronome'},{l:'Artwork',v:artFile?artFile.name:(fi.coverArtUrl?'Original del archivo':'Sin artwork'),i:'fa-image'}].map(item=>(
                   <div key={item.l} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"><span className="text-white/40 text-xs flex items-center gap-2"><i className={`fas ${item.i} text-purple-400/50 w-4 text-center`}></i>{item.l}</span><span className="text-white text-xs font-bold truncate max-w-[60%] text-right">{item.v}</span></div>
                 ))}
               </div>
