@@ -17,34 +17,60 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
   const [copied, setCopied] = useState(false);
   const [copiedVerse, setCopiedVerse] = useState<number | null>(null);
   const [savedLyrics, setSavedLyrics] = useState<any[]>([]);
+  const [loadingLyrics, setLoadingLyrics] = useState(true);
 
   useEffect(() => {
-    fetchSavedLyrics().then(data => {
-      if (Array.isArray(data) && data.length > 0) {
-        setSavedLyrics(data);
-      }
-    });
+    let isMounted = true;
+    fetchSavedLyrics()
+      .then(data => {
+        if (isMounted) {
+          if (Array.isArray(data) && data.length > 0) {
+            setSavedLyrics(data);
+          }
+          setLoadingLyrics(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoadingLyrics(false);
+      });
+    return () => { isMounted = false; };
   }, []);
+
+  const normalize = (text: string) =>
+    (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 
   const song = useMemo(() => {
     if (!slug) return null;
-    // 1. Match from catalog
+    const slugNorm = normalize(slug);
+
+    // 1. Match from catalog (by exact ID, slug, artist-name, or normalized title)
     const matched = catalog.find(s =>
       s.id === slug ||
       generateSlug(s.name) === slug ||
-      generateSlug(`${s.artist}-${s.name}`) === slug
+      generateSlug(`${s.artist}-${s.name}`) === slug ||
+      normalize(s.name) === slugNorm ||
+      (s.id && normalize(s.id) === slugNorm)
     );
 
-    // 2. Check if there's custom saved lyric in savedLyrics
-    const matchedSaved = savedLyrics.find(l =>
-      l.id === slug ||
-      generateSlug(l.title || '') === slug ||
-      generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug ||
-      (matched && generateSlug(l.title || '') === generateSlug(matched.name))
-    );
+    // 2. Match from savedLyrics (by exact ID, catalog match ID, slug, or normalized title)
+    const matchedSaved = savedLyrics.find(l => {
+      const lTitleNorm = normalize(l.title || '');
+      const mNameNorm = matched ? normalize(matched.name || '') : '';
+      return (
+        l.id === slug ||
+        (matched && l.id === matched.id) ||
+        generateSlug(l.title || '') === slug ||
+        generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug ||
+        (lTitleNorm && slugNorm && (lTitleNorm === slugNorm || slugNorm.includes(lTitleNorm))) ||
+        (matched && (
+          generateSlug(l.title || '') === generateSlug(matched.name) ||
+          (lTitleNorm && mNameNorm && (lTitleNorm === mNameNorm || mNameNorm.includes(lTitleNorm) || lTitleNorm.includes(mNameNorm)))
+        ))
+      );
+    });
 
     if (matched) {
-      if ((!matched.lyrics || matched.lyrics.trim().length === 0) && matchedSaved?.content) {
+      if (matchedSaved?.content && (!matched.lyrics || matched.lyrics.trim().length === 0 || matched.lyrics.length < matchedSaved.content.length)) {
         return { ...matched, lyrics: matchedSaved.content };
       }
       return matched;
@@ -82,6 +108,24 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
       }
     } catch (_) {}
   };
+
+  // Si está cargando y aún no encontramos letra, mostrar loader temporal para no parpadear
+  if (loadingLyrics && (!song || !song.lyrics)) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center relative"
+        style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 100%)' }}
+      >
+        <div className="text-center px-6">
+          <div className="w-14 h-14 rounded-2xl bg-[#4a90d9]/10 border border-[#4a90d9]/25 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <i className="fas fa-music text-[#4a90d9] text-xl" />
+          </div>
+          <p className="text-sm font-bold text-white mb-1">Cargando letra oficial...</p>
+          <p className="text-xs text-white/40">Sincronizando con el catálogo web</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!song) {
     return (

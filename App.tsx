@@ -457,6 +457,9 @@ const App: React.FC = () => {
           <Route path="/bio/:artist" element={<LinkBioPublic />} />
           <Route path="/buscar" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/letra/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/lyrics/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/letra" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/lyrics" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/testimonios" element={<TestimoniosView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

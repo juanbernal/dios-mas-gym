@@ -757,11 +757,31 @@ export default async function handler(
         // Sync to Google Sheets (primary persistent store — AWAIT to ensure it saves)
         if (GS_LYRICS_URL) {
           try {
-            await fetch(GS_LYRICS_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({ action: 'save', secret: 'DMG_SYNC_2026', lyrics: currentLyrics, item: bodyData })
-            });
+            const saveTitle = (bodyData && (bodyData.title || bodyData.name)) || '';
+            const saveArtist = (bodyData && bodyData.artist) || 'Diosmasgym';
+            const saveContent = (bodyData && (bodyData.content || bodyData.lyrics)) || '';
+
+            if (saveTitle && saveContent) {
+              const queryString = new URLSearchParams({
+                action: 'save',
+                secret: 'DMG_SYNC_2026',
+                title: saveTitle,
+                artist: saveArtist
+              }).toString();
+
+              await fetch(`${GS_LYRICS_URL}${GS_LYRICS_URL.includes('?') ? '&' : '?'}${queryString}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'save',
+                  secret: 'DMG_SYNC_2026',
+                  title: saveTitle,
+                  artist: saveArtist,
+                  content: saveContent,
+                  date: new Date().toISOString()
+                })
+              });
+            }
           } catch (gsErr) {
             console.error('[lyrics POST] Google Sheets sync error:', gsErr);
             // Non-fatal — data is already in /tmp

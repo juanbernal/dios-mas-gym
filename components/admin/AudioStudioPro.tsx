@@ -481,6 +481,31 @@ const AudioStudioPro:React.FC=()=>{
           setSelectedCatalogSong(prev => prev ? { ...prev, lyrics: meta.lyrics } : null);
           setCatalog(prev => prev.map(s => (s.id === selectedCatalogSong.id || generateSlug(s.name) === generateSlug(songTitle)) ? { ...s, lyrics: meta.lyrics } : s));
         }
+
+        // 2. Sincronización directa con Google Sheets (Nube) para persistencia total
+        try {
+          const queryString = new URLSearchParams({
+            action: 'save',
+            secret: 'DMG_SYNC_2026',
+            title: songTitle,
+            artist: meta.artist
+          }).toString();
+
+          await fetch(`/api/sheet-proxy?script=lyrics&${queryString}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'save',
+              secret: 'DMG_SYNC_2026',
+              title: songTitle,
+              artist: meta.artist,
+              content: meta.lyrics.trim(),
+              date: new Date().toISOString()
+            })
+          });
+        } catch (sheetErr) {
+          console.warn('Google Sheets cloud sync error:', sheetErr);
+        }
       } else {
         notify(res.message || 'Error al guardar letra en el sitio web', 'err');
       }
@@ -1256,7 +1281,7 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href={`/lyrics/${generateSlug(selectedCatalogSong.name)}`}
+                      href={`/letra/${selectedCatalogSong.id || generateSlug(selectedCatalogSong.name)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
@@ -1718,7 +1743,7 @@ const AudioStudioPro:React.FC=()=>{
                   <div className="flex items-center gap-2">
                     {meta.title && (
                       <a
-                        href={`/lyrics/${generateSlug(meta.title)}`}
+                        href={`/letra/${selectedCatalogSong?.id || generateSlug(meta.title)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
