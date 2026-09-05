@@ -543,13 +543,175 @@ const AudioStudioPro:React.FC=()=>{
     }
   };
 
+  const getCoverBytes = async (): Promise<Uint8Array | null> => {
+    if (artFile) {
+      try { return new Uint8Array(await artFile.arrayBuffer()); } catch { return null; }
+    }
+    if (fi?.coverArtBytes) {
+      return fi.coverArtBytes;
+    }
+    return null;
+  };
+
+  const injectId3ToWav = (
+    wavBuffer: ArrayBuffer,
+    stemTitle: string,
+    stemName: string,
+    covBytes: Uint8Array | null
+  ): Uint8Array => {
+    const enc = new TextEncoder();
+    const frames: Uint8Array[] = [];
+
+    const mktf = (id: string, val: string): Uint8Array => {
+      if (!val) return new Uint8Array(0);
+      const tb = enc.encode(val);
+      const d = new Uint8Array(1 + tb.length);
+      d[0] = 3; // UTF-8
+      d.set(tb, 1);
+      const fr = new Uint8Array(10 + d.length);
+      for (let i = 0; i < 4; i++) fr[i] = id.charCodeAt(i);
+      const sz = d.length;
+      fr[4] = (sz >> 24) & 0xff;
+      fr[5] = (sz >> 16) & 0xff;
+      fr[6] = (sz >> 8) & 0xff;
+      fr[7] = sz & 0xff;
+      fr.set(d, 10);
+      return fr;
+    };
+
+    const songTitle = meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Audio';
+    const fullTitle = `${songTitle} (${stemTitle})`;
+
+    frames.push(mktf('TIT2', fullTitle));
+    if (meta.artist) frames.push(mktf('TPE1', meta.artist));
+    frames.push(mktf('TALB', meta.album ? `${meta.album} (Stems)` : `${songTitle} - Stems`));
+    if (meta.year) frames.push(mktf('TYER', meta.year));
+    if (meta.genre) frames.push(mktf('TCON', meta.genre));
+    if (meta.composer) frames.push(mktf('TCOM', meta.composer));
+    if (meta.bpm) frames.push(mktf('TBPM', meta.bpm));
+    if (meta.isrc) frames.push(mktf('TSRC', meta.isrc));
+    frames.push(mktf('TPUB', meta.label || 'Diosmasgym records'));
+
+    const commentText = meta.comment
+      ? `${meta.comment} | Pista ${stemTitle}`
+      : `Pista ${stemTitle} - Separado con IA en Diosmasgym Audio Studio Pro`;
+    const lb = enc.encode('spa');
+    const tb = enc.encode(commentText);
+    const dComm = new Uint8Array(1 + 3 + 1 + tb.length);
+    dComm[0] = 3;
+    dComm.set(lb, 1);
+    dComm[4] = 0;
+    dComm.set(tb, 5);
+    const frComm = new Uint8Array(10 + dComm.length);
+    const idComm = 'COMM';
+    for (let i = 0; i < 4; i++) frComm[i] = idComm.charCodeAt(i);
+    const szComm = dComm.length;
+    frComm[4] = (szComm >> 24) & 0xff;
+    frComm[5] = (szComm >> 16) & 0xff;
+    frComm[6] = (szComm >> 8) & 0xff;
+    frComm[7] = szComm & 0xff;
+    frComm.set(dComm, 10);
+    frames.push(frComm);
+
+    // Si es la pista vocal y hay letra cargada, incrustar la letra en USLT
+    if (stemName === 'vocals' && meta.lyrics && meta.lyrics.trim()) {
+      const lrcEnc = enc.encode(meta.lyrics.trim());
+      const dLrc = new Uint8Array(1 + 3 + 1 + lrcEnc.length);
+      dLrc[0] = 3;
+      dLrc.set(lb, 1);
+      dLrc[4] = 0;
+      dLrc.set(lrcEnc, 5);
+      const frLrc = new Uint8Array(10 + dLrc.length);
+      const idLrc = 'USLT';
+      for (let i = 0; i < 4; i++) frLrc[i] = idLrc.charCodeAt(i);
+      const szLrc = dLrc.length;
+      frLrc[4] = (szLrc >> 24) & 0xff;
+      frLrc[5] = (szLrc >> 16) & 0xff;
+      frLrc[6] = (szLrc >> 8) & 0xff;
+      frLrc[7] = szLrc & 0xff;
+      frLrc.set(dLrc, 10);
+      frames.push(frLrc);
+    }
+
+    // Cover art en frame APIC
+    if (covBytes && covBytes.length > 0) {
+      const mb = enc.encode('image/jpeg');
+      const dPic = new Uint8Array(1 + mb.length + 1 + 1 + 1 + covBytes.length);
+      let pos = 0;
+      dPic[pos++] = 0;
+      dPic.set(mb, pos);
+      pos += mb.length;
+      dPic[pos++] = 0;
+      dPic.set(covBytes, pos);
+      const frPic = new Uint8Array(10 + dPic.length);
+      const idPic = 'APIC';
+      for (let i = 0; i < 4; i++) frPic[i] = idPic.charCodeAt(i);
+      const szPic = dPic.length;
+      frPic[4] = (szPic >> 24) & 0xff;
+      frPic[5] = (szPic >> 16) & 0xff;
+      frPic[6] = (szPic >> 8) & 0xff;
+      frPic[7] = szPic & 0xff;
+      frPic.set(dPic, 10);
+      frames.push(frPic);
+    }
+
+    const total = frames.reduce((s, f) => s + f.length, 0) + 512;
+    const ss = (n: number): [number, number, number, number] => [
+      (n >> 21) & 0x7f,
+      (n >> 14) & 0x7f,
+      (n >> 7) & 0x7f,
+      n & 0x7f
+    ];
+
+    const hdr = new Uint8Array(10 + total);
+    hdr[0] = 0x49; hdr[1] = 0x44; hdr[2] = 0x33; hdr[3] = 0x03; hdr[4] = 0x00; hdr[5] = 0x00;
+    const [s3, s2, s1, s0] = ss(total);
+    hdr[6] = s3; hdr[7] = s2; hdr[8] = s1; hdr[9] = s0;
+    let wp2 = 10;
+    for (const fr of frames) {
+      if (fr.length > 0) {
+        hdr.set(fr, wp2);
+        wp2 += fr.length;
+      }
+    }
+
+    const ob = new Uint8Array(wavBuffer);
+    if (ob.length > 12 && ob[0] === 0x52 && ob[1] === 0x49 && ob[2] === 0x46 && ob[3] === 0x46) {
+      const sz = hdr.length;
+      const pad = sz % 2;
+      const ff = new Uint8Array(ob.length + 8 + sz + pad);
+      ff.set(ob, 0);
+      const dv = new DataView(ff.buffer);
+      dv.setUint32(4, dv.getUint32(4, true) + 8 + sz + pad, true);
+      ff[ob.length] = 0x69;     // 'i'
+      ff[ob.length + 1] = 0x64; // 'd'
+      ff[ob.length + 2] = 0x33; // '3'
+      ff[ob.length + 3] = 0x20; // ' '
+      dv.setUint32(ob.length + 4, sz, true);
+      ff.set(hdr, ob.length + 8);
+      return ff;
+    }
+
+    const ff = new Uint8Array(hdr.length + ob.length);
+    ff.set(hdr, 0);
+    ff.set(ob, hdr.length);
+    return ff;
+  };
+
   const downloadSingleStem = async (url: string, stemName: string) => {
     try {
       setDownloadingStem(stemName);
       const baseName = (meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
+      const info = getStemInfo(stemName);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
+      const arrayBuf = await res.arrayBuffer();
+
+      // Inyectar metadatos ID3 oficiales en la pista WAV
+      const covBytes = await getCoverBytes();
+      const taggedBytes = injectId3ToWav(arrayBuf, info.title, stemName, covBytes);
+
+      const blob = new Blob([taggedBytes], { type: 'audio/wav' });
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -558,7 +720,7 @@ const AudioStudioPro:React.FC=()=>{
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-      notify(`✅ Pista "${stemName}.wav" descargada`);
+      notify(`✅ Pista "${stemName}.wav" descargada con metadatos ID3 completos`);
     } catch (e: any) {
       console.warn('Descarga por blob falló, usando descarga segura:', e);
       // Fallback seguro que NO recarga ni abandona la pestaña actual
@@ -585,23 +747,28 @@ const AudioStudioPro:React.FC=()=>{
     }
 
     setIsZipping(true);
-    setZipProgress('Iniciando descarga de pistas...');
+    setZipProgress('Iniciando descarga e incrustación de metadatos...');
     try {
       const zip = new JSZip();
       const baseName = (meta.title || fi.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
       const folder = zip.folder(`${baseName}_Stems`) || zip;
+      const covBytes = await getCoverBytes();
 
       let count = 0;
       for (const [name, url] of stemsToExport) {
         count++;
-        setZipProgress(`Descargando pista ${count} de ${stemsToExport.length} (${name})...`);
+        setZipProgress(`Incrustando metadatos en pista ${count} de ${stemsToExport.length} (${name})...`);
         const res = await fetch(url as string);
         if (!res.ok) throw new Error(`Error descargando pista ${name}`);
-        const arrayBuf = await res.arrayBuffer();
-        folder.file(`${baseName}_${name}.wav`, arrayBuf);
+        const rawBuf = await res.arrayBuffer();
+        const info = getStemInfo(name);
+
+        // Inyectar metadatos ID3 completos en cada WAV dentro del archivo ZIP
+        const tagged = injectId3ToWav(rawBuf, info.title, name, covBytes);
+        folder.file(`${baseName}_${name}.wav`, tagged);
       }
 
-      setZipProgress('Comprimiendo archivo ZIP...');
+      setZipProgress('Comprimiendo archivo ZIP con metadatos...');
       const zipBlob = await zip.generateAsync({
         type: 'blob',
         compression: 'DEFLATE',
@@ -619,7 +786,7 @@ const AudioStudioPro:React.FC=()=>{
       document.body.removeChild(a);
       URL.revokeObjectURL(zipUrl);
 
-      notify('✅ ¡Todas las pistas descargadas en archivo ZIP!');
+      notify(`✅ ¡Todas las pistas descargadas en ZIP con metadatos y sello "${meta.label || 'Diosmasgym records'}"!`);
     } catch (err: any) {
       console.error('Error generando ZIP:', err);
       notify(`Error al crear ZIP: ${err.message}`, 'err');
@@ -1326,6 +1493,23 @@ const AudioStudioPro:React.FC=()=>{
                     <p className="text-white/40 text-xs mt-0.5">
                       Descarga todo de un solo jalón en un archivo ZIP comprimido sin salir de la página.
                     </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-[9px] font-mono text-purple-300">
+                      <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center gap-1">
+                        <i className="fas fa-tags text-purple-400"></i>Etiquetas ID3v2 incrustadas en cada WAV
+                      </span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/60 font-bold">{meta.artist}</span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/60">{meta.label || 'Diosmasgym records'}</span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-purple-400">{meta.genre}</span>
+                      {meta.lyrics && (
+                        <>
+                          <span className="text-white/40">•</span>
+                          <span className="text-emerald-400">Letra en Vocals</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="flex items-center gap-3 w-full md:w-auto">
