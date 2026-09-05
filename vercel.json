@@ -62,6 +62,10 @@
       "destination": "/api/common?action=letra-ssr&slug=:slug"
     },
     {
+      "source": "/lyrics/:slug",
+      "destination": "/api/common?action=letra-ssr&slug=:slug"
+    },
+    {
       "source": "/api/image-proxy",
       "destination": "/api/common?action=image-proxy"
     },

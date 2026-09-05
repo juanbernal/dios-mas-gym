@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Allow: /link/
 Allow: /letra/
+Allow: /lyrics/
 Allow: /bio/
 Allow: /testimonios
 Allow: /buscar
