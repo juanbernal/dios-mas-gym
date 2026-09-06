@@ -47,14 +47,26 @@ const SearchView: React.FC<SearchViewProps> = ({ catalog, onPlaySong }) => {
   // Enrich catalog with saved lyrics from database
   const enrichedCatalog = useMemo(() => {
     if (!savedLyrics || savedLyrics.length === 0) return catalog;
-    const norm = (str: string) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const cleanTitle = (str: string) => 
+      (str || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/\s*\[[^\]]*\]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+
     return catalog.map(song => {
       if (song.lyrics && song.lyrics.trim().length > 50) return song;
-      const sNameNorm = norm(song.name);
-      const sIdNorm = norm(song.id);
+      const sNameNorm = cleanTitle(song.name);
+      const sIdNorm = cleanTitle(song.id);
       const matched = savedLyrics.find(l => {
-        const lTitleNorm = norm(l.title || '');
-        return l.id === song.id || (sIdNorm && l.id === sIdNorm) || (lTitleNorm && sNameNorm && (lTitleNorm === sNameNorm || sNameNorm.includes(lTitleNorm) || lTitleNorm.includes(sNameNorm)));
+        if (!l) return false;
+        if (l.id && song.id && l.id === song.id) return true;
+        if (sIdNorm && l.id && cleanTitle(l.id) === sIdNorm) return true;
+        const lTitleNorm = cleanTitle(l.title || '');
+        if (lTitleNorm && sNameNorm && lTitleNorm === sNameNorm) return true;
+        return false;
       });
       if (matched?.content) {
         return { ...song, lyrics: matched.content };

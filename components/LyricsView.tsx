@@ -61,10 +61,10 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
         (matched && l.id === matched.id) ||
         generateSlug(l.title || '') === slug ||
         generateSlug(`${l.artist || ''}-${l.title || ''}`) === slug ||
-        (lTitleNorm && slugNorm && (lTitleNorm === slugNorm || slugNorm.includes(lTitleNorm))) ||
+        (lTitleNorm && slugNorm && lTitleNorm === slugNorm) ||
         (matched && (
           generateSlug(l.title || '') === generateSlug(matched.name) ||
-          (lTitleNorm && mNameNorm && (lTitleNorm === mNameNorm || mNameNorm.includes(lTitleNorm) || lTitleNorm.includes(mNameNorm)))
+          (lTitleNorm && mNameNorm && lTitleNorm === mNameNorm)
         ))
       );
     });

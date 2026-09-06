@@ -847,7 +847,7 @@ const SmartLinkView: React.FC = () => {
                                 l.id === found.id ||
                                 l.id === id ||
                                 (l.title && normalize(l.title) === fSlug) ||
-                                (lTitleNorm && fNameNorm && (lTitleNorm === fNameNorm || fNameNorm.includes(lTitleNorm) || lTitleNorm.includes(fNameNorm)))
+                                (lTitleNorm && fNameNorm && lTitleNorm === fNameNorm)
                             );
                         });
 
@@ -935,7 +935,7 @@ const SmartLinkView: React.FC = () => {
                         return (
                             l.id === id ||
                             (id && normalize(l.title || '') === normalize(id)) ||
-                            (lTitleNorm && slugNorm && (lTitleNorm === slugNorm || slugNorm.includes(lTitleNorm)))
+                            (lTitleNorm && slugNorm && lTitleNorm === slugNorm)
                         );
                     });
                     if (matchedSaved) {
