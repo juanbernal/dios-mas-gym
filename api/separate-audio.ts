@@ -93,6 +93,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(response.status).json({ error: data?.detail || 'Error consultando estado' });
       }
 
+      // Limpiar output si terminó con éxito para eliminar campos nulos (ej: guitar o piano cuando se eligen 4 stems)
+      if (data.status === 'succeeded' && data.output && typeof data.output === 'object') {
+        const cleaned: Record<string, string> = {};
+        for (const [key, val] of Object.entries(data.output)) {
+          if (val && typeof val === 'string' && val.trim().startsWith('http')) {
+            cleaned[key] = val.trim();
+          }
+        }
+        data.output = cleaned;
+      }
+
       return res.status(200).json(data);
     }
 

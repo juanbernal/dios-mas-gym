@@ -518,7 +518,7 @@ const AudioStudioPro:React.FC=()=>{
 
   const loadFile=useCallback(async(file:File)=>{
     if(!file.type.includes('audio')&&!file.name.match(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i)){notify('Formato no soportado. Usa WAV, MP3, FLAC, AIFF o M4A.','err');return;}
-    setAnalyzing(true);setWave(null);setSilences([]);
+    setAnalyzing(true);setWave(null);setSilences([]);setAiStems(null);setSelectedStemsToZip({});
     try{
       const buf=await file.arrayBuffer();
       const url=URL.createObjectURL(file);
@@ -936,9 +936,11 @@ const AudioStudioPro:React.FC=()=>{
 
   const downloadZip = async () => {
     if (!aiStems || !fi) return;
-    const stemsToExport = Object.entries(aiStems).filter(([name]) => selectedStemsToZip[name] !== false);
+    const stemsToExport = Object.entries(aiStems).filter(([name, url]) => 
+      url && typeof url === 'string' && url.trim().startsWith('http') && selectedStemsToZip[name] !== false
+    );
     if (stemsToExport.length === 0) {
-      notify('Selecciona al menos una pista para descargar el ZIP', 'err');
+      notify('Selecciona al menos una pista válida para descargar el ZIP', 'err');
       return;
     }
 
@@ -951,26 +953,51 @@ const AudioStudioPro:React.FC=()=>{
       const covBytes = await getCoverBytes();
 
       let count = 0;
+      let successCount = 0;
       for (const [name, url] of stemsToExport) {
         count++;
-        setZipProgress(`Incrustando metadatos en pista ${count} de ${stemsToExport.length} (${name})...`);
-        const res = await fetch(url as string);
-        if (!res.ok) throw new Error(`Error descargando pista ${name}`);
-        const rawBuf = await res.arrayBuffer();
-        const info = getStemInfo(name);
+        setZipProgress(`Descargando e incrustando metadatos en pista ${count} de ${stemsToExport.length} (${name})...`);
+        let rawBuf: ArrayBuffer | null = null;
+        try {
+          const res = await fetch(url as string);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          rawBuf = await res.arrayBuffer();
+        } catch (fetchErr) {
+          console.warn(`[ZIP] Falló descarga directa de ${name}, reintentando vía proxy...`, fetchErr);
+          try {
+            const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url as string)}`);
+            if (proxyRes.ok) {
+              rawBuf = await proxyRes.arrayBuffer();
+            }
+          } catch {
+            rawBuf = null;
+          }
+        }
 
+        if (!rawBuf || rawBuf.byteLength === 0) {
+          console.warn(`[ZIP] Omitiendo pista ${name} porque no se pudo descargar el archivo binario.`);
+          continue;
+        }
+
+        const info = getStemInfo(name);
         // Inyectar metadatos ID3 completos en cada WAV dentro del archivo ZIP
         const tagged = injectId3ToWav(rawBuf, info.title, name, covBytes);
         folder.file(`${baseName}_${name}.wav`, tagged);
+        successCount++;
       }
 
-      setZipProgress('Comprimiendo archivo ZIP con metadatos...');
+      if (successCount === 0) {
+        throw new Error('No se pudo descargar ninguna de las pistas de audio para empaquetar en el ZIP.');
+      }
+
+      setZipProgress('Generando archivo ZIP (ultra rápido sin saturar memoria)...');
+      // Usar STORE (sin compresión lenta): los WAV son audio sin comprimir donde DEFLATE no ahorra espacio
+      // pero satura la memoria RAM del navegador y causa caídas
       const zipBlob = await zip.generateAsync({
         type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 6 }
+        compression: 'STORE',
       }, (metadata) => {
-        setZipProgress(`Comprimiendo ZIP: ${Math.round(metadata.percent)}%`);
+        setZipProgress(`Generando ZIP: ${Math.round(metadata.percent)}%`);
       });
 
       const zipUrl = URL.createObjectURL(zipBlob);
@@ -979,10 +1006,14 @@ const AudioStudioPro:React.FC=()=>{
       a.download = `${baseName}_Stems_Separados.zip`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(zipUrl);
 
-      notify(`✅ ¡Todas las pistas descargadas en ZIP con metadatos y sello "${meta.label || 'Diosmasgym records'}"!`);
+      // Limpiar URL después de un tiempo prudente para asegurar que el navegador inició la descarga
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(zipUrl);
+      }, 20000);
+
+      notify(`✅ ¡${successCount} pistas descargadas en ZIP con metadatos y sello "${meta.label || 'Diosmasgym records'}"!`);
     } catch (err: any) {
       console.error('Error generando ZIP:', err);
       notify(`Error al crear ZIP: ${err.message}`, 'err');
@@ -995,6 +1026,8 @@ const AudioStudioPro:React.FC=()=>{
   const extractStems = async () => {
     if (!fi) return;
     setIsExtracting(true);
+    setAiStems(null);
+    setSelectedStemsToZip({});
     abortControllerRef.current = new AbortController();
     setExtractStatus('Subiendo audio a servidor temporal...');
     try {
@@ -1071,11 +1104,39 @@ const AudioStudioPro:React.FC=()=>{
       if (!result.output) {
         throw new Error('Replicate terminó pero no devolvió las pistas de audio.');
       }
-      setAiStems(result.output);
+
+      // Filtrar estrictamente según el modelo seleccionado y URLs válidas
+      const allowedOrder = selectedModel === 'htdemucs'
+        ? ['vocals', 'drums', 'bass', 'other']
+        : ['vocals', 'drums', 'bass', 'other', 'guitar', 'piano'];
+
+      const filteredStems: Record<string, string> = {};
+      for (const key of allowedOrder) {
+        const val = result.output[key];
+        if (val && typeof val === 'string' && val.trim().startsWith('http')) {
+          filteredStems[key] = val.trim();
+        }
+      }
+
+      // Si por alguna razón el modelo no trajo las llaves esperadas pero trajo otras válidas
+      if (Object.keys(filteredStems).length === 0) {
+        for (const [key, val] of Object.entries(result.output)) {
+          if (val && typeof val === 'string' && val.trim().startsWith('http')) {
+            if (selectedModel === 'htdemucs' && (key === 'guitar' || key === 'piano')) continue;
+            filteredStems[key] = val.trim();
+          }
+        }
+      }
+
+      if (Object.keys(filteredStems).length === 0) {
+        throw new Error('No se encontraron pistas de audio descargables en la respuesta.');
+      }
+
+      setAiStems(filteredStems);
       const initialSel: Record<string, boolean> = {};
-      Object.keys(result.output).forEach(k => { initialSel[k] = true; });
+      Object.keys(filteredStems).forEach(k => { initialSel[k] = true; });
       setSelectedStemsToZip(initialSel);
-      notify('¡Pistas separadas con éxito!');
+      notify(`¡${Object.keys(filteredStems).length} pistas separadas con éxito!`);
     } catch (e: any) {
       if (e.name !== 'AbortError') notify(`Error: ${e.message}`, 'err');
     } finally {
@@ -1942,6 +2003,14 @@ const AudioStudioPro:React.FC=()=>{
                       <span className="text-[9px] bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded-md font-bold">Sierreño</span>
                       <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold">Acústico</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Nota informativa sobre voces y backing vocals */}
+                <div className="max-w-2xl mx-auto mb-6 p-3.5 rounded-xl bg-white/[0.03] border border-white/10 text-left flex items-start gap-3">
+                  <i className="fas fa-circle-info text-purple-400 mt-0.5 text-xs shrink-0"></i>
+                  <div className="text-[11px] text-white/70 leading-relaxed">
+                    <strong className="text-white">¿Por qué las voces vienen juntas?</strong> Demucs agrupa la voz principal y las segundas voces/coros en una sola pista de <strong>Voces (Vocals)</strong>. La opción de 6 pistas añade <em>Guitarras</em> y <em>Pianos</em> (no coros). Para separar coros de la voz solista se requiere un modelo especializado en UVR / Karaoke.
                   </div>
                 </div>
 
