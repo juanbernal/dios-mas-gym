@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { fetchMusicCatalog } from '../services/musicService';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { fetchMusicCatalog, fetchSavedLyrics } from '../services/musicService';
 import { MusicItem } from '../types';
 import { useOneSignal } from '../services/useOneSignal';
 import { useAnalytics } from '../hooks/useAnalytics';
+
+const generateSlug = (text: string) =>
+    (text || '').toLowerCase()
+       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+       .replace(/[^a-z0-9]+/g, '-')
+       .replace(/(^-|-$)+/g, '');
 
 declare global {
   interface Window {
@@ -452,48 +458,69 @@ const QrModal = ({ isOpen, onClose, url }: { isOpen: boolean, onClose: () => voi
     );
 };
 
-const InlineLyrics = ({ lyrics, songName, isJuan }: { lyrics?: string, songName: string, isJuan: boolean }) => {
+const InlineLyrics = ({ lyrics, songName, songSlug, isJuan }: { lyrics?: string, songName: string, songSlug?: string, isJuan: boolean }) => {
     const [expanded, setExpanded] = useState(false);
     
     if (!lyrics) return null;
 
     const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
     const bgClass = isJuan ? 'bg-[#081830]/40 border-[#1e4a7a]/20' : 'bg-black/45 border-white/5';
+    const targetSlug = songSlug || generateSlug(songName);
+    const lyricsUrl = `/letra/${targetSlug}`;
     
     return (
-        <div className={`w-full max-w-6xl backdrop-blur-xl ${bgClass} border p-6 md:p-10 rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-500`}>
+        <div className={`w-full max-w-6xl backdrop-blur-xl ${bgClass} border p-6 md:p-8 rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-500`}>
+            <HUDCorners color={accentColor} />
             {/* Background Glow */}
-            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-20`} style={{ backgroundColor: accentColor }}></div>
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-20" style={{ backgroundColor: accentColor }}></div>
             
-            <div className="flex justify-between items-end mb-8 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10 border-b border-white/5 pb-4">
                 <div>
-                    <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] mb-2 flex items-center gap-2" style={{ color: accentColor }}>
-                        <i className="fas fa-music"></i> Letra Oficial
+                    <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2" style={{ color: accentColor }}>
+                        <i className="fas fa-file-lines"></i> Letra Oficial
                     </h3>
-                    <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">{songName}</h2>
+                    <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">{songName}</h2>
                 </div>
-                {lyrics.length > 300 && (
-                    <button 
-                        onClick={() => setExpanded(!expanded)}
-                        className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full border transition-all flex items-center gap-2 ${isJuan ? 'bg-[#4a90d9]/10 text-[#4a90d9] border-[#4a90d9]/30 hover:bg-[#4a90d9] hover:text-black' : 'bg-[#4a90d9]/10 text-[#4a90d9] border-[#4a90d9]/30 hover:bg-[#4a90d9] hover:text-black'}`}
-                    >
-                        {expanded ? (
-                            <><i className="fas fa-chevron-up"></i> Ocultar</>
-                        ) : (
-                            <><i className="fas fa-expand"></i> Leer Completa</>
-                        )}
-                    </button>
-                )}
+
+                <Link 
+                    to={lyricsUrl}
+                    className="self-start sm:self-auto inline-flex items-center gap-2 text-[10px] md:text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#4a90d9]/40 text-white/90 hover:text-white transition-all duration-200 group"
+                >
+                    <span>Ver Letra Completa</span>
+                    <i className="fas fa-arrow-up-right-from-square text-[9px] text-[#4a90d9] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
+                </Link>
             </div>
 
-            <div className={`relative z-10 transition-all duration-700 ease-in-out overflow-hidden ${expanded || lyrics.length <= 300 ? 'max-h-[5000px]' : 'max-h-[280px]'}`}>
-                <div className="whitespace-pre-wrap font-serif text-lg md:text-xl text-left leading-relaxed md:leading-[2.2] text-white/80">
+            <div className={`relative z-10 transition-all duration-700 ease-in-out overflow-hidden ${expanded || lyrics.length <= 260 ? 'max-h-[5000px]' : 'max-h-[220px]'}`}>
+                <div className="whitespace-pre-wrap font-serif text-base md:text-lg text-left leading-relaxed md:leading-[2.2] text-white/85 select-text">
                     {lyrics}
                 </div>
                 
                 {/* Fade out en la parte inferior cuando está colapsado */}
-                {!expanded && lyrics.length > 300 && (
-                    <div className={`absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t ${isJuan ? 'from-[#081830]' : 'from-[#050505]'} to-transparent pointer-events-none`}></div>
+                {!expanded && lyrics.length > 260 && (
+                    <div className={`absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t ${isJuan ? 'from-[#081830] via-[#081830]/90' : 'from-[#050505] via-[#050505]/90'} to-transparent pointer-events-none`}></div>
+                )}
+            </div>
+
+            {/* Footer con llamada a la acción y toggle */}
+            <div className="relative z-10 mt-6 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+                <Link 
+                    to={lyricsUrl}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4a90d9] hover:bg-[#3b7ac4] text-black font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-[#4a90d9]/25 hover:scale-[1.02]"
+                >
+                    <i className="fas fa-book-open"></i>
+                    <span>Ver Letra Completa e Interactiva</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                </Link>
+
+                {lyrics.length > 260 && (
+                    <button 
+                        onClick={() => setExpanded(!expanded)}
+                        className="text-[11px] font-bold uppercase tracking-wider text-white/60 hover:text-white transition-colors flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-white/5"
+                    >
+                        <i className={`fas ${expanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs text-[#4a90d9]`}></i>
+                        <span>{expanded ? 'Mostrar Menos' : 'Desplegar aquí'}</span>
+                    </button>
                 )}
             </div>
         </div>
@@ -720,10 +747,11 @@ const SmartLinkView: React.FC = () => {
     useEffect(() => {
         const loadSong = async () => {
             try {
-                // Buscamos en ambos catálogos para enlaces normales
-                const [dM, j6] = await Promise.all([
+                // Buscamos en ambos catálogos para enlaces normales y letras guardadas
+                const [dM, j6, savedLyrics] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614')
+                    fetchMusicCatalog('juan614'),
+                    fetchSavedLyrics().catch(() => [])
                 ]);
                 let fullCatalog = [...dM, ...j6];
 
@@ -808,7 +836,26 @@ const SmartLinkView: React.FC = () => {
                 });
 
                 if (found) {
-                    setSong(found);
+                    let songWithLyrics = { ...found };
+                    if (Array.isArray(savedLyrics) && savedLyrics.length > 0) {
+                        const normText = (text: string) => (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                        const fNameNorm = normText(found.name);
+                        const fSlug = normalize(found.name);
+                        const matchedSaved = savedLyrics.find((l: any) => {
+                            const lTitleNorm = normText(l.title || '');
+                            return (
+                                l.id === found.id ||
+                                l.id === id ||
+                                (l.title && normalize(l.title) === fSlug) ||
+                                (lTitleNorm && fNameNorm && (lTitleNorm === fNameNorm || fNameNorm.includes(lTitleNorm) || lTitleNorm.includes(fNameNorm)))
+                            );
+                        });
+
+                        if (matchedSaved?.content && (!songWithLyrics.lyrics || songWithLyrics.lyrics.trim().length === 0 || songWithLyrics.lyrics.length < matchedSaved.content.length)) {
+                            songWithLyrics.lyrics = matchedSaved.content;
+                        }
+                    }
+                    setSong(songWithLyrics);
                     // === SEO: Dynamic meta tags for Google / Social ===
                     const songTitle = `${found.name} - ${found.artist}`;
                     const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Dios Más Gym`;
@@ -880,6 +927,34 @@ const SmartLinkView: React.FC = () => {
                     );
                     const randomOthers = others.sort(() => 0.5 - Math.random()).slice(0, 5);
                     setOtherReleases(randomOthers);
+                } else if (Array.isArray(savedLyrics) && savedLyrics.length > 0) {
+                    const normText = (text: string) => (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                    const slugNorm = normText(id || '');
+                    const matchedSaved = savedLyrics.find((l: any) => {
+                        const lTitleNorm = normText(l.title || '');
+                        return (
+                            l.id === id ||
+                            (id && normalize(l.title || '') === normalize(id)) ||
+                            (lTitleNorm && slugNorm && (lTitleNorm === slugNorm || slugNorm.includes(lTitleNorm)))
+                        );
+                    });
+                    if (matchedSaved) {
+                        const lyricSong: MusicItem = {
+                            id: matchedSaved.id || id || 'song',
+                            name: matchedSaved.title,
+                            artist: matchedSaved.artist || 'Dios Mas Gym',
+                            cover: matchedSaved.cover || '/logo-diosmasgym.png',
+                            url: matchedSaved.url || '',
+                            type: 'Single',
+                            lyrics: matchedSaved.content,
+                            date: matchedSaved.date || new Date().toISOString()
+                        };
+                        setSong(lyricSong);
+                        document.title = `${lyricSong.name} - ${lyricSong.artist}`;
+                        setLoading(false);
+                        return;
+                    }
+                    setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
@@ -1078,7 +1153,7 @@ const SmartLinkView: React.FC = () => {
 
                     {song.lyrics && (
                         <div className="w-full flex justify-center mt-2 mb-2">
-                            <InlineLyrics lyrics={song.lyrics} songName={song.name} isJuan={false} />
+                            <InlineLyrics lyrics={song.lyrics} songName={song.name} songSlug={song.id || generateSlug(song.name)} isJuan={false} />
                         </div>
                     )}
 
@@ -1406,7 +1481,7 @@ const SmartLinkView: React.FC = () => {
 
                 {song.lyrics && (
                     <div className="w-full flex justify-center mt-2 mb-2">
-                        <InlineLyrics lyrics={song.lyrics} songName={song.name} isJuan={true} />
+                        <InlineLyrics lyrics={song.lyrics} songName={song.name} songSlug={song.id || generateSlug(song.name)} isJuan={true} />
                     </div>
                 )}
 

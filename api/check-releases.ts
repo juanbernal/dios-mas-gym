@@ -213,6 +213,80 @@ async function sendOneSignalPush(release: ReleaseRow): Promise<any> {
     return await response.json();
 }
 
+async function sendConsolidatedPush(items: any[]): Promise<any> {
+    const APP_ID = process.env.ONESIGNAL_APP_ID;
+    const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+
+    if (!APP_ID || !API_KEY) {
+        return { error: 'Missing environment variables' };
+    }
+
+    const first = items[0];
+    const artist = first.artist || 'Diosmasgym';
+    const artistEmoji = artist.toLowerCase().includes('juan') ? '🤠' : '💪';
+    const names = items.map(i => i.name).slice(0, 3).join(', ');
+    const more = items.length > 3 ? ` y ${items.length - 3} más` : '';
+
+    const payload: any = {
+        app_id: APP_ID,
+        included_segments: ['Active Users', 'Subscribed Users', 'Total Subscriptions'],
+        headings: { 
+            en: `${artistEmoji} New Releases from ${artist}!`,
+            es: `${artistEmoji} ¡Nuevos Estrenos de ${artist}!` 
+        },
+        contents: {
+            en: `New music available: ${names}${more}. Listen now on the website! 🔥`,
+            es: `Se acaban de estrenar ${items.length} canciones nuevas: ${names}${more}. ¡Entra a escucharlas! 🔥`,
+        },
+        url: 'https://www.diosmasgym.com/#arsenal-content',
+        ...(first.cover
+            ? { big_picture: first.cover, large_icon: first.cover }
+            : { large_icon: 'https://www.diosmasgym.com/icon-192.png' }),
+    };
+
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+    });
+
+    return await response.json();
+}
+
+async function syncToGoogleSheet(item: any): Promise<boolean> {
+    try {
+        const payload: Record<string, string> = {
+            Artista: item.artist || 'Diosmasgym',
+            name: item.name,
+            releaseDate: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+            coverImageUrl: item.cover || '',
+            preSaveLink: item.url ? (item.url.startsWith('http') ? item.url : `https://www.diosmasgym.com/link/${item.id}`) : '',
+            audioUrl: item.url || ''
+        };
+
+        const formParams = new URLSearchParams();
+        Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v ?? '')));
+
+        const response = await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formParams.toString()
+        });
+
+        console.log(`[check-releases] Auto-synced "${item.name}" to Google Sheet (status: ${response.status})`);
+        return response.ok;
+    } catch (e) {
+        console.error(`[check-releases] Failed to auto-sync "${item.name}" to Google Sheet:`, e);
+        return false;
+    }
+}
+
 async function sendAdminNotification(items: any[]): Promise<any> {
     const APP_ID = process.env.ONESIGNAL_APP_ID;
     const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -376,29 +450,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!alreadyInSheet && item.name) {
                     console.log(`[check-releases] New item detected: ${item.name} (${item.date})`);
                     newlyDetected.push(item);
-                    // Attempt to sync to sheet
-                    try {
-                        const syncPayload = {
-                            Artista: item.artist || 'Diosmasgym',
-                            name: item.name,
-                            releaseDate: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
-                            coverImageUrl: item.cover || '',
-                            preSaveLink: item.url || '',
-                            audioUrl: item.url || ''
-                        };
-                        const qs = new URLSearchParams(syncPayload as any).toString();
-                        await fetch(`${GOOGLE_SHEET_URL}?${qs}`, { method: 'POST', body: JSON.stringify(syncPayload) });
-                        console.log(`[check-releases] Auto-synced: ${item.name}`);
-                    } catch (e) {
-                        console.error(`[check-releases] Failed to auto-sync ${item.name}:`, e);
-                    }
+                    // Sincronizar automáticamente a Google Sheets
+                    await syncToGoogleSheet(item);
                 }
             }
         } catch (catalogErr: any) {
             console.error('[check-releases] Catalog detection failed (non-fatal):', catalogErr.message);
         }
 
+        const pushResults: any[] = [];
+        const notifiedSongNames = new Set<string>();
+
+        // 1. Enviar notificación push inmediata a TODOS los suscriptores si se detectó música nueva
         if (newlyDetected.length > 0) {
+            console.log(`[check-releases] Enviando notificación pública para ${newlyDetected.length} nuevos temas detectados...`);
+            
+            if (newlyDetected.length === 1) {
+                const single = newlyDetected[0];
+                const releaseRow: ReleaseRow = {
+                    Artista: single.artist || 'Diosmasgym',
+                    name: single.name,
+                    releaseDate: single.date ? single.date.split('T')[0] : new Date().toISOString().split('T')[0],
+                    preSaveLink: single.url || '',
+                    coverImageUrl: single.cover || ''
+                };
+                const resPush = await sendOneSignalPush(releaseRow);
+                pushResults.push(resPush);
+                notifiedSongNames.add((single.name || '').toLowerCase().trim());
+            } else {
+                // Si son múltiples canciones, agrupar por artista para no saturar al usuario
+                const byArtist = new Map<string, any[]>();
+                newlyDetected.forEach(item => {
+                    const art = item.artist || 'Diosmasgym';
+                    if (!byArtist.has(art)) byArtist.set(art, []);
+                    byArtist.get(art)!.push(item);
+                    notifiedSongNames.add((item.name || '').toLowerCase().trim());
+                });
+
+                for (const [artist, songs] of byArtist.entries()) {
+                    if (songs.length === 1) {
+                        const s = songs[0];
+                        const resPush = await sendOneSignalPush({
+                            Artista: s.artist || artist,
+                            name: s.name,
+                            releaseDate: s.date ? s.date.split('T')[0] : new Date().toISOString().split('T')[0],
+                            preSaveLink: s.url || '',
+                            coverImageUrl: s.cover || ''
+                        });
+                        pushResults.push(resPush);
+                    } else {
+                        const resPush = await sendConsolidatedPush(songs);
+                        pushResults.push(resPush);
+                    }
+                }
+            }
+
             try {
                 await sendAdminNotification(newlyDetected);
                 console.log(`[check-releases] Notified admins about ${newlyDetected.length} new items.`);
@@ -410,7 +516,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // --- 2. Fetch Fresh Sheet (if we synced anything) ---
         let finalRows = rows;
         if (newlyDetected.length > 0) {
-            finalRows = await fetchRows();
+            try {
+                finalRows = await fetchRows();
+            } catch (e) {
+                console.warn('[check-releases] Error refetching sheet after sync:', e);
+            }
         }
 
         // Calculate "today" in multiple timezones to avoid misses
@@ -458,46 +568,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[check-releases] Target: ${targetDate} | Candidate dates: ${[...datesToCheck].join(',')} | Total Rows: ${finalRows.length} | Today's releases: ${todaysReleases.length}`);
         
+        // Enviar para los estrenos del día en la hoja que no hayan sido ya notificados
+        const remainingToday = todaysReleases.filter(r => 
+            !notifiedSongNames.has((r.name || '').toLowerCase().trim())
+        );
+
+        if (remainingToday.length > 0) {
+            const todayResults = await Promise.all(remainingToday.map(sendOneSignalPush));
+            pushResults.push(...todayResults);
+        }
+
         const debugInfo = {
             targetDate,
             candidateDates: [...datesToCheck],
             all_releases_dates: releases.map(r => `${r.name}: ${r.releaseDate}`),
-            todays_count: todaysReleases.length
+            todays_count: todaysReleases.length,
+            detected_count: newlyDetected.length
         };
 
-        if (todaysReleases.length === 0) {
-            return res.status(200).json({ 
-                sent: 0, 
-                message: `No hay estrenos para hoy (${targetDate}). Fechas en la hoja: ${releases.slice(0,5).map(r => r.releaseDate).join(', ')}`,
-                detected: newlyDetected.length,
-                debug: debugInfo
-            });
-        }
-
-
-        const APP_ID = process.env.ONESIGNAL_APP_ID;
-        const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
-        if (!APP_ID || !API_KEY) {
-            return res.status(200).json({ 
-                sent: 0, 
-                message: 'Error: El servidor no detecta las variables de OneSignal. ¿Has desplegado los cambios en Vercel después de añadirlas?',
-                debug: {
-                    has_app_id: !!APP_ID,
-                    has_api_key: !!API_KEY,
-                    app_id_start: APP_ID ? APP_ID.substring(0, 5) + '...' : 'nulo',
-                },
-                detected: newlyDetected.length
-            });
-        }
-
-        // Send push
-        const pushResults = await Promise.all(todaysReleases.map(sendOneSignalPush));
-
         return res.status(200).json({
-            sent: todaysReleases.length,
-            releases: todaysReleases.map(r => r.name),
+            sent: pushResults.length,
             detected: newlyDetected.length,
-            pushResults
+            releases: [
+                ...newlyDetected.map(r => `[Detectado y Auto-sincronizado] ${r.name}`),
+                ...remainingToday.map(r => `[Estreno de Hoy] ${r.name}`)
+            ],
+            pushResults,
+            debug: debugInfo
         });
     } catch (err: any) {
         console.error('[check-releases] Error:', err);

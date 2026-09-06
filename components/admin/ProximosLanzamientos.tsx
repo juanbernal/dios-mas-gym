@@ -82,6 +82,60 @@ const ProximosLanzamientos: React.FC = () => {
 
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
+    const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
+        const originalItems = itemsToSync || pendingSync;
+        if (originalItems.length === 0) return;
+        
+        // Reverse to sync oldest first, so the newest ends up at the top after insert.
+        const items = [...originalItems].reverse();
+        
+        setIsSyncing(true);
+        const failed: ReleaseData[] = [];
+        for (let i = 0; i < items.length; i++) {
+            const release = items[i];
+            setStatus({ type: 'loading', message: `Sincronizando ${i+1} de ${items.length}: ${release.name}` });
+            try {
+                const payload = {
+                    Artista: release.Artista,
+                    name: release.name,
+                    releaseDate: release.releaseDate,
+                    preSaveLink: release.preSaveLink || '',
+                    audioUrl: release.audioUrl || '',
+                    coverImageUrl: release.coverImageUrl || ''
+                };
+                // Send data ONLY in the JSON body — the sheet-proxy forwards this to Google Apps Script
+                const res = await fetch(`/api/sheet-proxy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                await new Promise(r => setTimeout(r, 200));
+            } catch (e) {
+                failed.push(release);
+                console.error("Error syncing item:", release.name, e);
+            }
+        }
+        setIsSyncing(false);
+        if (failed.length === 0) {
+            setPendingSync([]);
+            setStatus({ type: 'success', message: `¡Sincronizado con Google Sheets! Enviando notificaciones...` });
+            try {
+                await testNotification();
+            } catch (notifErr) {
+                console.warn('[AutoSync] Error enviando notificaciones automáticas:', notifErr);
+            }
+            syncStartedRef.current = false;
+            setTimeout(() => {
+                setStatus({ type: 'idle' });
+                fetchCurrentReleases(true);
+            }, 2500);
+        } else {
+            setPendingSync(failed);
+            setStatus({ type: 'error', message: `${failed.length} lanzamientos fallaron al sincronizar. Reintenta manualmente.` });
+        }
+    };
+
     const processCatalogSync = (existing: ReleaseData[], dM: any[], j6: any[], force = false) => {
         if (force) syncStartedRef.current = false;
         if (syncStartedRef.current && !force) return;
@@ -165,7 +219,8 @@ const ProximosLanzamientos: React.FC = () => {
             setScanLog(logs.slice(0, 20)); // Limit display logs
             if (missing.length > 0) {
                 setPendingSync(missing);
-                setStatus({ type: 'idle' });
+                console.log(`[Sync] Se detectaron ${missing.length} lanzamientos nuevos. Sincronizando automáticamente con Google Sheets...`);
+                handleAutoSync(missing);
             } else if (force) {
                 setStatus({ type: 'success', message: 'El catálogo ya está 100% sincronizado.' });
             }
@@ -270,55 +325,6 @@ const ProximosLanzamientos: React.FC = () => {
     const handleRequestPermission = async () => {
         const granted = await requestNotifPermission();
         setNotifPermission(granted ? 'granted' : 'denied');
-    };
-
-    const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
-        const originalItems = itemsToSync || pendingSync;
-        if (originalItems.length === 0) return;
-        
-        // Reverse to sync oldest first, so the newest ends up at the top after insert.
-        const items = [...originalItems].reverse();
-        
-        setIsSyncing(true);
-        const failed: ReleaseData[] = [];
-        for (let i = 0; i < items.length; i++) {
-            const release = items[i];
-            setStatus({ type: 'loading', message: `${i+1} de ${items.length}: ${release.name}` });
-            try {
-                const payload = {
-                    Artista: release.Artista,
-                    name: release.name,
-                    releaseDate: release.releaseDate,
-                    preSaveLink: release.preSaveLink || '',
-                    audioUrl: release.audioUrl || '',
-                    coverImageUrl: release.coverImageUrl || ''
-                };
-                // Send data ONLY in the JSON body — the sheet-proxy forwards this to Google Apps Script
-                const res = await fetch(`/api/sheet-proxy`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                await new Promise(r => setTimeout(r, 200));
-            } catch (e) {
-                failed.push(release);
-                console.error("Error syncing item:", release.name, e);
-            }
-        }
-        setIsSyncing(false);
-        if (failed.length === 0) {
-            setPendingSync([]);
-            setStatus({ type: 'success', message: `¡Sincronización completa! Verificando catálogo...` });
-            syncStartedRef.current = false;
-            setTimeout(() => {
-                setStatus({ type: 'idle' });
-                fetchCurrentReleases(true);
-            }, 2500);
-        } else {
-            setPendingSync(failed);
-            setStatus({ type: 'error', message: `${failed.length} lanzamientos fallaron. Reintenta manualmente.` });
-        }
     };
 
     const handleManualPush = async () => {
