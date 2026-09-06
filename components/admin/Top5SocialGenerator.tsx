@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMusicCatalog } from "../../services/musicService";
+import { fetchMusicCatalog, deduplicateCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
 import { getHighResUrl } from "../../services/imageHelpers";
 
@@ -8,7 +8,12 @@ async function urlToDataUrl(src: string): Promise<string> {
   if (!src) return "";
   if (src.startsWith("data:") || src.startsWith("blob:")) return src;
   try {
-    const res = await fetch(`/api/image-proxy?url=${encodeURIComponent(getHighResUrl(src))}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`/api/image-proxy?url=${encodeURIComponent(getHighResUrl(src))}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
     if (!res.ok) throw new Error("proxy " + res.status);
     const blob = await res.blob();
     return await new Promise<string>((resolve, reject) => {
@@ -17,15 +22,18 @@ async function urlToDataUrl(src: string): Promise<string> {
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-  } catch { return ""; }
+  } catch {
+    return "";
+  }
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     if (!src) { reject(new Error("no src")); return; }
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error("img load error"));
     img.src = src;
   });
 }
@@ -44,6 +52,28 @@ function rrPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
   ctx.closePath();
 }
 
+function resolveTopWeeklySongs(items: MusicItem[], analyticsTitles: string[]): MusicItem[] {
+  const dedup = deduplicateCatalog(items);
+  if (analyticsTitles.length > 0) {
+    const matched: MusicItem[] = [];
+    for (const title of analyticsTitles) {
+      if (!title || matched.length >= 5) break;
+      const cleanTitle = title.trim().toLowerCase();
+      const match = dedup.find(c => {
+        const cName = (c.name || '').trim().toLowerCase();
+        return cName === cleanTitle || cName.includes(cleanTitle) || cleanTitle.includes(cName);
+      });
+      if (match && !matched.some(m => m.id === match.id)) {
+        matched.push(match);
+      }
+    }
+    if (matched.length >= 5) return matched.slice(0, 5);
+    const leftovers = dedup.filter(c => !matched.some(m => m.id === c.id));
+    return [...matched, ...leftovers].slice(0, 5);
+  }
+  return dedup.slice(0, 5);
+}
+
 const Top5SocialGenerator: React.FC = () => {
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
@@ -57,32 +87,76 @@ const Top5SocialGenerator: React.FC = () => {
   const [coversReady, setCoversReady] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    (async () => {
-      setIsLoading(true);
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      const [dM, j6] = await Promise.all([
+        fetchMusicCatalog("diosmasgym").catch(() => []),
+        fetchMusicCatalog("juan614").catch(() => [])
+      ]);
+      const full = deduplicateCatalog([...dM, ...j6]);
+      setCatalog(full);
+
+      // Obtener Top de la semana directamente de Analytics
+      let analyticsTitles: string[] = [];
       try {
-        const [dM, j6] = await Promise.all([fetchMusicCatalog("diosmasgym"), fetchMusicCatalog("juan614")]);
-        const full = [...dM, ...j6];
-        setCatalog(full);
-        if (full.length > 0) {
-          const sorted = [...full].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-          setTopSongs(sorted.slice(0, 5));
+        const res = await fetch("/api/analytics");
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data) {
+            const songs = json.data.topSongs ? json.data.topSongs.map((s: any) => s.title) : [];
+            const pages = json.data.topPages ? json.data.topPages.map((p: any) => p.title) : [];
+            analyticsTitles = Array.from(new Set([...songs, ...pages])) as string[];
+          }
         }
-      } finally { setIsLoading(false); }
-    })();
+      } catch (err) {
+        console.warn("Error cargando analíticas semanales:", err);
+      }
+
+      if (full.length > 0) {
+        const top5 = resolveTopWeeklySongs(full, analyticsTitles);
+        setTopSongs(top5);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
   }, []);
 
   useEffect(() => {
     if (topSongs.length === 0) return;
     setCoversReady(false);
     const needed = topSongs.filter(s => s.cover && !coverDataUrls[s.id]);
-    if (needed.length === 0) { setCoversReady(true); return; }
+    if (needed.length === 0) {
+      setCoversReady(true);
+      return;
+    }
+
+    let isMounted = true;
+    const timeout = setTimeout(() => {
+      if (isMounted) setCoversReady(true); // Don't block forever if a cover hangs
+    }, 4500);
+
     (async () => {
       const updates: Record<string, string> = {};
-      await Promise.all(needed.map(async s => { updates[s.id] = await urlToDataUrl(s.cover); }));
-      setCoverDataUrls(prev => ({ ...prev, ...updates }));
-      setCoversReady(true);
+      await Promise.all(
+        needed.map(async s => {
+          updates[s.id] = await urlToDataUrl(s.cover);
+        })
+      );
+      if (isMounted) {
+        setCoverDataUrls(prev => ({ ...prev, ...updates }));
+        setCoversReady(true);
+      }
     })();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+    };
   }, [topSongs]);
 
   const handleAutoFill = async () => {
@@ -91,18 +165,36 @@ const Top5SocialGenerator: React.FC = () => {
       const res = await fetch("/api/analytics");
       if (res.ok) {
         const json = await res.json();
-        if (json?.data?.topSongs?.length > 0) {
-          const newTop: MusicItem[] = [];
-          for (const stat of json.data.topSongs) {
-            if (newTop.length >= 5) break;
-            const match = catalog.find(c => c.name.toLowerCase().includes(stat.title.toLowerCase()));
-            if (match && !newTop.find(s => s.id === match.id)) newTop.push(match);
+        if (json?.data) {
+          const songs = json.data.topSongs ? json.data.topSongs.map((s: any) => s.title) : [];
+          const pages = json.data.topPages ? json.data.topPages.map((p: any) => p.title) : [];
+          const combined = Array.from(new Set([...songs, ...pages])) as string[];
+          if (combined.length > 0) {
+            const newTop = resolveTopWeeklySongs(catalog, combined);
+            if (newTop.length > 0) {
+              setTopSongs(newTop);
+              setSubtitle("DE LA SEMANA");
+              return;
+            }
           }
-          if (newTop.length > 0) setTopSongs(newTop);
-          else alert("Sin coincidencias en catálogo.");
-        } else alert("Sin datos en analíticas aún.");
+        }
       }
-    } finally { setIsLoading(false); }
+      // Si no hay analíticas aún, usar las canciones principales deduplicadas
+      const fallbackTop = deduplicateCatalog(catalog).slice(0, 5);
+      if (fallbackTop.length > 0) {
+        setTopSongs(fallbackTop);
+        setSubtitle("DE LA SEMANA");
+      } else {
+        alert("Sin datos suficientes en catálogo.");
+      }
+    } catch {
+      const fallbackTop = deduplicateCatalog(catalog).slice(0, 5);
+      if (fallbackTop.length > 0) {
+        setTopSongs(fallbackTop);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredCatalog = catalog.filter(s =>
@@ -215,6 +307,7 @@ const Top5SocialGenerator: React.FC = () => {
 
         // Cover thumbnail
         const cx = pad + 125, cy = y + 14, cs = rowH - 28;
+        let coverDrawn = false;
         if (coverDataUrls[song.id]) {
           try {
             const img = await loadImage(coverDataUrls[song.id]);
@@ -223,11 +316,36 @@ const Top5SocialGenerator: React.FC = () => {
             ctx.clip();
             ctx.drawImage(img, cx, cy, cs, cs);
             ctx.restore();
+            coverDrawn = true;
           } catch {
-            ctx.fillStyle = "#1a1a2e";
-            rrPath(ctx, cx, cy, cs, cs, 14);
-            ctx.fill();
+            coverDrawn = false;
           }
+        }
+
+        if (!coverDrawn && song.cover) {
+          try {
+            const fallbackSrc = `/api/image-proxy?url=${encodeURIComponent(getHighResUrl(song.cover))}`;
+            const img = await loadImage(fallbackSrc);
+            ctx.save();
+            rrPath(ctx, cx, cy, cs, cs, 14);
+            ctx.clip();
+            ctx.drawImage(img, cx, cy, cs, cs);
+            ctx.restore();
+            coverDrawn = true;
+          } catch {
+            coverDrawn = false;
+          }
+        }
+
+        if (!coverDrawn) {
+          ctx.fillStyle = "#161922";
+          rrPath(ctx, cx, cy, cs, cs, 14);
+          ctx.fill();
+          ctx.fillStyle = "rgba(197,160,89,0.5)";
+          ctx.font = "bold 38px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("♪", cx + cs / 2, cy + cs / 2);
         }
 
         // Song name
@@ -236,15 +354,15 @@ const Top5SocialGenerator: React.FC = () => {
         ctx.fillStyle = "white";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        let name = song.name.toUpperCase();
-        while (ctx.measureText(name).width > maxTW) name = name.slice(0, -4) + "…";
+        let name = (song.name || "").toUpperCase();
+        while (name.length > 3 && ctx.measureText(name).width > maxTW) name = name.slice(0, -4) + "…";
         ctx.fillText(name, cx + cs + 28, y + rowH / 2 - 22);
 
         // Artist
         ctx.font = "500 24px Arial,sans-serif";
         ctx.fillStyle = "#c5a059";
-        let artist = song.artist.toUpperCase();
-        while (ctx.measureText(artist).width > maxTW) artist = artist.slice(0, -4) + "…";
+        let artist = (song.artist || "DIOS MAS GYM").toUpperCase();
+        while (artist.length > 3 && ctx.measureText(artist).width > maxTW) artist = artist.slice(0, -4) + "…";
         ctx.fillText(artist, cx + cs + 28, y + rowH / 2 + 22);
       }
 
@@ -294,21 +412,43 @@ const Top5SocialGenerator: React.FC = () => {
       ctx.fillText("▶", W - 145, footY + 55);
       ctx.fillText("♪", W - 90, footY + 55);
 
-      // Download via Blob
-      canvas.toBlob(blob => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
+      // Trigger download reliably (support Blob with DataURL fallback)
+      const downloadFileName = `TOP-5-${subtitle.replace(/[^a-zA-Z0-9]/g, "-") || "SEMANA"}-${Date.now()}.png`;
+
+      const triggerDownload = (url: string) => {
         const a = document.createElement("a");
+        a.style.display = "none";
         a.href = url;
-        a.download = `TOP-5-SONGS-${Date.now()}.png`;
+        a.download = downloadFileName;
+        document.body.appendChild(a);
         a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }, "image/png", 1.0);
+        setTimeout(() => {
+          document.body.removeChild(a);
+          if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+        }, 1500);
+      };
+
+      try {
+        canvas.toBlob(blob => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            triggerDownload(url);
+          } else {
+            const dataUrl = canvas.toDataURL("image/png");
+            triggerDownload(dataUrl);
+          }
+        }, "image/png", 1.0);
+      } catch {
+        const dataUrl = canvas.toDataURL("image/png");
+        triggerDownload(dataUrl);
+      }
 
     } catch (e) {
       console.error("Canvas export error:", e);
-      alert("Error al generar: " + (e as Error).message);
-    } finally { setIsGenerating(false); }
+      alert("Error al generar imagen: " + (e as Error).message);
+    } finally {
+      setIsGenerating(false);
+    }
   }, [topSongs, coverDataUrls, subtitle]);
 
   const coverPreview = (song: MusicItem) =>
@@ -340,10 +480,16 @@ const Top5SocialGenerator: React.FC = () => {
                   value={subtitle} onChange={e => setSubtitle(e.target.value.toUpperCase())} />
               </div>
 
-              <button onClick={handleAutoFill} disabled={isLoading || catalog.length === 0}
-                className="w-full py-3 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-xl text-[10px] font-bold text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-colors flex items-center justify-center gap-2">
-                <i className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-magic"}`} /> Autocompletar con Analíticas
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button onClick={handleAutoFill} disabled={isLoading || catalog.length === 0}
+                  className="w-full py-3 bg-[#c5a059]/15 border border-[#c5a059]/30 rounded-xl text-[10px] font-bold text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-colors flex items-center justify-center gap-2">
+                  <i className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-chart-line"}`} /> Top Semanal (Analíticas)
+                </button>
+                <button onClick={loadInitialData} disabled={isLoading}
+                  className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-white/70 hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center gap-2">
+                  <i className="fas fa-rotate-right" /> Recargar Todo
+                </button>
+              </div>
 
               {/* Search */}
               <div className="relative">
