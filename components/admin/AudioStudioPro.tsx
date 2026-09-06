@@ -160,7 +160,6 @@ const AudioStudioPro:React.FC=()=>{
   const [isExtracting,setIsExtracting]=useState(false);
   const [extractStatus,setExtractStatus]=useState('');
   const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_6s'>('htdemucs');
-  const [isSplittingVocals,setIsSplittingVocals]=useState(false);
   const [isZipping,setIsZipping]=useState(false);
   const [zipProgress,setZipProgress]=useState('');
   const [downloadingStem,setDownloadingStem]=useState<string|null>(null);
@@ -679,25 +678,9 @@ const AudioStudioPro:React.FC=()=>{
 
   const getStemInfo = (name: string) => {
     switch (name) {
-      case 'lead_vocals':
-        return {
-          title: 'Voz Principal (Lead Vocal)',
-          desc: 'Voz solista frontal centrada en la mezcla',
-          icon: 'fa-user-tie',
-          color: 'text-violet-300',
-          genreHint: 'Voz solista aislada del centro de la mezcla'
-        };
-      case 'backing_vocals':
-        return {
-          title: 'Coros y Segundas (Backing Vocals)',
-          desc: 'Armonías, segundas voces y adornos estéreo',
-          icon: 'fa-users',
-          color: 'text-fuchsia-400',
-          genreHint: 'Coros, armonías vocales y ad-libs laterales'
-        };
       case 'vocals':
         return {
-          title: 'Voces (Acapella Completa)',
+          title: 'Voces (Acapella)',
           desc: 'Voz principal, segundas y coros limpios',
           icon: 'fa-microphone',
           color: 'text-purple-400',
@@ -911,150 +894,6 @@ const AudioStudioPro:React.FC=()=>{
     return ff;
   };
 
-  const audioBufferToWav = (buffer: AudioBuffer): Uint8Array => {
-    const numChannels = buffer.numberOfChannels;
-    const sampleRate = buffer.sampleRate;
-    const format = 1; // PCM
-    const bitDepth = 16;
-    const bytesPerSample = bitDepth / 8;
-    const blockAlign = numChannels * bytesPerSample;
-    const numSamples = buffer.length;
-    const dataByteLength = numSamples * blockAlign;
-    const headerByteLength = 44;
-    const totalLength = headerByteLength + dataByteLength;
-    const arrayBuffer = new ArrayBuffer(totalLength);
-    const view = new DataView(arrayBuffer);
-
-    const writeString = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i));
-      }
-    };
-
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + dataByteLength, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, format, true);
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * blockAlign, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitDepth, true);
-    writeString(36, 'data');
-    view.setUint32(40, dataByteLength, true);
-
-    const channels: Float32Array[] = [];
-    for (let c = 0; c < numChannels; c++) {
-      channels.push(buffer.getChannelData(c));
-    }
-
-    let offset = 44;
-    for (let i = 0; i < numSamples; i++) {
-      for (let c = 0; c < numChannels; c++) {
-        let sample = channels[c][i];
-        sample = Math.max(-1, Math.min(1, sample));
-        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-        view.setInt16(offset, intSample, true);
-        offset += 2;
-      }
-    }
-
-    return new Uint8Array(arrayBuffer);
-  };
-
-  const splitVocalStem = async (vocalUrl: string) => {
-    setIsSplittingVocals(true);
-    try {
-      notify('Descargando pista vocal para análisis estéreo...', 'ok');
-      let rawBuf: ArrayBuffer | null = null;
-      try {
-        const res = await fetch(vocalUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        rawBuf = await res.arrayBuffer();
-      } catch {
-        if (!vocalUrl.startsWith('blob:')) {
-          const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(vocalUrl)}`);
-          if (proxyRes.ok) rawBuf = await proxyRes.arrayBuffer();
-        }
-      }
-
-      if (!rawBuf || rawBuf.byteLength === 0) {
-        throw new Error('No se pudo descargar la pista vocal para separar.');
-      }
-
-      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const audioBuffer = await ac.decodeAudioData(rawBuf);
-
-      if (audioBuffer.numberOfChannels < 2) {
-        notify('Esta pista vocal es Mono. Para separar coros en pistas mono se requiere UVR5 con red neuronal en PC.', 'err');
-        ac.close();
-        return;
-      }
-
-      notify('Procesando separación Mid/Side (Voz Central vs Coros Estéreo)...', 'ok');
-      const length = audioBuffer.length;
-      const sampleRate = audioBuffer.sampleRate;
-      const left = audioBuffer.getChannelData(0);
-      const right = audioBuffer.getChannelData(1);
-
-      // 1. Lead Vocals (Centro / Mid): (L + R) * 0.5
-      const leadBuffer = ac.createBuffer(2, length, sampleRate);
-      const leadL = leadBuffer.getChannelData(0);
-      const leadR = leadBuffer.getChannelData(1);
-
-      // 2. Backing Vocals (Lados / Side): (L - R) * 0.5
-      const backingBuffer = ac.createBuffer(2, length, sampleRate);
-      const backL = backingBuffer.getChannelData(0);
-      const backR = backingBuffer.getChannelData(1);
-
-      for (let i = 0; i < length; i++) {
-        const mid = (left[i] + right[i]) * 0.5;
-        const side = (left[i] - right[i]) * 0.5;
-
-        leadL[i] = mid;
-        leadR[i] = mid;
-
-        backL[i] = side;
-        backR[i] = -side;
-      }
-
-      ac.close();
-
-      const leadWav = audioBufferToWav(leadBuffer);
-      const backWav = audioBufferToWav(backingBuffer);
-
-      const leadBlob = new Blob([leadWav], { type: 'audio/wav' });
-      const backBlob = new Blob([backWav], { type: 'audio/wav' });
-
-      const leadUrl = URL.createObjectURL(leadBlob);
-      const backUrl = URL.createObjectURL(backBlob);
-
-      setAiStems(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          lead_vocals: leadUrl,
-          backing_vocals: backUrl,
-        };
-      });
-
-      setSelectedStemsToZip(prev => ({
-        ...prev,
-        lead_vocals: true,
-        backing_vocals: true,
-      }));
-
-      notify('✨ ¡Voz Principal y Coros (Backing Vocals) divididos con éxito!');
-    } catch (err: any) {
-      console.error('Error al dividir pista vocal:', err);
-      notify(`Error al dividir voces: ${err.message}`, 'err');
-    } finally {
-      setIsSplittingVocals(false);
-    }
-  };
-
   const downloadSingleStem = async (url: string, stemName: string) => {
     try {
       setDownloadingStem(stemName);
@@ -1083,10 +922,8 @@ const AudioStudioPro:React.FC=()=>{
       // Fallback seguro que NO recarga ni abandona la pestaña actual
       const a = document.createElement('a');
       a.href = url;
-      if (!url.startsWith('blob:')) {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-      }
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
       const baseName = (meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
       a.download = `${baseName}_${stemName}.wav`;
       document.body.appendChild(a);
@@ -1100,7 +937,7 @@ const AudioStudioPro:React.FC=()=>{
   const downloadZip = async () => {
     if (!aiStems || !fi) return;
     const stemsToExport = Object.entries(aiStems).filter(([name, url]) => 
-      url && typeof url === 'string' && (url.trim().startsWith('http') || url.trim().startsWith('blob:')) && selectedStemsToZip[name] !== false
+      url && typeof url === 'string' && url.trim().startsWith('http') && selectedStemsToZip[name] !== false
     );
     if (stemsToExport.length === 0) {
       notify('Selecciona al menos una pista válida para descargar el ZIP', 'err');
@@ -1126,10 +963,6 @@ const AudioStudioPro:React.FC=()=>{
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           rawBuf = await res.arrayBuffer();
         } catch (fetchErr) {
-          if ((url as string).startsWith('blob:')) {
-            console.warn(`[ZIP] Falló lectura de blob para ${name}:`, fetchErr);
-            continue;
-          }
           console.warn(`[ZIP] Falló descarga directa de ${name}, reintentando vía proxy...`, fetchErr);
           try {
             const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url as string)}`);
@@ -2173,14 +2006,6 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
                 </div>
 
-                {/* Nota informativa sobre voces y backing vocals */}
-                <div className="max-w-2xl mx-auto mb-6 p-3.5 rounded-xl bg-white/[0.03] border border-white/10 text-left flex items-start gap-3">
-                  <i className="fas fa-circle-info text-purple-400 mt-0.5 text-xs shrink-0"></i>
-                  <div className="text-[11px] text-white/70 leading-relaxed">
-                    <strong className="text-white">¿Por qué las voces vienen juntas?</strong> Demucs agrupa la voz principal y las segundas voces/coros en una sola pista de <strong>Voces (Vocals)</strong>. La opción de 6 pistas añade <em>Guitarras</em> y <em>Pianos</em> (no coros). Para separar coros de la voz solista se requiere un modelo especializado en UVR / Karaoke.
-                  </div>
-                </div>
-
                 {!isExtracting ? (
                   <button 
                     onClick={extractStems} 
@@ -2335,29 +2160,6 @@ const AudioStudioPro:React.FC=()=>{
                           </div>
                           <p className="text-white/40 text-[11px] mb-2">{info.desc}</p>
                           <audio src={url as string} controls className="w-full h-8" />
-
-                          {/* Si es la pista de Voces original, ofrecer la separación Mid/Side para sacar Lead y Backing vocals */}
-                          {name === 'vocals' && (
-                            <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
-                              <div className="text-[11px] text-white/50">
-                                <span className="text-purple-300 font-bold flex items-center gap-1.5">
-                                  <i className="fas fa-layer-group text-xs"></i>
-                                  ¿Quieres separar la voz principal de los coros?
-                                </span>
-                                <span className="text-white/40 text-[10px] block">
-                                  Aísla la voz solista frontal y los coros/segundas voces estéreo con algoritmo Mid/Side al instante.
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => splitVocalStem(url as string)}
-                                disabled={isSplittingVocals}
-                                className="px-4 py-2 bg-gradient-to-r from-purple-600/30 to-pink-600/30 hover:from-purple-600/50 hover:to-pink-600/50 border border-purple-500/40 text-purple-200 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50 shadow-md shadow-purple-950/40"
-                              >
-                                <i className={`fas ${isSplittingVocals ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`}></i>
-                                {isSplittingVocals ? 'Dividiendo voces...' : 'Dividir Voz Solista y Coros (Mid/Side)'}
-                              </button>
-                            </div>
-                          )}
                         </div>
 
                         {/* Botón de Descarga Individual Segura (sin perder la página) */}
