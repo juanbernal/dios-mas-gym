@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
   verse: { t: string; r: string };
@@ -35,6 +36,7 @@ const scrollToSection = (sectionId: string) => {
 };
 
 const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatorio }) => {
+  const navigate = useNavigate();
   const [verseIndex, setVerseIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -114,11 +116,18 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                 >
                   ▶ Explorar Arsenal
                 </button>
+                <button
+                  onClick={() => navigate('/buscar')}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <i className="fas fa-search text-[#4a90d9]"></i>
+                  Buscar Música / Letras
+                </button>
                 <a
                   href="https://musica.diosmasgym.com/"
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-secondary"
+                  className="btn-secondary hidden sm:inline-flex"
                 >
                   Escuchar Música
                 </a>
