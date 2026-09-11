@@ -505,6 +505,7 @@ export default async function handler(
         });
       }
       allVideos.sort((a: any, b: any) => b.views - a.views);
+      res.setHeader('Cache-Control', 'public, s-maxage=14400, stale-while-revalidate=86400');
       return res.status(200).json({ items: allVideos });
     } catch (err: any) {
       console.error('[youtube-top] Error:', err);
@@ -549,6 +550,8 @@ export default async function handler(
     };
 
     if (req.method === 'GET') {
+      const isRefresh = req.query.refresh === 'true' || req.query.refresh === '1';
+      const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=300, stale-while-revalidate=3600';
       try {
         // 1. Try fetching from Google Sheets (most up-to-date)
         if (GS_LINKS_URL) {
@@ -559,7 +562,7 @@ export default async function handler(
               if (gsData && gsData.links) {
                 // Cache in /tmp
                 try { fs.writeFileSync(TMP_LINKS_FILE, JSON.stringify(gsData, null, 2)); } catch {}
-                res.setHeader('Cache-Control', 'no-store, max-age=0');
+                res.setHeader('Cache-Control', cacheHeader);
                 return res.status(200).json(gsData);
               }
             }
@@ -570,7 +573,7 @@ export default async function handler(
         
         // 2. Fallback to /tmp or seed
         const localData = readLinksFromDisk();
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        res.setHeader('Cache-Control', cacheHeader);
         return res.status(200).json(localData);
       } catch (error) {
         return res.status(500).json({ error: 'Error reading links' });
@@ -662,6 +665,8 @@ export default async function handler(
     };
 
     if (req.method === 'GET') {
+      const isRefresh = req.query.refresh === 'true' || req.query.refresh === '1';
+      const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=3600, stale-while-revalidate=86400';
       try {
         // 1. Try to fetch from CSV_URL_LYRICS (separate published tab)
         const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
@@ -683,7 +688,7 @@ export default async function handler(
               
             if (lyricsFromCsv.length > 0) {
               writeLyricsToDisk(lyricsFromCsv);
-              res.setHeader('Cache-Control', 'no-store, max-age=0');
+              res.setHeader('Cache-Control', cacheHeader);
               return res.status(200).json({ lyrics: lyricsFromCsv });
             }
           } catch (csvErr) {
@@ -701,7 +706,7 @@ export default async function handler(
               if (gsList.length > 0) {
                 // Cache in /tmp for subsequent calls in this instance
                 writeLyricsToDisk(gsList);
-                res.setHeader('Cache-Control', 'no-store, max-age=0');
+                res.setHeader('Cache-Control', cacheHeader);
                 return res.status(200).json({ lyrics: gsList });
               }
             }
@@ -711,7 +716,7 @@ export default async function handler(
         }
         // Fallback to /tmp or seed file
         const lyricsList = readLyricsFromDisk();
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        res.setHeader('Cache-Control', cacheHeader);
         return res.status(200).json({ lyrics: lyricsList });
       } catch (error: any) {
         return res.status(500).json({ error: 'Error reading lyrics', details: error.message });

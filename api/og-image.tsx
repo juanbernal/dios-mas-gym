@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
 export const config = {
@@ -105,7 +105,13 @@ export default async function handler(req: Request) {
           )
         )
       ),
-      { width: 1200, height: 630 }
+      {
+        width: 1200,
+        height: 630,
+        headers: {
+          'Cache-Control': 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400',
+        },
+      }
     );
   } catch (err: any) {
     console.error('[og-image] Error:', err);

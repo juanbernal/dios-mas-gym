@@ -226,6 +226,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     }).filter(s => s.source !== '(not set)');
 
+    const isRefresh = req.query.refresh === 'true' || req.query.refresh === '1';
+    if (isRefresh) {
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
+    } else {
+      res.setHeader('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=86400');
+    }
+
     return res.status(200).json({
       status: 'success',
       data: {
@@ -247,7 +254,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         isMock: false
       }
     });
-
   } catch (error: any) {
     console.error('GA4 API Error:', error);
     return res.status(500).json({ 
