@@ -91,6 +91,14 @@ const PromoImageApp: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState("");
   const [songId, setSongId] = useState<string>("");
 
+  // NUEVAS MEJORAS 2026
+  const [slogan, setSlogan] = useState(""); // #2 Versículo / Slogan opcional
+  const [overlayColor, setOverlayColor] = useState("#000000"); // #3 Color de overlay (antes solo negro)
+  const [customFooterUrl, setCustomFooterUrl] = useState(""); // #8 URL personalizable en footer
+  const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png"); // #9 Formato de exportación
+  const [exportQuality, setExportQuality] = useState(0.92); // #9 Calidad de exportación JPEG
+  const [quickCopySuccess, setQuickCopySuccess] = useState(""); // #1 Toast del botón rápido de copia
+
 
 
   // REFS PARA EVITAR CLAUSURAS DESACTUALIZADAS (Fijar datos en memoria real)
@@ -560,19 +568,49 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  // #1 — Quick copy: copia la imagen de la preview directamente al portapapeles
+  const handleQuickCopy = async () => {
+    setIsGenerating(true);
+    try {
+      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
+      if (!blob) throw new Error("Blob failed");
+      if (typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setQuickCopySuccess("🖼️ ¡Imagen copiada!");
+      } else {
+        // Fallback: descargar
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = `PROMO-${title.replace(/\s+/g, '-')}-quick.png`;
+        a.href = url; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setQuickCopySuccess("📥 Imagen descargada");
+      }
+    } catch (err) {
+      setQuickCopySuccess("⚠️ Error al copiar");
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setQuickCopySuccess(""), 3000);
+    }
+  };
+
   const handleDownload = async (isUltra = true) => {
     setIsGenerating(true);
-    console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT...`);
+    const mimeType = exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const quality = exportFormat === 'jpeg' ? exportQuality : 1.0;
+    const ext = exportFormat === 'jpeg' ? 'jpg' : 'png';
+    console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT (${exportFormat.toUpperCase()})...`);
     try {
       const canvas = await prepareCanvasForWidth(isUltra ? PROMO_EXPORT_WIDTHS.master : PROMO_EXPORT_WIDTHS.social);
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, mimeType, quality));
       if (!blob) throw new Error("Blob generation failed");
 
       console.log("[DOWNLOAD] BLOB READY, TRIGGERING DOWNLOAD...");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `PROMO-${title.replace(/\s+/g, '-')}-${isUltra ? '4K' : 'SocialHD'}.png`;
+      link.download = `PROMO-${title.replace(/\s+/g, '-')}-${isUltra ? '4K' : 'SocialHD'}.${ext}`;
       link.href = url;
       document.body.appendChild(link);
       link.click();
@@ -646,10 +684,11 @@ const PromoImageApp: React.FC = () => {
   };
 
   const commonProps = {
-    title, artist, bg, mode, size, date, overlay, textColor, contrastColor, glow, stroke,
+    title, artist, bg, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, country, trackList: tracks.split("\n"),
     config: sizes[size],
-    grit, noise, scanlines, vignette, industrial, template
+    grit, noise, scanlines, vignette, industrial, template,
+    slogan, customFooterUrl,
   };
 
   // 4K MASTER PROPS: Scaled configuration for high-res render
@@ -790,6 +829,7 @@ const PromoImageApp: React.FC = () => {
                     <option value="proximamente">Próximamente</option>
                     <option value="disponible">Disponible</option>
                     <option value="album">Álbum / EP</option>
+                    <option value="branding">Branding / Identidad</option>
                   </select>
                 </div>
               </div>
@@ -825,21 +865,54 @@ const PromoImageApp: React.FC = () => {
               </div>
 
               {/* DATE PICKER (Conditional Simple Calendar for Proximamente) */}
+              {mode !== 'branding' && (
+                <div className="space-y-2 pt-4 border-t border-white/5">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">
+                    {mode === 'proximamente' ? 'Día del Estreno (Calendario)' : 'Fecha y Hora Oficial'}
+                  </label>
+                  <input 
+                    type={mode === 'proximamente' ? "date" : "datetime-local"}
+                    className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059]"
+                    value={mode === 'proximamente' ? (date.includes('T') ? date.split('T')[0] : date) : date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* #2 — VERSÍCULO / SLOGAN */}
               <div className="space-y-2 pt-4 border-t border-white/5">
-                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">
-                  {mode === 'proximamente' ? 'Día del Estreno (Calendario)' : 'Fecha y Hora Oficial'}
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                  <i className="fas fa-book-open text-[#c5a059]" />
+                  Versículo / Slogan (opcional)
                 </label>
-                <input 
-                  type={mode === 'proximamente' ? "date" : "datetime-local"}
-                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059]"
-                  value={mode === 'proximamente' ? (date.includes('T') ? date.split('T')[0] : date) : date}
-                  onChange={(e) => setDate(e.target.value)}
+                <input
+                  type="text"
+                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-bold tracking-wide text-white/80 transition-all"
+                  placeholder='Ej: "Juan 6:14 · El profeta que había de venir"'
+                  value={slogan}
+                  onChange={(e) => setSlogan(e.target.value)}
+                />
+              </div>
+
+              {/* #8 — URL PERSONALIZADA EN FOOTER */}
+              <div className="space-y-2 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                  <i className="fas fa-link text-[#c5a059]" />
+                  URL en Footer (deja vacío para automático)
+                </label>
+                <input
+                  type="text"
+                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-mono text-[#c5a059] tracking-wide transition-all"
+                  placeholder="diosmasgym.com / musica.diosmasgym.com"
+                  value={customFooterUrl}
+                  onChange={(e) => setCustomFooterUrl(e.target.value)}
                 />
               </div>
             </div>
           </div>
 
           {/* GROUP: AESTHETICS & TEMPLATES */}
+
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Base de Diseño & Plantilla</h2>
@@ -899,19 +972,27 @@ const PromoImageApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/5">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Color Título</label>
-                  <div className="flex items-center gap-4 bg-black/40 p-2 rounded-xl border border-white/5">
-                    <input type="color" className="w-10 h-10 bg-transparent rounded-lg cursor-pointer border-none" value={textColor} onChange={(e)=>setTextColor(e.target.value)} />
-                    <span className="text-[10px] font-mono opacity-40">{textColor.toUpperCase()}</span>
+                  <div className="flex items-center gap-2 bg-black/40 p-2 rounded-xl border border-white/5">
+                    <input type="color" className="w-9 h-9 bg-transparent rounded-lg cursor-pointer border-none" value={textColor} onChange={(e)=>setTextColor(e.target.value)} />
+                    <span className="text-[9px] font-mono opacity-40">{textColor.toUpperCase()}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Color Glow</label>
-                  <div className="flex items-center gap-4 bg-black/40 p-2 rounded-xl border border-white/5">
-                    <input type="color" className="w-10 h-10 bg-transparent rounded-lg cursor-pointer border-none" value={contrastColor} onChange={(e)=>setContrastColor(e.target.value)} />
-                    <span className="text-[10px] font-mono opacity-40">{contrastColor.toUpperCase()}</span>
+                  <div className="flex items-center gap-2 bg-black/40 p-2 rounded-xl border border-white/5">
+                    <input type="color" className="w-9 h-9 bg-transparent rounded-lg cursor-pointer border-none" value={contrastColor} onChange={(e)=>setContrastColor(e.target.value)} />
+                    <span className="text-[9px] font-mono opacity-40">{contrastColor.toUpperCase()}</span>
+                  </div>
+                </div>
+                {/* #3 — COLOR DE OVERLAY */}
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Overlay Color</label>
+                  <div className="flex items-center gap-2 bg-black/40 p-2 rounded-xl border border-white/5">
+                    <input type="color" className="w-9 h-9 bg-transparent rounded-lg cursor-pointer border-none" value={overlayColor} onChange={(e)=>setOverlayColor(e.target.value)} />
+                    <span className="text-[9px] font-mono opacity-40">{overlayColor.toUpperCase()}</span>
                   </div>
                 </div>
               </div>
@@ -920,15 +1001,45 @@ const PromoImageApp: React.FC = () => {
 
           {/* GROUP: EXPORT & SHARE */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-8">Exportar & Compartir</h2>
-             <div className="flex flex-col gap-6">
-                <button 
-                  onClick={() => handleDownload(true)}
-                  disabled={isGenerating}
-                  className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
-                >
-                  <i className="fas fa-crown group-hover:scale-110 transition-transform"></i> Descargar Master 4K Ultra
-                </button>
+             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6">Exportar &amp; Compartir</h2>
+             <div className="flex flex-col gap-5">
+
+               {/* #9 — FORMATO DE EXPORTACIÓN */}
+               <div className="space-y-3">
+                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Formato de Exportación</label>
+                 <div className="grid grid-cols-2 gap-3">
+                   {(['png', 'jpeg'] as const).map(fmt => (
+                     <button
+                       key={fmt}
+                       onClick={() => setExportFormat(fmt)}
+                       className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${exportFormat === fmt ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/30 border-white/5 hover:text-white'}`}
+                     >
+                       {fmt === 'png' ? '🖼️ PNG (máx calidad)' : '📸 JPEG (ligero)'}
+                     </button>
+                   ))}
+                 </div>
+                 {exportFormat === 'jpeg' && (
+                   <div className="space-y-2">
+                     <label className="text-[9px] uppercase font-bold text-white/20 tracking-widest">
+                       Calidad JPEG: {Math.round(exportQuality * 100)}%
+                     </label>
+                     <input
+                       type="range" min="0.5" max="1" step="0.05"
+                       value={exportQuality}
+                       onChange={(e) => setExportQuality(parseFloat(e.target.value))}
+                       className="w-full accent-[#c5a059]"
+                     />
+                   </div>
+                 )}
+               </div>
+
+               <button 
+                 onClick={() => handleDownload(true)}
+                 disabled={isGenerating}
+                 className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
+               >
+                 <i className="fas fa-crown group-hover:scale-110 transition-transform"></i> Descargar Master 4K Ultra
+               </button>
 
                 <button 
                   onClick={() => handleDownload(false)}
@@ -1065,13 +1176,31 @@ const PromoImageApp: React.FC = () => {
                 {Object.keys(sizes).map((s) => (
                   <button 
                     key={s}
-                    onClick={() => setSize(s as any)}
+                    onClick={(e) => { e.stopPropagation(); setSize(s as any); }}
                     className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${size === s ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                   >
                     {s}
                   </button>
                 ))}
             </div>
+
+            {/* #1 — QUICK COPY BUTTON */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleQuickCopy(); }}
+              disabled={isGenerating}
+              className="absolute top-5 right-5 z-[200] flex items-center gap-2 px-4 py-2 rounded-full bg-black/70 backdrop-blur-xl border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+              title="Copiar imagen al portapapeles"
+            >
+              <i className="fas fa-copy text-[#c5a059]"></i>
+              Copiar
+            </button>
+
+            {/* Quick copy toast */}
+            {quickCopySuccess && (
+              <div className="absolute top-16 right-5 z-[201] px-4 py-2 rounded-full bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest animate-pulse shadow-lg">
+                {quickCopySuccess}
+              </div>
+            )}
           </div>
           
           <div className="flex gap-10 opacity-20 hover:opacity-50 transition-opacity">
@@ -1174,12 +1303,37 @@ const PromoImageApp: React.FC = () => {
                     <i className="fas fa-wand-magic-sparkles"></i>
                     Descripción IA
                   </label>
-                  {isGeneratingCaption && (
-                    <div className="flex items-center gap-2 text-[8px] text-white/40 uppercase tracking-widest">
-                      <i className="fas fa-circle-notch fa-spin text-[#c5a059]"></i>
-                      Generando...
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {/* #6 — Botón regenerar caption sin cerrar panel */}
+                    {!isGeneratingCaption && (
+                      <button
+                        onClick={async () => {
+                          setIsGeneratingCaption(true);
+                          try {
+                            const result = await generateSocialCaption(title, artist, getSmartLink());
+                            setAiCaption(result.caption);
+                            setAiHashtags(result.hashtags);
+                          } catch {
+                            // mantiene el caption actual
+                          } finally {
+                            setIsGeneratingCaption(false);
+                          }
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+                        style={{ background: 'rgba(197,160,89,0.12)', color: '#c5a059', border: '1px solid rgba(197,160,89,0.2)' }}
+                        title="Generar nueva descripción con IA"
+                      >
+                        <i className="fas fa-rotate-right text-[8px]"></i>
+                        Nueva
+                      </button>
+                    )}
+                    {isGeneratingCaption && (
+                      <div className="flex items-center gap-2 text-[8px] text-white/40 uppercase tracking-widest">
+                        <i className="fas fa-circle-notch fa-spin text-[#c5a059]"></i>
+                        Generando...
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {isGeneratingCaption ? (
                   <div className="w-full rounded-2xl p-5 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1331,6 +1485,29 @@ const PromoImageApp: React.FC = () => {
                     <i className="fab fa-tiktok text-base"></i>
                     TikTok
                   </button>
+
+                  {/* #10 — WHATSAPP EN PANEL PREMIUM */}
+                  <button
+                    id="btn-share-whatsapp-premium"
+                    onClick={() => {
+                      const smartLink = getSmartLink();
+                      const text = `${aiCaption}\n\n${smartLink}\n\n${aiHashtags}`;
+                      if (shareImageBlob && navigator.share && navigator.canShare) {
+                        const file = new File([shareImageBlob], `PROMO-${title.replace(/\s+/g,'-')}.png`, { type: 'image/png' });
+                        if (navigator.canShare({ files: [file] })) {
+                          navigator.share({ files: [file], text, url: smartLink });
+                          return;
+                        }
+                      }
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    disabled={isGeneratingCaption}
+                    className="col-span-2 py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 text-white"
+                    style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 10px 30px rgba(37,211,102,0.3)' }}
+                  >
+                    <i className="fab fa-whatsapp text-base"></i>
+                    WhatsApp (imagen + texto)
+                  </button>
                 </div>
 
                 <p className="text-center text-[8px] text-white/20 tracking-widest uppercase">
@@ -1348,9 +1525,10 @@ const PromoImageApp: React.FC = () => {
 };
 
 const PromoTemplate: React.FC<any> = ({ 
-    title, artist, bg, mode, config, overlay, textColor, contrastColor, glow, stroke,
+    title, artist, bg, mode, config, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, trackList, isExport = false, country,
-    grit, noise, scanlines, vignette, industrial, template
+    grit, noise, scanlines, vignette, industrial, template,
+    slogan, customFooterUrl,
 }) => {
     return (
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
@@ -1483,11 +1661,12 @@ const PromoTemplate: React.FC<any> = ({
             }} 
           />
 
-          {/* LAYER 1: OVERLAY BASE */}
+          {/* LAYER 1: OVERLAY BASE — usa overlayColor (#3 mejora) */}
           <div style={{ 
             position: "absolute", 
             inset: 0, 
-            backgroundColor: `rgba(0,0,0,${overlay})` 
+            backgroundColor: overlayColor || '#000000',
+            opacity: overlay
           }} />
 
           <div className="vignette" />
@@ -1560,7 +1739,7 @@ const PromoTemplate: React.FC<any> = ({
                   <div 
                     data-backdrop-polyfill
                     style={{ padding: "8px 20px", borderRadius: 2, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
-                    {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : "EXTENDED PLAY"}
+                    {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY"}
                   </div>
                 </div>
 
@@ -1635,6 +1814,27 @@ const PromoTemplate: React.FC<any> = ({
                         {artist}
                       </h2>
                     </div>
+                    {/* #2 — VERSÍCULO / SLOGAN */}
+                    {slogan && slogan.trim() && (
+                      <div style={{
+                        marginTop: config.title * 0.25,
+                        fontSize: config.title * 0.28,
+                        color: theme.accent,
+                        fontFamily: "'DM Serif Display'",
+                        fontStyle: 'italic',
+                        letterSpacing: '0.04em',
+                        textAlign: 'center',
+                        opacity: 0.9,
+                        textShadow: `0 2px 10px rgba(0,0,0,0.6)`,
+                        padding: `${config.title * 0.1}px ${config.title * 0.5}px`,
+                        borderTop: `1px solid ${theme.accent}33`,
+                        borderBottom: `1px solid ${theme.accent}33`,
+                        maxWidth: '80%',
+                        lineHeight: 1.4
+                      }}>
+                        {slogan}
+                      </div>
+                    )}
                   </div>
                   {mode === "proximamente" && (
                     <div style={{ marginTop: config.title * 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
@@ -1741,7 +1941,9 @@ const PromoTemplate: React.FC<any> = ({
                           textTransform: 'uppercase' as const
                         }}
                       >
-                        {artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
+                        {customFooterUrl && customFooterUrl.trim()
+                          ? customFooterUrl.trim().replace(/^https?:\/\//i, '')
+                          : artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
                       </div>
                       <div style={{
                         fontSize: config.title * 0.42,
