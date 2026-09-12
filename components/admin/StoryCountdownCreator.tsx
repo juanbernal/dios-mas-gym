@@ -177,7 +177,8 @@ export default function StoryCountdownCreator() {
       ctx.fillStyle = '#c5a059';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText('EL ARSENAL  ·  DIOS MAS GYM', W / 2, 95);
+      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOS MAS GYM';
+      ctx.fillText(brandHeader, W / 2, 95);
 
       // 5. Song title (wrapped, up to 2 lines)
       ctx.font = 'italic bold 108px Georgia,"Times New Roman",serif';
@@ -300,7 +301,172 @@ export default function StoryCountdownCreator() {
     } catch (err) {
       console.error('Canvas export failed:', err);
     } finally { setExporting(false); }
-  }, [songName, artist, releaseDate, coverDataUrl, bgStyle, overlayOpacity, showVerse, verse, timeLeft, overlayOpacity]);
+  }, [songName, artist, releaseDate, coverDataUrl, bgStyle, overlayOpacity, showVerse, verse, timeLeft]);
+
+  // Copy to clipboard handler
+  const [copyFeedback, setCopyFeedback] = useState("");
+  const handleCopy = useCallback(async () => {
+    setExporting(true);
+    try {
+      const W = 1080, H = 1920;
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d')!;
+
+      // 1. Dark base
+      ctx.fillStyle = '#05070a';
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. Cover image (full bleed)
+      if (coverDataUrl) {
+        try {
+          const bg = await loadImage(coverDataUrl);
+          ctx.drawImage(bg, 0, 0, W, H);
+        } catch {}
+      }
+
+      // 3. Color overlay
+      const o = overlayOpacity, op = Math.min(o + 0.2, 1);
+      let fill: string | CanvasGradient;
+      if (bgStyle === 'fuego') {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, `rgba(200,50,0,${o})`); g.addColorStop(1, `rgba(0,0,0,${op})`); fill = g;
+      } else if (bgStyle === 'hielo') {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, `rgba(0,50,150,${o})`); g.addColorStop(1, `rgba(0,0,0,${op})`); fill = g;
+      } else if (bgStyle === 'oro') {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, `rgba(197,160,89,${o})`); g.addColorStop(1, `rgba(0,0,0,${op})`); fill = g;
+      } else {
+        fill = `rgba(0,0,0,${o})`;
+      }
+      ctx.fillStyle = fill;
+      ctx.fillRect(0, 0, W, H);
+
+      // 4. Top label
+      ctx.font = 'bold 26px Arial,sans-serif';
+      ctx.fillStyle = '#c5a059';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOS MAS GYM';
+      ctx.fillText(brandHeader, W / 2, 95);
+
+      // 5. Song title
+      ctx.font = 'italic bold 108px Georgia,"Times New Roman",serif';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 35;
+      const titleLines = wrapText(ctx, (songName || 'NUEVA CANCIÓN').toUpperCase(), W - 120);
+      titleLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, W / 2, 220 + i * 118));
+      ctx.shadowBlur = 0;
+
+      // 6. Countdown boxes
+      const boxTop = 560;
+      if (timeLeft.isReady) {
+        rrPath(ctx, 80, boxTop, W - 160, 190, 40);
+        ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fill();
+        ctx.strokeStyle = '#c5a059'; ctx.lineWidth = 6; ctx.stroke();
+        ctx.font = 'bold 88px Arial,sans-serif';
+        ctx.fillStyle = '#c5a059';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('¡YA DISPONIBLE!', W / 2, boxTop + 95);
+      } else {
+        const bW = 270, bH = 195, gap = 27;
+        const total = 3 * bW + 2 * gap;
+        const sx = (W - total) / 2;
+        const labels = ['DÍAS', 'HRS', 'MIN'];
+        const vals = [String(timeLeft.days).padStart(2,'0'), String(timeLeft.hours).padStart(2,'0'), String(timeLeft.minutes).padStart(2,'0')];
+        for (let i = 0; i < 3; i++) {
+          const bx = sx + i * (bW + gap);
+          rrPath(ctx, bx, boxTop, bW, bH, 36);
+          ctx.fillStyle = 'rgba(0,0,0,0.68)'; ctx.fill();
+          ctx.strokeStyle = '#c5a059'; ctx.lineWidth = 5; ctx.stroke();
+          ctx.font = 'bold 108px Arial,sans-serif';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(vals[i], bx + bW / 2, boxTop + 85);
+          ctx.font = 'bold 24px Arial,sans-serif';
+          ctx.fillStyle = '#c5a059';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(labels[i], bx + bW / 2, boxTop + bH - 12);
+        }
+      }
+
+      // 7. Release date
+      const DAYS = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+      const MONTHS = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+      let dateStr = 'FECHA NO DEFINIDA';
+      if (releaseDate) {
+        const dt = new Date(releaseDate);
+        if (!isNaN(dt.getTime())) dateStr = `${DAYS[dt.getDay()]} ${dt.getDate()} · ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
+      }
+      ctx.font = 'bold 32px Arial,sans-serif';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 12;
+      ctx.fillText('LLEGA EL  ' + dateStr, W / 2, 820);
+      ctx.shadowBlur = 0;
+
+      // 8. Footer
+      const footerY = 1570;
+      ctx.font = 'bold 42px Arial,sans-serif';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(artist.toUpperCase(), W / 2, footerY);
+
+      // Platform circles
+      const platCenters = [W / 2 - 130, W / 2, W / 2 + 130];
+      const platColors = ['#1DB954', '#fc3c44', '#FF0000'];
+      const platLabels = ['S', '♪', '▶'];
+      platCenters.forEach((px, i) => {
+        ctx.beginPath(); ctx.arc(px, footerY + 80, 28, 0, Math.PI * 2);
+        ctx.fillStyle = platColors[i]; ctx.fill();
+        ctx.font = 'bold 20px Arial'; ctx.fillStyle = 'white';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(platLabels[i], px, footerY + 80);
+      });
+
+      ctx.font = '22px Arial,sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText('DISPONIBLE EN TODAS LAS PLATAFORMAS', W / 2, footerY + 122);
+
+      // 9. Verse
+      if (showVerse && verse.text) {
+        const vY = 1750;
+        const sg = ctx.createLinearGradient(60, 0, W - 60, 0);
+        sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,0.18)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.strokeStyle = sg; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(80, vY); ctx.lineTo(W - 80, vY); ctx.stroke();
+
+        ctx.font = 'italic 25px Georgia,serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const verseLines = wrapText(ctx, `"${verse.text}"`, W - 160);
+        verseLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, W / 2, vY + 22 + i * 36));
+        ctx.font = 'bold 18px Arial,sans-serif';
+        ctx.fillStyle = '#c5a059';
+        ctx.fillText(verse.ref, W / 2, vY + 22 + Math.min(verseLines.length, 2) * 36 + 6);
+      }
+
+      cv.toBlob(async blob => {
+        if (!blob) return;
+        if (typeof ClipboardItem !== 'undefined') {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          setCopyFeedback("✅ ¡Story copiada!");
+        } else {
+          handleExport();
+        }
+      }, 'image/png', 1.0);
+    } catch {
+      setCopyFeedback("⚠️ Error al copiar");
+    } finally {
+      setExporting(false);
+      setTimeout(() => setCopyFeedback(""), 3500);
+    }
+  }, [songName, artist, releaseDate, coverDataUrl, bgStyle, overlayOpacity, showVerse, verse, timeLeft, handleExport]);
 
   const pad = (n: number) => String(n).padStart(2, '0');
   const getOverlay = () => {
@@ -323,7 +489,7 @@ export default function StoryCountdownCreator() {
   return (
     <div className="min-h-screen bg-[#05070a] text-white p-6 md:p-8 font-['Poppins',sans-serif]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/admin')} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
             <i className="fa-solid fa-arrow-left text-[#c5a059]" />
@@ -333,10 +499,19 @@ export default function StoryCountdownCreator() {
             <h1 className="text-2xl md:text-3xl font-serif italic">Story <span className="text-[#c5a059]">Countdown</span> Creator</h1>
           </div>
         </div>
-        <button onClick={handleExport} disabled={exporting}
-          className="bg-[#c5a059] text-black px-6 py-3 rounded-2xl tracking-widest uppercase text-[10px] font-black hover:bg-white transition-all shadow-[0_0_20px_rgba(197,160,89,0.3)] disabled:opacity-50 flex items-center gap-2">
-          {exporting ? <><i className="fa-solid fa-spinner fa-spin" /> Generando...</> : <><i className="fa-solid fa-download" /> Descargar Story (1080×1920)</>}
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button onClick={handleCopy} disabled={exporting}
+            className="bg-white/10 border border-white/15 text-white px-5 py-3 rounded-2xl tracking-widest uppercase text-[10px] font-black hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-2">
+            <i className="fa-solid fa-copy text-[#c5a059]" />
+            {copyFeedback || 'Copiar Story'}
+          </button>
+
+          <button onClick={handleExport} disabled={exporting}
+            className="bg-[#c5a059] text-black px-6 py-3 rounded-2xl tracking-widest uppercase text-[10px] font-black hover:bg-white transition-all shadow-[0_0_20px_rgba(197,160,89,0.3)] disabled:opacity-50 flex items-center gap-2">
+            {exporting ? <><i className="fa-solid fa-spinner fa-spin" /> Generando...</> : <><i className="fa-solid fa-download" /> Descargar 9:16</>}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 max-w-7xl mx-auto">

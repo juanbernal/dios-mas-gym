@@ -642,6 +642,7 @@ const CustomPromoCreator: React.FC = () => {
     ctx.restore();
 
     // Brand logo text
+    // Brand logo text
     if (showLogo) {
       ctx.save();
       ctx.font = `900 ${Math.round(subFontSize * 0.8)}px ${font}`;
@@ -649,7 +650,8 @@ const CustomPromoCreator: React.FC = () => {
       ctx.fillStyle = isLight ? "#111111" : "#ffffff";
       ctx.globalAlpha = 0.45;
       ctx.textAlign = "left";
-      ctx.fillText("DIOSMASGYM RECORDS", PAD, footerY);
+      const brandLogo = artist.toLowerCase().includes("juan") ? "JUAN 614 RECORDS" : "DIOSMASGYM RECORDS";
+      ctx.fillText(brandLogo, PAD, footerY);
       ctx.restore();
     }
 
@@ -673,6 +675,38 @@ const CustomPromoCreator: React.FC = () => {
 
   useEffect(() => { drawCanvas(); }, [drawCanvas]);
 
+  // ─── Live Bible API ───────────────────────────────────────────────────────
+  const fetchRandomBibleVerse = async () => {
+    showToast("📖 Consultando API de la Biblia...");
+    try {
+      const isJuan = artist.toLowerCase().includes("juan");
+      const books = isJuan 
+        ? ["salmos", "proverbios", "filipenses", "efesios", "juan", "romanos"]
+        : ["josue", "salmos", "proverbios", "romanos", "1-corintios", "filipenses", "isaias"];
+      const b = books[Math.floor(Math.random() * books.length)];
+      const maxCh = b === "salmos" ? 150 : b === "proverbios" ? 31 : b === "isaias" ? 66 : 6;
+      const ch = Math.floor(Math.random() * maxCh) + 1;
+      const res = await fetch(`https://bible-api.deno.dev/api/read/rv1960/${b}/${ch}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.vers && data.vers.length > 0) {
+          const v = data.vers[Math.floor(Math.random() * data.vers.length)];
+          setQuoteText(v.verse.trim());
+          setQuoteRef(`${b.charAt(0).toUpperCase() + b.slice(1)} ${ch}:${v.number}`);
+          setShowQuote(true);
+          showToast("✝️ Versículo cargado de la Biblia");
+          return;
+        }
+      }
+    } catch {}
+    // Fallback
+    const p = PRESET_VERSES[Math.floor(Math.random() * PRESET_VERSES.length)];
+    setQuoteText(p.text);
+    setQuoteRef(p.ref);
+    setShowQuote(true);
+    showToast("✝️ Versículo cargado");
+  };
+
   // ─── Download ─────────────────────────────────────────────────────────────
   const handleDownload = () => {
     const canvas = canvasRef.current;
@@ -693,6 +727,29 @@ const CustomPromoCreator: React.FC = () => {
         setIsDownloading(false);
       }, "image/png", 1.0);
     }, 300);
+  };
+
+  // ─── Copy to Clipboard ────────────────────────────────────────────────────
+  const handleCopyImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setIsDownloading(true);
+    showToast("📋 Copiando imagen al portapapeles...");
+    canvas.toBlob(async (blob) => {
+      if (!blob) { showToast("❌ Error al copiar"); setIsDownloading(false); return; }
+      try {
+        if (typeof ClipboardItem !== "undefined") {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+          showToast("🖼️ ¡Imagen copiada al portapapeles!");
+        } else {
+          handleDownload();
+        }
+      } catch {
+        handleDownload();
+      } finally {
+        setIsDownloading(false);
+      }
+    }, "image/png", 1.0);
   };
 
   const filteredCatalog = catalog
@@ -804,6 +861,15 @@ const CustomPromoCreator: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={handleCopyImage}
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
+            >
+              <i className="fas fa-copy text-[#c5a059]" />
+              <span className="hidden sm:inline">Copiar</span>
+            </button>
 
             <button
               onClick={handleDownload}
@@ -1061,11 +1127,17 @@ const CustomPromoCreator: React.FC = () => {
 
                 {showQuote && (
                   <>
-                    {/* Presets button */}
-                    <button onClick={() => setShowVerseModal(true)}
-                      className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#c5a059]/10 hover:bg-[#c5a059]/18 border border-[#c5a059]/30 rounded-2xl text-[#c5a059] text-[11px] font-black uppercase tracking-widest transition-all">
-                      <i className="fas fa-book-bible" /> Ver Biblioteca de Versículos
-                    </button>
+                    {/* Presets and API buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={fetchRandomBibleVerse}
+                        className="flex items-center justify-center gap-2 py-3 bg-[#c5a059] hover:bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md">
+                        <i className="fas fa-dice" /> Biblia API
+                      </button>
+                      <button onClick={() => setShowVerseModal(true)}
+                        className="flex items-center justify-center gap-2 py-3 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 border border-[#c5a059]/30 rounded-2xl text-[#c5a059] text-[10px] font-black uppercase tracking-wider transition-all">
+                        <i className="fas fa-bookmark" /> Biblioteca
+                      </button>
+                    </div>
 
                     <div>
                       <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mb-2">Texto del versículo / cita</label>

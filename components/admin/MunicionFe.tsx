@@ -116,8 +116,9 @@ const getAPIBookName = (book: string): string => {
 const FONDO_ESTILOS = [
   { id: 'carbon', name: '🖤 Negro Carbón', bgClass: 'bg-[#05070a]' },
   { id: 'diosmasgym', name: '⚜️ Cruz Dios Mas Gym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
-  { id: 'mando', name: '🛡️ Mando Ejecutivo', bgClass: 'bg-[#05070a]', watermark: '/logo-mando-ejecutivo.png' },
   { id: 'juan614', name: '🤠 Juan 614', bgClass: 'bg-[#05070a]', watermark: '/logo-juan614-v2.png' },
+  { id: 'dual', name: '⚔️ Dios Mas Gym × Juan 614', bgClass: 'bg-[#05070a]', isDual: true },
+  { id: 'mando', name: '🛡️ Mando Ejecutivo', bgClass: 'bg-[#05070a]', watermark: '/logo-mando-ejecutivo.png' },
   { id: 'metal', name: '⚡ Grano de Acero', bgClass: 'bg-gradient-to-b from-[#080b11] to-[#030406]', grain: true },
   { id: 'sangre', name: '🩸 Sangre Real', bgClass: 'bg-gradient-to-br from-[#1a0505] to-[#050000]', grain: true },
   { id: 'abismo', name: '🌊 Abismo Profundo', bgClass: 'bg-gradient-to-tr from-[#000a14] to-[#01152a]', grain: true },
@@ -141,6 +142,8 @@ const MunicionFe: React.FC = () => {
   const [align, setAlign] = useState<'left' | 'center' | 'right'>('center');
   const [logoSize, setLogoSize] = useState(80);
   const [generating, setGenerating] = useState(false);
+  const [customBgUrl, setCustomBgUrl] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState("");
 
   const handleSelectPredefinido = (v: VersiculoPredefinido) => {
     setTexto(v.versiculo);
@@ -248,6 +251,63 @@ const MunicionFe: React.FC = () => {
       element.style.maxWidth = originalMaxWidth;
       setGenerating(false);
     }
+  };
+
+  const handleCopyImage = async () => {
+    const element = previewRef.current;
+    if (!element) return;
+    setGenerating(true);
+
+    const originalWidth = element.style.width;
+    const originalHeight = element.style.height;
+    const originalMaxWidth = element.style.maxWidth;
+
+    if (format === 'story') {
+      element.style.width = '360px'; element.style.height = '640px'; element.style.maxWidth = 'none';
+    } else if (format === 'ig_portrait') {
+      element.style.width = '360px'; element.style.height = '450px'; element.style.maxWidth = 'none';
+    } else {
+      element.style.width = '360px'; element.style.height = '360px'; element.style.maxWidth = 'none';
+    }
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const canvas = await html2canvas(element, {
+        useCORS: true, allowTaint: false, scale: 3, backgroundColor: '#05070a', logging: false
+      });
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.95));
+      if (!blob) throw new Error("Blob failed");
+
+      if (typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setCopyFeedback("✅ ¡Imagen copiada al portapapeles!");
+      } else {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `municion-fe-${cita.replace(/[^a-zA-Z0-9]/g, '_') || 'cita'}.png`;
+        link.href = dataUrl; link.click();
+        setCopyFeedback("📥 Imagen descargada");
+      }
+    } catch (error) {
+      setCopyFeedback("⚠️ Error al copiar");
+    } finally {
+      element.style.width = originalWidth;
+      element.style.height = originalHeight;
+      element.style.maxWidth = originalMaxWidth;
+      setGenerating(false);
+      setTimeout(() => setCopyFeedback(""), 3500);
+    }
+  };
+
+  const handleCustomBg = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCustomBgUrl(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -467,11 +527,40 @@ const MunicionFe: React.FC = () => {
 
             </div>
 
-            {/* Logo Size slider (Only if watermark exists) */}
-            {styleFondo.watermark && (
+            {/* Custom Background Image upload */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+              <div className="flex items-center justify-between">
+                <label className="text-white/50 text-[9px] font-black uppercase tracking-wider flex items-center gap-2">
+                  <i className="fas fa-image text-[#c5a059]"></i>
+                  Fondo Personalizado (Opcional)
+                </label>
+                {customBgUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomBgUrl(null)}
+                    className="text-[8px] text-red-400 hover:text-white uppercase tracking-wider font-bold"
+                  >
+                    Quitar Fondo
+                  </button>
+                )}
+              </div>
+              <label className="w-full flex items-center justify-center gap-3 p-3 bg-[#05070a] border border-white/10 hover:border-[#c5a059]/40 rounded-xl cursor-pointer text-[9px] font-black uppercase tracking-wider text-white/70 hover:text-[#c5a059] transition-all">
+                <i className="fas fa-cloud-arrow-up text-[#c5a059]"></i>
+                {customBgUrl ? 'Cambiar Foto de Fondo' : 'Subir Foto Local'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCustomBg}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Logo Size slider (Only if watermark exists or isDual) */}
+            {(styleFondo.watermark || (styleFondo as any).isDual) && (
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Tamaño de Logo</label>
+                  <label className="text-white/50 text-[9px] font-black uppercase tracking-wider">Tamaño de Logo(s)</label>
                   <span className="text-[10px] font-bold text-[#c5a059]">{logoSize}px</span>
                 </div>
                 <input
@@ -485,22 +574,40 @@ const MunicionFe: React.FC = () => {
               </div>
             )}
 
-            {/* Download Button */}
-            <button
-              onClick={handleDownload}
-              disabled={generating}
-              className="mt-4 py-5 rounded-2xl bg-[#c5a059] text-black font-black text-[10px] uppercase tracking-[0.25em] hover:bg-white transition-all transform active:scale-95 shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
-            >
-              {generating ? (
-                <>
-                  <i className="fas fa-spinner fa-spin"></i> Generando Imagen...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-cloud-arrow-down"></i> Descargar Imagen
-                </>
-              )}
-            </button>
+            {/* Action Buttons: Download & Copy */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              <button
+                onClick={handleDownload}
+                disabled={generating}
+                className="py-4 rounded-2xl bg-[#c5a059] text-black font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white transition-all transform active:scale-95 shadow-xl flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {generating ? (
+                  <i className="fas fa-spinner fa-spin"></i>
+                ) : (
+                  <i className="fas fa-cloud-arrow-down"></i>
+                )}
+                Descargar HD
+              </button>
+
+              <button
+                onClick={handleCopyImage}
+                disabled={generating}
+                className="py-4 rounded-2xl bg-white/5 border border-white/15 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/15 hover:border-[#c5a059] transition-all transform active:scale-95 shadow-xl flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {generating ? (
+                  <i className="fas fa-spinner fa-spin"></i>
+                ) : (
+                  <i className="fas fa-copy text-[#c5a059]"></i>
+                )}
+                Copiar Imagen
+              </button>
+            </div>
+
+            {copyFeedback && (
+              <div className="text-center text-[10px] font-black uppercase tracking-widest text-[#c5a059] bg-[#c5a059]/10 border border-[#c5a059]/20 p-2.5 rounded-xl animate-pulse">
+                {copyFeedback}
+              </div>
+            )}
 
           </div>
 
@@ -523,6 +630,16 @@ const MunicionFe: React.FC = () => {
                   format === 'story' ? 'p-10' : format === 'ig_portrait' ? 'p-8' : 'p-6'
                 } ${styleFondo.bgClass} overflow-hidden select-none`}
               >
+
+                {/* Custom Background Image */}
+                {customBgUrl && (
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${customBgUrl})` }}
+                  >
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]"></div>
+                  </div>
+                )}
                 
                 {/* Grain Effect */}
                 {styleFondo.grain && (
@@ -533,7 +650,7 @@ const MunicionFe: React.FC = () => {
                 )}
 
                 {/* Watermark Watermark background overlay */}
-                {styleFondo.watermark && (
+                {styleFondo.watermark && !customBgUrl && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none p-6">
                     <img 
                       src={styleFondo.watermark} 
@@ -544,8 +661,14 @@ const MunicionFe: React.FC = () => {
                 )}
 
                 {/* Header (Logo small top) */}
-                <div className="w-full flex justify-center pt-2 shrink-0">
-                  {styleFondo.watermark ? (
+                <div className="w-full flex justify-center pt-2 shrink-0 relative z-10">
+                  {(styleFondo as any).isDual ? (
+                    <div className="flex items-center gap-3">
+                      <img src="/logo-diosmasgym.png" alt="Dios Mas Gym" style={{ width: `${Math.round(logoSize * 0.75)}px`, height: 'auto' }} className="object-contain rounded-lg" />
+                      <span className="text-white/30 text-xs font-black">×</span>
+                      <img src="/logo-juan614-v2.png" alt="Juan 614" style={{ width: `${Math.round(logoSize * 0.75)}px`, height: 'auto' }} className="object-contain rounded-lg" />
+                    </div>
+                  ) : styleFondo.watermark ? (
                     <img 
                       src={styleFondo.watermark} 
                       alt="logo header" 
