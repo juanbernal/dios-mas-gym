@@ -383,16 +383,43 @@ const App: React.FC = () => {
 
   if (showSplash && !isBioRoute && !isSmartLinkRoute) {
     return (
-      <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl">
-        <div className="relative animate-pulse flex flex-col items-center">
-           <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-40 h-40 md:w-56 md:h-56 rounded-3xl object-cover shadow-[0_0_100px_rgba(197,160,89,0.25)] ring-1 ring-[#4a90d9]/30" />
-           <div className="absolute inset-0 rounded-3xl ring-2 ring-[#4a90d9]/10 animate-ping opacity-20"></div>
-        </div>
-        <div className="mt-16 flex flex-col items-center gap-6">
-            <div className="w-64 h-[1px] bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent w-1/2 animate-[progress_2s_ease-in-out_infinite]"></div>
+      <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl px-4">
+        {/* Ambient Glows */}
+        <div className="absolute w-96 h-96 bg-[#4a90d9]/10 rounded-full blur-[120px] pointer-events-none -translate-x-20"></div>
+        <div className="absolute w-96 h-96 bg-[#c5a059]/10 rounded-full blur-[120px] pointer-events-none translate-x-20"></div>
+
+        {/* Dual Logos Container */}
+        <div className="relative flex flex-row items-center justify-center gap-4 sm:gap-8 animate-pulse">
+          {/* Diosmasgym Emblem */}
+          <div className="relative group flex flex-col items-center">
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-3xl overflow-hidden bg-black/60 shadow-[0_0_60px_rgba(74,144,217,0.25)] ring-1 ring-[#4a90d9]/40 flex items-center justify-center p-2">
+              <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-full h-full object-contain rounded-2xl" />
             </div>
-            <div className="text-[11px] font-black uppercase tracking-[0.8em] text-[#4a90d9] animate-pulse drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]">
+            <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Dios Mas Gym</span>
+          </div>
+
+          {/* Union Connector */}
+          <div className="flex flex-col items-center justify-center -mt-6">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 text-xs sm:text-sm font-black shadow-inner">
+              ×
+            </div>
+          </div>
+
+          {/* Juan 614 Emblem */}
+          <div className="relative group flex flex-col items-center">
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-3xl overflow-hidden bg-black/60 shadow-[0_0_60px_rgba(197,160,89,0.25)] ring-1 ring-[#c5a059]/40 flex items-center justify-center p-2">
+              <img src="/logo-juan614-v2.png" alt="Juan 614" className="w-full h-full object-contain rounded-2xl" />
+            </div>
+            <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]/70">Juan 614</span>
+          </div>
+        </div>
+
+        {/* Progress & Text */}
+        <div className="mt-12 flex flex-col items-center gap-5">
+            <div className="w-64 sm:w-80 h-[2px] bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-transparent via-[#4a90d9] to-[#c5a059] w-1/2 animate-[progress_2s_ease-in-out_infinite]"></div>
+            </div>
+            <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.8em] text-[#4a90d9] animate-pulse drop-shadow-[0_0_15px_rgba(74,144,217,0.8)] text-center pl-2">
               Entrando al Templo
             </div>
         </div>
