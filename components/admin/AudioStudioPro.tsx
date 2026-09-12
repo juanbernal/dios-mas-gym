@@ -148,14 +148,48 @@ const AudioStudioPro:React.FC=()=>{
   const [silences,setSilences]=useState<{start:number;end:number}[]>([]);
   const [artFile,setArtFile]=useState<File|null>(null);
   const [artPrev,setArtPrev]=useState<string|null>(null);
-  const [wmText,setWmText]=useState('© Diosmasgym');
-  const [wmPos,setWmPos]=useState<'br'|'bl'|'tr'|'c'>('br');
+  const [wmType, setWmType] = useState<'text' | 'logo_dios' | 'logo_juan' | 'logo_mando' | 'logo_dual'>('text');
+  const [wmLogoScale, setWmLogoScale] = useState(120);
+  const [wmText,setWmText]=useState('© Diosmasgym Records');
+  const [wmPos,setWmPos]=useState<'br'|'bl'|'tr'|'tl'|'c'>('br');
   const [wmColor,setWmColor]=useState('#ffffff');
-  const [wmOp,setWmOp]=useState(70);
+  const [wmOp,setWmOp]=useState(80);
   const [wmSz,setWmSz]=useState(28);
   const [exportPct,setExportPct]=useState(0);
   const [exporting,setExporting]=useState(false);
   const [dirty,setDirty]=useState(false);
+
+  // TAP TEMPO STATE
+  const [tapTimes, setTapTimes] = useState<number[]>([]);
+  const [tapBpmFeedback, setTapBpmFeedback] = useState<string>('');
+
+  // WAVEFORM PLAYBACK STATE
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleTapTempo = () => {
+    const now = Date.now();
+    setTapTimes(prev => {
+      const recent = prev.filter(t => now - t < 3000);
+      const updated = [...recent, now];
+      if (updated.length >= 2) {
+        const intervals = [];
+        for (let i = 1; i < updated.length; i++) {
+          intervals.push(updated[i] - updated[i - 1]);
+        }
+        const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        const calculatedBpm = Math.round(60000 / avgMs);
+        if (calculatedBpm >= 40 && calculatedBpm <= 250) {
+          setMeta(m => ({ ...m, bpm: String(calculatedBpm) }));
+          setDirty(true);
+          setTapBpmFeedback(`${calculatedBpm} BPM`);
+          setTimeout(() => setTapBpmFeedback(''), 2000);
+        }
+      }
+      return updated;
+    });
+  };
   const [aiStems,setAiStems]=useState<Record<string,string>|null>(null);
   const [isExtracting,setIsExtracting]=useState(false);
   const [extractStatus,setExtractStatus]=useState('');
@@ -593,26 +627,144 @@ const AudioStudioPro:React.FC=()=>{
     const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#a855f7');g.addColorStop(0.5,'#7c3aed');g.addColorStop(1,'#a855f7');
     ctx.fillStyle=g;const bw=Math.max(1,W/wave.length);
     for(let i=0;i<wave.length;i++){const x=(i/wave.length)*W;const h=wave[i]*(H*0.9);ctx.fillRect(x,mid-h/2,bw-0.5,h);}
-  },[wave,silences,fi]);
+
+    // Draw playhead cursor
+    if (fi && fi.duration > 0 && playbackTime > 0) {
+      const playheadX = (playbackTime / fi.duration) * W;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#a855f7';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(playheadX, 0);
+      ctx.lineTo(playheadX, H);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+  },[wave,silences,fi,playbackTime]);
+
+  const handleWaveformClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!wRef.current || !fi || !fi.duration || !audioPlayerRef.current) return;
+    const rect = wRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetTime = pct * fi.duration;
+    audioPlayerRef.current.currentTime = targetTime;
+    setPlaybackTime(targetTime);
+  };
+
+  const togglePlayback = () => {
+    if (!audioPlayerRef.current) return;
+    if (isPlaying) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioPlayerRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+  };
 
   const drawCanvas=useCallback(()=>{
     if(!cRef.current)return;const cv=cRef.current;const ctx=cv.getContext('2d')!;ctx.clearRect(0,0,600,600);
     const dw=(img?:HTMLImageElement)=>{
       if(img){ctx.drawImage(img,0,0,600,600);}
-      else{const g=ctx.createLinearGradient(0,0,600,600);g.addColorStop(0,'#1a1035');g.addColorStop(1,'#05070a');ctx.fillStyle=g;ctx.fillRect(0,0,600,600);ctx.fillStyle='rgba(168,85,247,0.15)';ctx.beginPath();ctx.arc(300,300,200,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('Sin artwork',300,300);}
-      if(!wmText.trim())return;
-      ctx.globalAlpha=wmOp/100;ctx.fillStyle=wmColor;ctx.font=`bold ${wmSz}px Arial,sans-serif`;
+      else{
+        const g=ctx.createLinearGradient(0,0,600,600);g.addColorStop(0,'#1a1035');g.addColorStop(1,'#05070a');ctx.fillStyle=g;ctx.fillRect(0,0,600,600);ctx.fillStyle='rgba(168,85,247,0.15)';ctx.beginPath();ctx.arc(300,300,200,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('Sin artwork',300,300);
+      }
+
+      ctx.save();
+      ctx.globalAlpha=wmOp/100;
+
+      // 1. LOGO WATERMARK MODE
+      if(wmType !== 'text') {
+        let logoSrc = '/logo-diosmasgym.png';
+        if (wmType === 'logo_juan') logoSrc = '/logo-juan614-v2.png';
+        if (wmType === 'logo_mando') logoSrc = '/logo-mando-ejecutivo.png';
+
+        const drawLogoImg = (lImg: HTMLImageElement) => {
+          const lW = wmLogoScale;
+          const lH = wmLogoScale;
+          const p = 24;
+          let lx = 600 - lW - p, ly = 600 - lH - p;
+          if (wmPos === 'bl') { lx = p; ly = 600 - lH - p; }
+          else if (wmPos === 'tl') { lx = p; ly = p; }
+          else if (wmPos === 'tr') { lx = 600 - lW - p; ly = p; }
+          else if (wmPos === 'c') { lx = 300 - lW / 2; ly = 300 - lH / 2; }
+
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 12;
+          ctx.drawImage(lImg, lx, ly, lW, lH);
+          ctx.restore();
+        };
+
+        if (wmType === 'logo_dual') {
+          const img1 = new Image();
+          const img2 = new Image();
+          img1.crossOrigin = 'anonymous'; img2.crossOrigin = 'anonymous';
+          let loaded = 0;
+          const onBoth = () => {
+            loaded++;
+            if (loaded === 2) {
+              const lW = Math.round(wmLogoScale * 0.7);
+              const p = 24;
+              let lx = 600 - (lW * 2 + 12) - p, ly = 600 - lW - p;
+              if (wmPos === 'bl') { lx = p; ly = 600 - lW - p; }
+              else if (wmPos === 'tl') { lx = p; ly = p; }
+              else if (wmPos === 'tr') { lx = 600 - (lW * 2 + 12) - p; ly = p; }
+              else if (wmPos === 'c') { lx = 300 - (lW * 2 + 12) / 2; ly = 300 - lW / 2; }
+
+              ctx.shadowColor = 'rgba(0,0,0,0.8)';
+              ctx.shadowBlur = 12;
+              ctx.drawImage(img1, lx, ly, lW, lW);
+              ctx.drawImage(img2, lx + lW + 12, ly, lW, lW);
+              ctx.restore();
+            }
+          };
+          img1.onload = onBoth; img1.src = '/logo-diosmasgym.png';
+          img2.onload = onBoth; img2.src = '/logo-juan614-v2.png';
+        } else {
+          const lImg = new Image();
+          lImg.crossOrigin = 'anonymous';
+          lImg.onload = () => drawLogoImg(lImg);
+          lImg.src = logoSrc;
+        }
+        return;
+      }
+
+      // 2. TEXT WATERMARK MODE
+      if(!wmText.trim()) { ctx.restore(); return; }
+      ctx.fillStyle=wmColor;ctx.font=`bold ${wmSz}px Arial,sans-serif`;
       const p=24;let tx=600-p,ty=600-p;ctx.textAlign='right';
       if(wmPos==='bl'){ctx.textAlign='left';tx=p;ty=600-p;}
+      else if(wmPos==='tl'){ctx.textAlign='left';tx=p;ty=wmSz+p;}
       else if(wmPos==='tr'){tx=600-p;ty=wmSz+p;}
       else if(wmPos==='c'){ctx.textAlign='center';tx=300;ty=300;}
       ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=8;ctx.shadowOffsetX=2;ctx.shadowOffsetY=2;
-      ctx.fillText(wmText,tx,ty);ctx.globalAlpha=1;ctx.shadowColor='transparent';ctx.shadowBlur=0;
+      ctx.fillText(wmText,tx,ty);
+      ctx.restore();
     };
     if(artPrev){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>dw(img);img.src=artPrev;}else dw();
-  },[artPrev,wmText,wmPos,wmColor,wmOp,wmSz]);
+  },[artPrev,wmType,wmLogoScale,wmText,wmPos,wmColor,wmOp,wmSz]);
 
   useEffect(()=>{if(tab==='artwork')drawCanvas();},[tab,drawCanvas]);
+
+  const handleCopyArtwork = () => {
+    drawCanvas();
+    setTimeout(() => {
+      cRef.current?.toBlob(async (b) => {
+        if (!b) return;
+        try {
+          if (typeof ClipboardItem !== 'undefined') {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]);
+            notify('🖼️ ¡Artwork con marca de agua copiado!');
+          } else {
+            notify('Copiado no soportado en este navegador', 'err');
+          }
+        } catch {
+          notify('Error al copiar portada', 'err');
+        }
+      }, 'image/png', 1.0);
+    }, 150);
+  };
 
   const doExport=async()=>{
     if(!fi)return;setExporting(true);setExportPct(10);
@@ -1545,7 +1697,35 @@ const AudioStudioPro:React.FC=()=>{
               <FLD k="album" label="Álbum / EP" icon="fa-compact-disc" ph="Nombre del álbum"/>
               <FLD k="year" label="Año" icon="fa-calendar" ph="2026" ml={4}/>
               <FLD k="trackNumber" label="Pista #" icon="fa-list-ol" ph="1"/>
-              <FLD k="bpm" label="BPM" icon="fa-metronome" ph="120"/>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                    <i className="fas fa-metronome text-purple-400/60"></i>BPM (Tempo)
+                  </label>
+                  {tapBpmFeedback && (
+                    <span className="text-[9px] font-black text-emerald-400 animate-pulse">
+                      ✓ {tapBpmFeedback}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={meta.bpm || ''}
+                    onChange={e => { setMeta(m => ({ ...m, bpm: e.target.value })); setDirty(true); }}
+                    placeholder="120"
+                    className="w-full bg-[#0f111a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-purple-500/50 transition-all font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTapTempo}
+                    className="px-4 py-3 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-500 text-purple-300 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 shadow"
+                    title="Haz clic al ritmo de la música para calcular el tempo automáticamente"
+                  >
+                    <i className="fas fa-hand-pointer mr-1"></i> Tap
+                  </button>
+                </div>
+              </div>
               <FLD k="composer" label="Compositor" icon="fa-pen-nib" ph="Nombre del compositor" ro/>
               <FLD k="label" label="Sello / Label" icon="fa-building" ph="Diosmasgym records" ro/>
               <FLD k="isrc" label="ISRC" icon="fa-barcode" ph="US-XXX-26-00001" ml={12}/>
@@ -1840,7 +2020,8 @@ const AudioStudioPro:React.FC=()=>{
                 <canvas ref={cRef} width={600} height={600} className="w-full rounded-[2rem] border border-white/10 bg-[#0f111a]"/>
                 <div className="flex gap-3 mt-4">
                   <button onClick={drawCanvas} className="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"><i className="fas fa-sync"></i>Actualizar</button>
-                  <button onClick={()=>{drawCanvas();setTimeout(()=>{cRef.current?.toBlob(b=>{if(!b)return;const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='artwork_watermark.jpg';a.click();URL.revokeObjectURL(u);notify('Artwork descargado');},'image/jpeg',0.95);},150);}} className="px-5 py-3 bg-white/5 border border-white/10 hover:border-purple-500/40 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"><i className="fas fa-download"></i>Descargar</button>
+                  <button onClick={handleCopyArtwork} className="px-4 py-3 bg-white/10 border border-white/15 hover:bg-white/20 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"><i className="fas fa-copy text-purple-400"></i>Copiar</button>
+                  <button onClick={()=>{drawCanvas();setTimeout(()=>{cRef.current?.toBlob(b=>{if(!b)return;const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='artwork_watermark.jpg';a.click();URL.revokeObjectURL(u);notify('Artwork descargado');},'image/jpeg',0.95);},150);}} className="px-4 py-3 bg-white/5 border border-white/10 hover:border-purple-500/40 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"><i className="fas fa-download"></i>Descargar</button>
                 </div>
               </div>
               <div className="space-y-5">
@@ -1850,18 +2031,65 @@ const AudioStudioPro:React.FC=()=>{
                   :<div onClick={()=>aRef.current?.click()} className="border border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-purple-500/40 transition-all"><i className="fas fa-image text-white/20 text-2xl mb-2 block"></i><p className="text-white/30 text-xs">Haz clic para subir artwork</p><p className="text-white/15 text-[9px] mt-1">JPG, PNG, WebP</p></div>}
                   <input ref={aRef} type="file" accept="image/*" className="hidden" onChange={e=>{if(e.target.files?.[0]){setArtFile(e.target.files[0]);setArtPrev(URL.createObjectURL(e.target.files[0]));}}}/>
                 </div>
+
                 <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-6 space-y-4">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40"><i className="fas fa-copyright text-purple-400/60 mr-2"></i>Marca de Agua</p>
-                  <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Texto</label><input type="text" value={wmText} onChange={e=>setWmText(e.target.value)} placeholder="© Diosmasgym" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50"/></div>
-                  <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-2">Posición</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {([{v:'br',l:'↘ Abajo Derecha'},{v:'bl',l:'↙ Abajo Izquierda'},{v:'tr',l:'↗ Arriba Derecha'},{v:'c',l:'⊙ Centro'}] as const).map(o=><button key={o.v} onClick={()=>setWmPos(o.v)} className={`py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${wmPos===o.v?'bg-purple-600 border-purple-500 text-white':'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}>{o.l}</button>)}
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40"><i className="fas fa-shield-halved text-purple-400/60 mr-2"></i>Tipo de Marca</p>
+                  
+                  {/* Selector de Tipo de Marca de Agua */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'text', label: '✍️ Texto' },
+                      { id: 'logo_dios', label: '⚜️ Dios Mas Gym' },
+                      { id: 'logo_juan', label: '🤠 Juan 614' },
+                      { id: 'logo_dual', label: '⚔️ Logo Dual' },
+                      { id: 'logo_mando', label: '🛡️ Mando Ejecutivo' },
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setWmType(t.id as any)}
+                        className={`p-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border text-left ${
+                          wmType === t.id 
+                            ? 'bg-purple-600 border-purple-500 text-white shadow' 
+                            : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {wmType === 'text' ? (
+                    <>
+                      <div>
+                        <label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Texto de la Marca</label>
+                        <input type="text" value={wmText} onChange={e=>setWmText(e.target.value)} placeholder="© Diosmasgym Records" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/50"/>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Color</label><div className="flex items-center gap-3"><input type="color" value={wmColor} onChange={e=>setWmColor(e.target.value)} className="w-10 h-10 rounded-xl border border-white/10 bg-transparent cursor-pointer"/><span className="text-xs text-white/50 font-mono">{wmColor}</span></div></div>
+                        <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Tamaño: {wmSz}px</label><input type="range" min={14} max={80} value={wmSz} onChange={e=>setWmSz(Number(e.target.value))} className="w-full accent-purple-400"/></div>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Escala del Logo: {wmLogoScale}px</label>
+                      <input type="range" min={60} max={240} value={wmLogoScale} onChange={e=>setWmLogoScale(Number(e.target.value))} className="w-full accent-purple-400"/>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-[9px] text-white/30 uppercase tracking-widest block mb-2">Posición</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        {v:'tl',l:'↖ Arr Izq'},
+                        {v:'tr',l:'↗ Arr Der'},
+                        {v:'c',l:'⊙ Centro'},
+                        {v:'bl',l:'↙ Aba Izq'},
+                        {v:'br',l:'↘ Aba Der'},
+                      ] as const).map(o=><button key={o.v} onClick={()=>setWmPos(o.v)} className={`py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${wmPos===o.v?'bg-purple-600 border-purple-500 text-white':'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}>{o.l}</button>)}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Color</label><div className="flex items-center gap-3"><input type="color" value={wmColor} onChange={e=>setWmColor(e.target.value)} className="w-10 h-10 rounded-xl border border-white/10 bg-transparent cursor-pointer"/><span className="text-xs text-white/50 font-mono">{wmColor}</span></div></div>
-                    <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Tamaño: {wmSz}px</label><input type="range" min={14} max={80} value={wmSz} onChange={e=>setWmSz(Number(e.target.value))} className="w-full accent-purple-400"/></div>
-                  </div>
+
                   <div><label className="text-[9px] text-white/30 uppercase tracking-widest block mb-1">Opacidad: {wmOp}%</label><input type="range" min={10} max={100} value={wmOp} onChange={e=>setWmOp(Number(e.target.value))} className="w-full accent-purple-400"/></div>
                 </div>
               </div>
@@ -1871,13 +2099,88 @@ const AudioStudioPro:React.FC=()=>{
 
         {tab==='waveform'&&fi&&(
           <div className="max-w-5xl mx-auto">
-            <div className="mb-8"><h2 className="text-2xl font-serif italic text-white">Forma de Onda</h2><p className="text-white/30 text-xs mt-1">Visualización completa. Zonas rojas = silencios ≥0.3s.</p></div>
+            {/* Hidden HTML5 Audio Element for playback */}
+            <audio
+              ref={audioPlayerRef}
+              src={fi.objectUrl}
+              onTimeUpdate={e => setPlaybackTime(e.currentTarget.currentTime)}
+              onEnded={() => setIsPlaying(false)}
+            />
+
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-serif italic text-white">Forma de Onda & Reproductor</h2>
+                <p className="text-white/30 text-xs mt-1">Haz clic en cualquier punto de la onda para reproducir. Zonas rojas = silencios ≥0.3s.</p>
+              </div>
+
+              {/* Controles de Reproducción */}
+              <div className="flex items-center gap-3 bg-[#0f111a] border border-white/10 p-2 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={togglePlayback}
+                  className="w-11 h-11 rounded-xl bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center text-sm shadow-lg shadow-purple-950/50 transition-all active:scale-95"
+                  title={isPlaying ? 'Pausar audio' : 'Reproducir audio'}
+                >
+                  <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (audioPlayerRef.current) {
+                      audioPlayerRef.current.currentTime = 0;
+                      setPlaybackTime(0);
+                    }
+                  }}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white flex items-center justify-center text-xs transition-all"
+                  title="Reiniciar al inicio"
+                >
+                  <i className="fas fa-backward-step"></i>
+                </button>
+
+                <div className="px-3 text-right">
+                  <p className="text-xs font-mono font-bold text-white">
+                    {fmtD(playbackTime)} <span className="text-white/30 font-normal">/ {fmtD(fi.duration)}</span>
+                  </p>
+                  <p className="text-[8px] font-mono text-purple-400 font-bold uppercase tracking-widest">
+                    {isPlaying ? '▶ Reproduciendo' : '⏸ Pausado'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {wave?<>
               <div className="bg-[#0f111a] border border-white/5 rounded-[2rem] p-6 mb-6">
-                <canvas ref={wRef} width={1200} height={220} className="w-full rounded-xl"/>
+                <canvas 
+                  ref={wRef} 
+                  width={1200} 
+                  height={220} 
+                  onClick={handleWaveformClick}
+                  className="w-full rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
+                  title="Haz clic para saltar a esta posición en el audio"
+                />
+                
+                {/* Interactive seek bar slider */}
+                <div className="mt-3 px-1">
+                  <input
+                    type="range"
+                    min={0}
+                    max={fi.duration || 1}
+                    step={0.1}
+                    value={playbackTime}
+                    onChange={e => {
+                      const t = Number(e.target.value);
+                      if (audioPlayerRef.current) audioPlayerRef.current.currentTime = t;
+                      setPlaybackTime(t);
+                    }}
+                    className="w-full accent-purple-500 h-1.5 bg-white/10 rounded-lg cursor-pointer"
+                  />
+                </div>
+
                 <div className="flex items-center gap-6 mt-4 text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span className="flex items-center gap-2"><span className="w-4 h-2 bg-purple-500 rounded"></span>Señal</span>
                   <span className="flex items-center gap-2"><span className="w-4 h-2 bg-red-500/50 rounded"></span>Silencio</span>
+                  <span className="flex items-center gap-2 text-purple-400 font-bold"><i className="fas fa-hand-pointer text-[8px]"></i>Clic para buscar</span>
                   <span className="ml-auto">{fmtD(fi.duration)} · {(fi.sampleRate/1000).toFixed(1)} kHz · {fi.channels===1?'Mono':'Estéreo'}</span>
                 </div>
               </div>
