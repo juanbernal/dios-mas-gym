@@ -14,10 +14,11 @@ import TemploGuerrero from "./components/TemploGuerrero";
 import ArmaduraPromo from "./components/ArmaduraPromo";
 import Footer from './components/Footer';
 import MusicSection from './components/MusicSection';
-import { fetchMusicCatalog } from './services/musicService';
+import { fetchMusicCatalog, fetchSavedLyrics } from './services/musicService';
 import { AppState, AppView, MusicItem } from './types';
 import SocialPopup, { InlineSocialBanner, InlineFollowNetworks } from './components/SocialPromo';
 import { HomeMusicSections } from './components/HomeMusicSections';
+import { HomeLyricsSection } from './components/HomeLyricsSection';
 import { useAnalytics } from './hooks/useAnalytics';
 import { safeStorage } from './services/safeStorage';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -277,7 +278,7 @@ const App: React.FC = () => {
       }, 2500);
 
       try {
-        const [musicD, musicJ, maintStatus] = await Promise.all([
+        const [musicD, musicJ, maintStatus, savedLyricsList] = await Promise.all([
           fetchMusicCatalog('diosmasgym').catch(err => {
             console.error("Music Diosmasgym fetch failed:", err);
             return [];
@@ -289,6 +290,10 @@ const App: React.FC = () => {
           fetchMaintenanceStatus().catch(err => {
             console.error("Maintenance fetch failed:", err);
             return { enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' };
+          }),
+          fetchSavedLyrics().catch(err => {
+            console.error("Saved lyrics fetch failed:", err);
+            return [];
           })
         ]);
 
@@ -296,16 +301,42 @@ const App: React.FC = () => {
           setMaintenance(maintStatus);
         }
 
+        const enrichWithLyrics = (items: MusicItem[], lyrics: any[]) => {
+          if (!lyrics || lyrics.length === 0) return items;
+          const cleanTitle = (str: string) => 
+            (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+
+          return items.map(item => {
+            if (item.lyrics && item.lyrics.trim().length > 30) return item;
+            const itemNorm = cleanTitle(item.name);
+            const itemIdNorm = cleanTitle(item.id);
+            const match = lyrics.find((l: any) => {
+              if (!l) return false;
+              if (l.id && item.id && l.id === item.id) return true;
+              if (itemIdNorm && l.id && cleanTitle(l.id) === itemIdNorm) return true;
+              const lTitleNorm = cleanTitle(l.title || '');
+              return lTitleNorm && itemNorm && lTitleNorm === itemNorm;
+            });
+            if (match?.content) {
+              return { ...item, lyrics: match.content };
+            }
+            return item;
+          });
+        };
+
+        const enrichedD = enrichWithLyrics(musicD, savedLyricsList);
+        const enrichedJ = enrichWithLyrics(musicJ, savedLyricsList);
+
         setState(prev => ({ 
           ...prev, 
-          musicDiosmasgym: musicD,
-          musicJuan614: musicJ,
+          musicDiosmasgym: enrichedD,
+          musicJuan614: enrichedJ,
           loading: false,
           error: null
         }));
 
-        if (musicD.length > 0) setRandomMusicSong(musicD[Math.floor(Math.random() * musicD.length)]);
-        if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
+        if (enrichedD.length > 0) setRandomMusicSong(enrichedD[Math.floor(Math.random() * enrichedD.length)]);
+        if (enrichedJ.length > 0) setRandomJuan614Song(enrichedJ[Math.floor(Math.random() * enrichedJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         clearTimeout(splashTimeout);
         setShowSplash(false);
@@ -406,6 +437,12 @@ const App: React.FC = () => {
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
               />
 
+              {/* LÍRICAS DE GUERRA & FE (LETRAS Y BARRAS PARA CANTAR) */}
+              <HomeLyricsSection 
+                catalog={combinedCatalog} 
+                onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
+              />
+
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
@@ -458,8 +495,10 @@ const App: React.FC = () => {
           <Route path="/buscar" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/letra/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/lyrics/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/letras/:slug" element={<LyricsView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/letra" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/lyrics" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
+          <Route path="/letras" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/testimonios" element={<TestimoniosView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

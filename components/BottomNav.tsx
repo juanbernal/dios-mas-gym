@@ -19,6 +19,21 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, changeView }) => {
       isActive: location.pathname === '/' || currentView === 'inicio',
     },
     {
+      label: 'Letras',
+      icon: 'fa-file-lines',
+      action: () => {
+        if (location.pathname === '/' || currentView === 'inicio') {
+          const el = document.getElementById('seccion-letras');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+            return;
+          }
+        }
+        navigate('/buscar');
+      },
+      isActive: location.pathname.startsWith('/letra') || location.pathname.startsWith('/lyrics'),
+    },
+    {
       label: 'Buscar',
       icon: 'fa-search',
       action: () => navigate('/buscar'),

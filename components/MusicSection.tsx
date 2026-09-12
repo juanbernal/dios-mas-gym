@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MusicCard from './MusicCard';
 import { MusicItem } from '../types';
 
@@ -17,6 +17,11 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
   const artistLogo = isDios ? '/logo-diosmasgym.png' : '/logo-juan614-v2.png';
   const artistUrl = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
   const accentBlue = isDios ? '#2563a8' : '#1e3a5f';
+
+  const [visibleCount, setVisibleCount] = useState(6);
+
+  const displayedSongs = catalog.slice(0, visibleCount);
+  const hasMore = catalog.length > visibleCount;
 
   return (
     <section className="relative overflow-hidden py-24"
@@ -58,7 +63,7 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-5 h-px" style={{ background: accentBlue }}></div>
-                <span className="label-tag" style={{ color: '#4a90d9' }}>Catálogo Oficial</span>
+                <span className="label-tag" style={{ color: '#4a90d9' }}>Catálogo Oficial &bull; {catalog.length} Temas</span>
               </div>
               <h2 className="h2-display text-white capitalize" style={{ marginBottom: '0.5rem' }}>
                 {artist === 'diosmasgym' ? 'Diosmasgym' : 'Juan 614'}
@@ -98,12 +103,35 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
 
         {/* === MUSIC GRID === */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {catalog.slice(0, 6).map((item, idx) => (
-            <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
+          {displayedSongs.map((item, idx) => (
+            <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${(idx % 6) * 80}ms` }}>
               <MusicCard item={item} onPlay={() => onPlay(item)} />
             </div>
           ))}
         </div>
+
+        {/* Load more / explore controls */}
+        {catalog.length > 6 && (
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+            {hasMore ? (
+              <button
+                onClick={() => setVisibleCount(prev => Math.min(prev + 12, catalog.length))}
+                className="px-8 py-3.5 rounded-full bg-white/10 hover:bg-[#4a90d9] text-white hover:text-black border border-white/15 hover:border-transparent text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-lg"
+              >
+                <i className="fas fa-plus text-xs" />
+                Explorar Más Canciones ({catalog.length - visibleCount} restantes)
+              </button>
+            ) : (
+              <button
+                onClick={() => setVisibleCount(6)}
+                className="px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white border border-white/10 text-[9px] font-black uppercase tracking-widest transition-all"
+              >
+                <i className="fas fa-arrow-up text-xs mr-2" />
+                Mostrar Menos
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

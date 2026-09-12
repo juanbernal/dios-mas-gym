@@ -14,6 +14,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
   const [navSearch, setNavSearch] = useState('');
 
   const isHome = location.pathname === '/' || currentView === 'inicio';
+  const isLyrics = location.pathname.startsWith('/letra') || location.pathname.startsWith('/lyrics');
   const isSearch = location.pathname === '/buscar';
   const isTestimonios = location.pathname === '/testimonios';
 
@@ -41,6 +42,20 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
         
         <div className="hidden md:flex items-center gap-6 lg:gap-8">
           <NavLink active={isHome} onClick={() => { changeView('inicio'); navigate('/'); }} label="Inicio" />
+          <NavLink 
+            active={isLyrics} 
+            onClick={() => {
+              if (location.pathname === '/' || currentView === 'inicio') {
+                const el = document.getElementById('seccion-letras');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                  return;
+                }
+              }
+              navigate('/buscar');
+            }} 
+            label="Letras" 
+          />
           <NavLink active={isSearch} onClick={() => navigate('/buscar')} label="Buscar" />
           <NavLink active={isTestimonios} onClick={() => navigate('/testimonios')} label="Testimonios" />
         </div>
