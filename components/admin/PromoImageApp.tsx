@@ -41,6 +41,46 @@ const rgbToHex = (r: number, g: number, b: number): string => {
   }).join("");
 };
 
+// BIBLIA API DATA & PRESETS
+const BIBLE_BOOKS: Record<string, { apiName: string; prettyName: string; chapters: number }> = {
+  genesis: { apiName: "genesis", prettyName: "Génesis", chapters: 50 },
+  josue: { apiName: "josue", prettyName: "Josué", chapters: 24 },
+  salmos: { apiName: "salmos", prettyName: "Salmos", chapters: 150 },
+  proverbios: { apiName: "proverbios", prettyName: "Proverbios", chapters: 31 },
+  isaias: { apiName: "isaias", prettyName: "Isaías", chapters: 66 },
+  jeremias: { apiName: "jeremias", prettyName: "Jeremías", chapters: 52 },
+  romanos: { apiName: "romanos", prettyName: "Romanos", chapters: 16 },
+  "1-corintios": { apiName: "1-corintios", prettyName: "1 Corintios", chapters: 16 },
+  efesios: { apiName: "efesios", prettyName: "Efesios", chapters: 6 },
+  filipenses: { apiName: "filipenses", prettyName: "Filipenses", chapters: 4 },
+  hebreos: { apiName: "hebreos", prettyName: "Hebreos", chapters: 13 },
+  santiago: { apiName: "santiago", prettyName: "Santiago", chapters: 5 },
+  "1-pedro": { apiName: "1-pedro", prettyName: "1 Pedro", chapters: 5 },
+  "1-juan": { apiName: "1-juan", prettyName: "1 Juan", chapters: 5 },
+  mateo: { apiName: "mateo", prettyName: "Mateo", chapters: 28 },
+  juan: { apiName: "juan", prettyName: "Juan", chapters: 21 }
+};
+
+const DGM_FAVORITE_BOOKS = ["josue", "salmos", "proverbios", "romanos", "1-corintios", "efesios", "filipenses", "isaias", "hebreos", "santiago"];
+const JUAN_FAVORITE_BOOKS = ["salmos", "proverbios", "filipenses", "efesios", "juan", "mateo", "1-juan", "romanos"];
+
+const PRESET_VERSES = [
+  { ref: "Filipenses 4:13", text: "Todo lo puedo en Cristo que me fortalece." },
+  { ref: "Juan 6:14", text: "Este verdaderamente es el profeta que había de venir al mundo." },
+  { ref: "Josué 1:9", text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes." },
+  { ref: "Salmos 27:1", text: "Jehová es mi luz y mi salvación; ¿de quién temeré?" },
+  { ref: "Proverbios 3:5", text: "Confía en Jehová con todo tu corazón, y no te apoyes en tu propia prudencia." },
+  { ref: "Romanos 8:31", text: "Si Dios es por nosotros, ¿quién contra nosotros?" },
+  { ref: "Salmos 46:1", text: "Dios es nuestro refugio y fortaleza, nuestro pronto auxilio en las tribulaciones." },
+  { ref: "Mateo 19:26", text: "Para los hombres esto es imposible; mas para Dios todo es posible." },
+  { ref: "2 Timoteo 1:7", text: "No nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio." },
+  { ref: "Isaías 40:31", text: "Los que esperan en Jehová tendrán nuevas fuerzas; levantarán alas como las águilas." },
+  { ref: "Salmos 23:1", text: "Jehová es mi pastor; nada me faltará." },
+  { ref: "Jeremías 29:11", text: "Porque yo sé los pensamientos que tengo acerca de vosotros, pensamientos de paz, y no de mal." },
+  { ref: "Salmos 28:7", text: "Jehová es mi fortaleza y mi escudo; en él confió mi corazón, y fui ayudado." },
+  { ref: "1 Corintios 9:26", text: "De esta manera corro, no como a la ventura; de esta manera peleo, no como quien golpea el aire." }
+];
+
 // UTILITY TO UPGRADE ALL EXTERNAL URLS TO ABSOLUTE ORIGINAL RESOLUTION AND PROXY THEM FOR CORS SAFETY
 const getHighResUrl = (url: string | null): string | null => {
   if (!url) return null;
@@ -93,11 +133,51 @@ const PromoImageApp: React.FC = () => {
 
   // NUEVAS MEJORAS 2026
   const [slogan, setSlogan] = useState(""); // #2 Versículo / Slogan opcional
+  const [isLoadingVerse, setIsLoadingVerse] = useState(false); // Cargando versículo de API
+  const [showVerseModal, setShowVerseModal] = useState(false); // Modal biblioteca de versículos
   const [overlayColor, setOverlayColor] = useState("#000000"); // #3 Color de overlay (antes solo negro)
   const [customFooterUrl, setCustomFooterUrl] = useState(""); // #8 URL personalizable en footer
   const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png"); // #9 Formato de exportación
   const [exportQuality, setExportQuality] = useState(0.92); // #9 Calidad de exportación JPEG
   const [quickCopySuccess, setQuickCopySuccess] = useState(""); // #1 Toast del botón rápido de copia
+
+  // FUNCIÓN PARA TRAER VERSÍCULO DE LA API DE LA BIBLIA (rv1960)
+  const fetchRandomBibleVerse = async (targetArtist?: string) => {
+    setIsLoadingVerse(true);
+    const isJuan = (targetArtist || artist).toLowerCase().includes("juan");
+    const booksList = isJuan ? JUAN_FAVORITE_BOOKS : DGM_FAVORITE_BOOKS;
+    let success = false;
+    let attempts = 0;
+    
+    while (attempts < 3 && !success) {
+      attempts++;
+      try {
+        const randomBookKey = booksList[Math.floor(Math.random() * booksList.length)];
+        const bookData = BIBLE_BOOKS[randomBookKey];
+        if (!bookData) continue;
+        const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
+        const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
+          const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
+          const cleanText = randomVerseObj.verse.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+          const citation = `${bookData.prettyName} ${randomChapter}:${randomVerseObj.number}`;
+          setSlogan(`"${cleanText}" · ${citation}`);
+          success = true;
+        }
+      } catch (e) {
+        console.warn("Bible API attempt error:", e);
+      }
+    }
+
+    if (!success) {
+      const preset = PRESET_VERSES[Math.floor(Math.random() * PRESET_VERSES.length)];
+      setSlogan(`"${preset.text}" · ${preset.ref}`);
+    }
+    setIsLoadingVerse(false);
+  };
 
 
 
@@ -163,6 +243,7 @@ const PromoImageApp: React.FC = () => {
     setSize("instagram");
     setSearchQuery("");
     setIsSearchOpen(false);
+    fetchRandomBibleVerse(normalizedArtist);
   };
 
   const handleRandomFromCatalog = () => {
@@ -879,19 +960,74 @@ const PromoImageApp: React.FC = () => {
                 </div>
               )}
 
-              {/* #2 — VERSÍCULO / SLOGAN */}
-              <div className="space-y-2 pt-4 border-t border-white/5">
-                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
-                  <i className="fas fa-book-open text-[#c5a059]" />
-                  Versículo / Slogan (opcional)
-                </label>
-                <input
-                  type="text"
-                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-bold tracking-wide text-white/80 transition-all"
-                  placeholder='Ej: "Juan 6:14 · El profeta que había de venir"'
+              {/* #2 — VERSÍCULO / SLOGAN CONEXIÓN DIRECTA API BIBLIA */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                    <i className="fas fa-book-bible text-[#c5a059]" />
+                    Versículo Bíblico / Slogan
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {/* Botón API Aleatorio */}
+                    <button
+                      type="button"
+                      onClick={() => fetchRandomBibleVerse()}
+                      disabled={isLoadingVerse}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-50"
+                      title="Obtener versículo aleatorio de la API de la Biblia"
+                    >
+                      <i className={`fas ${isLoadingVerse ? 'fa-spinner fa-spin' : 'fa-dice'}`}></i>
+                      {isLoadingVerse ? 'Buscando...' : 'Biblia API'}
+                    </button>
+                    {/* Botón Biblioteca */}
+                    <button
+                      type="button"
+                      onClick={() => setShowVerseModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                      title="Elegir de la biblioteca de versículos seleccionados"
+                    >
+                      <i className="fas fa-bookmark text-[#c5a059]"></i>
+                      Biblioteca
+                    </button>
+                    {slogan && (
+                      <button
+                        type="button"
+                        onClick={() => setSlogan("")}
+                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white text-[9px] transition-all"
+                        title="Borrar versículo"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <textarea
+                  rows={2}
+                  className="w-full bg-black/40 border border-white/5 p-3 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-serif italic tracking-wide text-[#c5a059] resize-none transition-all"
+                  placeholder='Ej: "Todo lo puedo en Cristo que me fortalece." · Filipenses 4:13'
                   value={slogan}
                   onChange={(e) => setSlogan(e.target.value)}
                 />
+
+                {/* Quick suggestions pills */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {[
+                    { label: "Filipenses 4:13", text: '"Todo lo puedo en Cristo que me fortalece." · Filipenses 4:13' },
+                    { label: "Juan 6:14", text: '"Este verdaderamente es el profeta que había de venir." · Juan 6:14' },
+                    { label: "Josué 1:9", text: '"Esfuérzate y sé valiente; no temas ni desmayes." · Josué 1:9' },
+                    { label: "Salmos 27:1", text: '"Jehová es mi luz y mi salvación; ¿de quién temeré?" · Salmos 27:1' }
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSlogan(p.text)}
+                      className="px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-[#c5a059]/15 border border-white/5 hover:border-[#c5a059]/30 text-[8px] font-bold text-white/50 hover:text-[#c5a059] transition-all"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* #8 — URL PERSONALIZADA EN FOOTER */}
@@ -1515,6 +1651,76 @@ const PromoImageApp: React.FC = () => {
                 </p>
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ═══════════════════════════════════════════════════════
+          BIBLIOTECA DE VERSÍCULOS BÍBLICOS MODAL
+          ═══════════════════════════════════════════════════════ */}
+      {showVerseModal && (
+        <div
+          className="fixed inset-0 z-[600] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}
+          onClick={() => setShowVerseModal(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-[#0a0f1d] border border-[#c5a059]/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/30 flex items-center justify-center text-[#c5a059] text-base">
+                  <i className="fas fa-book-bible"></i>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-white">Biblioteca de Versículos</h3>
+                  <p className="text-[9px] uppercase tracking-widest text-[#c5a059]/70 mt-0.5">Selecciona un versículo para tu promo</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { fetchRandomBibleVerse(); setShowVerseModal(false); }}
+                  disabled={isLoadingVerse}
+                  className="px-3 py-1.5 rounded-lg bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1.5"
+                >
+                  <i className={`fas ${isLoadingVerse ? 'fa-spinner fa-spin' : 'fa-dice'}`}></i>
+                  Sorprender (API)
+                </button>
+                <button
+                  onClick={() => setShowVerseModal(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                >
+                  <i className="fas fa-times text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="p-6 overflow-y-auto space-y-3 flex-1">
+              {PRESET_VERSES.map((v, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setSlogan(`"${v.text}" · ${v.ref}`);
+                    setShowVerseModal(false);
+                  }}
+                  className="w-full text-left p-4 rounded-2xl bg-white/[0.02] hover:bg-[#c5a059]/10 border border-white/5 hover:border-[#c5a059]/30 transition-all group flex flex-col gap-2"
+                >
+                  <p className="text-xs font-serif italic text-white/90 group-hover:text-white leading-relaxed">
+                    "{v.text}"
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">
+                      {v.ref}
+                    </span>
+                    <span className="text-[8px] uppercase tracking-widest text-white/30 group-hover:text-[#c5a059] transition-colors">
+                      Usar este <i className="fas fa-chevron-right ml-1 text-[7px]"></i>
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
