@@ -290,6 +290,12 @@ function parseCSV(csvText: string): MusicItem[] {
     if (!entry.date) entry.date = clean(values[5]);
     if (!entry.lyrics && values[6]) entry.lyrics = clean(values[6]).replace(/\\n/g, '\n');
 
+    // Auto-fix if cover was shifted to type column
+    if (entry.type && (entry.type.startsWith('http') || entry.type.includes('.jpg') || entry.type.includes('.png') || entry.type.includes('.webp'))) {
+      if (!entry.cover) entry.cover = entry.type;
+      entry.type = 'Video Musical';
+    }
+
     if (!entry.url) continue;
     if (entry.url.includes('spotify.com/intl') || entry.url.includes('spotify.com/artist')) continue;
     if (!entry.name || entry.name.toLowerCase().includes('spotify artist')) continue;
@@ -297,12 +303,24 @@ function parseCSV(csvText: string): MusicItem[] {
 
     let videoId = '';
     try {
-      if (entry.url.includes('youtube.com') && entry.url.includes('v=')) {
+      const match = entry.url.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+      if (match) {
+        videoId = match[1];
+      } else if (entry.url.includes('v=')) {
         videoId = entry.url.split('v=')[1].split('&')[0];
       } else if (entry.url.includes('youtu.be/')) {
         videoId = entry.url.split('youtu.be/')[1].split('?')[0];
       }
     } catch (e) {}
+
+    // Fallback thumbnail if missing
+    if (!entry.cover && videoId) {
+      entry.cover = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    }
+
+    if (!entry.type || entry.type === 'YouTube Auto-Sync' || entry.type === 'YouTube Auto HD') {
+      entry.type = 'Video Musical';
+    }
 
     entry.id = videoId || generateSlug(`${entry.artist}-${entry.name}`);
     music.push(entry as MusicItem);

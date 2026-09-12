@@ -18,6 +18,8 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
   const getVideoId = (url: string) => {
     try {
+      const match = url.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+      if (match) return match[1];
       if (url.includes('v=')) return url.split('v=')[1].split('&')[0];
       if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0];
       return null;
