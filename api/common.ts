@@ -566,25 +566,24 @@ export default async function handler(
       for (const ch of CHANNELS) {
         if (!apiKey) break;
 
-        // Fetch uploads playlist
-        const plUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${ch.uploads}&maxResults=50&key=${apiKey}`;
-        const plResp = await fetch(plUrl, { headers: YT_HEADERS });
-        if (plResp.ok) {
-          const plData = await plResp.json();
-          (plData.items || []).forEach((it: any) => {
-            const vid = it.contentDetails?.videoId || it.snippet?.resourceId?.videoId;
-            if (vid) allVideoIds.add(vid);
-          });
-        }
+        // Search specifically for YouTube Music distributor tracks for this artist / channel
+        const distQueries = [
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q="Provided to YouTube"+${encodeURIComponent(ch.name)}&type=video&maxResults=50&key=${apiKey}`,
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&q="Provided to YouTube"&type=video&maxResults=50&key=${apiKey}`,
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${ch.uploads}&maxResults=50&key=${apiKey}`
+        ];
 
-        // Search specifically for YouTube Music distributor tracks for this channel
-        const distSearchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&q="Provided to YouTube"&type=video&maxResults=50&key=${apiKey}`;
-        const distResp = await fetch(distSearchUrl, { headers: YT_HEADERS });
-        if (distResp.ok) {
-          const distData = await distResp.json();
-          (distData.items || []).forEach((it: any) => {
-            if (it.id?.videoId) allVideoIds.add(it.id.videoId);
-          });
+        for (const qUrl of distQueries) {
+          try {
+            const qResp = await fetch(qUrl, { headers: YT_HEADERS });
+            if (qResp.ok) {
+              const qData = await qResp.json();
+              (qData.items || []).forEach((it: any) => {
+                const vid = it.id?.videoId || it.contentDetails?.videoId || it.snippet?.resourceId?.videoId;
+                if (vid) allVideoIds.add(vid);
+              });
+            }
+          } catch {}
         }
       }
 
