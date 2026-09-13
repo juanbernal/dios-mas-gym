@@ -345,6 +345,8 @@ const AudioStudioPro:React.FC=()=>{
   const [catalogLyricsFilter, setCatalogLyricsFilter] = useState<'ALL' | 'WITH' | 'WITHOUT'>('ALL');
   const [selectedCatalogSong, setSelectedCatalogSong] = useState<MusicItem | null>(null);
   const [showCatalogSection, setShowCatalogSection] = useState(true);
+  const [showSavedLyricsModal, setShowSavedLyricsModal] = useState(false);
+  const [savedLyricsSearch, setSavedLyricsSearch] = useState('');
   const fRef=useRef<HTMLInputElement>(null);
   const aRef=useRef<HTMLInputElement>(null);
   const lyricFileRef=useRef<HTMLInputElement>(null);
@@ -830,12 +832,21 @@ const AudioStudioPro:React.FC=()=>{
 
   const getSongLyricContent = useCallback((song: MusicItem): string => {
     if (song.lyrics && song.lyrics.trim()) return song.lyrics;
-    const songSlug = generateSlug(song.name);
-    const saved = savedLyrics.find(l => 
-      l.id === song.id || 
-      generateSlug(l.title || '') === songSlug ||
-      (l.artist && generateSlug(`${l.artist}-${l.title}`) === generateSlug(`${song.artist}-${song.name}`))
-    );
+    const songSlug = generateSlug(song.name || '');
+    const normalizeSlug = (str: string) => generateSlug(str || '').replace(/-(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/g, '');
+    const cleanSongSlug = normalizeSlug(song.name || '');
+
+    const saved = savedLyrics.find(l => {
+      if (!l) return false;
+      if (l.id === song.id) return true;
+      const lSlug = generateSlug(l.title || '');
+      const cleanLSlug = normalizeSlug(l.title || '');
+      if (lSlug === songSlug || cleanLSlug === cleanSongSlug) return true;
+      if (cleanSongSlug.length >= 4 && cleanLSlug.includes(cleanSongSlug)) return true;
+      if (cleanLSlug.length >= 4 && cleanSongSlug.includes(cleanLSlug)) return true;
+      if (l.artist && generateSlug(`${l.artist}-${l.title}`) === generateSlug(`${song.artist}-${song.name}`)) return true;
+      return false;
+    });
     return saved?.content || '';
   }, [savedLyrics]);
 
@@ -2357,6 +2368,15 @@ const AudioStudioPro:React.FC=()=>{
                   </button>
                   <button
                     type="button"
+                    onClick={() => setShowSavedLyricsModal(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-amber-600/30 to-purple-600/30 hover:from-amber-600 hover:to-purple-600 border border-amber-500/40 text-amber-200 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
+                    title="Cargar letra desde la biblioteca de canciones guardadas"
+                  >
+                    <i className="fas fa-book-open text-amber-300"></i>
+                    Biblioteca ({savedLyrics.length})
+                  </button>
+                  <button
+                    type="button"
                     onClick={applyLyricCleaner}
                     disabled={!meta.lyrics || !meta.lyrics.trim()}
                     className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-purple-950/40 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -2410,6 +2430,105 @@ const AudioStudioPro:React.FC=()=>{
                   )}
                 </div>
               </div>
+
+              {/* MODAL: BIBLIOTECA DE LETRAS GUARDADAS */}
+              {showSavedLyricsModal && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+                  <div className="bg-[#0f111a] border border-purple-500/30 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl shadow-purple-950/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                          <i className="fas fa-book-open"></i>
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold text-sm">Biblioteca de Letras Guardadas</h3>
+                          <p className="text-white/40 text-[11px]">Selecciona cualquier letra para cargarla y vincularla a tu audio</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowSavedLyricsModal(false)}
+                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center transition-all"
+                      >
+                        <i className="fas fa-xmark"></i>
+                      </button>
+                    </div>
+
+                    <div className="p-4 border-b border-white/5 bg-black/30">
+                      <div className="relative">
+                        <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                        <input
+                          type="text"
+                          value={savedLyricsSearch}
+                          onChange={e => setSavedLyricsSearch(e.target.value)}
+                          placeholder="Buscar por título (ej. Cuidar es amar, Corre...)"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-purple-500 transition-all"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4 overflow-y-auto space-y-2.5 max-h-[50vh]">
+                      {savedLyrics
+                        .filter(l => {
+                          if (!savedLyricsSearch.trim()) return true;
+                          const q = savedLyricsSearch.toLowerCase().trim();
+                          return (l.title || '').toLowerCase().includes(q) || (l.artist || '').toLowerCase().includes(q);
+                        })
+                        .map((l, idx) => (
+                          <div
+                            key={l.id || idx}
+                            onClick={() => {
+                              const content = l.content || l.lyrics || '';
+                              setMeta(prev => ({
+                                ...prev,
+                                title: prev.title || l.title || '',
+                                artist: l.artist || prev.artist || 'Diosmasgym',
+                                lyrics: autoCleanLyrics ? cleanLyricsText(content) : content
+                              }));
+                              // Intentar vincular con canción del catálogo si coincide
+                              const matchSong = catalog.find(s => generateSlug(s.name) === generateSlug(l.title || '') || generateSlug(s.name).includes(generateSlug(l.title || '').replace(/-(rap|pop)$/, '')));
+                              if (matchSong) {
+                                setSelectedCatalogSong(matchSong);
+                              }
+                              setDirty(true);
+                              setShowSavedLyricsModal(false);
+                              notify(`✅ Letra "${l.title}" cargada en el editor`);
+                            }}
+                            className="p-3.5 rounded-2xl bg-white/[0.02] hover:bg-purple-900/20 border border-white/5 hover:border-purple-500/40 cursor-pointer transition-all flex items-center justify-between group"
+                          >
+                            <div className="min-w-0 flex-1 mr-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                  {l.artist || 'Diosmasgym'}
+                                </span>
+                                <span className="text-[8px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                  ✓ Con Letra
+                                </span>
+                              </div>
+                              <h4 className="text-white font-bold text-xs truncate group-hover:text-amber-300 transition-colors">
+                                {l.title}
+                              </h4>
+                              <p className="text-white/30 text-[10px] truncate mt-0.5 font-mono">
+                                {(l.content || '').slice(0, 80)}...
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 bg-purple-600 group-hover:bg-amber-500 text-white group-hover:text-black font-black text-[9px] uppercase tracking-wider rounded-lg transition-all shrink-0"
+                            >
+                              Cargar
+                            </button>
+                          </div>
+                        ))}
+                      {savedLyrics.length === 0 && (
+                        <div className="text-center py-8 text-white/30 text-xs">
+                          No hay letras guardadas disponibles
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Zona de Drop y Edición de Letra */}
               <div
