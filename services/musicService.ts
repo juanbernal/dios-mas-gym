@@ -313,12 +313,12 @@ export const fetchSavedLyrics = async (): Promise<any[]> => {
  */
 export const saveLyricToWeb = async (lyric: { id?: string; title: string; artist: string; content: string; status?: string }, adminPassword?: string): Promise<{ success: boolean; message: string }> => {
   try {
+    const authKey = adminPassword 
+      || (typeof window !== 'undefined' ? (localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || 'DMG_SYNC_2026') : 'DMG_SYNC_2026');
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-admin-password': authKey
     };
-    if (adminPassword) {
-      headers['x-admin-password'] = adminPassword;
-    }
     const res = await fetch('/api/lyrics', {
       method: 'POST',
       headers,

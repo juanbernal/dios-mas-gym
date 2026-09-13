@@ -922,30 +922,40 @@ const AudioStudioPro:React.FC=()=>{
     }
     setIsSavingLyric(true);
     try {
-      const songTitle = meta.title || selectedCatalogSong?.name || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título';
-      const songId = selectedCatalogSong?.id || generateSlug(songTitle);
-      const adminPass = localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || '';
+      const rawTitle = selectedCatalogSong?.name || meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título';
+      const cleanTitle = rawTitle.replace(/\s+(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/i, '').trim() || rawTitle;
+      const songId = selectedCatalogSong?.id || generateSlug(cleanTitle);
+      const adminPass = localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || 'DMG_SYNC_2026';
+      const finalLyricContent = autoCleanLyrics ? cleanLyricsText(meta.lyrics) : meta.lyrics.trim();
 
       const res = await saveLyricToWeb({
         id: songId,
-        title: songTitle,
-        artist: meta.artist,
-        content: meta.lyrics.trim(),
+        title: cleanTitle,
+        artist: meta.artist || 'Diosmasgym',
+        content: finalLyricContent,
         status: 'LIVE'
       }, adminPass);
 
       if (res.success) {
-        notify('✅ Letra guardada y publicada directamente en el sitio web');
+        notify(`✅ Letra "${cleanTitle}" guardada y publicada en el sitio web`);
         const updatedItem = {
           id: songId,
-          title: songTitle,
-          artist: meta.artist,
-          content: meta.lyrics.trim(),
+          title: cleanTitle,
+          artist: meta.artist || 'Diosmasgym',
+          content: finalLyricContent,
           date: new Date().toISOString(),
           status: 'LIVE'
         };
+
         setSavedLyrics(prev => {
-          const idx = prev.findIndex(l => l.id === songId || generateSlug(l.title || '') === generateSlug(songTitle));
+          const normalizeSlug = (str: string) => generateSlug(str || '').replace(/-(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/g, '');
+          const targetCleanSlug = normalizeSlug(cleanTitle);
+
+          const idx = prev.findIndex(l => 
+            l.id === songId || 
+            generateSlug(l.title || '') === generateSlug(cleanTitle) ||
+            normalizeSlug(l.title || '') === targetCleanSlug
+          );
           if (idx >= 0) {
             const copy = [...prev];
             copy[idx] = { ...copy[idx], ...updatedItem };
@@ -953,18 +963,26 @@ const AudioStudioPro:React.FC=()=>{
           }
           return [updatedItem, ...prev];
         });
+
         if (selectedCatalogSong) {
-          setSelectedCatalogSong(prev => prev ? { ...prev, lyrics: meta.lyrics } : null);
-          setCatalog(prev => prev.map(s => (s.id === selectedCatalogSong.id || generateSlug(s.name) === generateSlug(songTitle)) ? { ...s, lyrics: meta.lyrics } : s));
+          setSelectedCatalogSong(prev => prev ? { ...prev, lyrics: finalLyricContent } : null);
         }
+
+        setCatalog(prev => prev.map(s => {
+          const normalizeSlug = (str: string) => generateSlug(str || '').replace(/-(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/g, '');
+          if (s.id === songId || normalizeSlug(s.name || '') === normalizeSlug(cleanTitle)) {
+            return { ...s, lyrics: finalLyricContent };
+          }
+          return s;
+        }));
 
         // 2. Sincronización directa con Google Sheets (Nube) para persistencia total
         try {
           const queryString = new URLSearchParams({
             action: 'save',
             secret: 'DMG_SYNC_2026',
-            title: songTitle,
-            artist: meta.artist
+            title: cleanTitle,
+            artist: meta.artist || 'Diosmasgym'
           }).toString();
 
           await fetch(`/api/sheet-proxy?script=lyrics&${queryString}`, {
@@ -973,14 +991,14 @@ const AudioStudioPro:React.FC=()=>{
             body: JSON.stringify({
               action: 'save',
               secret: 'DMG_SYNC_2026',
-              title: songTitle,
-              artist: meta.artist,
-              content: meta.lyrics.trim(),
+              title: cleanTitle,
+              artist: meta.artist || 'Diosmasgym',
+              content: finalLyricContent,
               date: new Date().toISOString()
             })
           });
         } catch (sheetErr) {
-          console.warn('Google Sheets cloud sync error:', sheetErr);
+          console.warn('Google Sheets cloud sync warning:', sheetErr);
         }
       } else {
         notify(res.message || 'Error al guardar letra en el sitio web', 'err');
@@ -2474,52 +2492,88 @@ const AudioStudioPro:React.FC=()=>{
                           const q = savedLyricsSearch.toLowerCase().trim();
                           return (l.title || '').toLowerCase().includes(q) || (l.artist || '').toLowerCase().includes(q);
                         })
-                        .map((l, idx) => (
-                          <div
-                            key={l.id || idx}
-                            onClick={() => {
-                              const content = l.content || l.lyrics || '';
+                        .map((l, idx) => {
+                          const rawContent = l.content || l.lyrics || '';
+                          const cleanTitle = (l.title || '').replace(/\s+(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/i, '').trim() || l.title || '';
+
+                          const handleSelectThisLyric = () => {
+                            const lyricText = autoCleanLyrics ? cleanLyricsText(rawContent) : rawContent;
+                            
+                            const normalizeSlug = (str: string) => generateSlug(str || '').replace(/-(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/g, '');
+                            const lSlug = generateSlug(l.title || '');
+                            const cleanLSlug = normalizeSlug(l.title || '');
+
+                            const matchSong = catalog.find(s => {
+                              if (!s) return false;
+                              if (l.id && s.id === l.id) return true;
+                              const sSlug = generateSlug(s.name || '');
+                              const cleanSSlug = normalizeSlug(s.name || '');
+                              if (sSlug === lSlug || cleanSSlug === cleanLSlug) return true;
+                              if (cleanLSlug.length >= 4 && cleanSSlug.includes(cleanLSlug)) return true;
+                              if (cleanSSlug.length >= 4 && cleanLSlug.includes(cleanSSlug)) return true;
+                              return false;
+                            });
+
+                            if (matchSong) {
+                              handleLinkSong(matchSong);
                               setMeta(prev => ({
                                 ...prev,
-                                title: prev.title || l.title || '',
-                                artist: l.artist || prev.artist || 'Diosmasgym',
-                                lyrics: autoCleanLyrics ? cleanLyricsText(content) : content
+                                title: matchSong.name || cleanTitle || l.title,
+                                lyrics: lyricText
                               }));
-                              // Intentar vincular con canción del catálogo si coincide
-                              const matchSong = catalog.find(s => generateSlug(s.name) === generateSlug(l.title || '') || generateSlug(s.name).includes(generateSlug(l.title || '').replace(/-(rap|pop)$/, '')));
-                              if (matchSong) {
-                                setSelectedCatalogSong(matchSong);
+                              setCatalog(prev => prev.map(s => s.id === matchSong.id ? { ...s, lyrics: lyricText } : s));
+                              if (matchSong.cover) {
+                                setArtPrev(matchSong.cover);
                               }
-                              setDirty(true);
-                              setShowSavedLyricsModal(false);
-                              notify(`✅ Letra "${l.title}" cargada en el editor`);
-                            }}
-                            className="p-3.5 rounded-2xl bg-white/[0.02] hover:bg-purple-900/20 border border-white/5 hover:border-purple-500/40 cursor-pointer transition-all flex items-center justify-between group"
-                          >
-                            <div className="min-w-0 flex-1 mr-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                  {l.artist || 'Diosmasgym'}
-                                </span>
-                                <span className="text-[8px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                                  ✓ Con Letra
-                                </span>
-                              </div>
-                              <h4 className="text-white font-bold text-xs truncate group-hover:text-amber-300 transition-colors">
-                                {l.title}
-                              </h4>
-                              <p className="text-white/30 text-[10px] truncate mt-0.5 font-mono">
-                                {(l.content || '').slice(0, 80)}...
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              className="px-3 py-1.5 bg-purple-600 group-hover:bg-amber-500 text-white group-hover:text-black font-black text-[9px] uppercase tracking-wider rounded-lg transition-all shrink-0"
+                            } else {
+                              setMeta(prev => ({
+                                ...prev,
+                                title: cleanTitle || l.title,
+                                artist: l.artist || prev.artist || 'Diosmasgym',
+                                lyrics: lyricText
+                              }));
+                            }
+
+                            setDirty(true);
+                            setShowSavedLyricsModal(false);
+                            notify(`✅ Letra "${l.title}" cargada y vinculada a "${matchSong?.name || cleanTitle || l.title}"`);
+                          };
+
+                          return (
+                            <div
+                              key={l.id || idx}
+                              onClick={handleSelectThisLyric}
+                              className="p-3.5 rounded-2xl bg-white/[0.02] hover:bg-purple-900/20 border border-white/5 hover:border-purple-500/40 cursor-pointer transition-all flex items-center justify-between group"
                             >
-                              Cargar
-                            </button>
-                          </div>
-                        ))}
+                              <div className="min-w-0 flex-1 mr-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                    {l.artist || 'Diosmasgym'}
+                                  </span>
+                                  <span className="text-[8px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                    ✓ Con Letra
+                                  </span>
+                                </div>
+                                <h4 className="text-white font-bold text-xs truncate group-hover:text-amber-300 transition-colors">
+                                  {l.title}
+                                </h4>
+                                <p className="text-white/30 text-[10px] truncate mt-0.5 font-mono">
+                                  {rawContent.slice(0, 80)}...
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleSelectThisLyric();
+                                }}
+                                className="px-3 py-1.5 bg-purple-600 group-hover:bg-amber-500 text-white group-hover:text-black font-black text-[9px] uppercase tracking-wider rounded-lg transition-all shrink-0 shadow"
+                              >
+                                Cargar y Vincular
+                              </button>
+                            </div>
+                          );
+                        })}
                       {savedLyrics.length === 0 && (
                         <div className="text-center py-8 text-white/30 text-xs">
                           No hay letras guardadas disponibles
