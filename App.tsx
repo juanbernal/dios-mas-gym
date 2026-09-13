@@ -500,6 +500,8 @@ const App: React.FC = () => {
                 <Route path="lyrics-manager" element={<AdminAuthWrapper><LyricsManager/></AdminAuthWrapper>} />
                 <Route path="content-calendar" element={<AdminAuthWrapper><ContentCalendar/></AdminAuthWrapper>} />
                 <Route path="watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
+                <Route path="anti-ai-watermark" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
+                <Route path="mando-ejecutivo" element={<AdminAuthWrapper><AntiAIWatermark/></AdminAuthWrapper>} />
                 <Route path="analytics" element={<AdminAuthWrapper><AnalyticsDashboard/></AdminAuthWrapper>} />
                 <Route path="music-video-prompt" element={<AdminAuthWrapper><MusicVideoPromptGenerator/></AdminAuthWrapper>} />
                 <Route path="custom-promo" element={<AdminAuthWrapper><CustomPromoCreator/></AdminAuthWrapper>} />

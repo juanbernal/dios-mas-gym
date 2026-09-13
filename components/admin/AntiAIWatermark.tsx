@@ -9,7 +9,7 @@ const AntiAIWatermark: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'logo' | 'ribbon' | 'socials' | 'watermark' | 'frames'>('logo');
     
     // Logo States
-    const [logoSelection, setLogoSelection] = useState<'diosmasgym' | 'juan614' | 'none'>('diosmasgym');
+    const [logoSelection, setLogoSelection] = useState<'mando' | 'diosmasgym' | 'juan614' | 'none'>('mando');
     const [logoSize, setLogoSize] = useState<number>(19); // 19% default size
     const [logoOpacity, setLogoOpacity] = useState<number>(100);
     const [logoPosition, setLogoPosition] = useState<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'>('bottom-right');
@@ -78,12 +78,14 @@ const AntiAIWatermark: React.FC = () => {
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const mandoLogoRef = useRef<HTMLImageElement>(new Image());
     const diosmasgymLogoRef = useRef<HTMLImageElement>(new Image());
     const juan614LogoRef = useRef<HTMLImageElement>(new Image());
 
     useEffect(() => {
+        mandoLogoRef.current.src = '/logo-mando-ejecutivo.png';
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
-        juan614LogoRef.current.src = '/logo-juan614.png';
+        juan614LogoRef.current.src = '/logo-juan614-v2.png';
     }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,8 +307,9 @@ const AntiAIWatermark: React.FC = () => {
         };
 
         let logoToDraw = null;
-        if (logoSelection === 'diosmasgym') logoToDraw = diosmasgymLogoRef.current;
-        if (logoSelection === 'juan614') logoToDraw = juan614LogoRef.current;
+        if (logoSelection === 'mando') logoToDraw = mandoLogoRef.current;
+        else if (logoSelection === 'diosmasgym') logoToDraw = diosmasgymLogoRef.current;
+        else if (logoSelection === 'juan614') logoToDraw = juan614LogoRef.current;
 
         if (logoToDraw && logoToDraw.complete && logoToDraw.naturalWidth > 0) {
             const aspect = logoToDraw.height / logoToDraw.width;
@@ -1475,25 +1478,26 @@ const AntiAIWatermark: React.FC = () => {
                 
                 try {
                     if (injectExif) {
+                        const piexifLib = (piexif as any).default || piexif;
                         const dataURL = canvas.toDataURL('image/jpeg', 0.95);
                         const zeroth: any = {};
                         const exif: any = {};
                         const gps: any = {};
 
-                        zeroth[piexif.ImageIFD.Make] = "Diosmasgym Records";
-                        zeroth[piexif.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
-                        zeroth[piexif.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.3";
-                        zeroth[piexif.ImageIFD.Artist] = "Diosmasgym";
-                        zeroth[piexif.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
+                        zeroth[piexifLib.ImageIFD.Make] = "Diosmasgym Records";
+                        zeroth[piexifLib.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
+                        zeroth[piexifLib.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.3";
+                        zeroth[piexifLib.ImageIFD.Artist] = "Diosmasgym";
+                        zeroth[piexifLib.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
 
                         const now = new Date();
                         const dateStr = `${now.getFullYear()}:${String(now.getMonth()+1).padStart(2, '0')}:${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-                        exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
-                        exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
+                        exif[piexifLib.ExifIFD.DateTimeOriginal] = dateStr;
+                        exif[piexifLib.ExifIFD.DateTimeDigitized] = dateStr;
 
                         const exifObj = {"0th": zeroth, "Exif": exif, "GPS": gps};
-                        const exifBytes = piexif.dump(exifObj);
-                        const newJpegDataUrl = piexif.insert(exifBytes, dataURL);
+                        const exifBytes = piexifLib.dump(exifObj);
+                        const newJpegDataUrl = piexifLib.insert(exifBytes, dataURL);
                         
                         // Lossless formats routing based on format selection
                         if (exportFormat === 'png') {
@@ -1695,7 +1699,13 @@ const AntiAIWatermark: React.FC = () => {
                             <div className="space-y-5 bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5">
                                 <div>
                                     <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block mb-3">Sello Oficial</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <button 
+                                            onClick={() => setLogoSelection('mando')}
+                                            className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'mando' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
+                                        >
+                                            🛡️ Mando
+                                        </button>
                                         <button 
                                             onClick={() => setLogoSelection('diosmasgym')}
                                             className={`py-3 px-2 text-[9px] font-black uppercase rounded-xl border transition-all ${logoSelection === 'diosmasgym' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20'}`}
