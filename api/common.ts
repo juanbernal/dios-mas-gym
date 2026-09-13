@@ -1110,6 +1110,118 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: HEALTH CHECK
+  // -------------------------------------------------------------
+  if (action === 'health') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return res.status(200).json({
+      status: 'healthy',
+      version: '5.0.9',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: ARSENAL (Blogger Posts)
+  // -------------------------------------------------------------
+  if (action === 'arsenal') {
+    const blogId = (process.env.BLOG_ID || "5031959192789589903").trim().replace(/^["']|["']$/g, '');
+    const apiKey = (process.env.BLOGGER_API_KEY || "").trim().replace(/^["']|["']$/g, '');
+
+    if (req.method === 'POST') {
+      try {
+        const { title, content, labels, isDraft } = req.body || {};
+        const auth = req.headers.authorization;
+        if (!auth) return res.status(401).json({ error: 'Authentication required for POST' });
+
+        const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/?isDraft=${isDraft ? 'true' : 'false'}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: 'blogger#post', blog: { id: blogId }, title, content, labels })
+        });
+        const data = await response.json();
+        return res.status(response.status).json(data);
+      } catch (err: any) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    const maxResults = req.query.maxResults || '10';
+    const pageToken = req.query.pageToken ? `&pageToken=${req.query.pageToken}` : '';
+    const q = req.query.q ? `&q=${encodeURIComponent(req.query.q as string)}` : '';
+    const labels = req.query.labels ? `&labels=${encodeURIComponent(req.query.labels as string)}` : '';
+    const url = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?key=${apiKey}&maxResults=${maxResults}${pageToken}${q}${labels}&fetchBodies=true&fetchImages=true`;
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: UPLOAD PROMO (ImgBB)
+  // -------------------------------------------------------------
+  if (action === 'upload-promo') {
+    if (!verifyAdminPassword(req)) {
+      return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+    }
+    try {
+      const { base64Data } = req.body || {};
+      if (!base64Data) return res.status(400).json({ error: 'No image data provided' });
+      const b64 = String(base64Data).replace(/^data:image\/\w+;base64,/, '');
+      const imgbbKey = (process.env.IMGBB_API_KEY || "6d207e02198a847aa98d0a2a901485a5").trim();
+      const params = new URLSearchParams();
+      params.append('key', imgbbKey);
+      params.append('image', b64);
+      const imgbbRes = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: params });
+      const imgbbJson = await imgbbRes.json() as any;
+      if (imgbbJson.success) {
+        return res.status(200).json({ url: imgbbJson.data.url });
+      }
+      return res.status(500).json({ error: 'ImgBB rejected the image', details: imgbbJson });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Internal server error', details: err.message });
+    }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: SEARCH LYRICS (Gemini Grounding)
+  // -------------------------------------------------------------
+  if (action === 'search-lyrics') {
+    if (!verifyAdminPassword(req)) {
+      return res.status(401).json({ error: 'Unauthorized: Admin password required' });
+    }
+    const { name, artist } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'Falta el nombre de la canción.' });
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
+
+    const modelName = 'gemini-2.5-flash';
+    const promptText = `Busca en internet la letra exacta y oficial de la canción "${name}" del artista "${artist || 'Dios Mas Gym'}". Devuelve ÚNICAMENTE la letra de la canción organizada en estrofas.`;
+
+    try {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }] }],
+          tools: [{ googleSearch: {} }]
+        })
+      });
+      const data = await resp.json();
+      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        return res.status(200).json({ lyrics: data.candidates[0].content.parts[0].text.trim() });
+      }
+      return res.status(500).json({ error: 'No se pudo recuperar la letra.', details: data });
+    } catch (e: any) {
+      return res.status(500).json({ error: 'Error al buscar la letra', details: e.message });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: SITEMAP
   // -------------------------------------------------------------
   if (action === 'sitemap' || action === 'sitemap.xml') {

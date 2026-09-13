@@ -21,12 +21,13 @@ const AnalyticsDashboard: React.FC = () => {
         setSendingEmail(true);
         setEmailSuccessMsg(null);
         try {
-            const res = await fetch('/api/send-analytics-report', {
+            const res = await fetch('/api/analytics?action=sendReport', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-admin-password': localStorage.getItem('admin_password') || ''
-                }
+                },
+                body: JSON.stringify({ action: 'sendReport' })
             });
             const json = await res.json();
             if (json.status === 'success') {

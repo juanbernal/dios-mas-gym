@@ -109,7 +109,7 @@
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/api/send-analytics-report",
+      "path": "/api/analytics?action=sendReport",
       "schedule": "0 5 * * *"
     }
   ]
