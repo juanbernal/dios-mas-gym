@@ -140,6 +140,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
+    // Asegurar que la fecha de hoy exista en el historial (para que 'Hoy' no muestre el conteo de ayer)
+    const todayFormatted = new Intl.DateTimeFormat('es-MX', {
+      timeZone: 'America/Mexico_City',
+      day: '2-digit',
+      month: '2-digit'
+    }).format(new Date());
+
+    if (!history.some(h => h.date === todayFormatted)) {
+      history.push({
+        date: todayFormatted,
+        views: 0
+      });
+    }
+
     const totalViews = history.reduce((sum, item) => sum + item.views, 0);
 
     // Canciones

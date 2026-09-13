@@ -54,6 +54,76 @@ const AnalyticsDashboard: React.FC = () => {
         }
     };
 
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchAnalytics = async (forceRefresh = false) => {
+        if (forceRefresh) setRefreshing(true);
+        try {
+            const url = forceRefresh ? '/api/analytics?refresh=true' : '/api/analytics';
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'getAnalytics' })
+            });
+            if (!res.ok) throw new Error('API Error');
+            const json = await res.json();
+            
+            if (json && json.status === 'success' && json.data) {
+                setRawData(json.data);
+            } else {
+                throw new Error(json.message || 'Error en respuesta de Google');
+            }
+        } catch (err: any) {
+            setDebugError(err.message || 'Error de conexión');
+            console.warn('Failed to fetch real analytics, using mock data for preview.', err);
+            
+            // Fallback a datos de prueba (Mock Data) avanzados
+            setRawData({
+                totalViews: 12450,
+                topPosts: [
+                    { title: 'El Silencio de Dios en la Prueba', views: 3420 },
+                    { title: 'Armadura Completa: Rutina y Oración', views: 2850 },
+                    { title: 'Cómo Vencer la Pereza Espiritual', views: 1930 },
+                    { title: 'Ansiedad vs Fe: La Batalla Diaria', views: 1200 },
+                    { title: 'Construyendo Disciplina Real', views: 980 }
+                ],
+                topSongs: [
+                    { title: 'Guerrero de Luz', artist: 'Dios Mas Gym', plays: 4500 },
+                    { title: 'Fe Inquebrantable', artist: 'Juan 614', plays: 3200 },
+                    { title: 'Levántate', artist: 'Dios Mas Gym', plays: 2100 },
+                    { title: 'Amanecer', artist: 'Juan 614', plays: 1500 },
+                    { title: 'Vencedores', artist: 'Dios Mas Gym', plays: 1100 }
+                ],
+                history: [
+                    { date: '11/05', views: 120 },
+                    { date: '12/05', views: 450 },
+                    { date: '13/05', views: 800 },
+                    { date: '14/05', views: 750 },
+                    { date: '15/05', views: 1300 },
+                    { date: '16/05', views: 2100 },
+                    { date: '17/05', views: 3200 }
+                ],
+                distribution: [
+                    { name: 'Canciones', value: 7500 },
+                    { name: 'Reflexiones', value: 4950 }
+                ],
+                avgSessionDuration: '04:32',
+                bounceRate: '32%',
+                newVsReturning: { new: 65, returning: 35 },
+                deviceBreakdown: { mobile: 85, desktop: 12, tablet: 3 },
+                trafficSources: [
+                    { source: 'Instagram', value: 45 },
+                    { source: 'Directo', value: 30 },
+                    { source: 'Google', value: 25 }
+                ],
+                isMock: true
+            });
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
     const getFilteredData = () => {
         if (!rawData) return null;
 
@@ -65,8 +135,20 @@ const AnalyticsDashboard: React.FC = () => {
                 filteredHistory = filteredHistory.slice(-7);
                 currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
             } else if (timeframeFilter === 'day') {
-                filteredHistory = filteredHistory.slice(-1);
-                currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
+                const todayFormatted = new Intl.DateTimeFormat('es-MX', {
+                    timeZone: 'America/Mexico_City',
+                    day: '2-digit',
+                    month: '2-digit'
+                }).format(new Date());
+
+                const todayEntry = filteredHistory.find((h: any) => h.date === todayFormatted);
+                if (todayEntry) {
+                    filteredHistory = [todayEntry];
+                    currentTotal = todayEntry.views;
+                } else {
+                    filteredHistory = [{ date: todayFormatted, views: 0 }];
+                    currentTotal = 0;
+                }
             }
 
             return {
@@ -130,71 +212,6 @@ const AnalyticsDashboard: React.FC = () => {
     const data = getFilteredData();
 
     useEffect(() => {
-        const fetchAnalytics = async () => {
-            try {
-                const res = await fetch('/api/analytics', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getAnalytics' })
-                });
-                if (!res.ok) throw new Error('API Error');
-                const json = await res.json();
-                
-                if (json && json.status === 'success' && json.data) {
-                    setRawData(json.data);
-                } else {
-                    throw new Error(json.message || 'Error en respuesta de Google');
-                }
-            } catch (err: any) {
-                setDebugError(err.message || 'Error de conexión');
-                console.warn('Failed to fetch real analytics, using mock data for preview.', err);
-                
-                // Fallback a datos de prueba (Mock Data) avanzados
-                setRawData({
-                    totalViews: 12450,
-                    topPosts: [
-                        { title: 'El Silencio de Dios en la Prueba', views: 3420 },
-                        { title: 'Armadura Completa: Rutina y Oración', views: 2850 },
-                        { title: 'Cómo Vencer la Pereza Espiritual', views: 1930 },
-                        { title: 'Ansiedad vs Fe: La Batalla Diaria', views: 1200 },
-                        { title: 'Construyendo Disciplina Real', views: 980 }
-                    ],
-                    topSongs: [
-                        { title: 'Guerrero de Luz', artist: 'Dios Mas Gym', plays: 4500 },
-                        { title: 'Fe Inquebrantable', artist: 'Juan 614', plays: 3200 },
-                        { title: 'Levántate', artist: 'Dios Mas Gym', plays: 2100 },
-                        { title: 'Amanecer', artist: 'Juan 614', plays: 1500 },
-                        { title: 'Vencedores', artist: 'Dios Mas Gym', plays: 1100 }
-                    ],
-                    history: [
-                        { date: '11/05', views: 120 },
-                        { date: '12/05', views: 450 },
-                        { date: '13/05', views: 800 },
-                        { date: '14/05', views: 750 },
-                        { date: '15/05', views: 1300 },
-                        { date: '16/05', views: 2100 },
-                        { date: '17/05', views: 3200 }
-                    ],
-                    distribution: [
-                        { name: 'Canciones', value: 7500 },
-                        { name: 'Reflexiones', value: 4950 }
-                    ],
-                    avgSessionDuration: '04:32',
-                    bounceRate: '32%',
-                    newVsReturning: { new: 65, returning: 35 },
-                    deviceBreakdown: { mobile: 85, desktop: 12, tablet: 3 },
-                    trafficSources: [
-                        { source: 'Instagram', value: 45 },
-                        { source: 'Directo', value: 30 },
-                        { source: 'Google', value: 25 }
-                    ],
-                    isMock: true
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchAnalytics();
     }, []);
 
@@ -217,27 +234,43 @@ const AnalyticsDashboard: React.FC = () => {
                             <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Panel
                         </button>
                         
-                        <button
-                            onClick={handleSendEmailReport}
-                            disabled={sendingEmail}
-                            className={`px-5 py-2.5 rounded-full border text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
-                                sendingEmail
-                                    ? 'bg-white/5 border-white/10 text-white/40 cursor-wait'
-                                    : 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059] hover:bg-[#c5a059] hover:text-black shadow-lg shadow-[#c5a059]/10'
-                            }`}
-                        >
-                            {sendingEmail ? (
-                                <>
-                                    <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-[#c5a059] rounded-full animate-spin"></div>
-                                    <span>Generando y Enviando...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <i className="fas fa-paper-plane text-xs"></i>
-                                    <span>Enviar Reporte al Correo (11 PM)</span>
-                                </>
-                            )}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button
+                                onClick={() => fetchAnalytics(true)}
+                                disabled={refreshing}
+                                className={`px-4 py-2.5 rounded-full border text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                                    refreshing
+                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-wait'
+                                        : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                                }`}
+                                title="Burlar caché y consultar Google Analytics en vivo"
+                            >
+                                <i className={`fas fa-sync-alt text-xs ${refreshing ? 'animate-spin text-[#c5a059]' : ''}`}></i>
+                                <span>{refreshing ? 'Actualizando...' : 'Actualizar'}</span>
+                            </button>
+
+                            <button
+                                onClick={handleSendEmailReport}
+                                disabled={sendingEmail}
+                                className={`px-5 py-2.5 rounded-full border text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
+                                    sendingEmail
+                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-wait'
+                                        : 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059] hover:bg-[#c5a059] hover:text-black shadow-lg shadow-[#c5a059]/10'
+                                }`}
+                            >
+                                {sendingEmail ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-[#c5a059] rounded-full animate-spin"></div>
+                                        <span>Generando y Enviando...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-paper-plane text-xs"></i>
+                                        <span>Enviar Reporte al Correo (11 PM)</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {emailSuccessMsg && (
