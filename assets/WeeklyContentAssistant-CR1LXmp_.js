@@ -1,4 +1,4 @@
-import{j as e}from"./index-C-LSyXc7.js";import{u as W,r as c}from"./react-vendor-OBWEXDWY.js";const j="content_assistant_promoted_ids",B={new_release:"#estreno #musicanueva #estrenomusical #diosmasgym #juan614 #vivaelrey",recent:"#tendencia #viral #musica #reel #tiktokmusic",rotation:"#disciplina #gymmotivation #fe #musicaurbana",old_gem:"#tbt #clasico #joya #musicaquetoca"},V={new_release:(s,n,r)=>({ig:`¡Acaba de salir! 🚀 "${s}" de ${n}.
+import{j as e}from"./index-CraYuH0E.js";import{u as W,r as c}from"./react-vendor-OBWEXDWY.js";const j="content_assistant_promoted_ids",B={new_release:"#estreno #musicanueva #estrenomusical #diosmasgym #juan614 #vivaelrey",recent:"#tendencia #viral #musica #reel #tiktokmusic",rotation:"#disciplina #gymmotivation #fe #musicaurbana",old_gem:"#tbt #clasico #joya #musicaquetoca"},V={new_release:(s,n,r)=>({ig:`¡Acaba de salir! 🚀 "${s}" de ${n}.
 
 Ya disponible en todas las plataformas digitales. Escúchala ahora en el link:
 👉 ${r}
