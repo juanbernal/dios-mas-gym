@@ -14,6 +14,7 @@ interface Suggestion {
     type: 'new_release' | 'recent' | 'rotation' | 'old_gem';
     caption: string;
     tiktokCaption: string;
+    whatsappCaption: string;
     hashtags: string;
     releaseName?: string;
 }
@@ -28,317 +29,46 @@ const HASHTAG_SETS = {
 };
 
 const CAPTIONS_BY_TYPE = {
-    new_release: (name: string, artist: string) => ({
-        ig: `¡Acaba de salir! 🚀 "${name}" de ${artist}. Ya disponible en todas las plataformas. No te quedes fuera del movimiento.`,
-        tt: `¿Ya escuchaste lo nuevo? 🔥 "${name}" - ${artist}. Dale amor al audio y únete al trend.`
+    new_release: (name: string, artist: string, link: string) => ({
+        ig: `¡Acaba de salir! 🚀 "${name}" de ${artist}.\n\nYa disponible en todas las plataformas digitales. Escúchala ahora en el link:\n👉 ${link}\n\n¡No te quedes fuera del movimiento! 🔥`,
+        tt: `¿Ya escuchaste lo nuevo? 🔥 "${name}" - ${artist}. Dale amor al audio, guárdalo y únete al trend. Escúchala completa aquí 👉 ${link}`,
+        wa: `🎵 ¡Escucha "${name}" de ${artist}! Ya disponible en todas las plataformas.\n👉 ${link}`
     }),
-    recent: (name: string, artist: string) => ({
-        ig: `El fuego sigue encendido con "${name}". ⚡️ Si no la tienes en tu playlist de entrenamiento, te falta disciplina.`,
-        tt: `Esta canción está rompiendo. 📈 "${name}" de ${artist}. Úsala para tus videos.`
+    recent: (name: string, artist: string, link: string) => ({
+        ig: `El fuego sigue encendido con "${name}" de ${artist}. ⚡️\n\nSi no la tienes en tu playlist de entrenamiento y motivación, te falta disciplina.\n🎧 Escúchala aquí: ${link}`,
+        tt: `Esta canción está rompiendo. 📈 "${name}" de ${artist}. Úsala para tus videos de entrenamiento y fe. 🥊 👉 ${link}`,
+        wa: `🔥 Te recomiendo escuchar "${name}" de ${artist}. ¡Motivación y fe pura!\n👉 ${link}`
     }),
-    rotation: (name: string, artist: string) => ({
-        ig: `Disciplina sobre motivación. 🥊 Hoy toca darle duro con "${name}" de ${artist}.`,
-        tt: `El ritmo que necesitas para hoy. 😤 "${name}" - ${artist}.`
+    rotation: (name: string, artist: string, link: string) => ({
+        ig: `Disciplina sobre motivación. 🥊\nHoy toca darle duro con "${name}" de ${artist}.\n\nEncuéntrala en Spotify, Apple Music y YouTube:\n👉 ${link}`,
+        tt: `El ritmo y la fuerza que necesitas para hoy. 😤 "${name}" - ${artist}. Dale play al link 👉 ${link}`,
+        wa: `🥊 Dale play a "${name}" de ${artist} para entrenar con todo hoy:\n👉 ${link}`
     }),
-    old_gem: (name: string, artist: string) => ({
-        ig: `Un clásico que nunca falla. 💎 ¿Te acuerdas de "${name}"? Sigue pegando igual de fuerte.`,
-        tt: `Joyas que no pasan de moda. ✨ "${name}" de ${artist}.`
+    old_gem: (name: string, artist: string, link: string) => ({
+        ig: `Un clásico que nunca falla. 💎\n¿Te acuerdas de "${name}" de ${artist}? Sigue pegando igual de fuerte.\n👉 ${link}`,
+        tt: `Joyas que no pasan de moda. ✨ "${name}" de ${artist}. 👉 ${link}`,
+        wa: `💎 Una joya que nunca pasa de moda: "${name}" de ${artist}.\n👉 ${link}`
     })
-};
-
-interface SuggestionCardProps {
-    suggestion: Suggestion;
-    onNext: () => void;
-    onMarkCompleted: () => void;
-    onAction: (route: string, state?: any) => void;
-    title: string;
-}
-
-const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onNext, onMarkCompleted, onAction, title }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [copied, setCopied] = useState<'ig' | 'tt' | 'sl' | null>(null);
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiCaptions, setAiCaptions] = useState<{ ig: string; tt: string } | null>(null);
-    const [showShareOptions, setShowShareOptions] = useState(false);
-
-    const TYPE_LABELS: Record<Suggestion['type'], { label: string; color: string; icon: string }> = {
-        new_release: { label: '🚀 Lanzamiento', color: '#ff4b2b', icon: 'fa-rocket' },
-        recent: { label: '🔥 Reciente', color: '#c5a059', icon: 'fa-fire' },
-        rotation: { label: '🔄 Rotación Diaria', color: '#3b82f6', icon: 'fa-rotate' },
-        old_gem: { label: '💎 Joya del Archivo', color: '#a855f7', icon: 'fa-gem' },
-    };
-
-    const typeInfo = TYPE_LABELS[suggestion.type];
-
-    const copyText = (text: string, type: 'ig' | 'tt' | 'sl') => {
-        navigator.clipboard.writeText(text);
-        setCopied(type);
-        setTimeout(() => setCopied(null), 2000);
-    };
-
-    const handleAiGenerate = async () => {
-        if (!suggestion.song) return;
-        setAiLoading(true);
-        try {
-            const prompt = {
-                input: `Genera un post viral para redes sociales sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Motivo de la recomendación: ${suggestion.reason}.\nPor favor, genera estrictamente lo siguiente:\n1. Una versión MUY corta y directa para Instagram.\n2. Una versión MUY corta y directa para TikTok.\nMantén un tono épico, de fe y disciplina.`,
-                platform: 'Instagram/TikTok',
-                goal: 'Inspirar y Viralizar',
-                tone: 'Épico y Motivador'
-            };
-
-            const response = await fetch('/api/generate-post', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-admin-password': localStorage.getItem('admin_password') || ''
-                },
-                body: JSON.stringify({ content: JSON.stringify(prompt) })
-            });
-            const data = await response.json();
-            if (data.text) {
-                setAiCaptions({ ig: data.text, tt: data.text });
-            }
-        } catch (e) {
-            console.error("AI Generation failed", e);
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    return (
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#0f111a] border shadow-2xl flex flex-col justify-between h-full group hover:border-[#c5a059]/20 transition-all duration-500"
-            style={{ borderColor: `${typeInfo.color}30`, fontFamily: "'Poppins', sans-serif" }}>
-            <div className="absolute -top-20 -left-10 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none"
-                style={{ backgroundColor: typeInfo.color }} />
-
-            <div>
-                {/* Header Section */}
-                <div className="px-6 py-6 border-b"
-                    style={{ borderColor: `${typeInfo.color}15`, background: `linear-gradient(135deg, ${typeInfo.color}08, transparent)` }}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                            <span className="text-[8px] font-black tracking-widest text-[#c5a059] uppercase block mb-1">
-                                {title}
-                            </span>
-                            <div className="flex items-center gap-2 mb-2">
-                                <i className={`fas ${typeInfo.icon} text-[10px]`} style={{ color: typeInfo.color }}></i>
-                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: typeInfo.color }}>
-                                    {typeInfo.label}
-                                </span>
-                            </div>
-                            <h3 className="text-lg font-serif italic text-white leading-tight truncate">
-                                {suggestion.song?.name || 'Inspiración Diaria'}
-                            </h3>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
-                            <button
-                                onClick={onMarkCompleted}
-                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.15)]"
-                                title="Marcar como usado (Desaparece de los estrenos)"
-                            >
-                                <i className="fas fa-check text-[10px]"></i>
-                                <span className="text-[8px] font-black uppercase tracking-widest">Usado ✓</span>
-                            </button>
-                            <button
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                className="text-[8px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all px-3 py-2 rounded-xl border border-white/10 flex items-center justify-center gap-1.5"
-                            >
-                                <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                                <span>{isExpanded ? 'Ocultar' : 'Textos'}</span>
-                            </button>
-                            <button
-                                onClick={onNext}
-                                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all"
-                                title="Saltar al siguiente sin marcar como usado"
-                            >
-                                <span className="text-[8px] font-black uppercase tracking-widest">Saltar</span>
-                                <i className="fas fa-angles-right text-[8px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content Section */}
-                <div className="p-6">
-                    <div className="flex gap-4 items-start mb-6">
-                        {suggestion.song?.cover && (
-                            <div className="relative shrink-0">
-                                <img src={suggestion.song.cover} alt={suggestion.song.name} className="w-16 h-16 rounded-xl object-cover border border-white/10" />
-                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px]"
-                                    style={{ backgroundColor: typeInfo.color, color: '#000' }}>
-                                    <i className={`fas ${typeInfo.icon}`}></i>
-                                </div>
-                            </div>
-                        )}
-                        <div className="min-w-0">
-                            <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.2em] mb-1">Recomendación Estratégica</p>
-                            <p className="text-white/80 text-xs leading-relaxed font-light italic">
-                                "{suggestion.reason}"
-                            </p>
-                        </div>
-                    </div>
-
-                    {isExpanded && (
-                        <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-1 gap-4">
-                            <div className="bg-black/30 rounded-2xl p-5 border border-white/5 flex flex-col">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <i className="fab fa-instagram text-base" style={{ color: '#E1306C' }}></i>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Caption Instagram</span>
-                                    </div>
-                                    <button onClick={() => copyText(`${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`, 'ig')} className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full" style={{ backgroundColor: copied === 'ig' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
-                                        {copied === 'ig' ? '✓ Copiado' : 'Copiar'}
-                                    </button>
-                                </div>
-                                <pre className="text-white/70 text-[10px] leading-relaxed whitespace-pre-wrap font-sans mb-3">{aiCaptions?.ig || suggestion.caption}</pre>
-                                <div className="pt-3 border-t border-white/5"><p className="text-[#c5a059] text-[9px]">{suggestion.hashtags}</p></div>
-                            </div>
-
-                            <div className="bg-black/30 rounded-2xl p-5 border border-white/5 flex flex-col">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <i className="fab fa-tiktok text-base text-white"></i>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Caption TikTok</span>
-                                    </div>
-                                    <button onClick={() => copyText(`${aiCaptions?.tt || suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`, 'tt')} className="text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full" style={{ backgroundColor: copied === 'tt' ? '#10b981' : 'rgba(255,255,255,0.05)', color: '#fff' }}>
-                                        {copied === 'tt' ? '✓ Copiado' : 'Copiar'}
-                                    </button>
-                                </div>
-                                <pre className="text-white/70 text-[10px] leading-relaxed whitespace-pre-wrap font-sans mb-3">{aiCaptions?.tt || suggestion.tiktokCaption}</pre>
-                                <div className="pt-3 border-t border-white/5"><p className="text-[#c5a059] text-[9px]">{suggestion.hashtags} #fyp #parati</p></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isExpanded && (
-                        <div className="mt-4 flex justify-center pb-2">
-                            <button onClick={handleAiGenerate} disabled={aiLoading} className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[8px] font-black uppercase tracking-[0.3em] ${aiLoading ? 'bg-white/10 text-white/30' : 'bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-105 transition-all'}`}>
-                                {aiLoading ? 'Generando...' : '✨ Mejorar con IA'}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="px-6 pb-6 pt-2 border-t border-white/5 bg-black/10">
-                {showShareOptions ? (
-                    <div className="grid grid-cols-1 gap-2 p-5 rounded-2xl bg-[#0f111a] border border-[#c5a059]/30 shadow-2xl animate-fade-in">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-center text-[#c5a059] mb-3">¿Qué formato deseas compartir?</p>
-                        
-                        <button 
-                            onClick={async () => {
-                                if (suggestion.song && navigator.share) {
-                                    const url = `${window.location.origin}/link/${suggestion.song.id}`;
-                                    const fullText = `${aiCaptions?.ig || suggestion.caption}\n\n${suggestion.hashtags}`;
-                                    try { await navigator.clipboard.writeText(`${fullText}\n\n${url}`); } catch (e) { }
-                                    navigator.share({ title: suggestion.song.name, text: fullText, url }).catch(() => {});
-                                    setShowShareOptions(false);
-                                } else {
-                                    alert('Tu navegador no soporta compartir nativo.');
-                                }
-                            }}
-                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
-                        >
-                            <span className="flex items-center gap-3"><i className="fas fa-link text-[#c5a059] group-hover:scale-125 transition-transform"></i> Solo Texto y Enlace</span>
-                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
-                        </button>
-                        
-                        <button 
-                            onClick={() => onAction('/admin/smartlink-video', { caption: aiCaptions?.tt || suggestion.tiktokCaption, hashtags: suggestion.hashtags, autoShare: true })} 
-                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
-                        >
-                            <span className="flex items-center gap-3"><i className="fas fa-mobile-screen text-[#c5a059] group-hover:scale-125 transition-transform"></i> Smartlink Creator (Story)</span>
-                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
-                        </button>
-                        
-                        <button 
-                            onClick={() => onAction('/admin/promo-image', { caption: aiCaptions?.ig || suggestion.caption, hashtags: suggestion.hashtags, autoShare: true })} 
-                            className="flex items-center justify-between px-5 py-4 rounded-xl bg-white/5 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/50 transition-all text-[9px] font-bold uppercase tracking-widest text-white group"
-                        >
-                            <span className="flex items-center gap-3"><i className="fas fa-square text-[#c5a059] group-hover:scale-125 transition-transform"></i> Promo Image (Post)</span>
-                            <i className="fas fa-chevron-right opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
-                        </button>
-
-                        <button 
-                            onClick={() => setShowShareOptions(false)} 
-                            className="mt-3 text-[9px] text-white/30 uppercase font-black tracking-[0.3em] hover:text-white transition-colors"
-                        >
-                            [ Cancelar ]
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => onAction('/admin/promo-image')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                            <i className="fas fa-image text-[10px]"></i>
-                            <span>Imagen</span>
-                        </button>
-                        <button onClick={() => onAction('/admin/video-snippet')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                            <i className="fas fa-video text-[10px]"></i>
-                            <span>Video</span>
-                        </button>
-                        <button onClick={() => onAction('/admin/social-post')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                            <i className="fas fa-share-nodes text-[10px]"></i>
-                            <span>Viral Post</span>
-                        </button>
-                        <button onClick={() => onAction('/admin/smartlink-video')} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all text-[8px] font-black uppercase tracking-widest">
-                            <i className="fas fa-mobile-screen text-[10px]"></i>
-                            <span>SL Creator</span>
-                        </button>
-                        <button 
-                            onClick={() => {
-                                if (suggestion.song) {
-                                    const url = `${window.location.origin}/link/${suggestion.song.id}`;
-                                    copyText(url, 'sl');
-                                }
-                            }} 
-                            disabled={!suggestion.song}
-                            className="flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
-                            style={{ 
-                                backgroundColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)', 
-                                borderColor: copied === 'sl' ? '#10b981' : 'rgba(255,255,255,0.05)',
-                                color: copied === 'sl' ? '#fff' : 'rgba(255,255,255,0.6)' 
-                            }}
-                        >
-                            <i className="fas fa-link text-[10px]"></i>
-                            <span>{copied === 'sl' ? '✓ Copiado' : 'Copiar Link'}</span>
-                        </button>
-                        <button 
-                            onClick={() => setShowShareOptions(true)} 
-                            disabled={!suggestion.song}
-                            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black hover:scale-[1.02] transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
-                        >
-                            <i className="fas fa-share text-[10px]"></i>
-                            <span>Preparar P/ Redes</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
 };
 
 const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = [] }) => {
     const navigate = useNavigate();
     const [releases, setReleases] = useState<ReleaseData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [platformTab, setPlatformTab] = useState<'ig' | 'tt' | 'wa'>('ig');
+    const [copiedStatus, setCopiedStatus] = useState<string>('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [customAiText, setCustomAiText] = useState<string>('');
+
     const [promotedIds, setPromotedIds] = useState<string[]>(() => {
         try {
             return JSON.parse(localStorage.getItem(PROMOTED_KEY) || '[]');
         } catch { return []; }
     });
 
-    const [slot1Skips, setSlot1Skips] = useState<number>(() => {
+    const [skipCount, setSkipCount] = useState<number>(() => {
         try {
-            return parseInt(localStorage.getItem('content_assistant_slot1_skips') || '0', 10);
-        } catch { return 0; }
-    });
-
-    const [slot2Skips, setSlot2Skips] = useState<number>(() => {
-        try {
-            return parseInt(localStorage.getItem('content_assistant_slot2_skips') || '0', 10);
+            return parseInt(localStorage.getItem('content_assistant_single_skips') || '0', 10);
         } catch { return 0; }
     });
 
@@ -360,151 +90,390 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         loadReleases();
     }, []);
 
-    const suggestions = useMemo(() => {
+    const suggestion = useMemo<Suggestion | null>(() => {
         if (!catalog || catalog.length === 0) return null;
 
         const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
-        const pool = freshCatalog.length >= 2 ? freshCatalog : catalog;
+        const pool = freshCatalog.length > 0 ? freshCatalog : catalog;
 
         if (pool.length === 0) return null;
 
-        // Slot 1 Pick
-        const idx1 = ((dayOfYear * 17) + slot1Skips) % pool.length;
-        const song1 = pool[idx1];
+        const idx = ((dayOfYear * 19) + skipCount) % pool.length;
+        const song = pool[idx];
 
-        // Slot 2 Pick
-        let idx2 = ((dayOfYear * 31) + slot2Skips + 1) % pool.length;
-        let song2 = pool[idx2];
-        if (song1.id === song2.id && pool.length > 1) {
-            idx2 = (idx2 + 1) % pool.length;
-            song2 = pool[idx2];
-        }
-
-        const createSuggestion = (song: MusicItem, type: 'recent' | 'rotation'): Suggestion => {
-            const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist);
-            // Extraer palabras limpias del título (sin símbolos)
-            const words = song.name.replace(/[^a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]/g, '').trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-            
-            // Convertir cada palabra en un hashtag individual
-            const titleHashtags = words.map(w => `#${w}`).join(' ');
-            
-            const dynamicHashtags = `${titleHashtags} #musica #diosmasgym`;
-            const finalHashtags = `${HASHTAG_SETS[type]} ${dynamicHashtags}`;
-            
-            return {
-                song,
-                reason: `Recomendación aleatoria del día: "${song.name}" de ${song.artist}. Mantén tu perfil activo publicando contenido a diario.`,
-                type,
-                caption: caps.ig,
-                tiktokCaption: caps.tt,
-                hashtags: finalHashtags,
-            };
-        };
-
-        const suggestionNew = createSuggestion(song1, 'recent');
-        const suggestionOld = createSuggestion(song2, 'rotation');
-
-        return { suggestionNew, suggestionOld };
-    }, [catalog, promotedIds, slot1Skips, slot2Skips, dayOfYear, releases]);
-
-    const handleNext = (suggestion: Suggestion) => {
-        let idsToMark: string[] = [];
-        if (suggestion.song) idsToMark.push(suggestion.song.id);
-        if (suggestion.releaseName) idsToMark.push(suggestion.releaseName);
+        const smartLink = song.id ? `${window.location.origin}/link/${song.id}` : 'https://diosmasgym.com';
+        const type: 'recent' | 'rotation' = idx % 2 === 0 ? 'recent' : 'rotation';
+        const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist, smartLink);
         
-        if (idsToMark.length > 0) {
-            const next = [...promotedIds, ...idsToMark];
-            setPromotedIds(next);
-            localStorage.setItem(PROMOTED_KEY, JSON.stringify(next));
+        const words = song.name.replace(/[^a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]/g, '').trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        const titleHashtags = words.map(w => `#${w}`).join(' ');
+        const dynamicHashtags = `${titleHashtags} #musica #diosmasgym #juan614`;
+        const finalHashtags = `${HASHTAG_SETS[type]} ${dynamicHashtags}`;
+
+        return {
+            song,
+            reason: `Recomendación destacada de hoy para ${song.artist}. Mantén tus redes activas con este tema.`,
+            type,
+            caption: caps.ig,
+            tiktokCaption: caps.tt,
+            whatsappCaption: caps.wa,
+            hashtags: finalHashtags
+        };
+    }, [catalog, promotedIds, skipCount, dayOfYear]);
+
+    // Clear custom AI text when song changes
+    useEffect(() => {
+        setCustomAiText('');
+    }, [suggestion?.song?.id]);
+
+    const handleNextSong = () => {
+        const next = skipCount + 1;
+        setSkipCount(next);
+        localStorage.setItem('content_assistant_single_skips', next.toString());
+    };
+
+    const handleMarkUsed = () => {
+        if (!suggestion?.song) return;
+        const nextPromoted = [...promotedIds, suggestion.song.id];
+        setPromotedIds(nextPromoted);
+        localStorage.setItem(PROMOTED_KEY, JSON.stringify(nextPromoted));
+        handleNextSong();
+        setCopiedStatus('✅ Canción marcada como publicada');
+        setTimeout(() => setCopiedStatus(''), 2500);
+    };
+
+    const handleResetAll = () => {
+        setPromotedIds([]);
+        setSkipCount(0);
+        localStorage.removeItem(PROMOTED_KEY);
+        localStorage.removeItem('content_assistant_single_skips');
+        setCopiedStatus('🔄 Historial reiniciado');
+        setTimeout(() => setCopiedStatus(''), 2000);
+    };
+
+    const getActivePostText = () => {
+        if (!suggestion || !suggestion.song) return '';
+        const smartLink = `${window.location.origin}/link/${suggestion.song.id}`;
+        
+        if (customAiText) {
+            return `${customAiText}\n\n${smartLink}\n\n${suggestion.hashtags}`;
         }
+
+        if (platformTab === 'ig') {
+            return `${suggestion.caption}\n\n${suggestion.hashtags}`;
+        }
+        if (platformTab === 'tt') {
+            return `${suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`;
+        }
+        return `${suggestion.whatsappCaption}`;
     };
 
-    const handleNextSlot1 = (suggestion: Suggestion) => {
-        const nextSkips = slot1Skips + 1;
-        setSlot1Skips(nextSkips);
-        localStorage.setItem('content_assistant_slot1_skips', nextSkips.toString());
+    const copyToClipboard = async (text: string, label: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedStatus(`✓ ¡${label} copiado! Listo para pegar`);
+        } catch {
+            setCopiedStatus('⚠️ Error al copiar');
+        }
+        setTimeout(() => setCopiedStatus(''), 2500);
     };
 
-    const handleMarkCompletedSlot1 = (suggestion: Suggestion) => {
-        handleNext(suggestion);
-        const nextSkips = slot1Skips + 1;
-        setSlot1Skips(nextSkips);
-        localStorage.setItem('content_assistant_slot1_skips', nextSkips.toString());
+    const handleShareWhatsApp = () => {
+        const text = getActivePostText();
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
-    const handleNextSlot2 = (suggestion: Suggestion) => {
-        const nextSkips = slot2Skips + 1;
-        setSlot2Skips(nextSkips);
-        localStorage.setItem('content_assistant_slot2_skips', nextSkips.toString());
+    const handleShareInstagram = async () => {
+        const text = getActivePostText();
+        await copyToClipboard(text, 'Texto de Instagram');
+        window.open('https://www.instagram.com', '_blank');
     };
 
-    const handleMarkCompletedSlot2 = (suggestion: Suggestion) => {
-        handleNext(suggestion);
-        const nextSkips = slot2Skips + 1;
-        setSlot2Skips(nextSkips);
-        localStorage.setItem('content_assistant_slot2_skips', nextSkips.toString());
+    const handleShareTikTok = async () => {
+        const text = getActivePostText();
+        await copyToClipboard(text, 'Texto de TikTok');
+        window.open('https://www.tiktok.com', '_blank');
     };
 
-    const handleAction = (route: string, suggestion: Suggestion, texts?: any) => {
-        if (suggestion.song) {
-            navigate(route, { state: { song: suggestion.song, presetCaption: texts?.caption, presetHashtags: texts?.hashtags, autoShare: texts?.autoShare } });
-        } else {
-            navigate(route);
+    const handleShareFacebook = async () => {
+        if (!suggestion?.song) return;
+        const smartLink = `${window.location.origin}/link/${suggestion.song.id}`;
+        const text = getActivePostText();
+        await copyToClipboard(text, 'Texto para Facebook');
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(smartLink)}`, '_blank');
+    };
+
+    const handleAiRegenerate = async () => {
+        if (!suggestion?.song) return;
+        setAiLoading(true);
+        try {
+            const prompt = {
+                input: `Genera un post viral MUY impactante y listo para publicar sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Estilo directo, épico, de motivación, fe y disciplina.`,
+                platform: platformTab === 'tt' ? 'TikTok' : 'Instagram',
+                goal: 'Inspirar y Viralizar',
+                tone: 'Épico y Motivador'
+            };
+
+            const response = await fetch('/api/generate-post', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                },
+                body: JSON.stringify({ content: JSON.stringify(prompt) })
+            });
+            const data = await response.json();
+            if (data.text) {
+                setCustomAiText(data.text);
+                setCopiedStatus('✨ ¡Nuevo copy generado con IA!');
+                setTimeout(() => setCopiedStatus(''), 2500);
+            }
+        } catch (e) {
+            console.error("AI Generation failed", e);
+        } finally {
+            setAiLoading(false);
         }
     };
 
     if (loading) return (
-        <div className="mb-16 bg-[#0f111a] border border-white/5 rounded-[2rem] p-8 flex items-center justify-center gap-4">
+        <div className="mb-10 bg-[#0f111a] border border-white/5 rounded-3xl p-6 flex items-center justify-center gap-3">
             <div className="w-5 h-5 border-2 border-[#c5a059] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Sincronizando Asistente...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Sincronizando Asistente...</p>
         </div>
     );
 
-    if (!suggestions || (!suggestions.suggestionNew && !suggestions.suggestionOld)) return null;
+    if (!suggestion || !suggestion.song) return null;
+
+    const smartLinkUrl = `${window.location.origin}/link/${suggestion.song.id}`;
 
     return (
-        <div className="mb-16">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="mb-12">
+            {/* COMPACT HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                 <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse"></div>
-                    <h2 className="font-serif italic text-3xl text-white">Aprovisionamiento Diario de Contenido</h2>
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#c5a059] animate-pulse shadow-[0_0_12px_#c5a059]"></div>
+                    <h2 className="font-serif italic text-2xl text-white">
+                        Publicación Rápida del Día
+                    </h2>
+                    <span className="hidden sm:inline-block text-[9px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/20">
+                        1-Click Post
+                    </span>
                 </div>
-                <button 
-                    onClick={() => {
-                        setPromotedIds([]);
-                        setSlot1Skips(0);
-                        setSlot2Skips(0);
-                        localStorage.removeItem(PROMOTED_KEY);
-                        localStorage.removeItem('content_assistant_slot1_skips');
-                        localStorage.removeItem('content_assistant_slot2_skips');
-                    }}
-                    className="text-[9px] font-black uppercase tracking-[0.2em] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:text-red-400 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
-                    title="Reiniciar historial y skips para volver a ver todo desde el principio"
-                >
-                    <i className="fas fa-arrow-rotate-left text-[9px]"></i>
-                    <span>Reiniciar Pruebas</span>
-                </button>
+                
+                {/* QUICK SHUFFLE & ACTIONS */}
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleNextSong}
+                        className="text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-[#c5a059] hover:text-black hover:border-[#c5a059] transition-all flex items-center gap-2"
+                        title="Ver otra canción sugerida del catálogo"
+                    >
+                        <i className="fas fa-dice text-[#c5a059]"></i>
+                        <span>Cambiar Canción</span>
+                    </button>
+
+                    <button 
+                        onClick={handleMarkUsed}
+                        className="text-[9px] font-black uppercase tracking-widest px-3.5 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500 hover:text-black transition-all flex items-center gap-1.5"
+                        title="Marcar como publicada y pasar a la siguiente"
+                    >
+                        <i className="fas fa-check text-[9px]"></i>
+                        <span>Usado ✓</span>
+                    </button>
+
+                    <button 
+                        onClick={handleResetAll}
+                        className="text-[9px] font-black uppercase tracking-widest p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/30 hover:text-red-400 hover:border-red-500/30 transition-all"
+                        title="Reiniciar lista de canciones usadas"
+                    >
+                        <i className="fas fa-arrow-rotate-left"></i>
+                    </button>
+                </div>
             </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {suggestions.suggestionNew && (
-                    <SuggestionCard 
-                        title="Slot 1: Novedades / Tendencias" 
-                        suggestion={suggestions.suggestionNew} 
-                        onNext={() => handleNextSlot1(suggestions.suggestionNew!)} 
-                        onMarkCompleted={() => handleMarkCompletedSlot1(suggestions.suggestionNew!)}
-                        onAction={(route, texts) => handleAction(route, suggestions.suggestionNew!, texts)} 
-                    />
-                )}
-                {suggestions.suggestionOld && (
-                    <SuggestionCard 
-                        title="Slot 2: Clásicos / Rotación" 
-                        suggestion={suggestions.suggestionOld} 
-                        onNext={() => handleNextSlot2(suggestions.suggestionOld!)} 
-                        onMarkCompleted={() => handleMarkCompletedSlot2(suggestions.suggestionOld!)}
-                        onAction={(route, texts) => handleAction(route, suggestions.suggestionOld!, texts)} 
-                    />
-                )}
+
+            {/* SINGLE ALL-IN-ONE CARD */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0f111a] to-[#080b12] border border-[#c5a059]/25 shadow-2xl p-6 lg:p-8">
+                {/* Glow decorativo de fondo */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[#c5a059]/5 rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
+                    
+                    {/* LEFT COLUMN: SONG INFO & COVER (4 cols) */}
+                    <div className="lg:col-span-4 flex flex-col gap-4">
+                        <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black">
+                            <img 
+                                src={suggestion.song.cover} 
+                                alt={suggestion.song.name} 
+                                className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                            
+                            <div className="absolute top-3 left-3">
+                                <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md text-[#c5a059] border border-[#c5a059]/30">
+                                    {suggestion.type === 'new_release' ? '🚀 Estreno' : suggestion.type === 'recent' ? '🔥 Tendencia' : '🔄 Rotación'}
+                                </span>
+                            </div>
+
+                            <div className="absolute bottom-3 left-3 right-3">
+                                <h3 className="text-base font-serif italic text-white font-bold leading-tight truncate">
+                                    {suggestion.song.name}
+                                </h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#c5a059] mt-0.5">
+                                    {suggestion.song.artist}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* SMART LINK PILL */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <i className="fas fa-link text-[#c5a059] text-xs shrink-0"></i>
+                                <span className="text-[9px] font-mono text-white/70 truncate">{smartLinkUrl.replace(/^https?:\/\//, '')}</span>
+                            </div>
+                            <button
+                                onClick={() => copyToClipboard(smartLinkUrl, 'SmartLink')}
+                                className="shrink-0 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-[#c5a059]/10 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all ml-2"
+                            >
+                                Copiar
+                            </button>
+                        </div>
+
+                        {/* STUDIO PRO SHORTCUTS */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                            <button 
+                                onClick={() => navigate('/admin/promo-image', { 
+                                    state: { 
+                                        song: suggestion.song, 
+                                        presetCaption: suggestion.caption, 
+                                        presetHashtags: suggestion.hashtags, 
+                                        autoShare: false 
+                                    } 
+                                })}
+                                className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:border-[#c5a059] hover:text-[#c5a059] transition-all text-[8px] font-black uppercase tracking-wider text-center"
+                            >
+                                <i className="fas fa-palette text-[#c5a059]"></i>
+                                <span>Flyer 4K</span>
+                            </button>
+                            <button 
+                                onClick={() => navigate('/admin/video-snippet', { 
+                                    state: { song: suggestion.song } 
+                                })}
+                                className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:border-[#c5a059] hover:text-[#c5a059] transition-all text-[8px] font-black uppercase tracking-wider text-center"
+                            >
+                                <i className="fas fa-video text-[#c5a059]"></i>
+                                <span>Video Snippet</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: READY-TO-POST CONTENT & 1-CLICK SHARE (8 cols) */}
+                    <div className="lg:col-span-8 flex flex-col justify-between h-full space-y-5">
+                        
+                        {/* PLATFORM TABS */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                            <div className="flex items-center gap-2">
+                                {[
+                                    { id: 'ig', label: 'Instagram / FB', icon: 'fa-brands fa-instagram', color: '#E1306C' },
+                                    { id: 'tt', label: 'TikTok', icon: 'fa-brands fa-tiktok', color: '#ffffff' },
+                                    { id: 'wa', label: 'WhatsApp', icon: 'fa-brands fa-whatsapp', color: '#25D366' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => { setPlatformTab(tab.id as any); setCustomAiText(''); }}
+                                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border ${platformTab === tab.id ? 'bg-white text-black border-white shadow-lg' : 'bg-black/30 text-white/50 border-white/5 hover:text-white'}`}
+                                    >
+                                        <i className={`${tab.icon}`} style={{ color: platformTab === tab.id ? '#000' : tab.color }}></i>
+                                        <span>{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* REGENERATE WITH AI */}
+                            <button
+                                onClick={handleAiRegenerate}
+                                disabled={aiLoading}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#c5a059]/20 to-[#8B5A2B]/20 border border-[#c5a059]/40 text-[#c5a059] hover:bg-[#c5a059] hover:text-black transition-all text-[8px] font-black uppercase tracking-widest disabled:opacity-50"
+                            >
+                                <i className={`fas ${aiLoading ? 'fa-spinner fa-spin' : 'fa-sparkles'}`}></i>
+                                <span>{aiLoading ? 'Creando...' : '✨ Variar Copy con IA'}</span>
+                            </button>
+                        </div>
+
+                        {/* LIVE TEXT BOX WITH THE ENTIRE READY-TO-POST COPY */}
+                        <div className="relative bg-black/50 border border-white/10 rounded-2xl p-5 group">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">
+                                    Texto Listo para el Post
+                                </span>
+                                <button
+                                    onClick={() => copyToClipboard(getActivePostText(), 'Texto completo')}
+                                    className="text-[8px] font-black uppercase tracking-widest text-[#c5a059] hover:underline flex items-center gap-1"
+                                >
+                                    <i className="fas fa-copy"></i>
+                                    Copiar
+                                </button>
+                            </div>
+                            
+                            <p className="text-white/90 text-xs leading-relaxed font-sans whitespace-pre-wrap select-all">
+                                {getActivePostText()}
+                            </p>
+                        </div>
+
+                        {/* TOAST FEEDBACK */}
+                        {copiedStatus && (
+                            <div className="p-3 rounded-xl bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-widest text-center shadow-lg animate-fade-in">
+                                {copiedStatus}
+                            </div>
+                        )}
+
+                        {/* MAIN ACTION BAR: 1-CLICK POST BUTTONS */}
+                        <div className="space-y-3 pt-2">
+                            {/* MASTER COPY BUTTON */}
+                            <button
+                                onClick={() => copyToClipboard(getActivePostText(), 'Todo el contenido')}
+                                className="w-full py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 bg-gradient-to-r from-[#c5a059] to-[#d4af37] text-black hover:scale-[1.01] active:scale-95 transition-all shadow-[0_10px_30px_rgba(197,160,89,0.25)]"
+                            >
+                                <i className="fas fa-copy text-sm"></i>
+                                ⚡ Copiar Todo para Publicar Ya (Texto + Link + Tags)
+                            </button>
+
+                            {/* DIRECT ONE-CLICK SOCIAL LAUNCHERS */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <button
+                                    onClick={handleShareWhatsApp}
+                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366] hover:text-black transition-all text-[9px] font-black uppercase tracking-wider"
+                                >
+                                    <i className="fab fa-whatsapp text-sm"></i>
+                                    <span>WhatsApp</span>
+                                </button>
+
+                                <button
+                                    onClick={handleShareInstagram}
+                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#E1306C]/10 border border-[#E1306C]/30 text-[#E1306C] hover:bg-[#E1306C] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider"
+                                >
+                                    <i className="fab fa-instagram text-sm"></i>
+                                    <span>Instagram</span>
+                                </button>
+
+                                <button
+                                    onClick={handleShareTikTok}
+                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white hover:text-black transition-all text-[9px] font-black uppercase tracking-wider"
+                                >
+                                    <i className="fab fa-tiktok text-sm"></i>
+                                    <span>TikTok</span>
+                                </button>
+
+                                <button
+                                    onClick={handleShareFacebook}
+                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider"
+                                >
+                                    <i className="fab fa-facebook-f text-sm"></i>
+                                    <span>Facebook</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
     );
