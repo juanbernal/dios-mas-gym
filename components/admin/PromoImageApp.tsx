@@ -807,6 +807,10 @@ const PromoImageApp: React.FC = () => {
     slogan, customFooterUrl,
     footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare,
     smartLinkUrl,
+    bgBlur, bgBrightness, bgContrast, bgScale,
+    watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
+    ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
+    watermarkLogo, watermarkLogoPos, watermarkLogoOpacity, watermarkLogoScale
   };
 
   // 4K MASTER PROPS: Scaled configuration for high-res render
@@ -2300,7 +2304,11 @@ const PromoTemplate: React.FC<any> = ({
     slogan, customFooterUrl,
     footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
     badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = true,
-    smartLinkUrl = 'https://diosmasgym.com'
+    smartLinkUrl = 'https://diosmasgym.com',
+    bgBlur = 0, bgBrightness = 100, bgContrast = 100, bgScale = 100,
+    watermarkEnabled = false, watermarkStyle = 'diagonal', watermarkText = '#PuroSeñorJesucristoCompa', watermarkOpacity = 12, watermarkSize = 100,
+    ribbonStyle = 'none', ribbonText = '#PuroSeñorJesucristoCompa', ribbonColor = 'gold', ribbonOpacity = 90,
+    watermarkLogo = 'none', watermarkLogoPos = 'top-left', watermarkLogoOpacity = 75, watermarkLogoScale = 100
 }) => {
     // Dynamic theme mapping
     const theme = {
