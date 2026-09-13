@@ -131,7 +131,7 @@ const PromoImageApp: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState("");
   const [songId, setSongId] = useState<string>("");
 
-  // NUEVAS MEJORAS 2026
+  // NUEVAS MEJORAS 2026 (v4.5)
   const [slogan, setSlogan] = useState(""); // #2 Versículo / Slogan opcional
   const [isLoadingVerse, setIsLoadingVerse] = useState(false); // Cargando versículo de API
   const [showVerseModal, setShowVerseModal] = useState(false); // Modal biblioteca de versículos
@@ -140,6 +140,15 @@ const PromoImageApp: React.FC = () => {
   const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png"); // #9 Formato de exportación
   const [exportQuality, setExportQuality] = useState(0.92); // #9 Calidad de exportación JPEG
   const [quickCopySuccess, setQuickCopySuccess] = useState(""); // #1 Toast del botón rápido de copia
+
+  // NUEVAS MEJORAS PRO v5.0
+  const [footerStyle, setFooterStyle] = useState<'glass' | 'record' | 'qr' | 'minimal'>('glass');
+  const [coverMockup, setCoverMockup] = useState<'flat' | 'vinyl' | 'cd' | 'frame'>('vinyl');
+  const [titleFont, setTitleFont] = useState<'bebas' | 'cinzel' | 'grotesk' | 'anton'>('bebas');
+  const [titleEffect, setTitleEffect] = useState<'glow' | 'gold' | 'chrome' | 'solid'>('glow');
+  const [badgeType, setBadgeType] = useState<'none' | 'biblical-advisory' | 'exclusive' | 'hires' | 'chihuahua'>('biblical-advisory');
+  const [colorFilter, setColorFilter] = useState<'none' | 'warm-gold' | 'midnight-blue' | 'bleach-bypass' | 'vintage' | 'noir'>('none');
+  const [showLensFlare, setShowLensFlare] = useState<boolean>(true);
 
   // FUNCIÓN PARA TRAER VERSÍCULO DE LA API DE LA BIBLIA (rv1960)
   const fetchRandomBibleVerse = async (targetArtist?: string) => {
@@ -390,7 +399,7 @@ const PromoImageApp: React.FC = () => {
         // FONT INJECTION: Critical for 4K Master Parity on Windows/Vercel
         const fontLink = clonedDoc.createElement('link');
         fontLink.rel = 'stylesheet';
-        fontLink.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;700;900&family=Satisfy&display=swap';
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600;900&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@400;700;900&family=Satisfy&display=swap';
         clonedDoc.head.appendChild(fontLink);
 
         const clonedWrapper = clonedDoc.querySelector('.promo-master-target') as HTMLElement;
@@ -764,12 +773,16 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  const smartLinkUrl = getSmartLink();
+
   const commonProps = {
     title, artist, bg, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, country, trackList: tracks.split("\n"),
     config: sizes[size],
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
+    footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare,
+    smartLinkUrl,
   };
 
   // 4K MASTER PROPS: Scaled configuration for high-res render
@@ -798,7 +811,7 @@ const PromoImageApp: React.FC = () => {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> v4.5.1</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> <span className="text-white/80">v5.0 PRO</span></h1>
         </div>
         <div className="w-20"></div> {/* Spacer */}
       </div>
@@ -1047,11 +1060,167 @@ const PromoImageApp: React.FC = () => {
             </div>
           </div>
 
-          {/* GROUP: AESTHETICS & TEMPLATES */}
+          {/* GROUP: 3D COVER MOCKUP & BADGES */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
+              <i className="fas fa-compact-disc"></i>
+              Mockup de Portada 3D & Badges
+            </h2>
+            
+            <div className="space-y-6">
+              {/* COVER MOCKUP SELECTOR */}
+              <div className="space-y-3">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Estilo de Portada</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'vinyl', label: '💿 Vinilo 3D', desc: 'Disco saliendo' },
+                    { id: 'cd', label: '💿 Caja CD', desc: 'Acrílico & reflejo' },
+                    { id: 'frame', label: '👑 Marco Oro', desc: 'Doble bisel de gala' },
+                    { id: 'flat', label: '🖼️ Plano Clean', desc: '2D Ultra limpio' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setCoverMockup(m.id as any)}
+                      className={`p-3 rounded-xl text-left border transition-all ${coverMockup === m.id ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-lg shadow-[#c5a059]/20' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20 hover:text-white'}`}
+                    >
+                      <div className="text-[10px] font-black uppercase tracking-wider">{m.label}</div>
+                      <div className={`text-[8px] tracking-wide ${coverMockup === m.id ? 'text-black/70' : 'text-white/30'}`}>{m.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
+              {/* BADGE / STICKER SELECTOR */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Sticker / Badge Coleccionable</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'none', label: 'Sin Sticker' },
+                    { id: 'biblical-advisory', label: '🏷️ Advisory Bíblico' },
+                    { id: 'exclusive', label: '★ Estreno Exclusivo' },
+                    { id: 'hires', label: '🎧 Master 24-Bit' },
+                    { id: 'chihuahua', label: '🤠 Puro Chihuahua' },
+                  ].map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setBadgeType(b.id as any)}
+                      className={`py-2.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all text-center ${badgeType === b.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* GROUP: FOOTER STYLE (EL FOSTER) */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
+              <i className="fas fa-sliders"></i>
+              Estilo del Footer ("Foster")
+            </h2>
+
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Diseño de la Barra Inferior</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'glass', label: '🌟 Glass HUD', desc: 'Cristal translúcido pro' },
+                    { id: 'record', label: '💿 Ficha Discográfica', desc: 'CAT, sello & Soundwave' },
+                    { id: 'qr', label: '📱 Smart QR Code', desc: 'Escaneo directo a música' },
+                    { id: 'minimal', label: '⚡ Flotante Clean', desc: 'Sin barra, fade suave' },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFooterStyle(f.id as any)}
+                      className={`p-3 rounded-xl text-left border transition-all ${footerStyle === f.id ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-lg shadow-[#c5a059]/20' : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20 hover:text-white'}`}
+                    >
+                      <div className="text-[10px] font-black uppercase tracking-wider">{f.label}</div>
+                      <div className={`text-[8px] tracking-wide ${footerStyle === f.id ? 'text-black/70' : 'text-white/30'}`}>{f.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* GROUP: TYPOGRAPHY & TITLE EFFECTS */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
+              <i className="fas fa-font"></i>
+              Tipografía & Efectos de Título
+            </h2>
+
+            <div className="space-y-6">
+              {/* FONT SELECTOR */}
+              <div className="space-y-3">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Fuente del Título</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'bebas', label: 'Bebas Neue (Urbano)' },
+                    { id: 'cinzel', label: 'DM Serif (Elegante)' },
+                    { id: 'grotesk', label: 'Space Grotesk (Modern)' },
+                    { id: 'anton', label: 'Anton (Impacto)' },
+                  ].map((font) => (
+                    <button
+                      key={font.id}
+                      type="button"
+                      onClick={() => setTitleFont(font.id as any)}
+                      className={`py-2.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${titleFont === font.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {font.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* TITLE EFFECT SELECTOR */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Acabado del Título</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'glow', label: '✨ Glow Neón' },
+                    { id: 'gold', label: '👑 Oro Metálico 3D' },
+                    { id: 'chrome', label: '⚡ Cromo Plateado' },
+                    { id: 'solid', label: '🔲 Sólido en Relieve' },
+                  ].map((eff) => (
+                    <button
+                      key={eff.id}
+                      type="button"
+                      onClick={() => setTitleEffect(eff.id as any)}
+                      className={`py-2.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${titleEffect === eff.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {eff.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* LENS FLARE TOGGLE */}
+              <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-white">Destello Anamórfico (Lens Flare)</div>
+                  <div className="text-[8px] text-white/30">Haz de luz cinematográfico horizontal</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLensFlare(!showLensFlare)}
+                  className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${showLensFlare ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/30'}`}
+                >
+                  {showLensFlare ? 'ACTIVO' : 'APAGADO'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* GROUP: AESTHETICS, FILTERS & TEMPLATES */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Base de Diseño & Plantilla</h2>
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059]">Gradación & Plantilla</h2>
               <button 
                 onClick={() => setAutoColor(!autoColor)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${autoColor ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}
@@ -1062,8 +1231,32 @@ const PromoImageApp: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 gap-8">
-              {/* TEMPLATE SELECTOR: THE BEAT SERIES */}
+              {/* CINEMATIC COLOR FILTERS */}
               <div className="space-y-4">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Filtros Cinematográficos</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'none', label: 'Original' },
+                    { id: 'warm-gold', label: 'Warm Gold' },
+                    { id: 'midnight-blue', label: 'Midnight' },
+                    { id: 'bleach-bypass', label: 'Bleach Cine' },
+                    { id: 'vintage', label: '90s Tape' },
+                    { id: 'noir', label: 'Noir B&W' },
+                  ].map((fil) => (
+                    <button
+                      key={fil.id}
+                      type="button"
+                      onClick={() => setColorFilter(fil.id as any)}
+                      className={`py-2 px-2 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-all text-center ${colorFilter === fil.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {fil.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* TEMPLATE SELECTOR: THE BEAT SERIES */}
+              <div className="space-y-4 pt-4 border-t border-white/5">
                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">The Beat Series (Variaciones Estéticas)</label>
                  <div className="grid grid-cols-2 gap-3">
                     {[
@@ -1735,11 +1928,38 @@ const PromoTemplate: React.FC<any> = ({
     formatDate, trackList, isExport = false, country,
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
+    footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
+    badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = true,
+    smartLinkUrl = 'https://diosmasgym.com'
 }) => {
+    // Dynamic theme mapping
+    const theme = {
+      'original-v1': { accent: contrastColor || '#c5a059', glow: glow ? contrastColor : 'rgba(197,160,89,0.15)', effect: null },
+      'beat-crimson': { accent: '#ff4444', glow: 'rgba(255,68,68,0.2)', effect: 'grunge' },
+      'beat-cyber': { accent: '#00f2ff', glow: 'rgba(0,242,255,0.25)', effect: 'glitch' },
+      'beat-platinum': { accent: '#e5e4e2', glow: 'rgba(255,255,255,0.1)', effect: 'glass' },
+      'beat-toxic': { accent: '#39ff14', glow: 'rgba(57,255,20,0.2)', effect: 'radar' }
+    }[template] || { accent: '#c5a059', glow: 'rgba(197,160,89,0.15)', effect: null };
+
+    // Font Family resolution
+    const titleFontFamily = {
+      bebas: "'Bebas Neue', sans-serif",
+      cinzel: "'DM Serif Display', serif",
+      grotesk: "'Space Grotesk', sans-serif",
+      anton: "'Anton', sans-serif"
+    }[titleFont] || "'Bebas Neue', sans-serif";
+
+    // QR Code URL (clean high-res SVG/PNG proxied for 4K)
+    const qrCodeSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(smartLinkUrl)}&bgcolor=000000&color=ffffff&margin=1`;
+
+    const displayUrl = customFooterUrl && customFooterUrl.trim()
+      ? customFooterUrl.trim().replace(/^https?:\/\//i, '')
+      : artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com';
+
     return (
-        <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden' }}>
+        <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden', backgroundColor: '#000' }}>
           <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:italic&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@300;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel:wght@600;900&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;700;900&family=Space+Grotesk:wght@400;700;900&family=Satisfy&display=swap');
             * { 
               -webkit-font-smoothing: antialiased; 
               -moz-osx-font-smoothing: grayscale;
@@ -1755,7 +1975,7 @@ const PromoTemplate: React.FC<any> = ({
               position: absolute;
               inset: 0;
               background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-              background-size: 100% 100%; /* Evita tiling que causa errores de createPattern */
+              background-size: 100% 100%;
               opacity: ${grit * 0.1};
               mix-blend-mode: overlay;
               pointer-events: none;
@@ -1831,25 +2051,26 @@ const PromoTemplate: React.FC<any> = ({
               z-index: 12;
               opacity: 0.1;
             }
-
-            .beat-border {
-                border: 1px solid rgba(255,255,255,0.1);
-                transition: border-color 0.4s ease;
-            }
           `}</style>
+
+          {/* BACKGROUND ART */}
           {bg && (
             <div 
               data-export-bg
               data-export-master-img
               style={{ 
                 position: "absolute", 
-                inset: "-2%", // Ligero margen negativo para evitar bordes blancos
+                inset: "-2%", 
                 backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`, 
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
                 imageRendering: 'smooth' as any,
-                filter: 'brightness(1.02)' // Brillo base para contrarrestar el overlay oscuro
+                filter: colorFilter === 'noir' 
+                  ? 'grayscale(1) contrast(1.3) brightness(0.95)' 
+                  : colorFilter === 'bleach-bypass' 
+                  ? 'contrast(1.35) saturate(0.55) brightness(1.05)' 
+                  : 'brightness(1.02)'
               }} 
             />
           )}
@@ -1867,12 +2088,24 @@ const PromoTemplate: React.FC<any> = ({
             }} 
           />
 
-          {/* LAYER 1: OVERLAY BASE — usa overlayColor (#3 mejora) */}
+          {/* COLOR FILTER OVERLAYS */}
+          {colorFilter === 'warm-gold' && (
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(180,83,9,0.25) 100%)', mixBlendMode: 'screen', zIndex: 2, pointerEvents: 'none' }} />
+          )}
+          {colorFilter === 'midnight-blue' && (
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(2,132,199,0.15) 0%, rgba(15,23,42,0.4) 100%)', mixBlendMode: 'color-dodge', zIndex: 2, pointerEvents: 'none' }} />
+          )}
+          {colorFilter === 'vintage' && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(254, 243, 199, 0.12)', mixBlendMode: 'multiply', zIndex: 2, pointerEvents: 'none' }} />
+          )}
+
+          {/* LAYER 1: OVERLAY BASE */}
           <div style={{ 
             position: "absolute", 
             inset: 0, 
             backgroundColor: overlayColor || '#000000',
-            opacity: overlay
+            opacity: overlay,
+            zIndex: 3
           }} />
 
           <div className="vignette" />
@@ -1884,207 +2117,402 @@ const PromoTemplate: React.FC<any> = ({
 
           {/* === BOKEH BACKGROUND === */}
           {[{x:'15%',y:'20%',s:80,o:0.07},{x:'75%',y:'10%',s:120,o:0.05},{x:'88%',y:'55%',s:60,o:0.08},{x:'5%',y:'70%',s:100,o:0.06},{x:'50%',y:'85%',s:90,o:0.05},{x:'30%',y:'40%',s:50,o:0.04}].map((b,i) => (
-            <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${template==='beat-cyber'?'rgba(0,242,255,':template==='beat-crimson'?'rgba(255,68,68,':template==='beat-toxic'?'rgba(57,255,20,':template==='beat-platinum'?'rgba(229,228,226,':'rgba(197,160,89,'}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
+            <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${theme.accent}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
           ))}
 
           {/* === DIAGONAL ACCENT LINES === */}
           <div style={{ position:'absolute', inset:0, zIndex:11, pointerEvents:'none', overflow:'hidden' }}>
-            {/* Top-left corner lines */}
             <div style={{ position:'absolute', top:0, left:0, width:'180px', height:'180px' }}>
-              <div style={{ position:'absolute', top:'30px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${contrastColor||'#c5a059'}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
-              <div style={{ position:'absolute', top:'50px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${contrastColor||'#c5a059'}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', top:'30px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${theme.accent}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', top:'50px', left:'-60px', width:'200px', height:'1px', background:`linear-gradient(to right, transparent, ${theme.accent}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
             </div>
-            {/* Bottom-right corner lines */}
             <div style={{ position:'absolute', bottom:0, right:0, width:'180px', height:'180px' }}>
-              <div style={{ position:'absolute', bottom:'30px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${contrastColor||'#c5a059'}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
-              <div style={{ position:'absolute', bottom:'50px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${contrastColor||'#c5a059'}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', bottom:'30px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${theme.accent}44, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
+              <div style={{ position:'absolute', bottom:'50px', right:'-60px', width:'200px', height:'1px', background:`linear-gradient(to left, transparent, ${theme.accent}22, transparent)`, transform:'rotate(-45deg)', transformOrigin:'center' }} />
             </div>
           </div>
 
-          {/* === HORIZONTAL LIGHT SWEEP === */}
-          <div style={{ position:'absolute', left:0, right:0, top:'38%', height: config.title * 2.5, background:`linear-gradient(180deg, transparent 0%, ${(contrastColor||'#c5a059')}0a 30%, ${(contrastColor||'#c5a059')}18 50%, ${(contrastColor||'#c5a059')}0a 70%, transparent 100%)`, zIndex:11, pointerEvents:'none', mixBlendMode:'screen' as const }} />
+          {/* === HORIZONTAL ANAMORPHIC LENS FLARE === */}
+          {showLensFlare && (
+            <div style={{ position:'absolute', left:0, right:0, top:'40%', height: config.title * 3.0, zIndex:11, pointerEvents:'none', mixBlendMode:'screen' as const, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {/* Central horizontal laser beam */}
+              <div style={{ position:'absolute', width:'100%', height:'2px', background:`linear-gradient(90deg, transparent 0%, ${theme.accent}22 20%, ${theme.accent} 50%, ${theme.accent}22 80%, transparent 100%)`, boxShadow:`0 0 15px ${theme.accent}, 0 0 30px ${theme.accent}88` }} />
+              {/* Soft vertical dispersion */}
+              <div style={{ position:'absolute', width:'60%', height:'100%', background:`radial-gradient(ellipse at center, ${theme.accent}26 0%, transparent 70%)` }} />
+              {/* Center starburst */}
+              <div style={{ position:'absolute', width: config.title * 1.5, height: config.title * 1.5, borderRadius:'50%', background:`radial-gradient(circle, #ffffff 0%, ${theme.accent} 40%, transparent 70%)`, filter:'blur(4px)', opacity:0.65 }} />
+            </div>
+          )}
 
           {/* === VERTICAL SIDEBAR === */}
           <div style={{ position:'absolute', left:0, top:0, bottom:0, width: config.title * 1.0, zIndex:13, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <div style={{ transform:'rotate(-90deg)', whiteSpace:'nowrap', fontSize: config.title * 0.13, fontWeight:900, letterSpacing:'0.35em', color:(contrastColor||'#c5a059'), opacity:0.55, fontFamily:'Inter', textTransform:'uppercase' as const }}>
+            <div style={{ transform:'rotate(-90deg)', whiteSpace:'nowrap', fontSize: config.title * 0.13, fontWeight:900, letterSpacing:'0.35em', color: theme.accent, opacity:0.6, fontFamily:'Inter', textTransform:'uppercase' as const }}>
               {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 · JESUCRISTO · 2026 · DIOSMASGYM' : 'DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026'}
             </div>
-            <div style={{ position:'absolute', right:0, top:'10%', bottom:'10%', width:'1px', background:`linear-gradient(to bottom, transparent, ${contrastColor||'#c5a059'}55, transparent)` }} />
+            <div style={{ position:'absolute', right:0, top:'10%', bottom:'10%', width:'1px', background:`linear-gradient(to bottom, transparent, ${theme.accent}55, transparent)` }} />
           </div>
 
-          {/* STYLE-SPECIFIC RENDERING */}
-          {/* THE BEAT SERIES (ORIGINAL LAYOUT VARIANTS) */}
-          {(template === 'original-v1' || template.startsWith('beat-')) && (() => {
-            const theme = {
-              'original-v1': { accent: contrastColor || '#c5a059', glow: glow ? contrastColor : 'rgba(197,160,89,0.15)', effect: null },
-              'beat-crimson': { accent: '#ff4444', glow: 'rgba(255,68,68,0.2)', effect: 'grunge' },
-              'beat-cyber': { accent: '#00f2ff', glow: 'rgba(0,242,255,0.25)', effect: 'glitch' },
-              'beat-platinum': { accent: '#e5e4e2', glow: 'rgba(255,255,255,0.1)', effect: 'glass' },
-              'beat-toxic': { accent: '#39ff14', glow: 'rgba(57,255,20,0.2)', effect: 'radar' }
-            }[template] || { accent: '#c5a059', glow: 'rgba(197,160,89,0.15)', effect: null };
-
-            return (
-              <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
-                {theme.effect === 'glitch' && <div className="glitch-scan" />}
-
-                {/* INNER CONTENT AREA: padded, flex-1 so footer stays at bottom */}
-                <div style={{ flex: 1, padding: config.title * 1.2, paddingLeft: config.title * 2.2, paddingBottom: config.title * 0.6, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-
-                {/* BRANDING LOGO REMOVED FROM TOP-RIGHT - MOVED TO FOOTER */}
-
-                {/* HEADER (ORIGINAL) */}
-                <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
-                      <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.4, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span>REFLECTIONS // HUB PRO V5.1</span>
-                        <span style={{ color: theme.accent, opacity: 0.8 }}>//</span>
-                        <span style={{ color: theme.accent }}>{artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'PURO CHIHUAHUA'}</span>
-                      </div>
-                  </div>
-                  <div 
-                    data-backdrop-polyfill
-                    style={{ padding: "8px 20px", borderRadius: 2, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.4)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter' }}>
-                    {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY"}
+          {/* BADGE / STICKER IN TOP RIGHT OR TOP LEFT */}
+          {badgeType !== 'none' && (
+            <div style={{ position: 'absolute', top: config.title * 0.6, right: config.title * 0.8, zIndex: 25, pointerEvents: 'none' }}>
+              {badgeType === 'biblical-advisory' && (
+                <div style={{
+                  padding: `${config.title * 0.08}px ${config.title * 0.25}px`,
+                  backgroundColor: '#000',
+                  border: `2px solid #fff`,
+                  boxShadow: `0 8px 24px rgba(0,0,0,0.8), 0 0 0 1px ${theme.accent}88`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  lineHeight: 1.1,
+                  transform: 'rotate(-2deg)'
+                }}>
+                  <span style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.2em', fontFamily: "'Bebas Neue', sans-serif" }}>PARENTAL ADVISORY</span>
+                  <span style={{ fontSize: config.title * 0.11, fontWeight: 900, color: theme.accent, letterSpacing: '0.12em', fontFamily: 'Inter' }}>100% MENSAJE BÍBLICO</span>
+                  <span style={{ fontSize: config.title * 0.08, fontWeight: 700, color: '#aaa', letterSpacing: '0.15em', fontFamily: 'Inter' }}>EDIFICACIÓN PURA</span>
+                </div>
+              )}
+              {badgeType === 'exclusive' && (
+                <div style={{
+                  padding: `${config.title * 0.1}px ${config.title * 0.3}px`,
+                  background: `linear-gradient(135deg, ${theme.accent} 0%, #000 100%)`,
+                  border: `1px solid ${theme.accent}`,
+                  borderRadius: 100,
+                  boxShadow: `0 8px 30px ${theme.accent}44`,
+                  color: '#fff',
+                  fontSize: config.title * 0.13,
+                  fontWeight: 900,
+                  letterSpacing: '0.25em',
+                  fontFamily: 'Inter',
+                  textTransform: 'uppercase' as const,
+                  transform: 'rotate(2deg)'
+                }}>
+                  ★ ESTRENO MUNDIAL EXCLUSIVO ★
+                </div>
+              )}
+              {badgeType === 'hires' && (
+                <div style={{
+                  padding: `${config.title * 0.1}px ${config.title * 0.25}px`,
+                  backgroundColor: 'rgba(0,0,0,0.85)',
+                  border: `1px solid ${theme.accent}`,
+                  borderRadius: 4,
+                  boxShadow: `0 6px 20px rgba(0,0,0,0.8)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: config.title * 0.15
+                }}>
+                  <div style={{ width: config.title * 0.35, height: config.title * 0.35, borderRadius: '50%', border: `1.5px solid ${theme.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: config.title * 0.18, color: theme.accent, fontWeight: 900 }}>Hi</div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: config.title * 0.13, fontWeight: 900, color: '#fff', letterSpacing: '0.15em', fontFamily: 'Inter' }}>HI-RES AUDIO</span>
+                    <span style={{ fontSize: config.title * 0.08, fontWeight: 700, color: theme.accent, letterSpacing: '0.2em', fontFamily: 'Inter' }}>24-BIT / 96kHz</span>
                   </div>
                 </div>
+              )}
+              {badgeType === 'chihuahua' && (
+                <div style={{
+                  padding: `${config.title * 0.1}px ${config.title * 0.3}px`,
+                  backgroundColor: '#000',
+                  border: `1.5px solid ${theme.accent}`,
+                  borderRadius: 6,
+                  boxShadow: `0 10px 30px rgba(0,0,0,0.8)`,
+                  color: theme.accent,
+                  fontSize: config.title * 0.13,
+                  fontWeight: 900,
+                  letterSpacing: '0.2em',
+                  fontFamily: 'Inter',
+                  textTransform: 'uppercase' as const
+                }}>
+                  🤠 100% PURO CHIHUAHUA
+                </div>
+              )}
+            </div>
+          )}
 
-                {/* CENTER (ORIGINAL) */}
-                <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  {bg && (
-                      <div style={{ position: 'relative', padding: 6, background: `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`, borderRadius: 4, boxShadow: "0 40px 120px rgba(0,0,0,1)" }}>
-                        <div style={{ width: config.title * 6, height: config.title * 6, overflow: 'hidden', borderRadius: 2 }}>
-                          <div 
-                            data-export-cover
-                            data-export-master-img
-                            style={{ 
-                              width: '100%', 
-                              height: '100%', 
-                              backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                              display: 'block', 
-                              transform: bg && bg.startsWith('data:') ? 'scale(1.02)' : 'none', // Removed scale(1.3) which caused distortion/pixelation
-                              filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
-                            }} 
-                          />
-                        </div>
-                      </div>
-                    )}
-                  <div style={{ marginBottom: config.title * 0.4 }}>
-                    {mode === 'proximamente' && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20 }}>
-                        <div style={{ height: 1, width: 40, background: `linear-gradient(to right, transparent, ${theme.accent})` }}></div>
-                        <h4 style={{ 
-                          fontSize: config.title * 0.22, 
-                          color: theme.accent, 
-                          fontWeight: 900, 
-                          letterSpacing: '0.6em', 
-                          textShadow: `0 4px 20px ${theme.accent}44`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8
-                        }}>
-                          ESTRENO MUNDIAL
-                        </h4>
-                        <div style={{ height: 1, width: 40, background: `linear-gradient(to left, transparent, ${theme.accent})` }}></div>
-                      </div>
-                    )}
-                    <h1 style={{ 
-                      fontSize: config.title * (title.length > 15 ? 1.4 : 1.8), 
-                      fontWeight: 900, 
-                      lineHeight: 0.85, 
-                      fontFamily: "'Bebas Neue'", 
-                      color: textColor,
-                      letterSpacing: '-1px', 
-                      textShadow: `0 0 80px ${theme.accent}88, 0 0 30px ${theme.accent}55, 0 10px 20px rgba(0,0,0,0.6)`,
-                      filter: stroke ? `drop-shadow(0 0 3px ${theme.accent})` : `drop-shadow(0 2px 8px rgba(0,0,0,0.8))`,
-                      paddingBottom: config.title * 0.1
-                    }}>{title}</h1>
-                    <div style={{ marginTop: config.title * 0.3 }}>
-                      <h2 style={{
-                        fontSize: config.title * 0.35,
-                        fontWeight: 700,
-                        color: theme.accent,
-                        letterSpacing: '0.3em',
-                        textTransform: 'uppercase',
-                        textShadow: `0 2px 10px rgba(0,0,0,0.5)`,
-                        fontFamily: 'Inter',
-                        display: 'inline-block',
-                        background: 'rgba(0,0,0,0.4)',
-                        backdropFilter: 'blur(10px)',
-                        padding: `${config.title * 0.15}px ${config.title * 0.5}px`,
-                        borderRadius: 100,
-                        border: `1px solid ${theme.accent}33`
-                      }}>
-                        {artist}
-                      </h2>
+          {/* MAIN PROMO STRUCTURE */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", zIndex: 10 }}>
+            {theme.effect === 'glitch' && <div className="glitch-scan" />}
+
+            {/* INNER CONTENT AREA */}
+            <div style={{ flex: 1, padding: config.title * 1.2, paddingLeft: config.title * 2.2, paddingBottom: config.title * 0.6, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+
+              {/* HEADER ROW */}
+              <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
+                    <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.5, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span>STUDIO PRO V5.0</span>
+                      <span style={{ color: theme.accent, opacity: 0.8 }}>//</span>
+                      <span style={{ color: theme.accent }}>{artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'PURO CHIHUAHUA'}</span>
                     </div>
-                    {/* #2 — VERSÍCULO / SLOGAN */}
-                    {slogan && slogan.trim() && (
+                </div>
+                <div 
+                  data-backdrop-polyfill
+                  style={{ padding: "8px 20px", borderRadius: 4, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.5)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter', boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }}>
+                  {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY"}
+                </div>
+              </div>
+
+              {/* CENTER DISPLAY: 3D COVER MOCKUP & TITLE */}
+              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                
+                {/* 3D COVER MOCKUP WRAPPER */}
+                {bg && (
+                  <div style={{ position: 'relative', margin: `${config.title * 0.2}px 0`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    
+                    {/* VINYL 3D RECORD DISK POPPING OUT */}
+                    {coverMockup === 'vinyl' && (
                       <div style={{
-                        marginTop: config.title * 0.25,
-                        fontSize: config.title * 0.28,
-                        color: theme.accent,
-                        fontFamily: "'DM Serif Display'",
-                        fontStyle: 'italic',
-                        letterSpacing: '0.04em',
-                        textAlign: 'center',
-                        opacity: 0.9,
-                        textShadow: `0 2px 10px rgba(0,0,0,0.6)`,
-                        padding: `${config.title * 0.1}px ${config.title * 0.5}px`,
-                        borderTop: `1px solid ${theme.accent}33`,
-                        borderBottom: `1px solid ${theme.accent}33`,
-                        maxWidth: '80%',
-                        lineHeight: 1.4
+                        position: 'absolute',
+                        left: '42%',
+                        width: config.title * 5.4,
+                        height: config.title * 5.4,
+                        borderRadius: '50%',
+                        backgroundColor: '#0a0a0a',
+                        backgroundImage: `
+                          radial-gradient(circle, #0a0a0a 0%, #151515 20%, #0a0a0a 40%, #181818 60%, #0a0a0a 80%, #151515 100%),
+                          conic-gradient(from 30deg, transparent 0deg, rgba(255,255,255,0.14) 40deg, transparent 80deg, transparent 180deg, rgba(255,255,255,0.14) 220deg, transparent 260deg)
+                        `,
+                        boxShadow: `0 30px 80px rgba(0,0,0,0.9), inset 0 0 0 2px rgba(255,255,255,0.06)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        transform: 'rotate(15deg)'
                       }}>
-                        {slogan}
+                        {/* Realistic concentric grooves micro-pattern */}
+                        <div style={{
+                          position: 'absolute',
+                          inset: '4px',
+                          borderRadius: '50%',
+                          border: '1px dashed rgba(255,255,255,0.08)',
+                          boxShadow: 'inset 0 0 0 8px rgba(0,0,0,0.5), inset 0 0 0 16px rgba(255,255,255,0.02), inset 0 0 0 24px rgba(0,0,0,0.5)'
+                        }} />
+                        {/* Center Vinyl Label (Galleta) */}
+                        <div style={{
+                          width: config.title * 1.8,
+                          height: config.title * 1.8,
+                          borderRadius: '50%',
+                          backgroundColor: '#111',
+                          border: `2px solid ${theme.accent}`,
+                          boxShadow: `0 0 20px ${theme.accent}55`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundImage: `url("${getHighResUrl(bg)}")`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+                          <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', color: theme.accent, fontSize: config.title * 0.11, fontWeight: 900, letterSpacing: '0.15em' }}>
+                            33⅓ RPM
+                          </div>
+                          {/* Center Spindle Hole */}
+                          <div style={{
+                            width: config.title * 0.35,
+                            height: config.title * 0.35,
+                            borderRadius: '50%',
+                            backgroundColor: '#000',
+                            border: '2px solid rgba(255,255,255,0.6)',
+                            position: 'relative',
+                            zIndex: 3
+                          }} />
+                        </div>
                       </div>
                     )}
-                  </div>
-                  {mode === "proximamente" && (
-                    <div style={{ marginTop: config.title * 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
-                      <div 
-                        data-backdrop-polyfill
-                        style={{ 
-                          padding: "12px 40px", 
-                          background: "rgba(255, 255, 255, 0.05)", 
-                          backdropFilter: 'blur(20px)', 
-                          border: `1px solid ${theme.accent}33`, 
-                          borderRadius: 100,
-                          boxShadow: `0 10px 40px rgba(0,0,0,0.3)`
-                        }}>
-                        <div style={{ fontSize: config.title * 0.5, color: textColor, fontFamily: "'DM Serif Display'", fontStyle: 'italic', letterSpacing: '0.05em' }}>
-                          {formatDate()}
-                        </div>
+
+                    {/* MAIN COVER JACKET / FRAME */}
+                    <div style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      padding: coverMockup === 'frame' ? 8 : 4,
+                      background: coverMockup === 'frame'
+                        ? `linear-gradient(135deg, ${theme.accent} 0%, rgba(0,0,0,0.6) 50%, ${theme.accent} 100%)`
+                        : `linear-gradient(135deg, ${theme.accent} 0%, transparent 50%, ${theme.accent} 100%)`,
+                      borderRadius: coverMockup === 'cd' ? 6 : 4,
+                      boxShadow: "0 40px 120px rgba(0,0,0,1)",
+                      border: coverMockup === 'frame' ? `1px solid ${theme.accent}` : 'none'
+                    }}>
+                      <div style={{
+                        width: config.title * 5.6,
+                        height: config.title * 5.6,
+                        overflow: 'hidden',
+                        borderRadius: 3,
+                        position: 'relative'
+                      }}>
+                        <div 
+                          data-export-cover
+                          data-export-master-img
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            display: 'block', 
+                            filter: theme.effect === 'grunge' ? 'grayscale(0.3) contrast(1.2)' : 'none' 
+                          }} 
+                        />
+                        
+                        {/* CD JEWEL CASE ACRYLIC SHEEN OVERLAY */}
+                        {coverMockup === 'cd' && (
+                          <>
+                            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: config.title * 0.35, background: 'linear-gradient(90deg, rgba(255,255,255,0.25) 0%, rgba(0,0,0,0.6) 40%, rgba(255,255,255,0.1) 100%)', borderRight: '1px solid rgba(255,255,255,0.2)', zIndex: 5 }} />
+                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 45%, rgba(255,255,255,0.06) 55%, transparent 100%)', pointerEvents: 'none', zIndex: 6 }} />
+                          </>
+                        )}
                       </div>
-                      {country && country.iso !== 'un' && (
-                        <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, opacity: 0.6, marginTop: 5 }}>
-                          EXCLUSIVO // {country.name.toUpperCase()}
-                        </div>
-                      )}
+                    </div>
+
+                  </div>
+                )}
+
+                {/* TITLE & ARTIST SECTION */}
+                <div style={{ marginBottom: config.title * 0.3, width: '100%' }}>
+                  {mode === 'proximamente' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 15 }}>
+                      <div style={{ height: 1, width: 40, background: `linear-gradient(to right, transparent, ${theme.accent})` }}></div>
+                      <h4 style={{ 
+                        fontSize: config.title * 0.22, 
+                        color: theme.accent, 
+                        fontWeight: 900, 
+                        letterSpacing: '0.6em', 
+                        textShadow: `0 4px 20px ${theme.accent}44`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}>
+                        ESTRENO MUNDIAL
+                      </h4>
+                      <div style={{ height: 1, width: 40, background: `linear-gradient(to left, transparent, ${theme.accent})` }}></div>
                     </div>
                   )}
-                  {mode === "disponible" && (
-                    <div style={{ marginTop: config.title * 0.4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.3, color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
-                         <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)`, width: 60 }}></div>
-                         <span>PLATAFORMAS DIGITALES</span>
-                         <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)`, width: 60 }}></div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: config.title * 0.8, color: theme.accent, opacity: 0.9 }}>
-                        <i className="fab fa-spotify" style={{ fontSize: config.title * 0.7 }}></i>
-                        <i className="fab fa-apple" style={{ fontSize: config.title * 0.7 }}></i>
-                        <i className="fab fa-youtube" style={{ fontSize: config.title * 0.7 }}></i>
-                        <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.7 }}></i>
-                      </div>
+
+                  {/* HIGH-IMPACT TITLE WITH CUSTOM FONT & EFFECT */}
+                  <h1 style={{ 
+                    fontSize: config.title * (title.length > 18 ? 1.3 : title.length > 12 ? 1.55 : 1.9), 
+                    fontWeight: 900, 
+                    lineHeight: 0.88, 
+                    fontFamily: titleFontFamily,
+                    letterSpacing: titleFont === 'bebas' ? '-0.5px' : '0.02em',
+                    paddingBottom: config.title * 0.1,
+                    // Dynamic Title Effects
+                    ...(titleEffect === 'gold' ? {
+                      background: `linear-gradient(180deg, #ffffff 0%, #fff2a3 25%, #c5a059 60%, #785215 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: `drop-shadow(0 4px 20px rgba(197,160,89,0.6)) drop-shadow(0 10px 40px rgba(0,0,0,0.8))`
+                    } : titleEffect === 'chrome' ? {
+                      background: `linear-gradient(180deg, #ffffff 0%, #e2e8f0 30%, #64748b 50%, #ffffff 55%, #94a3b8 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: `drop-shadow(0 4px 20px rgba(255,255,255,0.4)) drop-shadow(0 10px 40px rgba(0,0,0,0.8))`
+                    } : titleEffect === 'solid' ? {
+                      color: textColor,
+                      filter: `drop-shadow(2px 2px 0px rgba(0,0,0,0.9)) drop-shadow(4px 4px 0px rgba(0,0,0,0.7)) drop-shadow(0 10px 30px rgba(0,0,0,0.9))`
+                    } : {
+                      color: textColor,
+                      textShadow: `0 0 80px ${theme.accent}88, 0 0 30px ${theme.accent}55, 0 10px 20px rgba(0,0,0,0.6)`,
+                      filter: stroke ? `drop-shadow(0 0 3px ${theme.accent})` : `drop-shadow(0 2px 8px rgba(0,0,0,0.8))`
+                    })
+                  }}>
+                    {title}
+                  </h1>
+
+                  {/* ARTIST BADGE */}
+                  <div style={{ marginTop: config.title * 0.25 }}>
+                    <h2 style={{
+                      fontSize: config.title * 0.35,
+                      fontWeight: 700,
+                      color: theme.accent,
+                      letterSpacing: '0.3em',
+                      textTransform: 'uppercase',
+                      textShadow: `0 2px 10px rgba(0,0,0,0.5)`,
+                      fontFamily: 'Inter',
+                      display: 'inline-block',
+                      background: 'rgba(0,0,0,0.5)',
+                      backdropFilter: 'blur(10px)',
+                      padding: `${config.title * 0.12}px ${config.title * 0.5}px`,
+                      borderRadius: 100,
+                      border: `1px solid ${theme.accent}44`,
+                      boxShadow: `0 8px 30px rgba(0,0,0,0.4)`
+                    }}>
+                      {artist}
+                    </h2>
+                  </div>
+
+                  {/* VERSÍCULO / SLOGAN */}
+                  {slogan && slogan.trim() && (
+                    <div style={{
+                      marginTop: config.title * 0.25,
+                      fontSize: config.title * 0.28,
+                      color: theme.accent,
+                      fontFamily: "'DM Serif Display', serif",
+                      fontStyle: 'italic',
+                      letterSpacing: '0.04em',
+                      textAlign: 'center',
+                      opacity: 0.95,
+                      textShadow: `0 2px 10px rgba(0,0,0,0.8)`,
+                      padding: `${config.title * 0.1}px ${config.title * 0.5}px`,
+                      borderTop: `1px solid ${theme.accent}33`,
+                      borderBottom: `1px solid ${theme.accent}33`,
+                      maxWidth: '85%',
+                      margin: `${config.title * 0.25}px auto 0 auto`,
+                      lineHeight: 1.4
+                    }}>
+                      {slogan}
                     </div>
                   )}
                 </div>
 
-                {/* ALBUM TRACKLIST IN TEMPLATE */}
+                {/* PROXIMAMENTE DATE DISPLAY */}
+                {mode === "proximamente" && (
+                  <div style={{ marginTop: config.title * 0.2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <div 
+                      data-backdrop-polyfill
+                      style={{ 
+                        padding: "10px 36px", 
+                        background: "rgba(255, 255, 255, 0.06)", 
+                        backdropFilter: 'blur(20px)', 
+                        border: `1px solid ${theme.accent}44`, 
+                        borderRadius: 100,
+                        boxShadow: `0 10px 40px rgba(0,0,0,0.5)`
+                      }}>
+                      <div style={{ fontSize: config.title * 0.45, color: textColor, fontFamily: "'DM Serif Display', serif", fontStyle: 'italic', letterSpacing: '0.05em' }}>
+                        {formatDate()}
+                      </div>
+                    </div>
+                    {country && country.iso !== 'un' && (
+                      <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, opacity: 0.7, marginTop: 4 }}>
+                        EXCLUSIVO // {country.name.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* DISPONIBLE PLATFORMS ROW (When inside center) */}
+                {mode === "disponible" && footerStyle !== 'qr' && (
+                  <div style={{ marginTop: config.title * 0.3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
+                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)`, width: 50 }}></div>
+                       <span>PLATAFORMAS DIGITALES</span>
+                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)`, width: 50 }}></div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: config.title * 0.7, color: theme.accent, opacity: 0.9 }}>
+                      <i className="fab fa-spotify" style={{ fontSize: config.title * 0.65 }}></i>
+                      <i className="fab fa-apple" style={{ fontSize: config.title * 0.65 }}></i>
+                      <i className="fab fa-youtube" style={{ fontSize: config.title * 0.65 }}></i>
+                      <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.65 }}></i>
+                      <i className="fab fa-amazon" style={{ fontSize: config.title * 0.65 }}></i>
+                    </div>
+                  </div>
+                )}
+
+                {/* ALBUM TRACKLIST */}
                 {mode === 'album' && trackList && trackList.filter(t => t.trim()).length > 0 && (
-                  <div style={{ width: '100%', marginTop: config.title * 0.3, marginBottom: config.title * 0.2 }}>
+                  <div style={{ width: '100%', marginTop: config.title * 0.25, marginBottom: config.title * 0.2 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: config.title * 0.15 }}>
                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)` }}></div>
                       <div style={{ fontSize: config.title * 0.2, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent }}>TRACKLIST</div>
@@ -2101,91 +2529,284 @@ const PromoTemplate: React.FC<any> = ({
                   </div>
                 )}
 
-                </div>{/* END INNER CONTENT AREA */}
+              </div>{/* END CENTER DISPLAY */}
 
-                {/* FOOTER — natural flex child, spans full width */}
-                {/* FOOTER (PRO REFINED) */}
-                <div style={{
-                  background: `linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.97) 100%)`,
-                  borderTop: `2px solid ${theme.accent}66`,
-                  boxShadow: `0 -8px 40px rgba(0,0,0,0.8), inset 0 1px 0 ${theme.accent}33`,
-                  padding: `${config.title * 0.5}px ${config.title * 1.4}px`,
-                  flexShrink: 0,
-                  boxSizing: 'border-box' as const,
-                }}>
+            </div>{/* END INNER CONTENT AREA */}
 
-                  {/* MAIN FOOTER ROW */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    {/* LEFT: Edition + Streaming icons */}
-                    <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
-                      <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent }}>{template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION</div>
-                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold' }}>© 2026 RECORDS HUB PRO</div>
-                      {/* STREAMING PLATFORM ICONS */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.25, marginTop: config.title * 0.05, opacity: 0.55 }}>
-                        <i className="fab fa-spotify" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
-                        <i className="fab fa-apple" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
-                        <i className="fab fa-youtube" style={{ fontSize: config.title * 0.3, color: theme.accent }}></i>
-                        <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
-                        <i className="fab fa-instagram" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
-                      </div>
+            {/* ═══════════════════════════════════════════════════════
+                REFINED MODERN FOOTERS (EL FOSTER) — 4 STYLES
+                ═══════════════════════════════════════════════════════ */}
+
+            {/* 1. GLASS HUD FOOTER (ULTRA-CLEAN GLASSMORPHISM) */}
+            {footerStyle === 'glass' && (
+              <div style={{
+                background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.75) 100%)`,
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderTop: `1px solid ${theme.accent}55`,
+                boxShadow: `0 -10px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)`,
+                padding: `${config.title * 0.4}px ${config.title * 1.4}px`,
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box' as const,
+              }}>
+                {/* Left: Audio spec + Edition */}
+                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.35em', color: theme.accent, fontFamily: 'Inter' }}>
+                    {template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION
+                  </div>
+                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.2em', fontWeight: 700, fontFamily: 'Inter' }}>
+                    HI-RES AUDIO · 24-BIT / 96kHz
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.2, marginTop: 4, opacity: 0.7 }}>
+                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.26, color: theme.accent }}></i>
+                  </div>
+                </div>
+
+                {/* Center: Modern Monospace URL Badge */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{
+                    padding: `${config.title * 0.1}px ${config.title * 0.45}px`,
+                    borderRadius: 100,
+                    fontWeight: 900,
+                    fontSize: config.title * 0.18,
+                    color: '#000',
+                    background: theme.accent,
+                    letterSpacing: '0.22em',
+                    boxShadow: `0 4px 20px ${theme.accent}66`,
+                    fontFamily: 'Inter',
+                    textTransform: 'uppercase' as const
+                  }}>
+                    {displayUrl}
+                  </div>
+                  <div style={{ fontSize: config.title * 0.14, color: '#fff', letterSpacing: '0.25em', opacity: 0.8, fontWeight: 700, fontFamily: 'Inter', textTransform: 'uppercase' as const }}>
+                    {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua · Records'}
+                  </div>
+                </div>
+
+                {/* Right: Artist Logo with glow */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                  <div style={{ width: config.title * 2.6, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <img
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        filter: `drop-shadow(0 0 8px ${theme.accent}66)`,
+                        transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.25)'
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: config.title * 0.1, color: '#777', fontWeight: 800, letterSpacing: '0.15em' }}>© 2026 DIOSMASGYM</div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. RECORD LABEL & SOUNDWAVE FOOTER */}
+            {footerStyle === 'record' && (
+              <div style={{
+                background: `linear-gradient(180deg, rgba(10,15,29,0.85) 0%, rgba(2,6,23,0.98) 100%)`,
+                borderTop: `2px solid ${theme.accent}88`,
+                boxShadow: `0 -12px 50px rgba(0,0,0,0.9)`,
+                padding: `${config.title * 0.45}px ${config.title * 1.4}px`,
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box' as const,
+              }}>
+                {/* Left: Catalog Ficha */}
+                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.3em', color: theme.accent, fontFamily: 'monospace' }}>
+                    CAT: DGM-2026-X
+                  </div>
+                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.15em', fontWeight: 700 }}>
+                    PROD // DIOSMASGYM RECORDS
+                  </div>
+                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, opacity: 0.7, letterSpacing: '0.15em', fontWeight: 900 }}>
+                    STEREO MASTERING 24-BIT
+                  </div>
+                </div>
+
+                {/* Center: Audio Soundwave Graphic */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  {/* Soundwave SVG */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: config.title * 0.5 }}>
+                    {[8, 14, 22, 30, 18, 12, 28, 35, 24, 16, 26, 32, 18, 10, 22, 15, 8].map((h, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          width: config.title * 0.04, 
+                          height: (config.title * 0.5) * (h / 35), 
+                          backgroundColor: idx % 2 === 0 ? theme.accent : '#ffffff',
+                          borderRadius: 2,
+                          opacity: 0.85 
+                        }} 
+                      />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.25em', fontFamily: 'monospace' }}>
+                    {displayUrl}
+                  </div>
+                </div>
+
+                {/* Right: Seal & Logo */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                  <div style={{ width: config.title * 2.6, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <img
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, fontWeight: 800, letterSpacing: '0.2em' }}>OFFICIAL RELEASE</div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. SMART QR SCANNER FOOTER */}
+            {footerStyle === 'qr' && (
+              <div style={{
+                background: `linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.98) 100%)`,
+                borderTop: `1px solid ${theme.accent}66`,
+                boxShadow: `0 -10px 40px rgba(0,0,0,0.85)`,
+                padding: `${config.title * 0.4}px ${config.title * 1.4}px`,
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box' as const,
+              }}>
+                {/* Left: Dynamic QR Code */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3 }}>
+                  <div style={{
+                    padding: 3,
+                    backgroundColor: '#000',
+                    border: `1.5px solid ${theme.accent}`,
+                    borderRadius: 6,
+                    boxShadow: `0 4px 20px ${theme.accent}33`,
+                    width: config.title * 1.4,
+                    height: config.title * 1.4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <img 
+                      src={qrCodeSrc} 
+                      data-export-master-img
+                      crossOrigin="anonymous"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 3 }} 
+                    />
+                  </div>
+                  <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.2em', color: theme.accent, fontFamily: 'Inter' }}>
+                      ESCANEA PARA ESCUCHAR
                     </div>
-
-                    {/* CENTER: URL Badge + Slogan */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: config.title * 0.1, flexShrink: 0 }}>
-                      <div
-                        onClick={() => window.open(artist.toUpperCase().includes('JUAN 614') ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/', '_blank')}
-                        style={{
-                          padding: `${config.title * 0.12}px ${config.title * 0.5}px`,
-                          borderRadius: 4,
-                          fontWeight: '900',
-                          fontSize: config.title * 0.2,
-                          color: '#000',
-                          background: theme.accent,
-                          letterSpacing: '0.18em',
-                          boxShadow: `0 8px 30px ${theme.accent}4d`,
-                          cursor: 'pointer',
-                          textTransform: 'uppercase' as const
-                        }}
-                      >
-                        {customFooterUrl && customFooterUrl.trim()
-                          ? customFooterUrl.trim().replace(/^https?:\/\//i, '')
-                          : artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
-                      </div>
-                      <div style={{
-                        fontSize: config.title * 0.42,
-                        color: textColor,
-                        fontFamily: "'Satisfy', cursive",
-                        letterSpacing: '0.02em',
-                        opacity: 1,
-                        textShadow: '0 2px 10px rgba(0,0,0,0.3)'
-                      }}>
-                        {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua, Saludos'}
-                      </div>
-                    </div>
-
-                    {/* RIGHT: Logo + BPM tag */}
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: config.title * 0.1, minWidth: config.title * 2.5 }}>
-                      <div style={{ width: config.title * 2.8, height: config.title * 1.4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                        <img
-                          src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain',
-                            filter: `drop-shadow(0 0 10px ${theme.accent}55)`,
-                            transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.3)'
-                          }}
-                        />
-                      </div>
-                      <div style={{ fontSize: config.title * 0.11, opacity: 0.25, fontWeight: 'bold', letterSpacing: '0.1em' }}>© 2026 DIOSMASGYM RECORDS</div>
+                    <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.15em', fontWeight: 700 }}>
+                      SMART LINK OFICIAL
                     </div>
                   </div>
                 </div>
+
+                {/* Center: Streaming Icons & URL */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3, color: theme.accent }}>
+                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.35 }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.35 }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.35 }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.32 }}></i>
+                  </div>
+                  <div style={{ fontSize: config.title * 0.15, color: '#fff', fontWeight: 900, letterSpacing: '0.2em', fontFamily: 'monospace' }}>
+                    {displayUrl}
+                  </div>
+                </div>
+
+                {/* Right: Artist Logo */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                  <div style={{ width: config.title * 2.6, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <img
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: config.title * 0.1, color: '#777', fontWeight: 800, letterSpacing: '0.15em' }}>© 2026 DIOSMASGYM</div>
+                </div>
               </div>
-            );
-          })()}
+            )}
+
+            {/* 4. MINIMAL FLOATING FOOTER (NO SOLID BOX, NATURAL FADE) */}
+            {footerStyle === 'minimal' && (
+              <div style={{
+                background: `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)`,
+                padding: `${config.title * 0.5}px ${config.title * 1.4}px`,
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                width: '100%',
+                boxSizing: 'border-box' as const,
+              }}>
+                {/* Left: Floating Edition */}
+                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: config.title * 0.18, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent, fontFamily: 'Inter' }}>
+                    {artist.toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.2em', fontWeight: 700 }}>
+                    EXCLUSIVO 2026
+                  </div>
+                </div>
+
+                {/* Center: Floating URL & Streaming */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.35, color: theme.accent, opacity: 0.9 }}>
+                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.3 }}></i>
+                  </div>
+                  <div style={{ fontSize: config.title * 0.16, color: '#fff', fontWeight: 900, letterSpacing: '0.25em', fontFamily: 'Inter', textTransform: 'uppercase' as const }}>
+                    {displayUrl}
+                  </div>
+                </div>
+
+                {/* Right: Floating Logo */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={{ width: config.title * 2.4, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <img
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
     );
-}
+};
 
 export default PromoImageApp;
