@@ -14,6 +14,33 @@ const AnalyticsDashboard: React.FC = () => {
     });
     const [samplingFilter, setSamplingFilter] = useState<'all' | 'main' | 'external'>('all');
     const [timeframeFilter, setTimeframeFilter] = useState<'day' | 'week' | 'month'>('week');
+    const [sendingEmail, setSendingEmail] = useState(false);
+    const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
+
+    const handleSendEmailReport = async () => {
+        setSendingEmail(true);
+        setEmailSuccessMsg(null);
+        try {
+            const res = await fetch('/api/send-analytics-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-password': localStorage.getItem('admin_password') || ''
+                }
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+                setEmailSuccessMsg(`✅ ¡Reporte enviado con éxito a ${json.data?.recipient || 'administrador@diosmasgym.com'}!`);
+            } else {
+                setEmailSuccessMsg(`⚠️ ${json.message || 'Error al enviar reporte'}`);
+            }
+        } catch (err: any) {
+            setEmailSuccessMsg(`❌ Error: ${err.message}`);
+        } finally {
+            setSendingEmail(false);
+            setTimeout(() => setEmailSuccessMsg(null), 8000);
+        }
+    };
 
     const handleToggleExclusion = () => {
         const nextVal = !excludeVisits;
@@ -185,9 +212,41 @@ const AnalyticsDashboard: React.FC = () => {
                 
                 {/* Header */}
                 <div className="mb-12 border-b border-white/5 pb-8">
-                    <button onClick={() => navigate('/admin')} className="mb-8 text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
-                        <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Panel
-                    </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                        <button onClick={() => navigate('/admin')} className="text-[9px] font-black uppercase tracking-[0.4em] text-[#c5a059] flex items-center gap-4 group">
+                            <div className="w-12 h-px bg-[#c5a059] group-hover:w-20 transition-all"></div> Volver al Panel
+                        </button>
+                        
+                        <button
+                            onClick={handleSendEmailReport}
+                            disabled={sendingEmail}
+                            className={`px-5 py-2.5 rounded-full border text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
+                                sendingEmail
+                                    ? 'bg-white/5 border-white/10 text-white/40 cursor-wait'
+                                    : 'bg-[#c5a059]/10 border-[#c5a059]/40 text-[#c5a059] hover:bg-[#c5a059] hover:text-black shadow-lg shadow-[#c5a059]/10'
+                            }`}
+                        >
+                            {sendingEmail ? (
+                                <>
+                                    <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-[#c5a059] rounded-full animate-spin"></div>
+                                    <span>Generando y Enviando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-paper-plane text-xs"></i>
+                                    <span>Enviar Reporte al Correo (11 PM)</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {emailSuccessMsg && (
+                        <div className="mb-6 p-4 rounded-2xl bg-[#0f111a] border border-[#c5a059]/40 text-xs text-white flex items-center gap-3 animate-fade-in">
+                            <i className="fas fa-envelope-open-text text-[#c5a059] text-base"></i>
+                            <span className="font-medium">{emailSuccessMsg}</span>
+                        </div>
+                    )}
+
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
                             <h2 className="font-serif italic text-5xl md:text-7xl text-white leading-tight">

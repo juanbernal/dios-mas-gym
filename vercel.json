@@ -106,6 +106,10 @@
     {
       "path": "/api/check-releases",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/send-analytics-report",
+      "schedule": "0 5 * * *"
     }
   ]
 }
