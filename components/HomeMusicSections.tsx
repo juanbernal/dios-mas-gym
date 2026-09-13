@@ -432,11 +432,10 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
             <div className="flex flex-col">
               
               {/* Encabezado de la Tabla (Desktop) */}
-              <div className="hidden md:grid grid-cols-[48px_1fr_160px_160px_180px_48px_70px] items-center px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/5">
+              <div className="hidden md:grid grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/5">
                 <span className="text-center">#</span>
                 <span>Título</span>
                 <span>Artista</span>
-                <span className="text-right pr-4">Reproducciones</span>
                 <span>Álbum / Lanzamiento</span>
                 <span className="text-center">Like</span>
                 <span className="text-right pr-2">Duración</span>
@@ -453,7 +452,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                     <div
                       key={item.id || idx}
                       onClick={() => handlePlayYTTrack(item)}
-                      className="group grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_160px_160px_180px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
+                      className="group grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
                     >
                       <div className="flex items-center justify-center relative">
                         <span className={`font-mono text-xs md:text-sm font-bold transition-opacity group-hover:opacity-0 ${
@@ -489,8 +488,12 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                           </h4>
                           <div className="flex md:hidden items-center gap-2 text-[10px] text-white/50 mt-1 truncate">
                             <span className="font-semibold text-white/70">{item.channel}</span>
-                            <span>•</span>
-                            <span className="text-red-400 font-bold">{item.viewsFormatted}</span>
+                            {item.album && (
+                              <>
+                                <span>•</span>
+                                <span className="text-white/40">{item.album}</span>
+                              </>
+                            )}
                             {item.duration && (
                               <>
                                 <span>•</span>
@@ -503,12 +506,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
                       <div className="hidden md:flex items-center text-xs font-semibold text-white/70 truncate pr-3">
                         <span className="truncate hover:text-white transition-colors">{item.channel}</span>
-                      </div>
-
-                      <div className="hidden md:flex items-center justify-end text-xs font-mono font-bold text-white/80 pr-4">
-                        <span className="px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/5 group-hover:border-red-500/20 group-hover:text-red-300 transition-colors">
-                          {item.viewsFormatted}
-                        </span>
                       </div>
 
                       <div className="hidden md:flex items-center text-xs text-white/40 truncate pr-3">
@@ -614,11 +611,10 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
           <div className="flex flex-col">
             
             {/* Encabezado de la Tabla */}
-            <div className="hidden md:grid grid-cols-[48px_1fr_160px_160px_180px_48px_70px] items-center px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/5">
+            <div className="hidden md:grid grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/5">
               <span className="text-center">#</span>
               <span>Título</span>
               <span>Artista</span>
-              <span className="text-right pr-4">Reproducciones</span>
               <span>Álbum / Lanzamiento</span>
               <span className="text-center">Like</span>
               <span className="text-right pr-2">Duración</span>
@@ -634,7 +630,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                   <div
                     key={item.id || idx}
                     onClick={() => handlePlayYTTrack(item)}
-                    className="group grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_160px_160px_180px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
+                    className="group grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
                   >
                     <div className="flex items-center justify-center relative">
                       <span className="font-mono text-xs md:text-sm font-bold text-amber-400/70 group-hover:opacity-0 transition-opacity">
@@ -668,8 +664,12 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                         </h4>
                         <div className="flex md:hidden items-center gap-2 text-[10px] text-white/50 mt-1 truncate">
                           <span className="font-semibold text-white/70">{item.channel}</span>
-                          <span>•</span>
-                          <span className="text-amber-400 font-bold">{item.viewsFormatted}</span>
+                          {item.album && (
+                            <>
+                              <span>•</span>
+                              <span className="text-white/40">{item.album}</span>
+                            </>
+                          )}
                           {item.duration && (
                             <>
                               <span>•</span>
@@ -682,12 +682,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
                     <div className="hidden md:flex items-center text-xs font-semibold text-white/70 truncate pr-3">
                       <span className="truncate hover:text-white transition-colors">{item.channel}</span>
-                    </div>
-
-                    <div className="hidden md:flex items-center justify-end text-xs font-mono font-bold text-amber-300/90 pr-4">
-                      <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 group-hover:border-amber-400/40 transition-colors">
-                        {item.viewsFormatted}
-                      </span>
                     </div>
 
                     <div className="hidden md:flex items-center text-xs text-white/40 truncate pr-3">
