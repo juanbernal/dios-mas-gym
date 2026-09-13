@@ -93,65 +93,107 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
     const fetchYouTube = async () => {
       setLoadingYT(true);
-      let statsMap: Record<string, any> = {};
+
+      const knownAlbumMap: Record<string, string> = {
+        'modo santo, modo pecado': 'Creyente o conveniente',
+        'esa chulada': 'Estados Ocultos',
+        'mira lo que hizo dios': '¡Ey menso !',
+        'algún día te dije que no tendría alguien más que a ti': 'Me mueve el tapete',
+        'algun dia te dije que no tendria alguien mas que a ti': 'Me mueve el tapete',
+        '¿cómo se que me gusta ?': '¡Queria ser pastor!',
+        '¿como se que me gusta?': '¡Queria ser pastor!',
+        'donde han lastimado': 'Por fin LLEGUÉ',
+        'funciona o no': 'Por fin LLEGUÉ',
+        'esta es la voluntad de dios': 'Por fin LLEGUÉ',
+        'me aceptó tal y como soy': 'Lo que no DIGO',
+        'me acepto tal y como soy': 'Lo que no DIGO',
+        'por fin llegué': 'Por fin LLEGUÉ',
+        'por fin llegue': 'Por fin LLEGUÉ',
+        'perdoname por no ser lo que esperabas': 'COMO EN LOS DIAS DE NOE',
+        'perdóname por no ser lo que esperabas': 'COMO EN LOS DIAS DE NOE',
+        'eres mía todavía': 'Alma en Frecuencia',
+        'eres mia todavia': 'Alma en Frecuencia',
+        'las mentiras': 'Ayer llorando por alguien y ho...',
+        'borracho': 'Borracho',
+        'de ateo a servirte': 'Alma en Frecuencia',
+        'se fuerte y valiente': 'Quítame a esa mujer',
+        'sé fuerte y valiente': 'Quítame a esa mujer',
+      };
+
+      const isDevotional = (t: string) => {
+        const lower = t.toLowerCase();
+        return (
+          lower.includes('semana santa') ||
+          lower.includes('dia de la mujer') ||
+          lower.includes('día de la mujer') ||
+          lower.includes('compa, escucha') ||
+          lower.includes('consulta es gratis') ||
+          lower.includes('terapeuta atiende') ||
+          lower.includes('no comes carne') ||
+          lower.includes('si le escribes') ||
+          lower.includes('el dijo que estaría') ||
+          lower.includes('identidad (therian)')
+        );
+      };
 
       try {
         const res = await fetch('/api/common?action=youtube-top');
         if (res.ok) {
           const data = await res.json();
-          const items: any[] = [...(data?.top || []), ...(data?.items || []), ...(data?.hiddenGems || [])];
-          items.forEach(it => {
-            if (it.id) statsMap[it.id] = it;
-            if (it.title) statsMap[it.title.toLowerCase().trim()] = it;
-          });
+          if (data?.top?.length > 0) {
+            const enrichItems = (items: YTVideoItem[]) =>
+              items.map(it => {
+                const normTitle = it.title.toLowerCase().trim();
+                const matchedAlbum = knownAlbumMap[normTitle] || it.album;
+                return {
+                  ...it,
+                  album: matchedAlbum && matchedAlbum !== 'Single' ? matchedAlbum : (knownAlbumMap[normTitle] || it.album || 'Single')
+                };
+              });
+
+            setTopVideos(enrichItems(data.top));
+            setHiddenGems(enrichItems(data.hiddenGems || []));
+            setLoadingYT(false);
+            return;
+          }
         }
       } catch (e) {
         console.warn('YouTube API failed, falling back to catalog stats', e);
       }
 
-      // Source exclusively from the official Music Catalog
-      const validMusicCatalog = catalog.filter(s => s && s.name && s.url && s.url.includes('youtube'));
+      // Fallback: Source exclusively from the official Music Catalog
+      const validMusicCatalog = catalog.filter(s => s && s.name && s.url && s.url.includes('youtube') && !isDevotional(s.name));
       
       const enrichedSongs: YTVideoItem[] = validMusicCatalog.map((s, idx) => {
         const urlMatch = s.url?.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
         const vid = urlMatch?.[1] || s.id;
         const isJuan = s.artist?.toLowerCase().includes('juan');
+        const normTitle = s.name.toLowerCase().trim();
+        const resolvedAlbum = knownAlbumMap[normTitle] || s.album || 'Single';
         
-        // Find stats from YouTube API by ID or by title
-        const stat = statsMap[vid] || statsMap[s.name.toLowerCase().trim()];
-        
-        const estViews = stat?.views || Math.max(120, Math.floor(16000 / (idx + 1) + (idx % 8) * 410));
-        const viewsFormatted = stat?.viewsFormatted || (estViews >= 1000 ? `${(estViews/1000).toFixed(1).replace('.', ',')} K reproducciones` : `${estViews} reproducciones`);
-        const duration = stat?.duration || (idx % 3 === 0 ? '3:25' : idx % 2 === 0 ? '3:04' : '2:58');
-        const likes = stat?.likes || Math.floor(estViews * 0.08);
+        const estViews = Math.max(120, Math.floor(16000 / (idx + 1) + (idx % 8) * 410));
+        const viewsFormatted = estViews >= 1000 ? `${(estViews/1000).toFixed(1).replace('.', ',')} K reproducciones` : `${estViews} reproducciones`;
+        const duration = idx % 3 === 0 ? '3:25' : idx % 2 === 0 ? '3:04' : '2:58';
+        const likes = Math.floor(estViews * 0.08);
 
         return {
           id: vid,
           title: s.name.replace(/\s*\(Video Oficial\)|\s*\(Audio Oficial\)|\s*\[Video Oficial\]|\s*\(Oficial\)/gi, '').trim(),
           rawTitle: s.name,
-          thumb: stat?.thumb || (vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : (s.cover || '')),
+          thumb: vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : (s.cover || ''),
           url: s.url || `https://www.youtube.com/watch?v=${vid}`,
           channel: s.artist || (isJuan ? 'Juan 614' : 'Diosmasgym'),
           handle: isJuan ? '@juan614oficial' : '@diosmasgym',
           views: estViews,
           viewsFormatted,
           duration,
-          album: s.album || stat?.album || 'Single',
+          album: resolvedAlbum,
           likes
         };
       });
 
-      // Deduplicate by ID
-      const uniqueMap = new Map<string, YTVideoItem>();
-      enrichedSongs.forEach(song => {
-        if (!uniqueMap.has(song.id)) {
-          uniqueMap.set(song.id, song);
-        }
-      });
-      const uniqueSongs = Array.from(uniqueMap.values());
-
-      const sortedTop = [...uniqueSongs].sort((a, b) => b.views - a.views).slice(0, 50);
-      const sortedGems = [...uniqueSongs].sort((a, b) => a.views - b.views).slice(0, 25);
+      const sortedTop = [...enrichedSongs].sort((a, b) => b.views - a.views).slice(0, 50);
+      const sortedGems = [...enrichedSongs].sort((a, b) => a.views - b.views).slice(0, 25);
 
       setTopVideos(sortedTop);
       setHiddenGems(sortedGems);
