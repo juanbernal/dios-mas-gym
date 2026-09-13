@@ -235,32 +235,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const GS_ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec';
       let emailSent = false;
+      let emailErrorMsg = '';
       try {
         const resp = await fetch(GS_ANALYTICS_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
             action: 'sendEmailReport',
             to: recipientEmail,
             subject: `📊 Reporte Diario Dios Mas Gym: ${todayViews} visitas hoy (${todayDateFormatted})`,
             htmlBody: htmlEmail
-          }).toString()
+          })
         });
-        emailSent = resp.ok;
-      } catch (e) {
+        const respJson = await resp.json().catch(() => null);
+        if (resp.ok && respJson?.status === 'success') {
+          emailSent = true;
+        } else {
+          emailErrorMsg = respJson?.message || `Error status: ${resp.status}`;
+        }
+      } catch (e: any) {
+        emailErrorMsg = e.message;
         console.error('Error enviando correo a Apps Script:', e);
       }
 
       return res.status(200).json({
-        status: 'success',
-        message: 'Reporte diario generado y enviado con éxito',
+        status: emailSent ? 'success' : 'error',
+        message: emailSent ? 'Reporte diario generado y enviado con éxito' : `Error al despachar correo: ${emailErrorMsg || 'Google Apps Script requiere actualizar código'}`,
         data: {
           recipient: recipientEmail,
           todayViews,
           todayUsers,
           todaySessions,
           topSongsCount: topSongsList.length,
-          emailSent
+          emailSent,
+          error: emailErrorMsg || undefined
         }
       });
     }
