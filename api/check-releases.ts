@@ -578,6 +578,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             pushResults.push(...todayResults);
         }
 
+        // Disparar generación de promos diarias en background si viene de cron
+        if (cronSecret || vercelSig) {
+            const host = req.headers?.host || 'www.diosmasgym.com';
+            fetch(`https://${host}/api/generate-promo`, {
+                headers: {
+                    ...(cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {}),
+                    ...(vercelSig ? { 'x-vercel-signature': String(vercelSig) } : {})
+                }
+            }).catch(() => null);
+        }
+
         const debugInfo = {
             targetDate,
             candidateDates: [...datesToCheck],

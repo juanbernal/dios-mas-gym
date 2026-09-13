@@ -100,10 +100,6 @@
   ],
   "crons": [
     {
-      "path": "/api/generate-promo",
-      "schedule": "0 15 * * *"
-    },
-    {
       "path": "/api/check-releases",
       "schedule": "0 15 * * *"
     },
