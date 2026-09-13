@@ -141,7 +141,7 @@ const PromoImageApp: React.FC = () => {
   const [exportQuality, setExportQuality] = useState(0.92); // #9 Calidad de exportación JPEG
   const [quickCopySuccess, setQuickCopySuccess] = useState(""); // #1 Toast del botón rápido de copia
 
-  // NUEVAS MEJORAS PRO v5.0
+  // NUEVAS MEJORAS PRO v5.0 & v5.5 (FONDO & MARCA DE AGUA MANDO EJECUTIVO)
   const [footerStyle, setFooterStyle] = useState<'glass' | 'record' | 'qr' | 'minimal'>('minimal');
   const [coverMockup, setCoverMockup] = useState<'flat' | 'vinyl' | 'cd' | 'frame'>('vinyl');
   const [titleFont, setTitleFont] = useState<'bebas' | 'cinzel' | 'grotesk' | 'anton'>('bebas');
@@ -149,6 +149,30 @@ const PromoImageApp: React.FC = () => {
   const [badgeType, setBadgeType] = useState<'none' | 'biblical-advisory' | 'exclusive' | 'hires' | 'chihuahua'>('biblical-advisory');
   const [colorFilter, setColorFilter] = useState<'none' | 'warm-gold' | 'midnight-blue' | 'bleach-bypass' | 'vintage' | 'noir'>('none');
   const [showLensFlare, setShowLensFlare] = useState<boolean>(true);
+
+  // ESTADOS DE FONDO & TEXTURAS HD
+  const [bgBlur, setBgBlur] = useState<number>(0);
+  const [bgBrightness, setBgBrightness] = useState<number>(100);
+  const [bgContrast, setBgContrast] = useState<number>(100);
+  const [bgScale, setBgScale] = useState<number>(100);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
+
+  // ESTADOS DE MARCA DE AGUA & LISTONES (SUITE MANDO EJECUTIVO)
+  const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(false);
+  const [watermarkStyle, setWatermarkStyle] = useState<'diagonal' | 'tiled' | 'center'>('diagonal');
+  const [watermarkText, setWatermarkText] = useState<string>('#PuroSeñorJesucristoCompa');
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(12);
+  const [watermarkSize, setWatermarkSize] = useState<number>(100);
+
+  const [ribbonStyle, setRibbonStyle] = useState<'none' | 'bottom' | 'top' | 'diagonal-left'>('none');
+  const [ribbonText, setRibbonText] = useState<string>('#PuroSeñorJesucristoCompa');
+  const [ribbonColor, setRibbonColor] = useState<'gold' | 'black' | 'white' | 'red' | 'blue' | 'green'>('gold');
+  const [ribbonOpacity, setRibbonOpacity] = useState<number>(90);
+
+  const [watermarkLogo, setWatermarkLogo] = useState<'none' | 'mando' | 'diosmasgym' | 'juan614'>('none');
+  const [watermarkLogoPos, setWatermarkLogoPos] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'>('top-left');
+  const [watermarkLogoOpacity, setWatermarkLogoOpacity] = useState<number>(75);
+  const [watermarkLogoScale, setWatermarkLogoScale] = useState<number>(100);
 
   // FUNCIÓN PARA TRAER VERSÍCULO DE LA API DE LA BIBLIA (rv1960)
   const fetchRandomBibleVerse = async (targetArtist?: string) => {
@@ -1060,7 +1084,353 @@ const PromoImageApp: React.FC = () => {
             </div>
           </div>
 
-          {/* GROUP: 3D COVER MOCKUP & BADGES */}
+          {/* GROUP: FONDO & TEXTURAS HD (BACKGROUND SUITE) */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] flex items-center gap-2">
+                <i className="fas fa-image"></i>
+                Fondo & Texturas HD
+              </h2>
+              <button
+                type="button"
+                onClick={() => bgFileInputRef.current?.click()}
+                className="px-3.5 py-1.5 bg-[#c5a059] hover:bg-[#d6b26b] text-black text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-[#c5a059]/20"
+              >
+                <i className="fas fa-upload"></i> Subir Fondo
+              </button>
+            </div>
+
+            <input
+              ref={bgFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    if (ev.target?.result) {
+                      setBg(ev.target.result as string);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+
+            <div className="space-y-6">
+              {/* PRESETS DE FONDOS DE ESTUDIO */}
+              <div className="space-y-3">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Fondos de Estudio Prediseñados</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'original', label: '🎵 Portada Tema', url: null },
+                    { id: 'studio-dark', label: '🌌 Dark Studio', url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1440&auto=format&fit=crop' },
+                    { id: 'gym-dark', label: '🏋️ Hierro & Gym', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1440&auto=format&fit=crop' },
+                    { id: 'gold-abstract', label: '👑 Luxury Gold', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1440&auto=format&fit=crop' },
+                    { id: 'chihuahua-sierra', label: '🌵 Sierra Norte', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1440&auto=format&fit=crop' },
+                    { id: 'stage-lights', label: '⚡ Cyber Stage', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1440&auto=format&fit=crop' },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        if (p.url) {
+                          setBg(p.url);
+                        } else {
+                          const currentSong = catalog.find(s => s.name.toUpperCase() === title.toUpperCase());
+                          if (currentSong?.cover) setBg(currentSong.cover);
+                        }
+                      }}
+                      className="py-2.5 px-2 bg-black/40 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/40 rounded-xl text-[8px] font-black uppercase tracking-wider text-white/70 hover:text-white transition-all text-center"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SLIDERS DE PROCESAMIENTO DE FONDO */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Desenfoque (Blur)</label>
+                    <span className="text-[9px] font-mono text-[#c5a059]">{bgBlur}px</span>
+                  </div>
+                  <input
+                    type="range" min="0" max="25" step="1"
+                    value={bgBlur}
+                    onChange={(e) => setBgBlur(parseInt(e.target.value))}
+                    className="w-full accent-[#c5a059]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Zoom / Escala</label>
+                    <span className="text-[9px] font-mono text-[#c5a059]">{bgScale}%</span>
+                  </div>
+                  <input
+                    type="range" min="100" max="150" step="2"
+                    value={bgScale}
+                    onChange={(e) => setBgScale(parseInt(e.target.value))}
+                    className="w-full accent-[#c5a059]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Brillo Fondo</label>
+                    <span className="text-[9px] font-mono text-[#c5a059]">{bgBrightness}%</span>
+                  </div>
+                  <input
+                    type="range" min="40" max="160" step="5"
+                    value={bgBrightness}
+                    onChange={(e) => setBgBrightness(parseInt(e.target.value))}
+                    className="w-full accent-[#c5a059]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Contraste Fondo</label>
+                    <span className="text-[9px] font-mono text-[#c5a059]">{bgContrast}%</span>
+                  </div>
+                  <input
+                    type="range" min="50" max="160" step="5"
+                    value={bgContrast}
+                    onChange={(e) => setBgContrast(parseInt(e.target.value))}
+                    className="w-full accent-[#c5a059]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Oscurecimiento (Overlay)</label>
+                  <span className="text-[9px] font-mono text-[#c5a059]">{Math.round(overlay * 100)}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="0.95" step="0.05"
+                  value={overlay}
+                  onChange={(e) => setOverlay(parseFloat(e.target.value))}
+                  className="w-full accent-[#c5a059]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* GROUP: MARCA DE AGUA & LISTONES (SUITE MANDO EJECUTIVO) */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
+              <i className="fas fa-shield-halved"></i>
+              Marca de Agua & Listones (Mando Ejecutivo)
+            </h2>
+
+            <div className="space-y-6">
+              {/* SUB-SECCIÓN 1: HASHTAG MARCA DE AGUA EN FONDO */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest">Marca de Agua en Fondo (Hashtags)</label>
+                  <button
+                    type="button"
+                    onClick={() => setWatermarkEnabled(!watermarkEnabled)}
+                    className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${watermarkEnabled ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/30'}`}
+                  >
+                    {watermarkEnabled ? 'ACTIVADO' : 'APAGADO'}
+                  </button>
+                </div>
+
+                {watermarkEnabled && (
+                  <div className="space-y-3 p-4 bg-black/30 rounded-2xl border border-white/5 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'diagonal', label: '📐 Diagonal' },
+                        { id: 'tiled', label: '🔲 Mosaico' },
+                        { id: 'center', label: '🎯 Centro' },
+                      ].map((ws) => (
+                        <button
+                          key={ws.id}
+                          type="button"
+                          onClick={() => setWatermarkStyle(ws.id as any)}
+                          className={`py-2 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-all ${watermarkStyle === ws.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
+                        >
+                          {ws.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={watermarkText}
+                      onChange={(e) => setWatermarkText(e.target.value)}
+                      placeholder="#PuroSeñorJesucristoCompa"
+                      className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs text-[#c5a059] font-black tracking-wider outline-none"
+                    />
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        '#PuroSeñorJesucristoCompa',
+                        'Puro Chihuahua',
+                        'Diosmasgym Records',
+                        'La Gloria es de Dios',
+                        'Diosmasgym.com'
+                      ].map((txt) => (
+                        <button
+                          key={txt}
+                          type="button"
+                          onClick={() => setWatermarkText(txt)}
+                          className="px-2 py-0.5 rounded bg-white/[0.03] hover:bg-[#c5a059]/20 border border-white/5 text-[7px] font-bold text-white/50 hover:text-[#c5a059] transition-all"
+                        >
+                          {txt}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <label className="text-[8px] uppercase font-bold text-white/30 tracking-widest">Opacidad: {watermarkOpacity}%</label>
+                      <input
+                        type="range" min="3" max="35" step="1"
+                        value={watermarkOpacity}
+                        onChange={(e) => setWatermarkOpacity(parseInt(e.target.value))}
+                        className="w-1/2 accent-[#c5a059]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SUB-SECCIÓN 2: LISTÓN / RIBBON DE FE */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Listón / Ribbon de Fe (Banner)</label>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'none', label: 'Sin Listón' },
+                    { id: 'bottom', label: '🎗️ Inferior' },
+                    { id: 'top', label: '🎗️ Superior' },
+                    { id: 'diagonal-left', label: '📐 Diagonal Esquina' },
+                  ].map((rs) => (
+                    <button
+                      key={rs.id}
+                      type="button"
+                      onClick={() => setRibbonStyle(rs.id as any)}
+                      className={`py-2 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all text-center ${ribbonStyle === rs.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {rs.label}
+                    </button>
+                  ))}
+                </div>
+
+                {ribbonStyle !== 'none' && (
+                  <div className="space-y-3 p-4 bg-black/30 rounded-2xl border border-white/5 animate-in fade-in duration-150">
+                    <div className="space-y-1.5">
+                      <label className="text-[8px] uppercase font-bold text-white/30 tracking-widest block">Color del Listón</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: 'gold', label: '👑 Oro Real' },
+                          { id: 'black', label: '⬛ Negro Élite' },
+                          { id: 'white', label: '⬜ Blanco Puro' },
+                          { id: 'red', label: '🔴 Carmesí' },
+                          { id: 'blue', label: '🔵 Azul Real' },
+                          { id: 'green', label: '🟢 Esmeralda' },
+                        ].map((rc) => (
+                          <button
+                            key={rc.id}
+                            type="button"
+                            onClick={() => setRibbonColor(rc.id as any)}
+                            className={`py-1.5 px-2 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-all ${ribbonColor === rc.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
+                          >
+                            {rc.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={ribbonText}
+                      onChange={(e) => setRibbonText(e.target.value)}
+                      placeholder="#PuroSeñorJesucristoCompa"
+                      className="w-full bg-black/40 border border-white/10 p-2.5 rounded-xl text-xs text-white font-bold outline-none"
+                    />
+
+                    <div className="flex justify-between items-center pt-1">
+                      <label className="text-[8px] uppercase font-bold text-white/30 tracking-widest">Opacidad Listón: {ribbonOpacity}%</label>
+                      <input
+                        type="range" min="50" max="100" step="5"
+                        value={ribbonOpacity}
+                        onChange={(e) => setRibbonOpacity(parseInt(e.target.value))}
+                        className="w-1/2 accent-[#c5a059]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SUB-SECCIÓN 3: SELLO / LOGO FLOTANTE */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Sello / Logo Flotante</label>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'none', label: 'Sin Sello' },
+                    { id: 'mando', label: '🛡️ Mando Ejecutivo' },
+                    { id: 'diosmasgym', label: '👑 Diosmasgym' },
+                    { id: 'juan614', label: '✝️ Juan 614' },
+                  ].map((wl) => (
+                    <button
+                      key={wl.id}
+                      type="button"
+                      onClick={() => setWatermarkLogo(wl.id as any)}
+                      className={`py-2 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all text-center ${watermarkLogo === wl.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white'}`}
+                    >
+                      {wl.label}
+                    </button>
+                  ))}
+                </div>
+
+                {watermarkLogo !== 'none' && (
+                  <div className="space-y-3 p-4 bg-black/30 rounded-2xl border border-white/5 animate-in fade-in duration-150">
+                    <div className="space-y-1.5">
+                      <label className="text-[8px] uppercase font-bold text-white/30 tracking-widest block">Posición del Logo</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: 'top-left', label: '↖ Sup. Izq' },
+                          { id: 'top-right', label: '↗ Sup. Der' },
+                          { id: 'bottom-left', label: '↙ Inf. Izq' },
+                          { id: 'bottom-right', label: '↘ Inf. Der' },
+                          { id: 'center', label: '🎯 Centro' },
+                        ].map((pos) => (
+                          <button
+                            key={pos.id}
+                            type="button"
+                            onClick={() => setWatermarkLogoPos(pos.id as any)}
+                            className={`py-1.5 px-2 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-all ${watermarkLogoPos === pos.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
+                          >
+                            {pos.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                      <label className="text-[8px] uppercase font-bold text-white/30 tracking-widest">Opacidad Logo: {watermarkLogoOpacity}%</label>
+                      <input
+                        type="range" min="20" max="100" step="5"
+                        value={watermarkLogoOpacity}
+                        onChange={(e) => setWatermarkLogoOpacity(parseInt(e.target.value))}
+                        className="w-1/2 accent-[#c5a059]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
               <i className="fas fa-compact-disc"></i>
@@ -2053,24 +2423,25 @@ const PromoTemplate: React.FC<any> = ({
             }
           `}</style>
 
-          {/* BACKGROUND ART */}
+          {/* BACKGROUND ART (WITH PRO BLUR, BRIGHTNESS, CONTRAST, SCALE) */}
           {bg && (
             <div 
               data-export-bg
               data-export-master-img
               style={{ 
                 position: "absolute", 
-                inset: "-2%", 
+                inset: "-4%", 
                 backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`, 
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center', 
                 backgroundRepeat: 'no-repeat',
                 imageRendering: 'smooth' as any,
-                filter: colorFilter === 'noir' 
-                  ? 'grayscale(1) contrast(1.3) brightness(0.95)' 
+                transform: `scale(${bgScale / 100})`,
+                filter: `blur(${bgBlur}px) brightness(${bgBrightness / 100}) contrast(${bgContrast / 100}) ${colorFilter === 'noir' 
+                  ? 'grayscale(1) contrast(1.3)' 
                   : colorFilter === 'bleach-bypass' 
-                  ? 'contrast(1.35) saturate(0.55) brightness(1.05)' 
-                  : 'brightness(1.02)'
+                  ? 'saturate(0.55)' 
+                  : ''}`
               }} 
             />
           )}
@@ -2107,6 +2478,189 @@ const PromoTemplate: React.FC<any> = ({
             opacity: overlay,
             zIndex: 3
           }} />
+
+          {/* WATERMARK HASHTAG BACKGROUND (SUITE MANDO EJECUTIVO) */}
+          {watermarkEnabled && watermarkText && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 4,
+              pointerEvents: 'none',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: watermarkOpacity / 100
+            }}>
+              {watermarkStyle === 'diagonal' && (
+                <div style={{
+                  transform: 'rotate(-30deg)',
+                  fontSize: config.title * 0.9 * (watermarkSize / 100),
+                  fontWeight: 900,
+                  fontStyle: 'italic',
+                  fontFamily: "'Montserrat', 'Bebas Neue', sans-serif",
+                  color: '#ffffff',
+                  whiteSpace: 'nowrap',
+                  textShadow: '0 4px 30px rgba(0,0,0,0.95)',
+                  letterSpacing: '0.05em'
+                }}>
+                  {watermarkText}
+                </div>
+              )}
+              {watermarkStyle === 'center' && (
+                <div style={{
+                  fontSize: config.title * 1.1 * (watermarkSize / 100),
+                  fontWeight: 900,
+                  fontStyle: 'italic',
+                  fontFamily: "'Montserrat', 'Bebas Neue', sans-serif",
+                  color: '#ffffff',
+                  textAlign: 'center',
+                  textShadow: '0 4px 30px rgba(0,0,0,0.95)',
+                  letterSpacing: '0.05em',
+                  padding: '0 40px'
+                }}>
+                  {watermarkText}
+                </div>
+              )}
+              {watermarkStyle === 'tiled' && (
+                <div style={{
+                  position: 'absolute',
+                  inset: '-50%',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: `${config.title * 1.5}px ${config.title * 2}px`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: 'rotate(-15deg)'
+                }}>
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <span key={i} style={{
+                      fontSize: config.title * 0.45 * (watermarkSize / 100),
+                      fontWeight: 900,
+                      fontStyle: 'italic',
+                      fontFamily: "'Montserrat', 'Bebas Neue', sans-serif",
+                      color: '#ffffff',
+                      textShadow: '0 2px 15px rgba(0,0,0,0.8)',
+                      letterSpacing: '0.1em'
+                    }}>
+                      {watermarkText}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* RIBBON / LISTÓN DE FE (SUITE MANDO EJECUTIVO) */}
+          {ribbonStyle !== 'none' && ribbonText && (
+            <div style={{
+              position: 'absolute',
+              zIndex: 22,
+              pointerEvents: 'none',
+              ...(ribbonStyle === 'top' ? {
+                top: 0,
+                left: 0,
+                right: 0,
+                padding: `${config.title * 0.16}px 0`,
+                background: ribbonColor === 'gold' 
+                  ? 'linear-gradient(90deg, #78531b 0%, #c5a059 50%, #78531b 100%)'
+                  : ribbonColor === 'black'
+                  ? 'rgba(10, 12, 20, 0.95)'
+                  : ribbonColor === 'white'
+                  ? 'rgba(255, 255, 255, 0.95)'
+                  : ribbonColor === 'red'
+                  ? 'linear-gradient(90deg, #590909 0%, #bd2c2c 50%, #590909 100%)'
+                  : ribbonColor === 'blue'
+                  ? 'linear-gradient(90deg, #0a225c 0%, #2b62d9 50%, #0a225c 100%)'
+                  : 'linear-gradient(90deg, #093a1d 0%, #228b4c 50%, #093a1d 100%)',
+                borderBottom: `2px solid ${ribbonColor === 'gold' ? '#fff2a3' : 'rgba(255,255,255,0.3)'}`,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.7)',
+                opacity: ribbonOpacity / 100,
+                textAlign: 'center'
+              } : ribbonStyle === 'bottom' ? {
+                bottom: `${config.title * 1.7}px`,
+                left: 0,
+                right: 0,
+                padding: `${config.title * 0.16}px 0`,
+                background: ribbonColor === 'gold' 
+                  ? 'linear-gradient(90deg, #78531b 0%, #c5a059 50%, #78531b 100%)'
+                  : ribbonColor === 'black'
+                  ? 'rgba(10, 12, 20, 0.95)'
+                  : ribbonColor === 'white'
+                  ? 'rgba(255, 255, 255, 0.95)'
+                  : ribbonColor === 'red'
+                  ? 'linear-gradient(90deg, #590909 0%, #bd2c2c 50%, #590909 100%)'
+                  : ribbonColor === 'blue'
+                  ? 'linear-gradient(90deg, #0a225c 0%, #2b62d9 50%, #0a225c 100%)'
+                  : 'linear-gradient(90deg, #093a1d 0%, #228b4c 50%, #093a1d 100%)',
+                borderTop: `2px solid ${ribbonColor === 'gold' ? '#fff2a3' : 'rgba(255,255,255,0.3)'}`,
+                borderBottom: `2px solid ${ribbonColor === 'gold' ? '#fff2a3' : 'rgba(255,255,255,0.3)'}`,
+                boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+                opacity: ribbonOpacity / 100,
+                textAlign: 'center'
+              } : {
+                top: `${config.title * 0.8}px`,
+                left: `-${config.title * 1.8}px`,
+                width: `${config.title * 8}px`,
+                padding: `${config.title * 0.12}px 0`,
+                transform: 'rotate(-45deg)',
+                background: ribbonColor === 'gold' 
+                  ? 'linear-gradient(90deg, #78531b 0%, #c5a059 50%, #78531b 100%)'
+                  : ribbonColor === 'black'
+                  ? 'rgba(10, 12, 20, 0.95)'
+                  : ribbonColor === 'white'
+                  ? 'rgba(255, 255, 255, 0.95)'
+                  : ribbonColor === 'red'
+                  ? 'linear-gradient(90deg, #590909 0%, #bd2c2c 50%, #590909 100%)'
+                  : ribbonColor === 'blue'
+                  ? 'linear-gradient(90deg, #0a225c 0%, #2b62d9 50%, #0a225c 100%)'
+                  : 'linear-gradient(90deg, #093a1d 0%, #228b4c 50%, #093a1d 100%)',
+                borderTop: '1px solid rgba(255,255,255,0.4)',
+                borderBottom: '1px solid rgba(255,255,255,0.4)',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.8)',
+                opacity: ribbonOpacity / 100,
+                textAlign: 'center'
+              })
+            }}>
+              <span style={{
+                fontSize: config.title * 0.22,
+                fontWeight: 900,
+                letterSpacing: '0.15em',
+                fontStyle: 'italic',
+                fontFamily: "'Montserrat', 'Bebas Neue', sans-serif",
+                color: ribbonColor === 'white' ? '#000000' : '#ffffff',
+                textShadow: ribbonColor === 'white' ? 'none' : '0 2px 8px rgba(0,0,0,0.8)',
+                textTransform: 'uppercase' as const
+              }}>
+                {ribbonText}
+              </span>
+            </div>
+          )}
+
+          {/* WATERMARK LOGO FLOTANTE (SUITE MANDO EJECUTIVO) */}
+          {watermarkLogo !== 'none' && (
+            <div style={{
+              position: 'absolute',
+              zIndex: 21,
+              pointerEvents: 'none',
+              opacity: watermarkLogoOpacity / 100,
+              ...(watermarkLogoPos === 'top-left' ? { top: config.title * 0.6, left: config.title * 1.5 }
+                : watermarkLogoPos === 'top-right' ? { top: config.title * 0.6, right: config.title * 0.8 }
+                : watermarkLogoPos === 'bottom-left' ? { bottom: config.title * 1.5, left: config.title * 1.5 }
+                : watermarkLogoPos === 'bottom-right' ? { bottom: config.title * 1.5, right: config.title * 1.5 }
+                : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' })
+            }}>
+              <img
+                src={watermarkLogo === 'mando' ? '/logo-mando-ejecutivo.png' : watermarkLogo === 'juan614' ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                style={{
+                  width: `${config.title * 2.2 * (watermarkLogoScale / 100)}px`,
+                  height: 'auto',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.9))'
+                }}
+              />
+            </div>
+          )}
 
           <div className="vignette" />
           <div className="light-leak" />
