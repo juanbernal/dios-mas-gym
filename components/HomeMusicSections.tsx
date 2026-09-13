@@ -578,7 +578,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                 Joyas <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">Ocultas</span>
               </h2>
               <p className="text-xs md:text-sm text-white/50 mt-2 max-w-xl">
-                Canciones con menor número de reproducciones que merecen ser escuchadas. ¡Descubre nueva música y apoya los temas!
+                Canciones especiales de nuestro catálogo para descubrir y disfrutar. ¡Haz clic en cualquiera para escucharla al instante!
               </p>
             </div>
 
