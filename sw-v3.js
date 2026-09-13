@@ -1,4 +1,4 @@
-// SW V12 - Push Notifications + Release Checker + Force Cache Purge
+// SW V13 - Push Notifications + Release Checker + Force Cache Purge
 self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => {
   e.waitUntil(
