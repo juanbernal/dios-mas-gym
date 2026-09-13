@@ -142,7 +142,7 @@ const PromoImageApp: React.FC = () => {
   const [quickCopySuccess, setQuickCopySuccess] = useState(""); // #1 Toast del botón rápido de copia
 
   // NUEVAS MEJORAS PRO v5.0
-  const [footerStyle, setFooterStyle] = useState<'glass' | 'record' | 'qr' | 'minimal'>('glass');
+  const [footerStyle, setFooterStyle] = useState<'glass' | 'record' | 'qr' | 'minimal'>('minimal');
   const [coverMockup, setCoverMockup] = useState<'flat' | 'vinyl' | 'cd' | 'frame'>('vinyl');
   const [titleFont, setTitleFont] = useState<'bebas' | 'cinzel' | 'grotesk' | 'anton'>('bebas');
   const [titleEffect, setTitleEffect] = useState<'glow' | 'gold' | 'chrome' | 'solid'>('glow');
@@ -1120,18 +1120,18 @@ const PromoImageApp: React.FC = () => {
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
               <i className="fas fa-sliders"></i>
-              Estilo del Footer ("Foster")
+              Estilo del Footer Flotante (Sin Barra)
             </h2>
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Diseño de la Barra Inferior</label>
+                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Distribución de Elementos (100% Transparente)</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: 'glass', label: '🌟 Glass HUD', desc: 'Cristal translúcido pro' },
-                    { id: 'record', label: '💿 Ficha Discográfica', desc: 'CAT, sello & Soundwave' },
-                    { id: 'qr', label: '📱 Smart QR Code', desc: 'Escaneo directo a música' },
-                    { id: 'minimal', label: '⚡ Flotante Clean', desc: 'Sin barra, fade suave' },
+                    { id: 'minimal', label: '⚡ Flotante Minimal', desc: 'Limpio y directo sobre el arte' },
+                    { id: 'glass', label: '🌟 Audio Spec + Redes', desc: 'Hi-Res Audio y plataformas' },
+                    { id: 'record', label: '💿 Sello & Soundwave', desc: 'Ficha de catálogo y onda' },
+                    { id: 'qr', label: '📱 Smart QR Code', desc: 'Código QR y enlaces' },
                   ].map((f) => (
                     <button
                       key={f.id}
@@ -2534,18 +2534,67 @@ const PromoTemplate: React.FC<any> = ({
             </div>{/* END INNER CONTENT AREA */}
 
             {/* ═══════════════════════════════════════════════════════
-                REFINED MODERN FOOTERS (EL FOSTER) — 4 STYLES
+                REFINED MODERN FOOTERS (100% TRANSPARENT FLOATING)
                 ═══════════════════════════════════════════════════════ */}
 
-            {/* 1. GLASS HUD FOOTER (ULTRA-CLEAN GLASSMORPHISM) */}
+            {/* 1. MINIMAL FLOATING FOOTER (CLEAN & DIRECT OVER ARTWORK) */}
+            {footerStyle === 'minimal' && (
+              <div style={{
+                background: 'transparent',
+                padding: `${config.title * 0.4}px ${config.title * 1.4}px ${config.title * 0.5}px ${config.title * 1.4}px`,
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box' as const,
+              }}>
+                {/* Left: Floating Artist / Edition */}
+                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: config.title * 0.18, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 16px rgba(0,0,0,0.8)' }}>
+                    {artist.toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                    {template.split('-')[1]?.toUpperCase() || 'PRO'} RELEASE · 2026
+                  </div>
+                </div>
+
+                {/* Center: Floating URL & Streaming */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3, color: theme.accent, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.95))' }}>
+                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.32 }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.3 }}></i>
+                  </div>
+                  <div style={{ fontSize: config.title * 0.16, color: '#ffffff', fontWeight: 900, letterSpacing: '0.25em', fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)' }}>
+                    {displayUrl}
+                  </div>
+                </div>
+
+                {/* Right: Floating Logo */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                  <div style={{ width: config.title * 2.4, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <img
+                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 12px ${theme.accent}66)`
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. AUDIO SPEC & STREAMING ICONS (TRANSPARENT FLOATING) */}
             {footerStyle === 'glass' && (
               <div style={{
-                background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.75) 100%)`,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderTop: `1px solid ${theme.accent}55`,
-                boxShadow: `0 -10px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)`,
-                padding: `${config.title * 0.4}px ${config.title * 1.4}px`,
+                background: 'transparent',
+                padding: `${config.title * 0.4}px ${config.title * 1.4}px ${config.title * 0.5}px ${config.title * 1.4}px`,
                 flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -2555,13 +2604,13 @@ const PromoTemplate: React.FC<any> = ({
               }}>
                 {/* Left: Audio spec + Edition */}
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.35em', color: theme.accent, fontFamily: 'Inter' }}>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.35em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION
                   </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.2em', fontWeight: 700, fontFamily: 'Inter' }}>
+                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, fontFamily: 'Inter', opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     HI-RES AUDIO · 24-BIT / 96kHz
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.2, marginTop: 4, opacity: 0.7 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.2, marginTop: 4, opacity: 0.95, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9))' }}>
                     <i className="fab fa-spotify" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
                     <i className="fab fa-apple" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
                     <i className="fab fa-youtube" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
@@ -2569,28 +2618,25 @@ const PromoTemplate: React.FC<any> = ({
                   </div>
                 </div>
 
-                {/* Center: Modern Monospace URL Badge */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                {/* Center: Floating URL & Tagline (No colored pill) */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <div style={{
-                    padding: `${config.title * 0.1}px ${config.title * 0.45}px`,
-                    borderRadius: 100,
                     fontWeight: 900,
                     fontSize: config.title * 0.18,
-                    color: '#000',
-                    background: theme.accent,
-                    letterSpacing: '0.22em',
-                    boxShadow: `0 4px 20px ${theme.accent}66`,
+                    color: theme.accent,
+                    letterSpacing: '0.25em',
                     fontFamily: 'Inter',
-                    textTransform: 'uppercase' as const
+                    textTransform: 'uppercase' as const,
+                    textShadow: '0 2px 10px rgba(0,0,0,0.95), 0 0 16px rgba(0,0,0,0.85)'
                   }}>
                     {displayUrl}
                   </div>
-                  <div style={{ fontSize: config.title * 0.14, color: '#fff', letterSpacing: '0.25em', opacity: 0.8, fontWeight: 700, fontFamily: 'Inter', textTransform: 'uppercase' as const }}>
+                  <div style={{ fontSize: config.title * 0.13, color: '#ffffff', letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700, fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua · Records'}
                   </div>
                 </div>
 
-                {/* Right: Artist Logo with glow */}
+                {/* Right: Artist Logo with drop shadow */}
                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                   <div style={{ width: config.title * 2.6, height: config.title * 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                     <img
@@ -2599,23 +2645,21 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 0 8px ${theme.accent}66)`,
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`,
                         transform: artist.toUpperCase().includes('JUAN 614') ? 'scale(1.1)' : 'scale(1.25)'
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: '#777', fontWeight: 800, letterSpacing: '0.15em' }}>© 2026 DIOSMASGYM</div>
+                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
                 </div>
               </div>
             )}
 
-            {/* 2. RECORD LABEL & SOUNDWAVE FOOTER */}
+            {/* 3. RECORD LABEL & SOUNDWAVE (TRANSPARENT FLOATING) */}
             {footerStyle === 'record' && (
               <div style={{
-                background: `linear-gradient(180deg, rgba(10,15,29,0.85) 0%, rgba(2,6,23,0.98) 100%)`,
-                borderTop: `2px solid ${theme.accent}88`,
-                boxShadow: `0 -12px 50px rgba(0,0,0,0.9)`,
-                padding: `${config.title * 0.45}px ${config.title * 1.4}px`,
+                background: 'transparent',
+                padding: `${config.title * 0.45}px ${config.title * 1.4}px ${config.title * 0.5}px ${config.title * 1.4}px`,
                 flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -2625,35 +2669,35 @@ const PromoTemplate: React.FC<any> = ({
               }}>
                 {/* Left: Catalog Ficha */}
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.3em', color: theme.accent, fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.3em', color: theme.accent, fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     CAT: DGM-2026-X
                   </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.15em', fontWeight: 700 }}>
+                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     PROD // DIOSMASGYM RECORDS
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, opacity: 0.7, letterSpacing: '0.15em', fontWeight: 900 }}>
+                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, opacity: 0.8, letterSpacing: '0.15em', fontWeight: 900, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     STEREO MASTERING 24-BIT
                   </div>
                 </div>
 
                 {/* Center: Audio Soundwave Graphic */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                   {/* Soundwave SVG */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: config.title * 0.5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: config.title * 0.45, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.95))' }}>
                     {[8, 14, 22, 30, 18, 12, 28, 35, 24, 16, 26, 32, 18, 10, 22, 15, 8].map((h, idx) => (
                       <div 
                         key={idx} 
                         style={{ 
                           width: config.title * 0.04, 
-                          height: (config.title * 0.5) * (h / 35), 
+                          height: (config.title * 0.45) * (h / 35), 
                           backgroundColor: idx % 2 === 0 ? theme.accent : '#ffffff',
                           borderRadius: 2,
-                          opacity: 0.85 
+                          opacity: 0.95 
                         }} 
                       />
                     ))}
                   </div>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.25em', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.25em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {displayUrl}
                   </div>
                 </div>
@@ -2667,22 +2711,20 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, fontWeight: 800, letterSpacing: '0.2em' }}>OFFICIAL RELEASE</div>
+                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, fontWeight: 800, letterSpacing: '0.2em', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>OFFICIAL RELEASE</div>
                 </div>
               </div>
             )}
 
-            {/* 3. SMART QR SCANNER FOOTER */}
+            {/* 4. SMART QR SCANNER (TRANSPARENT FLOATING) */}
             {footerStyle === 'qr' && (
               <div style={{
-                background: `linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.98) 100%)`,
-                borderTop: `1px solid ${theme.accent}66`,
-                boxShadow: `0 -10px 40px rgba(0,0,0,0.85)`,
-                padding: `${config.title * 0.4}px ${config.title * 1.4}px`,
+                background: 'transparent',
+                padding: `${config.title * 0.4}px ${config.title * 1.4}px ${config.title * 0.5}px ${config.title * 1.4}px`,
                 flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -2694,10 +2736,10 @@ const PromoTemplate: React.FC<any> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3 }}>
                   <div style={{
                     padding: 3,
-                    backgroundColor: '#000',
+                    backgroundColor: 'rgba(0,0,0,0.85)',
                     border: `1.5px solid ${theme.accent}`,
                     borderRadius: 6,
-                    boxShadow: `0 4px 20px ${theme.accent}33`,
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.9)`,
                     width: config.title * 1.4,
                     height: config.title * 1.4,
                     display: 'flex',
@@ -2712,10 +2754,10 @@ const PromoTemplate: React.FC<any> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.2em', color: theme.accent, fontFamily: 'Inter' }}>
+                    <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.2em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                       ESCANEA PARA ESCUCHAR
                     </div>
-                    <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.15em', fontWeight: 700 }}>
+                    <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                       SMART LINK OFICIAL
                     </div>
                   </div>
@@ -2723,13 +2765,13 @@ const PromoTemplate: React.FC<any> = ({
 
                 {/* Center: Streaming Icons & URL */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3, color: theme.accent }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.3, color: theme.accent, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.95))' }}>
                     <i className="fab fa-spotify" style={{ fontSize: config.title * 0.35 }}></i>
                     <i className="fab fa-apple" style={{ fontSize: config.title * 0.35 }}></i>
                     <i className="fab fa-youtube" style={{ fontSize: config.title * 0.35 }}></i>
                     <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.32 }}></i>
                   </div>
-                  <div style={{ fontSize: config.title * 0.15, color: '#fff', fontWeight: 900, letterSpacing: '0.2em', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: config.title * 0.15, color: '#fff', fontWeight: 900, letterSpacing: '0.2em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {displayUrl}
                   </div>
                 </div>
@@ -2743,63 +2785,11 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: '#777', fontWeight: 800, letterSpacing: '0.15em' }}>© 2026 DIOSMASGYM</div>
-                </div>
-              </div>
-            )}
-
-            {/* 4. MINIMAL FLOATING FOOTER (NO SOLID BOX, NATURAL FADE) */}
-            {footerStyle === 'minimal' && (
-              <div style={{
-                background: `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)`,
-                padding: `${config.title * 0.5}px ${config.title * 1.4}px`,
-                flexShrink: 0,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                width: '100%',
-                boxSizing: 'border-box' as const,
-              }}>
-                {/* Left: Floating Edition */}
-                <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.18, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent, fontFamily: 'Inter' }}>
-                    {artist.toUpperCase()}
-                  </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#aaa', letterSpacing: '0.2em', fontWeight: 700 }}>
-                    EXCLUSIVO 2026
-                  </div>
-                </div>
-
-                {/* Center: Floating URL & Streaming */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.35, color: theme.accent, opacity: 0.9 }}>
-                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.32 }}></i>
-                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.32 }}></i>
-                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.32 }}></i>
-                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.3 }}></i>
-                  </div>
-                  <div style={{ fontSize: config.title * 0.16, color: '#fff', fontWeight: 900, letterSpacing: '0.25em', fontFamily: 'Inter', textTransform: 'uppercase' as const }}>
-                    {displayUrl}
-                  </div>
-                </div>
-
-                {/* Right: Floating Logo */}
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <div style={{ width: config.title * 2.4, height: config.title * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <img
-                      src={artist.toUpperCase().includes('JUAN 614') ? '/logo-juan614-v2.png' : '/logo-diosmasgym.png'}
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        objectFit: 'contain',
-                        filter: `drop-shadow(0 0 10px ${theme.accent}66)`
-                      }}
-                    />
-                  </div>
+                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
                 </div>
               </div>
             )}
