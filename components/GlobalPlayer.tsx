@@ -222,7 +222,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
              {/* Ver Letra button */}
              <Link
                 to={`/letra/${activeSong.id || activeSong.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
@@ -230,6 +230,17 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
                 title="Ver Letra Oficial"
              >
                 <i className="fas fa-file-lines text-xs md:text-sm"></i>
+             </Link>
+
+             {/* SmartLink button */}
+             <Link
+                to={`/link/${activeSong.id || activeSong.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] hover:text-[#dfba6f] transition-all border border-[#c5a059]/30"
+                title="SmartLink (Escuchar canción completa en plataformas)"
+             >
+                <i className="fas fa-link text-xs md:text-sm"></i>
              </Link>
 
              {videoId ? (
