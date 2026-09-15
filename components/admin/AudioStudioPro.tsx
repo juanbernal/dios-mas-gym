@@ -119,11 +119,13 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
 
   // Comprobar si es un archivo que ya fue procesado y blindado por nuestro estudio
   const isOfficialVerified = (
-    (meta.label === 'Diosmasgym records' || meta.label === 'Diosmasgym Records') &&
-    (meta.comment || '').includes('Diosmasgym Records Studio HD')
+    fileName.toLowerCase().includes('_master_hd') ||
+    fileName.toLowerCase().includes('_blindado') ||
+    ((meta.label === 'Diosmasgym records' || meta.label === 'Diosmasgym Records') &&
+     (meta.comment || '').includes('Diosmasgym Records Studio HD'))
   );
 
-  if (isOfficialVerified) {
+  if (isOfficialVerified && detectedKeywords.length === 0) {
     return {
       riskScore: 0,
       status: 'CLEAN',
@@ -167,37 +169,49 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
   const avgHf = sampled > 0 ? hfEnergy / sampled : 0;
   const avgStereoDiff = sampled > 0 ? stereoDiffEnergy / sampled : 0;
 
-  // Si es un archivo crudo sin blindar (Suno/Udio o MP3 genérico), iniciamos con puntaje de riesgo
-  let score = 50; 
+  // Base de riesgo neutral (0%)
+  let score = 0; 
 
-  // 1. Detección por palabras clave o nombre de archivo de IA
-  if (detectedKeywords.length > 0) score += 35;
+  // 1. Detección por palabras clave o metadatos de IA (Suno, Udio, etc.)
+  if (detectedKeywords.length > 0) {
+    score += 55;
+  }
 
-  // 2. Firma de compresión hiper-agresiva típica de modelos de difusión (Crest Factor bajo < 12dB)
-  if (crestFactorDb < 9.5) score += 25;
-  else if (crestFactorDb < 12.0) score += 15;
+  // 2. Firma de compresión hiper-agresiva típica de modelos de difusión (Crest Factor excesivamente bajo < 8.5dB)
+  if (crestFactorDb < 8.5) {
+    score += 20;
+  } else if (crestFactorDb < 10.5 && avgStereoDiff > 0.09) {
+    score += 15;
+  }
 
-  // 3. Ruido parásito / marca de agua ultrasónica de alta frecuencia
-  if (avgHf > 0.05) score += 20;
-  else if (avgHf > 0.02) score += 10;
+  // 3. Ruido parásito / marca de agua ultrasónica inaudible (>18.5kHz)
+  if (avgHf > 0.08) {
+    score += 25;
+  } else if (avgHf > 0.04) {
+    score += 12;
+  }
 
-  // 4. Incoherencia de fase estéreo
-  if (avgStereoDiff > 0.08) score += 15;
+  // 4. Incoherencia de fase estéreo artificial
+  if (avgStereoDiff > 0.12) {
+    score += 15;
+  }
 
-  const ultrasonicPercentage = Math.min(100, Math.max(30, Math.round((avgHf / 0.10) * 100)));
+  const ultrasonicPercentage = Math.min(100, Math.max(0, Math.round((avgHf / 0.10) * 100)));
 
   const recommendations: string[] = [];
-  if (score >= 45) {
+  if (score >= 50) {
     recommendations.push('Filtro Ultrasónico Low-Pass @ 19.2 kHz para eliminar la marca inaudible de Suno/Udio.');
     recommendations.push('Inyección de Saturación Analógica & Dither TPDF para romper la huella de difusión.');
     recommendations.push('Sanitización de metadatos con el sello oficial de Diosmasgym Records.');
-  } else if (score >= 20) {
+  } else if (score >= 25) {
     recommendations.push('Recomendado activar el Blindaje Anti-IA antes de exportar a DistroKid.');
+  } else {
+    recommendations.push('Audio limpio. Cumple con los estándares para distribución oficial.');
   }
 
   let status: 'CLEAN' | 'WARNING' | 'AI_DETECTED' = 'CLEAN';
-  if (score >= 45) status = 'AI_DETECTED';
-  else if (score >= 20) status = 'WARNING';
+  if (score >= 50) status = 'AI_DETECTED';
+  else if (score >= 25) status = 'WARNING';
 
   return {
     riskScore: Math.min(99, score),
