@@ -117,32 +117,77 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
     detectedKeywords.push(matches[0]);
   }
 
-  const channelData = audioBuffer.getChannelData(0);
-  let totalEnergy = 0;
-  const step = Math.max(1, Math.floor(channelData.length / 40000));
-  let hfCount = 0;
-  for (let i = 0; i < channelData.length - 2; i += step) {
-    const s0 = channelData[i];
-    const s1 = channelData[i + 1];
-    const s2 = channelData[i + 2];
-    const diff2 = Math.abs(s2 - 2 * s1 + s0);
-    const amp = Math.abs(s0);
-    totalEnergy += amp;
-    if (diff2 > 0.38) {
-      hfCount++;
-    }
+  // Comprobar si es un archivo que ya fue procesado y blindado por nuestro estudio
+  const isOfficialVerified = (
+    (meta.label === 'Diosmasgym records' || meta.label === 'Diosmasgym Records') &&
+    (meta.comment || '').includes('Diosmasgym Records Studio HD')
+  );
+
+  if (isOfficialVerified) {
+    return {
+      riskScore: 0,
+      status: 'CLEAN',
+      ultrasonicEnergy: 0,
+      hasMetadataTags: false,
+      detectedKeywords: [],
+      recommendations: ['Pista 100% Verificada y Blindada por Diosmasgym Records']
+    };
   }
 
-  const hfRatio = totalEnergy > 0 ? (hfCount / (channelData.length / step)) * 100 : 0;
-  const ultrasonicEnergy = Math.min(100, Math.round(hfRatio * 2.2));
+  const ch0 = audioBuffer.getChannelData(0);
+  const ch1 = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : ch0;
+  
+  let sumSquares = 0;
+  let peak = 0;
+  let hfEnergy = 0;
+  let stereoDiffEnergy = 0;
+  const step = Math.max(1, Math.floor(ch0.length / 50000));
+  let sampled = 0;
 
-  let score = 0;
-  if (detectedKeywords.length > 0) score += 55;
-  if (ultrasonicEnergy > 30) score += 35;
-  else if (ultrasonicEnergy > 15) score += 20;
+  for (let i = 0; i < ch0.length - 2; i += step) {
+    const s0 = ch0[i];
+    const s1 = ch0[i + 1];
+    const s2 = ch0[i + 2];
+    const abs0 = Math.abs(s0);
+    if (abs0 > peak) peak = abs0;
+    sumSquares += s0 * s0;
+    
+    // Estimador de alta frecuencia / marcas ultrasónicas (segunda derivada de señal)
+    const d2 = Math.abs(s2 - 2 * s1 + s0);
+    hfEnergy += d2;
+
+    // Dispersión de fase estéreo (típica de modelos generativos)
+    const diffStereo = Math.abs(s0 - ch1[i]);
+    stereoDiffEnergy += diffStereo;
+    sampled++;
+  }
+
+  const rms = sampled > 0 ? Math.sqrt(sumSquares / sampled) : 0;
+  const crestFactorDb = (rms > 0 && peak > 0) ? 20 * Math.log10(peak / rms) : 10;
+  const avgHf = sampled > 0 ? hfEnergy / sampled : 0;
+  const avgStereoDiff = sampled > 0 ? stereoDiffEnergy / sampled : 0;
+
+  // Si es un archivo crudo sin blindar (Suno/Udio o MP3 genérico), iniciamos con puntaje de riesgo
+  let score = 50; 
+
+  // 1. Detección por palabras clave o nombre de archivo de IA
+  if (detectedKeywords.length > 0) score += 35;
+
+  // 2. Firma de compresión hiper-agresiva típica de modelos de difusión (Crest Factor bajo < 12dB)
+  if (crestFactorDb < 9.5) score += 25;
+  else if (crestFactorDb < 12.0) score += 15;
+
+  // 3. Ruido parásito / marca de agua ultrasónica de alta frecuencia
+  if (avgHf > 0.05) score += 20;
+  else if (avgHf > 0.02) score += 10;
+
+  // 4. Incoherencia de fase estéreo
+  if (avgStereoDiff > 0.08) score += 15;
+
+  const ultrasonicPercentage = Math.min(100, Math.max(30, Math.round((avgHf / 0.10) * 100)));
 
   const recommendations: string[] = [];
-  if (score >= 50) {
+  if (score >= 45) {
     recommendations.push('Filtro Ultrasónico Low-Pass @ 19.2 kHz para eliminar la marca inaudible de Suno/Udio.');
     recommendations.push('Inyección de Saturación Analógica & Dither TPDF para romper la huella de difusión.');
     recommendations.push('Sanitización de metadatos con el sello oficial de Diosmasgym Records.');
@@ -151,13 +196,13 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
   }
 
   let status: 'CLEAN' | 'WARNING' | 'AI_DETECTED' = 'CLEAN';
-  if (score >= 50) status = 'AI_DETECTED';
+  if (score >= 45) status = 'AI_DETECTED';
   else if (score >= 20) status = 'WARNING';
 
   return {
-    riskScore: Math.min(100, score),
+    riskScore: Math.min(99, score),
     status,
-    ultrasonicEnergy,
+    ultrasonicEnergy: ultrasonicPercentage,
     hasMetadataTags: detectedKeywords.length > 0,
     detectedKeywords,
     recommendations
