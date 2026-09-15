@@ -540,6 +540,21 @@ const AudioStudioPro:React.FC=()=>{
     notify(`🎛️ Preset "${preset.name}" cargado`);
   };
 
+  // Escaneo acústico automático cuando se carga cualquier archivo en la sesión
+  useEffect(() => {
+    if (fi && fi.arrayBuffer && !aiScanResult) {
+      try {
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        const ac = new AudioCtxClass();
+        ac.decodeAudioData(fi.arrayBuffer.slice(0)).then(ab => {
+          const scan = analyzeAIAcousticSignature(ab, meta, fi.name);
+          setAiScanResult(scan);
+          ac.close();
+        }).catch(() => {});
+      } catch { /* ignore */ }
+    }
+  }, [fi, aiScanResult, meta]);
+
   const drawMasterCurve = useCallback(() => {
     if (!masterCanvasRef.current) return;
     const cv = masterCanvasRef.current;
@@ -2034,7 +2049,45 @@ const AudioStudioPro:React.FC=()=>{
                     <div key={s.l} className="bg-white/[0.03] border border-white/5 rounded-2xl p-4"><i className={`fas ${s.i} text-purple-400/60 text-sm mb-2 block`}></i><p className="text-white font-bold text-sm">{s.v}</p><p className="text-white/30 text-[9px] uppercase tracking-widest">{s.l}</p></div>
                   ))}
                 </div>
-                <button onClick={()=>setTab('metadata')} className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"><i className="fas fa-tags"></i>Editar metadatos →</button>
+                {/* Semáforo Anti-IA en Cargador */}
+                <div className="mb-6 p-4 rounded-2xl bg-[#0a0c14] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+                      <i className="fas fa-shield-halved text-sm"></i>
+                    </div>
+                    <div>
+                      <p className="text-white text-xs font-bold">Semáforo de Detección de IA</p>
+                      <p className="text-white/40 text-[10px]">Escaneo de espectro acústico ultrasónico y tags</p>
+                    </div>
+                  </div>
+                  <div>
+                    {!aiScanResult ? (
+                      <span className="text-purple-300 text-xs font-mono font-bold flex items-center gap-1.5 bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-500/30">
+                        <i className="fas fa-spinner fa-spin"></i> Analizando...
+                      </span>
+                    ) : aiScanResult.status === 'CLEAN' ? (
+                      <span className="text-emerald-400 text-xs font-mono font-bold flex items-center gap-1.5 bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-500/40 shadow-lg">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        🟢 Limpio (0% IA)
+                      </span>
+                    ) : aiScanResult.status === 'WARNING' ? (
+                      <span className="text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 bg-amber-950/60 px-3 py-1.5 rounded-lg border border-amber-500/40 shadow-lg">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        🟡 Sospechoso ({aiScanResult.ultrasonicEnergy}%)
+                      </span>
+                    ) : (
+                      <span className="text-red-300 text-xs font-mono font-bold flex items-center gap-1.5 bg-red-950/60 px-3 py-1.5 rounded-lg border border-red-500/40 shadow-lg">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        🔴 IA Detectada ({aiScanResult.riskScore}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button onClick={()=>setTab('metadata')} className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"><i className="fas fa-tags"></i>Editar metadatos →</button>
+                  <button onClick={()=>setTab('mastering')} className="py-4 bg-gradient-to-r from-emerald-600 to-purple-600 hover:from-emerald-500 hover:to-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40"><i className="fas fa-shield-halved text-amber-300"></i>Ir a Blindaje & Mastering →</button>
+                </div>
               </div>
             )}
           </div>
@@ -2972,33 +3025,38 @@ const AudioStudioPro:React.FC=()=>{
                     </div>
                   </div>
 
-                  {/* Estado del Escáner */}
-                  {aiScanResult && (
-                    <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center gap-3 text-xs font-mono">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/40">Diagnóstico:</span>
-                        {aiScanResult.status === 'CLEAN' ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-                            <i className="fas fa-check-circle"></i> 100% Desinfectado y Seguro
-                          </span>
-                        ) : aiScanResult.status === 'WARNING' ? (
-                          <span className="text-amber-400 font-bold flex items-center gap-1 bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                            <i className="fas fa-triangle-exclamation"></i> Frecuencias sospechosas ({aiScanResult.ultrasonicEnergy}% ultrasónico)
-                          </span>
-                        ) : (
-                          <span className="text-red-400 font-bold flex items-center gap-1 bg-red-950/40 px-2.5 py-1 rounded-lg border border-red-500/30">
-                            <i className="fas fa-radiation"></i> Firma de IA Detectada ({aiScanResult.riskScore}% riesgo)
-                          </span>
-                        )}
-                      </div>
-
-                      {aiScanResult.detectedKeywords.length > 0 && (
-                        <div className="text-red-300 text-[11px] bg-red-950/40 px-2.5 py-1 rounded-lg border border-red-500/30">
-                          Tags detectados: {aiScanResult.detectedKeywords.join(', ')}
-                        </div>
+                  {/* Semáforo de Detección Anti-IA */}
+                  <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center gap-3 text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/40">Semáforo de IA:</span>
+                      {(!aiScanResult) ? (
+                        <span className="text-purple-300 font-bold flex items-center gap-1.5 bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-500/30">
+                          <i className="fas fa-spinner fa-spin text-purple-400"></i> Analizando espectro y metadatos...
+                        </span>
+                      ) : aiScanResult.status === 'CLEAN' ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-500/40 shadow-lg shadow-emerald-950/40">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                          🟢 100% Desinfectado y Seguro (Sin marcas de IA)
+                        </span>
+                      ) : aiScanResult.status === 'WARNING' ? (
+                        <span className="text-amber-300 font-bold flex items-center gap-1.5 bg-amber-950/60 px-3 py-1.5 rounded-lg border border-amber-500/40 shadow-lg">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                          🟡 Frecuencias Sospechosas ({aiScanResult.ultrasonicEnergy}% ultrasónico)
+                        </span>
+                      ) : (
+                        <span className="text-red-300 font-bold flex items-center gap-1.5 bg-red-950/60 px-3 py-1.5 rounded-lg border border-red-500/40 shadow-lg">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                          🔴 Firma de IA Detectada ({aiScanResult.riskScore}% riesgo)
+                        </span>
                       )}
                     </div>
-                  )}
+
+                    {aiScanResult && aiScanResult.detectedKeywords.length > 0 && (
+                      <div className="text-red-300 text-[11px] bg-red-950/50 px-2.5 py-1 rounded-lg border border-red-500/30">
+                        Tags: {aiScanResult.detectedKeywords.join(', ')}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* BOTÓN ÚNICO Y PRINCIPAL DE ACCIÓN */}
