@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 import fs from "fs";
 import https from "https";
 import http from "http";
-import arsenalHandler from "./api/arsenal.ts";
 import commonHandler from "./api/common.ts";
 import separateAudioHandler from "./api/separate-audio.ts";
 
@@ -28,10 +27,6 @@ async function startServer() {
   });
 
   // Proxy to Vercel API Handlers for local development compatibility
-  app.all("/api/arsenal", (req, res) => {
-    arsenalHandler(req as any, res as any);
-  });
-
   app.all("/api/common", (req, res) => {
     commonHandler(req as any, res as any);
   });
