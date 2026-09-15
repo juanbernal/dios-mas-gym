@@ -3737,19 +3737,20 @@ const AudioStudioPro:React.FC=()=>{
 
             {exporting&&<div className="mb-6"><div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40 mb-2"><span>Procesando...</span><span>{exportPct}%</span></div><div className="w-full bg-white/5 rounded-full h-2"><div className="h-full bg-purple-500 rounded-full transition-all duration-300" style={{width:`${exportPct}%`}}></div></div></div>}
             
-            <div className="space-y-3">
-              <button onClick={doExport} disabled={exporting} className="w-full py-5 bg-purple-600 hover:bg-purple-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl shadow-purple-900/30">
-                <i className={`fas ${exporting?'fa-spinner fa-spin':'fa-file-arrow-down'} text-lg`}></i>{exporting?'Exportando...':`Descargar .${fi.name.split('.').pop()?.toUpperCase()} con Metadatos Sanitizados`}
-              </button>
-
+            <div>
               <button
                 type="button"
-                onClick={handleDownloadMasterWav}
+                onClick={async () => {
+                  applyOneClickAntiAIScrub();
+                  setTimeout(() => {
+                    handleDownloadMasterWav();
+                  }, 150);
+                }}
                 disabled={isRenderingMaster}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-purple-300 hover:text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3"
+                className="w-full py-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-purple-600 hover:from-emerald-500 hover:to-purple-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-2xl shadow-emerald-950/50 border border-emerald-400/40 active:scale-95"
               >
-                <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-sliders text-amber-300'}`}></i>
-                Descargar Master HD Procesado (.WAV 16-bit Lossless)
+                <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'} text-lg text-amber-300`}></i>
+                {isRenderingMaster ? 'Procesando y Exportando Master...' : 'Descargar Master WAV Blindado (Listo para DistroKid)'}
               </button>
             </div>
 
