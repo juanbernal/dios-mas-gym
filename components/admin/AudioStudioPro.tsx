@@ -2935,45 +2935,6 @@ const AudioStudioPro:React.FC=()=>{
                   Motor de procesamiento DSP en tiempo real: EQ 3 bandas, compresor dinámico y normalizador a -14 LUFS para streaming.
                 </p>
               </div>
-
-              {/* Status and Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBypassMaster(!bypassMaster)}
-                  className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 border ${
-                    bypassMaster
-                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                      : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-lg shadow-emerald-950/40'
-                  }`}
-                  title="Compara el audio procesado con el original en tiempo real"
-                >
-                  <i className={`fas ${bypassMaster ? 'fa-toggle-off' : 'fa-toggle-on text-base'}`}></i>
-                  <span>{bypassMaster ? 'Bypass (Original Activo)' : 'Mastering DSP (ON)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleApplyMasterToSession}
-                  disabled={isRenderingMaster}
-                  className="px-4 py-2.5 bg-purple-600/30 hover:bg-purple-600 border border-purple-500/40 text-purple-200 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-40"
-                  title="Aplica este master procesado como el audio principal para Stems y Exportación"
-                >
-                  <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles text-amber-300'}`}></i>
-                  <span>Aplicar a la Sesión</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDownloadMasterWav}
-                  disabled={isRenderingMaster}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl shadow-purple-950/50 disabled:opacity-40"
-                  title="Exporta audio renderizado en WAV 16-bit PCM lossless con metadatos incrustados"
-                >
-                  <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'}`}></i>
-                  <span>Exportar Master WAV</span>
-                </button>
-              </div>
             </div>
 
             {isRenderingMaster && (
@@ -2986,46 +2947,46 @@ const AudioStudioPro:React.FC=()=>{
             )}
 
             {/* ESCUDO Y DESINFECCIÓN ANTI-IA (TIDAL & SPOTIFY PROTECTION) */}
-            <div className="bg-gradient-to-r from-purple-950/50 via-[#0f111a] to-emerald-950/30 border border-purple-500/30 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="bg-gradient-to-r from-purple-950/60 via-[#0f111a] to-emerald-950/40 border-2 border-emerald-500/30 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
               
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-                <div className="space-y-2">
+                <div className="space-y-2 max-w-2xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-inner">
-                      <i className="fas fa-shield-halved text-lg"></i>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow-inner text-xl">
+                      <i className="fas fa-shield-halved"></i>
                     </div>
                     <div>
                       <div className="flex items-center gap-2.5">
-                        <h3 className="text-white font-bold text-base tracking-wide">
-                          Escudo & Desinfección Acústica Anti-IA
+                        <h3 className="text-white font-bold text-lg tracking-wide">
+                          Blindaje Anti-IA para DistroKid & Tidal
                         </h3>
                         <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-mono font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                          Protección DSP Activa
+                          Protección Activa
                         </span>
                       </div>
                       <p className="text-white/50 text-xs mt-0.5">
-                        Filtro ultrasónico 19.2 kHz + De-Harshing + Saturación analógica para erradicar firmas de Suno/Udio en Tidal y DistroKid.
+                        Limpia metadatos de Suno/Udio, corta frecuencias ultrasónicas (19.2 kHz), aplica calor analógico y exporta tu WAV 100% libre de rastros.
                       </p>
                     </div>
                   </div>
 
                   {/* Estado del Escáner */}
                   {aiScanResult && (
-                    <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-4 text-xs font-mono">
+                    <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center gap-3 text-xs font-mono">
                       <div className="flex items-center gap-2">
                         <span className="text-white/40">Diagnóstico:</span>
                         {aiScanResult.status === 'CLEAN' ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">
                             <i className="fas fa-check-circle"></i> 100% Desinfectado y Seguro
                           </span>
                         ) : aiScanResult.status === 'WARNING' ? (
-                          <span className="text-amber-400 font-bold flex items-center gap-1">
+                          <span className="text-amber-400 font-bold flex items-center gap-1 bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
                             <i className="fas fa-triangle-exclamation"></i> Frecuencias sospechosas ({aiScanResult.ultrasonicEnergy}% ultrasónico)
                           </span>
                         ) : (
-                          <span className="text-red-400 font-bold flex items-center gap-1">
+                          <span className="text-red-400 font-bold flex items-center gap-1 bg-red-950/40 px-2.5 py-1 rounded-lg border border-red-500/30">
                             <i className="fas fa-radiation"></i> Firma de IA Detectada ({aiScanResult.riskScore}% riesgo)
                           </span>
                         )}
@@ -3040,21 +3001,27 @@ const AudioStudioPro:React.FC=()=>{
                   )}
                 </div>
 
-                {/* Botón de Acción Rápida 1-Click */}
-                <div className="flex flex-wrap items-center gap-3">
+                {/* BOTÓN ÚNICO Y PRINCIPAL DE ACCIÓN */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                   <button
                     type="button"
-                    onClick={applyOneClickAntiAIScrub}
-                    className="px-6 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-purple-600 hover:from-emerald-500 hover:to-purple-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-950/50 flex items-center gap-2.5 active:scale-95 border border-emerald-400/40"
-                    title="Ejecuta la sanitización de metadatos y aplica los filtros de blindaje acústico"
+                    onClick={async () => {
+                      applyOneClickAntiAIScrub();
+                      setTimeout(() => {
+                        handleDownloadMasterWav();
+                      }, 200);
+                    }}
+                    disabled={isRenderingMaster}
+                    className="px-8 py-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-purple-600 hover:from-emerald-500 hover:to-purple-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-2xl shadow-emerald-950/60 flex items-center justify-center gap-3 active:scale-95 border border-emerald-400/50 disabled:opacity-50"
+                    title="Desinfecta metadatos, procesa el audio con filtros anti-IA y descarga el archivo WAV para DistroKid"
                   >
-                    <i className="fas fa-wand-magic-sparkles text-amber-300 text-sm"></i>
-                    <span>Desinfectar y Blindar (1-Click)</span>
+                    <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-file-arrow-down text-lg text-amber-300'}`}></i>
+                    <span>{isRenderingMaster ? 'Procesando Master...' : 'Desinfectar y Descargar WAV (1-Click)'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Switches de Control Específico */}
+              {/* Ajustes Avanzados */}
               <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <label className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${antiAiShieldActive ? 'bg-purple-900/20 border-purple-500/40 text-purple-200' : 'bg-white/[0.02] border-white/5 text-white/40'}`}>
                   <div className="flex items-center gap-2">
