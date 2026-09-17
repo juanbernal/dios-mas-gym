@@ -975,15 +975,28 @@ const AudioStudioPro:React.FC=()=>{
     hdrM[6]=s3M;hdrM[7]=s2M;hdrM[8]=s1M;hdrM[9]=s0M;
     let wpM=10;
     for(const frm of masterFrames){if(frm.length>0){hdrM.set(frm,wpM);wpM+=frm.length;}}
-    const obM=new Uint8Array(wavBuf);
+    const obM = new Uint8Array(wavBuf);
     let taggedWavBytes: Uint8Array;
-    if(obM.length>12&&obM[0]===0x52&&obM[1]===0x49&&obM[2]===0x46&&obM[3]===0x46){
-      const szH=hdrM.length; const padH=szH%2;
-      const out=new Uint8Array(szH+padH+obM.length);
-      out.set(hdrM,0); out.set(obM,szH+padH);
-      taggedWavBytes=out;
+    if (obM.length > 12 && obM[0]===0x52 && obM[1]===0x49 && obM[2]===0x46 && obM[3]===0x46) {
+      // Método correcto RIFF: incrustar ID3 como chunk 'id3 ' al FINAL del WAV
+      // (NO prepender antes del RIFF — eso lo corrompe y genera error 0xC00D36C4)
+      const szH = hdrM.length;
+      const padH = szH % 2;                             // alinear a 2 bytes
+      const ff = new Uint8Array(obM.length + 8 + szH + padH);
+      ff.set(obM, 0);                                   // copiar WAV original
+      const dv = new DataView(ff.buffer);
+      // Actualizar tamaño RIFF (offset 4) sumando el nuevo chunk
+      dv.setUint32(4, dv.getUint32(4, true) + 8 + szH + padH, true);
+      // Escribir cabecera del chunk 'id3 ' (4 bytes ID + 4 bytes tamaño)
+      ff[obM.length + 0] = 0x69; // 'i'
+      ff[obM.length + 1] = 0x64; // 'd'
+      ff[obM.length + 2] = 0x33; // '3'
+      ff[obM.length + 3] = 0x20; // ' '
+      dv.setUint32(obM.length + 4, szH, true);
+      ff.set(hdrM, obM.length + 8);                     // datos ID3
+      taggedWavBytes = ff;
     } else {
-      taggedWavBytes=obM;
+      taggedWavBytes = obM;
     }
 
     const blob = new Blob([taggedWavBytes], { type: 'audio/wav' });
