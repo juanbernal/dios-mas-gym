@@ -250,7 +250,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 1.8,
     compThresh: -17,
     compRatio: 3.2,
-    gain: 1.18
+    gain: 1.0 // Antes 1.18 - Bajamos para no saturar
   },
   {
     id: 'urbano',
@@ -263,7 +263,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 3.5,
     compThresh: -16,
     compRatio: 4.0,
-    gain: 1.3
+    gain: 1.05 // Antes 1.30 - Bajamos para evitar clipping
   },
   {
     id: 'corridos',
@@ -276,7 +276,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 2.8,
     compThresh: -14,
     compRatio: 3.2,
-    gain: 1.22
+    gain: 1.03 // Antes 1.22
   },
   {
     id: 'banda',
@@ -289,7 +289,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 4.0,
     compThresh: -15,
     compRatio: 3.5,
-    gain: 1.25
+    gain: 1.04 // Antes 1.25
   },
   {
     id: 'worship',
@@ -302,7 +302,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 4.8,
     compThresh: -20,
     compRatio: 4.2,
-    gain: 1.2
+    gain: 1.0 // Antes 1.20
   },
   {
     id: 'streaming',
@@ -315,7 +315,7 @@ export const MASTER_PRESETS: MasterPreset[] = [
     treble: 2.2,
     compThresh: -18,
     compRatio: 2.8,
-    gain: 1.15
+    gain: 1.0 // Antes 1.15
   }
 ];
 
