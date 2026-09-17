@@ -47,9 +47,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Si la acción es Enviar Reporte por Correo (11 PM o manual) ──
     if (isReportAction) {
       const recipientEmail = process.env.ADMIN_REPORT_EMAIL || 'administrador@diosmasgym.com';
+
+      // Guard anti-duplicado: si ya se envió hoy no reenviar (salvo forzado)
+      const forceResend = req.query.force === 'true' || req.body?.force === true;
+      const todayKey = new Date().toISOString().slice(0, 10); // "2026-09-17"
+      const lastSentKey = `lastReportSent_${todayKey}`;
+      // Usamos una variable de proceso simple para evitar duplicados en la misma instancia
+      if (!forceResend && (global as any)[lastSentKey]) {
+        return res.status(200).json({
+          status: 'skipped',
+          message: `Reporte ya enviado hoy (${todayKey}). Usa ?force=true para reenviar.`
+        });
+      }
+
       const [
         [todayViewsRes],
         [yesterdayViewsRes],
+        [totalMonthRes],
         [todaySongsRes],
         [todayPagesRes],
         [statsRes],
@@ -65,6 +79,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         analyticsDataClient.runReport({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'yesterday', endDate: 'yesterday' }],
+          metrics: [{ name: 'screenPageViews' }],
+        }),
+        // Total visitas últimos 30 días
+        analyticsDataClient.runReport({
+          property: `properties/${propertyId}`,
+          dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
           metrics: [{ name: 'screenPageViews' }],
         }),
         analyticsDataClient.runReport({
@@ -113,11 +133,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
       ]);
 
-      const todayViews = parseInt(todayViewsRes.rows?.[0]?.metricValues?.[0]?.value || '0', 10);
-      const todayUsers = parseInt(todayViewsRes.rows?.[0]?.metricValues?.[1]?.value || '0', 10);
+      const todayViews    = parseInt(todayViewsRes.rows?.[0]?.metricValues?.[0]?.value || '0', 10);
+      const todayUsers    = parseInt(todayViewsRes.rows?.[0]?.metricValues?.[1]?.value || '0', 10);
       const todaySessions = parseInt(todayViewsRes.rows?.[0]?.metricValues?.[2]?.value || '0', 10);
       const yesterdayViews = parseInt(yesterdayViewsRes.rows?.[0]?.metricValues?.[0]?.value || '0', 10);
+      const totalMonth30  = parseInt(totalMonthRes.rows?.[0]?.metricValues?.[0]?.value || '0', 10);
       const growthViewsPercent = yesterdayViews > 0 ? Math.round(((todayViews - yesterdayViews) / yesterdayViews) * 100) : 0;
+      const growthArrow = growthViewsPercent >= 0 ? `&#9650; +${growthViewsPercent}%` : `&#9660; ${growthViewsPercent}%`;
+      const growthColor = growthViewsPercent >= 0 ? '#10b981' : '#f43f5e';
 
       const topSongsList = (todaySongsRes.rows || []).map(r => ({
         title: r.dimensionValues?.[0]?.value || 'Desconocida',
@@ -126,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })).filter(s => s.title !== '(not set)');
 
       const topPagesList = (todayPagesRes.rows || []).map(r => ({
-        title: (r.dimensionValues?.[0]?.value || 'Página').replace(' | El Arsenal', '').replace(' | Dios Mas Gym', ''),
+        title: (r.dimensionValues?.[0]?.value || 'Pagina').replace(' | El Arsenal', '').replace(' | Dios Mas Gym', ''),
         views: parseInt(r.metricValues?.[0]?.value || '0', 10)
       })).filter(p => p.title !== '(not set)');
 
@@ -136,98 +159,121 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         avgDuration = `${Math.floor(sec / 60).toString().padStart(2, '0')}:${Math.floor(sec % 60).toString().padStart(2, '0')}`;
       }
 
+      // Fuentes de trafico
+      const sourcesList = (sourcesRes.rows || []).map(r => {
+        let src = r.dimensionValues?.[0]?.value || 'Directo';
+        if (src === '(direct)') src = 'Directo';
+        if (src === '(not set)') return null;
+        return { source: src, sessions: parseInt(r.metricValues?.[0]?.value || '0', 10) };
+      }).filter(Boolean) as { source: string; sessions: number }[];
+
       const todayDateFormatted = new Intl.DateTimeFormat('es-MX', {
         dateStyle: 'full',
         timeZone: 'America/Mexico_City'
       }).format(new Date());
 
-      const htmlEmail = `
-<!DOCTYPE html>
+      const htmlEmail = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #05070a; color: #ffffff; margin: 0; padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #0f111a; border-radius: 16px; border: 1px solid #1e2230; overflow: hidden; }
+    .container { max-width: 620px; margin: 0 auto; background-color: #0f111a; border-radius: 16px; border: 1px solid #1e2230; overflow: hidden; }
     .header { background: linear-gradient(135deg, #111420 0%, #05070a 100%); padding: 32px 24px; text-align: center; border-bottom: 2px solid #c5a059; }
     .header h1 { margin: 0; font-size: 26px; color: #c5a059; letter-spacing: 2px; text-transform: uppercase; }
     .header p { margin: 6px 0 0; color: #8890a0; font-size: 13px; }
     .content { padding: 24px; }
-    .metric-card { padding: 16px; text-align: center; background-color: #151824; border-radius: 12px; border: 1px solid #202638; }
-    .metric-val { font-size: 28px; font-weight: 900; color: #ffffff; margin-bottom: 4px; }
-    .metric-val.highlight { color: #c5a059; }
-    .metric-label { font-size: 10px; text-transform: uppercase; color: #8890a0; font-weight: bold; letter-spacing: 1px; }
-    .section-title { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #c5a059; margin: 24px 0 12px; border-bottom: 1px solid #202638; padding-bottom: 6px; }
-    .list-item { display: table; width: 100%; padding: 10px 12px; margin-bottom: 6px; background-color: #151824; border-radius: 8px; box-sizing: border-box; }
+    .metrics-grid { display: table; width: 100%; border-spacing: 8px; margin-bottom: 20px; }
+    .metric-card { display: table-cell; padding: 18px 12px; text-align: center; background-color: #151824; border-radius: 12px; border: 1px solid #202638; width: 25%; vertical-align: middle; }
+    .metric-val { font-size: 30px; font-weight: 900; color: #ffffff; margin-bottom: 4px; line-height: 1; }
+    .metric-val.gold { color: #c5a059; }
+    .metric-label { font-size: 9px; text-transform: uppercase; color: #8890a0; font-weight: bold; letter-spacing: 1px; margin-top: 4px; }
+    .metric-sub { font-size: 10px; margin-top: 4px; }
+    .section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #c5a059; margin: 20px 0 10px; border-bottom: 1px solid #202638; padding-bottom: 6px; }
+    .list-item { display: table; width: 100%; padding: 9px 12px; margin-bottom: 5px; background-color: #151824; border-radius: 8px; box-sizing: border-box; }
     .list-left { display: table-cell; vertical-align: middle; }
-    .list-right { display: table-cell; text-align: right; vertical-align: middle; color: #c5a059; font-weight: bold; font-size: 13px; }
+    .list-right { display: table-cell; text-align: right; vertical-align: middle; color: #c5a059; font-weight: bold; font-size: 13px; white-space: nowrap; }
     .item-title { font-size: 13px; font-weight: bold; color: #ffffff; }
     .item-sub { font-size: 11px; color: #70788d; }
-    .badge-pill { display: inline-block; padding: 4px 10px; background-color: #1a2030; border-radius: 20px; font-size: 11px; color: #c5a059; margin-right: 6px; margin-bottom: 6px; }
-    .footer { text-align: center; padding: 20px; font-size: 11px; color: #60687a; border-top: 1px solid #1a2030; background-color: #0b0d14; }
-    .btn-panel { display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #c5a059; color: #000000; text-decoration: none; font-weight: bold; font-size: 12px; border-radius: 30px; text-transform: uppercase; letter-spacing: 1px; }
+    .footer { text-align: center; padding: 18px; font-size: 11px; color: #60687a; border-top: 1px solid #1a2030; background-color: #0b0d14; }
+    .btn-panel { display: inline-block; margin-top: 16px; padding: 12px 28px; background-color: #c5a059; color: #000000; text-decoration: none; font-weight: bold; font-size: 12px; border-radius: 30px; text-transform: uppercase; letter-spacing: 1px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>Dios Mas Gym</h1>
-      <p>Reporte Diario de Actividad • ${todayDateFormatted}</p>
+      <p>Reporte Diario &bull; ${todayDateFormatted}</p>
     </div>
     <div class="content">
-      <table style="width: 100%; border-spacing: 8px; margin-bottom: 16px;">
+
+      <!-- METRICAS PRINCIPALES -->
+      <table class="metrics-grid">
         <tr>
-          <td class="metric-card" style="width: 33.33%;">
-            <div class="metric-val highlight">${todayViews}</div>
-            <div class="metric-label">Páginas Vistas</div>
-            <div style="font-size: 10px; color: ${growthViewsPercent >= 0 ? '#10b981' : '#f43f5e'}; margin-top: 4px;">
-              ${growthViewsPercent >= 0 ? '▲ +' : '▼ '}${growthViewsPercent}% vs ayer
-            </div>
+          <td class="metric-card">
+            <div class="metric-val gold">${todayViews}</div>
+            <div class="metric-label">Visitas HOY</div>
+            <div class="metric-sub" style="color:${growthColor};">${growthArrow} vs ayer</div>
           </td>
-          <td class="metric-card" style="width: 33.33%;">
+          <td class="metric-card">
+            <div class="metric-val">${totalMonth30.toLocaleString('es-MX')}</div>
+            <div class="metric-label">Total 30 dias</div>
+            <div class="metric-sub" style="color:#8890a0;">paginas vistas</div>
+          </td>
+          <td class="metric-card">
             <div class="metric-val">${todayUsers}</div>
-            <div class="metric-label">Visitantes Únicos</div>
-            <div style="font-size: 10px; color: #8890a0; margin-top: 4px;">${todaySessions} sesiones</div>
+            <div class="metric-label">Visitantes unicos</div>
+            <div class="metric-sub" style="color:#8890a0;">${todaySessions} sesiones</div>
           </td>
-          <td class="metric-card" style="width: 33.33%;">
+          <td class="metric-card">
             <div class="metric-val">${avgDuration}</div>
-            <div class="metric-label">Tiempo Promedio</div>
-            <div style="font-size: 10px; color: #8890a0; margin-top: 4px;">duración / sesión</div>
+            <div class="metric-label">Tiempo prom</div>
+            <div class="metric-sub" style="color:#8890a0;">por sesion</div>
           </td>
         </tr>
       </table>
 
-      <div class="section-title">🎵 Canciones Más Escuchadas Hoy</div>
+      <!-- TOP CANCIONES -->
+      <div class="section-title">&#127925; Canciones Mas Escuchadas Hoy</div>
       ${
         topSongsList.length > 0
           ? topSongsList.map((s, idx) => `
             <div class="list-item">
               <div class="list-left"><div class="item-title">#${idx + 1} ${s.title}</div><div class="item-sub">${s.artist}</div></div>
               <div class="list-right">${s.plays} plays</div>
-            </div>
-          `).join('')
-          : '<p style="color: #60687a; font-size: 12px; text-align: center;">Sin reproducciones registradas hoy todavía.</p>'
+            </div>`).join('')
+          : '<p style="color:#60687a;font-size:12px;text-align:center;">Sin reproducciones registradas hoy todavia.</p>'
       }
 
-      <div class="section-title">📖 Páginas y Letras Más Visitadas</div>
+      <!-- TOP PAGINAS -->
+      <div class="section-title">&#128214; Paginas y Letras Mas Visitadas</div>
       ${
         topPagesList.length > 0
           ? topPagesList.slice(0, 5).map(p => `
             <div class="list-item">
               <div class="list-left"><div class="item-title">${p.title}</div></div>
               <div class="list-right">${p.views} vistas</div>
-            </div>
-          `).join('')
-          : '<p style="color: #60687a; font-size: 12px; text-align: center;">Sin páginas registradas hoy.</p>'
+            </div>`).join('')
+          : '<p style="color:#60687a;font-size:12px;text-align:center;">Sin paginas registradas hoy.</p>'
       }
 
-      <div style="text-align: center; margin-top: 28px;">
-        <a href="https://www.diosmasgym.com/admin/analytics" class="btn-panel">Ver Centro de Análisis Completo</a>
+      <!-- FUENTES DE TRAFICO -->
+      ${sourcesList.length > 0 ? `
+      <div class="section-title">&#127760; Fuentes de Trafico</div>
+      ${sourcesList.map(s => `
+        <div class="list-item">
+          <div class="list-left"><div class="item-title">${s.source}</div></div>
+          <div class="list-right">${s.sessions} sesiones</div>
+        </div>`).join('')}
+      ` : ''}
+
+      <div style="text-align:center;margin-top:28px;">
+        <a href="https://www.diosmasgym.com/admin/analytics" class="btn-panel">Ver Centro de Analisis Completo</a>
       </div>
     </div>
     <div class="footer">
-      Dios Mas Gym • Reporte automatizado diario de las 11:00 PM<br>
-      Enviado automáticamente a ${recipientEmail}
+      Dios Mas Gym &bull; Reporte automatizado diario 11:00 PM<br>
+      Enviado a ${recipientEmail}
     </div>
   </div>
 </body>
@@ -243,13 +289,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           body: JSON.stringify({
             action: 'sendEmailReport',
             to: recipientEmail,
-            subject: `📊 Reporte Diario Dios Mas Gym: ${todayViews} visitas hoy (${todayDateFormatted})`,
+            subject: `📊 Reporte Dios Mas Gym — ${todayViews} visitas hoy | ${totalMonth30.toLocaleString('es-MX')} en 30 dias (${todayDateFormatted})`,
             htmlBody: htmlEmail
           })
         });
         const respJson = await resp.json().catch(() => null);
         if (resp.ok && respJson?.status === 'success') {
           emailSent = true;
+          // Marcar como enviado hoy para evitar duplicados
+          (global as any)[lastSentKey] = true;
         } else {
           emailErrorMsg = respJson?.message || `Error status: ${resp.status}`;
         }
@@ -260,10 +308,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json({
         status: emailSent ? 'success' : 'error',
-        message: emailSent ? 'Reporte diario generado y enviado con éxito' : `Error al despachar correo: ${emailErrorMsg || 'Google Apps Script requiere actualizar código'}`,
+        message: emailSent
+          ? 'Reporte diario generado y enviado con exito'
+          : `Error al despachar correo: ${emailErrorMsg || 'Verificar Google Apps Script'}`,
         data: {
           recipient: recipientEmail,
           todayViews,
+          totalMonth30,
           todayUsers,
           todaySessions,
           topSongsCount: topSongsList.length,
