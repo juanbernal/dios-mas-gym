@@ -118,11 +118,12 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
   }
 
   // Comprobar si es un archivo que ya fue procesado y blindado por nuestro estudio
+  // IMPORTANTE: solo se comprueba por nombre de archivo, NO por metadatos,
+  // porque el label 'Diosmasgym records' se asigna como default a todos los
+  // archivos al cargarlos, lo que causaba que SIEMPRE se reportara como CLEAN.
   const isOfficialVerified = (
     fileName.toLowerCase().includes('_master_hd') ||
-    fileName.toLowerCase().includes('_blindado') ||
-    ((meta.label === 'Diosmasgym records' || meta.label === 'Diosmasgym Records') &&
-     (meta.comment || '').includes('Diosmasgym Records Studio HD'))
+    fileName.toLowerCase().includes('_blindado')
   );
 
   if (isOfficialVerified && detectedKeywords.length === 0) {
@@ -177,22 +178,22 @@ export function analyzeAIAcousticSignature(audioBuffer: AudioBuffer, meta: Parti
     score += 55;
   }
 
-  // 2. Firma de compresión hiper-agresiva típica de modelos de difusión (Crest Factor excesivamente bajo < 8.5dB)
-  if (crestFactorDb < 8.5) {
+  // 2. Firma de compresión hiper-agresiva típica de modelos de difusión (Crest Factor bajo)
+  if (crestFactorDb < 9.5) {
     score += 20;
-  } else if (crestFactorDb < 10.5 && avgStereoDiff > 0.09) {
+  } else if (crestFactorDb < 11.5 && avgStereoDiff > 0.07) {
     score += 15;
   }
 
   // 3. Ruido parásito / marca de agua ultrasónica inaudible (>18.5kHz)
-  if (avgHf > 0.08) {
+  if (avgHf > 0.05) {
     score += 25;
-  } else if (avgHf > 0.04) {
+  } else if (avgHf > 0.025) {
     score += 12;
   }
 
   // 4. Incoherencia de fase estéreo artificial
-  if (avgStereoDiff > 0.12) {
+  if (avgStereoDiff > 0.10) {
     score += 15;
   }
 
@@ -599,20 +600,24 @@ const AudioStudioPro:React.FC=()=>{
     notify(`🎛️ Preset "${preset.name}" cargado`);
   };
 
-  // Escaneo acústico automático cuando se carga cualquier archivo en la sesión
+  // Escaneo acústico de respaldo (si el scan principal del loader no lo hizo).
+  // Se pasa {} como meta para NO usar el estado meta que ya tiene label='Diosmasgym records'
+  // como valor por defecto, lo que causaba que TODOS los archivos salieran CLEAN.
+  // El scan principal (dentro del loader) ya usa los tags crudos del archivo.
   useEffect(() => {
-    if (fi && fi.arrayBuffer && !aiScanResult) {
-      try {
-        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-        const ac = new AudioCtxClass();
-        ac.decodeAudioData(fi.arrayBuffer.slice(0)).then(ab => {
-          const scan = analyzeAIAcousticSignature(ab, meta, fi.name);
-          setAiScanResult(scan);
-          ac.close();
-        }).catch(() => {});
-      } catch { /* ignore */ }
-    }
-  }, [fi, aiScanResult, meta]);
+    if (!fi || !fi.arrayBuffer || aiScanResult) return;
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ac = new AudioCtxClass();
+      ac.decodeAudioData(fi.arrayBuffer.slice(0)).then(ab => {
+        const scan = analyzeAIAcousticSignature(ab, {}, fi.name);
+        setAiScanResult(scan);
+        ac.close();
+      }).catch(() => {});
+    } catch { /* ignore */ }
+  // Solo re-ejecutar cuando cambia el archivo cargado, no en cada edición de meta
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fi?.name, aiScanResult]);
 
   const drawMasterCurve = useCallback(() => {
     if (!masterCanvasRef.current) return;
@@ -829,14 +834,158 @@ const AudioStudioPro:React.FC=()=>{
     compressor.connect(gainNode);
     gainNode.connect(offlineCtx.destination);
 
+    // 9. Micro-pitch Humanizer — rompe la afinación perfecta característica de la IA
+    // Aplica variaciones aleatorias de ±3 cents (imperceptibles al oído, devastadoras para la firma espectral)
+    if (!bypassMaster && antiAiShieldActive) {
+      const duration = audioBuf.duration;
+      const segmentSize = 0.4; // Variación cada 0.4 segundos
+      source.playbackRate.setValueAtTime(1.0, 0);
+      for (let t = 0; t < duration; t += segmentSize) {
+        // ±0.0017 ≈ ±3 cents de variación de pitch (inaudible)
+        const wobble = 1.0 + (Math.random() - 0.5) * 0.0034;
+        source.playbackRate.linearRampToValueAtTime(wobble, t + segmentSize * 0.5);
+        source.playbackRate.linearRampToValueAtTime(1.0, t + segmentSize);
+      }
+    }
+
     source.start(0);
 
     const rendered = await offlineCtx.startRendering();
     ac.close();
 
+    // ── POST-RENDER: Procesado Anti-IA directo sobre el buffer PCM ──────────────────
+
+    // 10. Inyección de Piso de Ruido Analógico (Pink Noise ~-80dB)
+    // El silencio digital perfecto de la IA no existe en grabaciones reales.
+    // Se inyecta ruido rosa muy sutil para imitar el piso de ruido de un estudio analógico.
+    if (!bypassMaster && antiAiShieldActive) {
+      const noiseAmplitude = 0.000095; // ≈ -80dB — completamente inaudible
+      // Generador de ruido rosa simple (filtro acumulativo de 3 pasos)
+      for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+        const data = rendered.getChannelData(ch);
+        let b0 = 0, b1 = 0, b2 = 0;
+        for (let i = 0; i < data.length; i++) {
+          const white = Math.random() * 2 - 1;
+          // Filtro de Paul Kellett para ruido rosa
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          const pink = (b0 + b1 + b2 + white * 0.5362) * 0.11;
+          data[i] += pink * noiseAmplitude;
+        }
+      }
+    }
+
+    // 11. Aleatorización de Fase Mid/Side (±2°)
+    // Los modelos generativos producen coherencia de fase estéreo artificial perfecta.
+    // Una micro-rotación M/S aleatoria rompe esa firma sin afectar la imagen estéreo.
+    if (!bypassMaster && antiAiShieldActive && rendered.numberOfChannels >= 2) {
+      const L = rendered.getChannelData(0);
+      const R = rendered.getChannelData(1);
+      // Ángulo de rotación aleatorio entre -2° y +2° (en radianes)
+      const angleDeg = (Math.random() - 0.5) * 4;
+      const theta = angleDeg * (Math.PI / 180);
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+      for (let i = 0; i < L.length; i++) {
+        const mid  = (L[i] + R[i]) * 0.5;
+        const side = (L[i] - R[i]) * 0.5;
+        // Rotación del canal Side en el plano M/S
+        const newMid  = mid  * cosT - side * sinT;
+        const newSide = mid  * sinT + side * cosT;
+        L[i] = Math.max(-1, Math.min(1, newMid + newSide));
+        R[i] = Math.max(-1, Math.min(1, newMid - newSide));
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+
     const wavBuf = audioBufferToWav(rendered, true);
     const covBytes = await getCoverBytes();
-    const taggedWavBytes = injectId3ToWav(wavBuf, 'Master HD', 'master', covBytes);
+
+    // Inyectar metadatos ID3 correctos para el master (NO usar injectId3ToWav que es para stems)
+    const enc2 = new TextEncoder();
+    const masterFrames: Uint8Array[] = [];
+    const mktfM = (id: string, val: string): Uint8Array => {
+      if (!val) return new Uint8Array(0);
+      const tb2 = enc2.encode(val);
+      const d2 = new Uint8Array(1 + tb2.length);
+      d2[0] = 3;
+      d2.set(tb2, 1);
+      const fr2 = new Uint8Array(10 + d2.length);
+      for (let i = 0; i < 4; i++) fr2[i] = id.charCodeAt(i);
+      const sz2 = d2.length;
+      fr2[4] = (sz2 >> 24) & 0xff; fr2[5] = (sz2 >> 16) & 0xff;
+      fr2[6] = (sz2 >> 8) & 0xff; fr2[7] = sz2 & 0xff;
+      fr2.set(d2, 10);
+      return fr2;
+    };
+    const songTitleM = meta.title || fi.name.replace(/\.[^.]+$/, '') || 'Audio';
+    masterFrames.push(mktfM('TIT2', songTitleM));
+    if (meta.artist) masterFrames.push(mktfM('TPE1', meta.artist));
+    if (meta.album)  masterFrames.push(mktfM('TALB', meta.album));
+    if (meta.year)   masterFrames.push(mktfM('TYER', meta.year));
+    if (meta.genre)  masterFrames.push(mktfM('TCON', meta.genre));
+    if (meta.composer) masterFrames.push(mktfM('TCOM', meta.composer));
+    if (meta.bpm)    masterFrames.push(mktfM('TBPM', meta.bpm));
+    if (meta.isrc)   masterFrames.push(mktfM('TSRC', meta.isrc));
+    if (meta.trackNumber) masterFrames.push(mktfM('TRCK', meta.trackNumber));
+    masterFrames.push(mktfM('TPUB', meta.label || 'Diosmasgym records'));
+    masterFrames.push(mktfM('TSSE', 'LAME 3.100.1 64-bit (Studio Master Edition)'));
+    masterFrames.push(mktfM('TENC', 'Diosmasgym Records Studio HD Engine'));
+    masterFrames.push(mktfM('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
+    // Comment COMM
+    const commText = meta.comment || 'Master Oficial grabado y procesado en Diosmasgym Records Studio HD. 100% Producción de Estudio.';
+    const lbM = enc2.encode('spa'); const tbM = enc2.encode(commText);
+    const dComm2 = new Uint8Array(1 + 3 + 1 + tbM.length);
+    dComm2[0] = 3; dComm2.set(lbM, 1); dComm2[4] = 0; dComm2.set(tbM, 5);
+    const frComm2 = new Uint8Array(10 + dComm2.length);
+    ['C','O','M','M'].forEach((c,i) => { frComm2[i] = c.charCodeAt(0); });
+    const szC = dComm2.length;
+    frComm2[4]=(szC>>24)&0xff; frComm2[5]=(szC>>16)&0xff; frComm2[6]=(szC>>8)&0xff; frComm2[7]=szC&0xff;
+    frComm2.set(dComm2,10); masterFrames.push(frComm2);
+    // Letra USLT si existe
+    if (meta.lyrics && meta.lyrics.trim()) {
+      const lrcEncM = enc2.encode(meta.lyrics.trim());
+      const dLrcM = new Uint8Array(1 + 3 + 1 + lrcEncM.length);
+      dLrcM[0]=3; dLrcM.set(lbM,1); dLrcM[4]=0; dLrcM.set(lrcEncM,5);
+      const frLrcM = new Uint8Array(10 + dLrcM.length);
+      ['U','S','L','T'].forEach((c,i)=>{ frLrcM[i]=c.charCodeAt(0); });
+      const szL=dLrcM.length;
+      frLrcM[4]=(szL>>24)&0xff; frLrcM[5]=(szL>>16)&0xff; frLrcM[6]=(szL>>8)&0xff; frLrcM[7]=szL&0xff;
+      frLrcM.set(dLrcM,10); masterFrames.push(frLrcM);
+    }
+    // Cover APIC
+    if (covBytes && covBytes.length > 0) {
+      const mbM = enc2.encode('image/jpeg');
+      const dPicM = new Uint8Array(1 + mbM.length + 1 + 1 + 1 + covBytes.length);
+      let posM = 0; dPicM[posM++]=0; dPicM.set(mbM,posM); posM+=mbM.length;
+      dPicM[posM++]=0; dPicM.set(covBytes,posM);
+      const frPicM = new Uint8Array(10 + dPicM.length);
+      ['A','P','I','C'].forEach((c,i)=>{ frPicM[i]=c.charCodeAt(0); });
+      const szP=dPicM.length;
+      frPicM[4]=(szP>>24)&0xff; frPicM[5]=(szP>>16)&0xff; frPicM[6]=(szP>>8)&0xff; frPicM[7]=szP&0xff;
+      frPicM.set(dPicM,10); masterFrames.push(frPicM);
+    }
+    const totalM = masterFrames.reduce((s,f)=>s+f.length,0)+512;
+    const ssM=(n:number):[number,number,number,number]=>[((n>>21)&0x7f),((n>>14)&0x7f),((n>>7)&0x7f),(n&0x7f)];
+    const hdrM = new Uint8Array(10+totalM);
+    hdrM[0]=0x49;hdrM[1]=0x44;hdrM[2]=0x33;hdrM[3]=0x03;hdrM[4]=0x00;hdrM[5]=0x00;
+    const[s3M,s2M,s1M,s0M]=ssM(totalM);
+    hdrM[6]=s3M;hdrM[7]=s2M;hdrM[8]=s1M;hdrM[9]=s0M;
+    let wpM=10;
+    for(const frm of masterFrames){if(frm.length>0){hdrM.set(frm,wpM);wpM+=frm.length;}}
+    const obM=new Uint8Array(wavBuf);
+    let taggedWavBytes: Uint8Array;
+    if(obM.length>12&&obM[0]===0x52&&obM[1]===0x49&&obM[2]===0x46&&obM[3]===0x46){
+      const szH=hdrM.length; const padH=szH%2;
+      const out=new Uint8Array(szH+padH+obM.length);
+      out.set(hdrM,0); out.set(obM,szH+padH);
+      taggedWavBytes=out;
+    } else {
+      taggedWavBytes=obM;
+    }
+
     const blob = new Blob([taggedWavBytes], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
 
@@ -1260,7 +1409,7 @@ const AudioStudioPro:React.FC=()=>{
 
   const loadFile=useCallback(async(file:File)=>{
     if(!file.type.includes('audio')&&!file.name.match(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i)){notify('Formato no soportado. Usa WAV, MP3, FLAC, AIFF o M4A.','err');return;}
-    setAnalyzing(true);setWave(null);setSilences([]);setAiStems(null);setSelectedStemsToZip({});
+    setAnalyzing(true);setWave(null);setSilences([]);setAiStems(null);setSelectedStemsToZip({});setAiScanResult(null);
     try{
       const buf=await file.arrayBuffer();
       const url=URL.createObjectURL(file);
