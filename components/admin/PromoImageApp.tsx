@@ -11,14 +11,82 @@ const sizes = {
   instagram: { w: 500, h: 650, title: 32 },
   story: { w: 500, h: 900, title: 42 },
   post: { w: 900, h: 600, title: 36 },
+  square: { w: 600, h: 600, title: 34 },
+  youtube: { w: 960, h: 540, title: 34 },
+};
+type SizeKey = keyof typeof sizes;
+
+const sizeLabels: Record<SizeKey, { label: string; hint: string }> = {
+  instagram: { label: '4:5 Feed', hint: 'Instagram / Facebook' },
+  story: { label: '9:16 Story', hint: 'Stories / Reels / TikTok' },
+  post: { label: '3:2 Post', hint: 'Horizontal' },
+  square: { label: '1:1', hint: 'Cuadrado' },
+  youtube: { label: '16:9', hint: 'YouTube / Portada' },
 };
 
-const PROMO_MASTER_WIDTH = 3840;
+// Los navegadores (sobre todo Safari) fallan con canvas de mas de ~16 MP: se limita
+// el master por area en vez de por ancho fijo (una story a 3840 px de ancho eran 26 MP).
+const MAX_MASTER_PIXELS = 16_000_000;
+const MAX_MASTER_WIDTH = 3840;
+const getMasterWidth = (key: SizeKey): number => {
+  const { w, h } = sizes[key];
+  return Math.min(MAX_MASTER_WIDTH, Math.floor(Math.sqrt(MAX_MASTER_PIXELS * w / h)));
+};
 const PROMO_EXPORT_WIDTHS = {
   share: 1440,
   social: 2160,
-  master: PROMO_MASTER_WIDTH,
 };
+
+// Zona que Instagram/TikTok tapan con su interfaz en una story de 1080x1920 (px)
+const STORY_SAFE_ZONE = { top: 250, bottom: 340, total: 1920 };
+
+// Fondos de estudio locales (SVG): no dependen de servicios externos ni de CORS al exportar
+const svgBg = (body: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='1440' height='1800' viewBox='0 0 1440 1800'>${body}</svg>`)}`;
+const radial = (id: string, cx: number, cy: number, stops: [number, string][]) =>
+  `<defs><radialGradient id='${id}' cx='${cx}%' cy='${cy}%' r='80%'>${stops.map(([o, c]) => `<stop offset='${o}' stop-color='${c}'/>`).join('')}</radialGradient></defs><rect width='100%' height='100%' fill='url(#${id})'/>`;
+const LOCAL_BACKGROUNDS = [
+  { id: 'studio-dark', label: '🌌 Dark Studio', url: svgBg(radial('a', 50, 28, [[0, '#26345a'], [0.5, '#0c1226'], [1, '#03050a']])) },
+  { id: 'gold-abstract', label: '👑 Luxury Gold', url: svgBg(radial('a', 50, 30, [[0, '#8a6a2b'], [0.45, '#2a1e0a'], [1, '#050402']])) },
+  { id: 'stage-lights', label: '⚡ Cyber Stage', url: svgBg(radial('a', 30, 20, [[0, '#0e5c6b'], [0.5, '#0a1430'], [1, '#02030a']]) + radial('b', 85, 85, [[0, 'rgba(160,30,200,.45)'], [1, 'rgba(0,0,0,0)']])) },
+  { id: 'crimson-steel', label: '🔥 Crimson Steel', url: svgBg(radial('a', 50, 25, [[0, '#7a1414'], [0.5, '#210608'], [1, '#050203']])) },
+  { id: 'toxic', label: '☣️ Toxic Green', url: svgBg(radial('a', 50, 25, [[0, '#1d6b12'], [0.5, '#07200a'], [1, '#020503']])) },
+];
+const PHOTO_BACKGROUNDS = [
+  { id: 'gym-dark', label: '🏋️ Hierro & Gym', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1440&auto=format&fit=crop' },
+  { id: 'chihuahua-sierra', label: '🌵 Sierra Norte', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1440&auto=format&fit=crop' },
+];
+
+// Ajustes de estilo que se recuerdan entre sesiones y que los "Looks" pueden cambiar de golpe
+const DEFAULT_STYLE: Record<string, any> = {
+  template: 'original-v1', colorFilter: 'none', titleFont: 'bebas', titleEffect: 'glow',
+  footerStyle: 'minimal', coverMockup: 'vinyl', badgeType: 'biblical-advisory', showLensFlare: true,
+  autoColor: true, glow: true,
+  grit: 0, noise: false, scanlines: 0, vignette: 0, industrial: false,
+  bgBlur: 0, bgBrightness: 100, bgContrast: 100, bgScale: 100,
+  watermarkEnabled: false, watermarkStyle: 'diagonal', watermarkText: '#PuroSeñorJesucristoCompa', watermarkOpacity: 12, watermarkSize: 100,
+  ribbonStyle: 'none', ribbonText: '#PuroSeñorJesucristoCompa', ribbonColor: 'gold', ribbonOpacity: 90,
+  watermarkLogo: 'none', watermarkLogoPos: 'top-left', watermarkLogoOpacity: 75, watermarkLogoScale: 100,
+  customFooterUrl: '', exportFormat: 'png', exportQuality: 0.92, size: 'instagram',
+};
+const STYLE_STORAGE_KEY = 'promo_studio_style_v1';
+
+// "Looks": un clic aplica plantilla + filtro + tipografia + portada + footer + sello
+const LOOKS: { id: string; label: string; icon: string; color: string; style: Record<string, any> }[] = [
+  { id: 'estreno-gold', label: 'Estreno Gold', icon: 'fa-crown', color: '#c5a059',
+    style: { template: 'original-v1', colorFilter: 'warm-gold', titleFont: 'bebas', titleEffect: 'gold', coverMockup: 'vinyl', footerStyle: 'minimal', badgeType: 'exclusive' } },
+  { id: 'urbano-crimson', label: 'Urbano Crimson', icon: 'fa-fire', color: '#ff4444',
+    style: { template: 'beat-crimson', colorFilter: 'none', titleFont: 'anton', titleEffect: 'solid', coverMockup: 'flat', footerStyle: 'record', badgeType: 'biblical-advisory' } },
+  { id: 'cyber', label: 'Cyber Electric', icon: 'fa-bolt', color: '#00f2ff',
+    style: { template: 'beat-cyber', colorFilter: 'midnight-blue', titleFont: 'grotesk', titleEffect: 'glow', coverMockup: 'cd', footerStyle: 'glass', badgeType: 'hires' } },
+  { id: 'platinum', label: 'Platinum Elegante', icon: 'fa-gem', color: '#e5e4e2',
+    style: { template: 'beat-platinum', colorFilter: 'none', titleFont: 'cinzel', titleEffect: 'chrome', coverMockup: 'frame', footerStyle: 'minimal', badgeType: 'none' } },
+  { id: 'toxic', label: 'Toxic Sierra', icon: 'fa-biohazard', color: '#39ff14',
+    style: { template: 'beat-toxic', colorFilter: 'bleach-bypass', titleFont: 'bebas', titleEffect: 'glow', coverMockup: 'vinyl', footerStyle: 'qr', badgeType: 'chihuahua' } },
+  { id: 'limpio', label: 'Limpio', icon: 'fa-circle-half-stroke', color: '#ffffff',
+    style: { template: 'original-v1', colorFilter: 'none', titleFont: 'bebas', titleEffect: 'solid', coverMockup: 'flat', footerStyle: 'minimal', badgeType: 'none', showLensFlare: false } },
+];
+const LOOK_RESET = { grit: 0, noise: false, scanlines: 0, vignette: 0, industrial: false, watermarkEnabled: false, ribbonStyle: 'none', showLensFlare: true };
 
 const countryOptions = [
   { name: 'GLOBAL (TODAS)', flag: '🌎', iso: 'un' },
@@ -40,6 +108,38 @@ const rgbToHex = (r: number, g: number, b: number): string => {
     const hex = x.toString(16);
     return hex.length === 1 ? "0" + hex : hex;
   }).join("");
+};
+
+// COLOR / CONTRASTE (WCAG)
+const hexToRgb = (hex: string): [number, number, number] => {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h.padEnd(6, '0');
+  return [parseInt(full.slice(0, 2), 16) || 0, parseInt(full.slice(2, 4), 16) || 0, parseInt(full.slice(4, 6), 16) || 0];
+};
+const relLuminance = (r: number, g: number, b: number): number => {
+  const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+const contrastRatio = (l1: number, l2: number): number => (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+const mixRgb = (a: [number, number, number], b: [number, number, number], t: number): [number, number, number] =>
+  [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+};
+const hslToHex = (h: number, s: number, l: number): string => {
+  const f = (n: number) => {
+    const k = (n + h * 12) % 12;
+    const a = s * Math.min(l, 1 - l);
+    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return rgbToHex(f(0), f(8), f(4));
 };
 
 // BIBLIA API DATA & PRESETS
@@ -94,8 +194,18 @@ const PromoImageApp: React.FC = () => {
   const [title, setTitle] = useState("CARGANDO CANCIÓN...");
   const [artist, setArtist] = useState("Diosmasgym");
   const [bg, setBg] = useState<string | null>(null);
+  const [coverArt, setCoverArt] = useState<string | null>(null); // portada del mockup (independiente del fondo)
   const [mode, setMode] = useState("proximamente");
-  const [size, setSize] = useState<keyof typeof sizes>("instagram");
+  const [size, setSize] = useState<SizeKey>("instagram");
+  const sizeRef = useRef<SizeKey>("instagram");
+  const overlayColorRef = useRef("#000000");
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const [showSafeZone, setShowSafeZone] = useState(true);
+  const [renderMaster, setRenderMaster] = useState(false); // el master 4K solo existe mientras se exporta
+  const [hydrated, setHydrated] = useState(false);
+  const [bgAvg, setBgAvg] = useState<[number, number, number] | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState("");
   const [date, setDate] = useState("2026-04-05T23:00");
   const [overlay, setOverlay] = useState(0.65);
   const [tracks, setTracks] = useState("INTRO\nTEMA UNO\nTEMA DOS");
@@ -174,6 +284,83 @@ const PromoImageApp: React.FC = () => {
   const [watermarkLogoPos, setWatermarkLogoPos] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'>('top-left');
   const [watermarkLogoOpacity, setWatermarkLogoOpacity] = useState<number>(75);
   const [watermarkLogoScale, setWatermarkLogoScale] = useState<number>(100);
+
+  useEffect(() => { sizeRef.current = size; }, [size]);
+  useEffect(() => { overlayColorRef.current = overlayColor; }, [overlayColor]);
+
+  // ESTILO: aplicar / recordar / restablecer
+  const styleSetters: Record<string, (v: any) => void> = {
+    template: setTemplate, colorFilter: setColorFilter, titleFont: setTitleFont, titleEffect: setTitleEffect,
+    footerStyle: setFooterStyle, coverMockup: setCoverMockup, badgeType: setBadgeType, showLensFlare: setShowLensFlare,
+    autoColor: setAutoColor, glow: setGlow,
+    grit: setGrit, noise: setNoise, scanlines: setScanlines, vignette: setVignette, industrial: setIndustrial,
+    bgBlur: setBgBlur, bgBrightness: setBgBrightness, bgContrast: setBgContrast, bgScale: setBgScale,
+    watermarkEnabled: setWatermarkEnabled, watermarkStyle: setWatermarkStyle, watermarkText: setWatermarkText,
+    watermarkOpacity: setWatermarkOpacity, watermarkSize: setWatermarkSize,
+    ribbonStyle: setRibbonStyle, ribbonText: setRibbonText, ribbonColor: setRibbonColor, ribbonOpacity: setRibbonOpacity,
+    watermarkLogo: setWatermarkLogo, watermarkLogoPos: setWatermarkLogoPos,
+    watermarkLogoOpacity: setWatermarkLogoOpacity, watermarkLogoScale: setWatermarkLogoScale,
+    customFooterUrl: setCustomFooterUrl, exportFormat: setExportFormat, exportQuality: setExportQuality, size: setSize,
+  };
+  const applyStyle = (s: Record<string, any>) => {
+    Object.entries(s).forEach(([k, v]) => styleSetters[k]?.(v));
+  };
+  const currentStyle: Record<string, any> = {
+    template, colorFilter, titleFont, titleEffect, footerStyle, coverMockup, badgeType, showLensFlare,
+    autoColor, glow, grit, noise, scanlines, vignette, industrial,
+    bgBlur, bgBrightness, bgContrast, bgScale,
+    watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
+    ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
+    watermarkLogo, watermarkLogoPos, watermarkLogoOpacity, watermarkLogoScale,
+    customFooterUrl, exportFormat, exportQuality, size,
+  };
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STYLE_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // Solo se aceptan claves conocidas
+        applyStyle(Object.fromEntries(Object.entries(saved).filter(([k]) => k in DEFAULT_STYLE)));
+      }
+    } catch (e) { console.warn("No se pudo leer el estilo guardado:", e); }
+    setHydrated(true);
+  }, []);
+
+  const currentStyleJson = JSON.stringify(currentStyle);
+  useEffect(() => {
+    if (!hydrated) return;
+    try { localStorage.setItem(STYLE_STORAGE_KEY, currentStyleJson); } catch { /* cuota / modo privado */ }
+  }, [currentStyleJson, hydrated]);
+
+  const handleResetStyle = () => {
+    applyStyle(DEFAULT_STYLE);
+    try { localStorage.removeItem(STYLE_STORAGE_KEY); } catch { /* ignore */ }
+  };
+
+  // El QR se descarga una vez como data-URL: exportar no depende de un servicio externo en ese momento
+  const smartLinkForQr = songId
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/link/${songId}`
+    : (artist.toLowerCase().includes('juan') ? 'https://juan614.diosmasgym.com' : 'https://musica.diosmasgym.com');
+  useEffect(() => {
+    let cancelled = false;
+    setQrDataUrl(null);
+    (async () => {
+      try {
+        const res = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(smartLinkForQr)}&bgcolor=000000&color=ffffff&margin=1`);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch { /* se usa la URL remota como respaldo */ }
+    })();
+    return () => { cancelled = true; };
+  }, [smartLinkForQr]);
 
   // FUNCIÓN PARA TRAER VERSÍCULO DE LA API DE LA BIBLIA (rv1960)
   const fetchRandomBibleVerse = async (targetArtist?: string) => {
@@ -272,6 +459,7 @@ const PromoImageApp: React.FC = () => {
     setTitle(song.name.toUpperCase());
     setArtist(normalizedArtist);
     setBg(song.cover);
+    setCoverArt(song.cover);
     setSongId(song.id || "");
     setMode("disponible");
     setSize("instagram");
@@ -293,23 +481,23 @@ const PromoImageApp: React.FC = () => {
 
   const config = sizes[size];
 
+  // La vista previa se ajusta al espacio real disponible (ancho y alto), no a un ancho fijo de 500 px
   useEffect(() => {
+    const box = previewBoxRef.current;
+    if (!box) return;
     const updateScale = () => {
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        const targetWidth = config.w;
-        if (containerWidth < targetWidth) {
-          setScale(containerWidth / targetWidth);
-        } else {
-          setScale(1);
-        }
-      }
+      const availW = Math.max(200, box.clientWidth - 48);
+      // Solo en escritorio la caja tiene alto fijo (preview sticky); en movil crece con la imagen
+      const isLg = typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1024px)').matches : true;
+      const availH = isLg ? Math.max(240, box.clientHeight - 80 - 48) : Infinity; // padding inferior (botones de formato) + aire
+      setScale(Math.min(availW / config.w, availH / config.h, 1.6));
     };
-    
     updateScale();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateScale) : null;
+    ro?.observe(box);
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, [size, config.w]);
+    return () => { ro?.disconnect(); window.removeEventListener('resize', updateScale); };
+  }, [config.w, config.h]);
 
   useEffect(() => {
     if (!bg) return;
@@ -324,40 +512,50 @@ const PromoImageApp: React.FC = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        canvas.width = 20;
-        canvas.height = 20;
-        ctx.drawImage(img, 0, 0, 20, 20);
-        const data = ctx.getImageData(0, 0, 20, 20).data;
+        const N = 24;
+        canvas.width = N;
+        canvas.height = N;
+        ctx.drawImage(img, 0, 0, N, N);
+        const data = ctx.getImageData(0, 0, N, N).data;
 
-        let r = 0, g = 0, b = 0, brightness = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
-        }
+        // Promedio (para saber cuanta luz hay) + color "vibrante" ponderado por saturacion
+        // (el promedio simple mezcla todo y sale un marron/gris apagado como acento)
+        let r = 0, g = 0, b = 0, vr = 0, vg = 0, vb = 0, vw = 0;
         const pixelCount = data.length / 4;
-        r = Math.round(r / pixelCount);
-        g = Math.round(g / pixelCount);
-        b = Math.round(b / pixelCount);
-        brightness /= pixelCount;
-
-        const hexColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        for (let i = 0; i < data.length; i += 4) {
+          const pr = data[i], pg = data[i + 1], pb = data[i + 2];
+          r += pr; g += pg; b += pb;
+          const [, s, l] = rgbToHsl(pr, pg, pb);
+          const w = s * (1 - Math.abs(l - 0.5) * 2);
+          vr += pr * w; vg += pg * w; vb += pb * w; vw += w;
+        }
+        const avg: [number, number, number] = [Math.round(r / pixelCount), Math.round(g / pixelCount), Math.round(b / pixelCount)];
+        const brightness = (avg[0] + avg[1] + avg[2]) / 3;
+        setBgAvg(avg);
 
         if (autoColor) {
-           setContrastColor(hexColor);
-           setOverlay(brightness > 160 ? 0.75 : 0.5);
-           
-           // SMART TEXT MASTERY: Color de texto armonizado (no solo B/W)
-           if (brightness > 160) {
-             setTextColor(rgbToHex(Math.max(0, r-150), Math.max(0, g-150), Math.max(0, b-150))); // Versión muy oscura del dominante
-           } else {
-             setTextColor(rgbToHex(Math.min(255, r+200), Math.min(255, g+200), Math.min(255, b+200))); // Versión muy clara del dominante
-           }
-           
-           setGlow(true);
+          // Acento: matiz dominante de la portada, saturado y claro para que destaque sobre el overlay
+          if (vw > 10) {
+            const [h, s] = rgbToHsl(vr / vw, vg / vw, vb / vw);
+            setContrastColor(hslToHex(h, Math.max(s, 0.55), 0.62));
+          } else {
+            setContrastColor("#c5a059"); // portada sin color (blanco y negro): dorado de la marca
+          }
+
+          // Texto y oscurecimiento: el minimo overlay que garantiza contraste WCAG AA (4.5:1)
+          const ovRgb = hexToRgb(overlayColorRef.current);
+          const darkText = relLuminance(...ovRgb) > 0.6; // overlay claro => texto oscuro
+          const textRgb: [number, number, number] = darkText ? [11, 13, 18] : [248, 245, 238];
+          const textLum = relLuminance(...textRgb);
+          let chosen = 0.9;
+          for (let ov = 0.45; ov <= 0.9001; ov += 0.05) {
+            if (contrastRatio(relLuminance(...mixRgb(avg, ovRgb, ov)), textLum) >= 4.5) { chosen = ov; break; }
+          }
+          setOverlay(Math.round(chosen * 100) / 100);
+          setTextColor(rgbToHex(...textRgb));
+          setGlow(true);
         } else {
-           setOverlay(brightness > 140 ? 0.75 : 0.45);
+          setOverlay(brightness > 140 ? 0.75 : 0.45);
         }
       } catch (err) {
         console.warn("⚠️ [AUTO-COLOR] Error en análisis. Fallback.");
@@ -368,12 +566,37 @@ const PromoImageApp: React.FC = () => {
   }, [bg, autoColor]);
 
   // ASYNC PREPARE CANVAS: Ghost Master Engine (Native 4K Native Resolution)
-  const prepareCanvas = async (customScale = 1) => {
-    console.log("[MASTER] STARTING GHOST-MASTER NATIVE 4K PREPARATION...");
-    
-    // Target the hidden high-res master container
-    const captureEl = masterRef.current?.querySelector('.promo-master-target') as HTMLElement;
-    if (!captureEl) throw new Error("Ghost Master element not found. Please wait a moment and try again.");
+  // Las exportaciones se encolan: el master se monta/desmonta y dos a la vez se pisarian
+  const exportLockRef = useRef<Promise<unknown>>(Promise.resolve());
+  const prepareCanvas = (customScale = 1): Promise<HTMLCanvasElement> => {
+    const run = exportLockRef.current.catch(() => {}).then(() => renderMasterCanvas(customScale));
+    exportLockRef.current = run;
+    return run;
+  };
+
+  const renderMasterCanvas = async (customScale: number): Promise<HTMLCanvasElement> => {
+    const exportSize = sizeRef.current;
+    const masterW = getMasterWidth(exportSize);
+    console.log("[MASTER] MONTANDO MASTER BAJO DEMANDA...");
+
+    // El master 4K solo existe mientras se exporta (antes vivia siempre y se redibujaba con cada slider)
+    setRenderMaster(true);
+    try {
+      let captureEl: HTMLElement | null = null;
+      for (let i = 0; i < 40 && !captureEl; i++) {
+        await new Promise(r => setTimeout(r, 50));
+        const el = masterRef.current?.querySelector('.promo-master-target') as HTMLElement | null;
+        // debe estar montado con el tamano del formato pedido
+        if (el && Math.abs(el.offsetWidth - masterW) < 2) captureEl = el;
+      }
+      if (!captureEl) throw new Error("No se pudo montar el master. Intenta de nuevo.");
+      return await captureMaster(captureEl, customScale, exportSize, masterW);
+    } finally {
+      setRenderMaster(false);
+    }
+  };
+
+  const captureMaster = async (captureEl: HTMLElement, customScale: number, exportSize: SizeKey, masterW: number): Promise<HTMLCanvasElement> => {
 
     // 1. Force Load ALL Images in the Master Render
     const images = Array.from(captureEl.querySelectorAll('img, [style*="background-image"]'));
@@ -400,19 +623,20 @@ const PromoImageApp: React.FC = () => {
     }));
 
     // 1.5 Stabilization Wait (Browser rasterization at high-res)
-    console.log("[MASTER] MASTER IMAGES LOADED, STABILIZING 4K RASTER...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // 2. Load Fonts (Wait for primary and master rasterization)
+    // 2. Fuentes: se piden explicitamente las del titulo (fonts.ready no espera a las aun no usadas)
     try {
       if (typeof document !== 'undefined') {
+        await Promise.all(['Bebas Neue', 'Anton', 'DM Serif Display', 'Space Grotesk', 'Inter'].map(f => document.fonts.load(`700 40px "${f}"`).catch(() => [])));
         await document.fonts.ready;
       }
     } catch (e) { console.warn("Font loading fallback."); }
 
-    // 3. Capture Native Master (Scale 1 because master is already huge)
-    console.log("[MASTER] CAPTURING NATIVE 4K MASTER...");
-    
+    // 3. Dos frames para que el navegador termine de pintar el master (antes: espera fija de 2 s)
+    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    await new Promise(r => setTimeout(r, 350));
+
+    console.log("[MASTER] CAPTURING MASTER...");
+
     return await html2canvas(captureEl, {
       scale: customScale, // Usually 1 for native master
       useCORS: true,
@@ -435,8 +659,8 @@ const PromoImageApp: React.FC = () => {
           // FORCE EXACT PIXEL DIMENSIONS TO PREVENT 0x0 PATTERN ERRORS
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.boxShadow = 'none';
-          clonedWrapper.style.width = `${PROMO_MASTER_WIDTH}px`;
-          clonedWrapper.style.height = `${PROMO_MASTER_WIDTH * (sizes[size].h / sizes[size].w)}px`;
+          clonedWrapper.style.width = `${masterW}px`;
+          clonedWrapper.style.height = `${masterW * (sizes[exportSize].h / sizes[exportSize].w)}px`;
           clonedWrapper.style.display = 'block';
         }
 
@@ -468,7 +692,8 @@ const PromoImageApp: React.FC = () => {
   };
 
   const prepareCanvasForWidth = async (targetWidth: number) => {
-    return prepareCanvas(targetWidth / PROMO_MASTER_WIDTH);
+    const masterW = getMasterWidth(sizeRef.current);
+    return prepareCanvas(Math.min(1, targetWidth / masterW));
   };
 
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
@@ -720,7 +945,7 @@ const PromoImageApp: React.FC = () => {
     const ext = exportFormat === 'jpeg' ? 'jpg' : 'png';
     console.log(`[DOWNLOAD] STARTING ${isUltra ? '4K' : '1:1'} EXPORT (${exportFormat.toUpperCase()})...`);
     try {
-      const canvas = await prepareCanvasForWidth(isUltra ? PROMO_EXPORT_WIDTHS.master : PROMO_EXPORT_WIDTHS.social);
+      const canvas = await prepareCanvasForWidth(isUltra ? getMasterWidth(sizeRef.current) : PROMO_EXPORT_WIDTHS.social);
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, mimeType, quality));
       if (!blob) throw new Error("Blob generation failed");
@@ -743,6 +968,49 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  // Todos los formatos de una vez en un ZIP (jszip ya es dependencia del proyecto)
+  const handleExportAll = async () => {
+    setIsGenerating(true);
+    const original = sizeRef.current;
+    const mimeType = exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const quality = exportFormat === 'jpeg' ? exportQuality : 1.0;
+    const ext = exportFormat === 'jpeg' ? 'jpg' : 'png';
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'promo';
+    try {
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      const keys = Object.keys(sizes) as SizeKey[];
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        setExportProgress(`${i + 1}/${keys.length} · ${sizeLabels[k].label}`);
+        sizeRef.current = k;
+        setSize(k);
+        await new Promise(r => setTimeout(r, 400)); // deja que la vista previa se redibuje con el nuevo formato
+        const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.social);
+        const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, mimeType, quality));
+        if (blob) zip.file(`PROMO-${slug}-${k}.${ext}`, blob);
+      }
+      setExportProgress('Comprimiendo ZIP...');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.download = `PROMO-${slug}-todos-los-formatos.zip`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e: any) {
+      console.error("Export-all error:", e);
+      alert(`⚠️ No se pudo exportar todo: ${e.message || 'error desconocido'}`);
+    } finally {
+      sizeRef.current = original;
+      setSize(original);
+      setExportProgress('');
+      setIsGenerating(false);
+    }
+  };
+
   const handleGoToSnippet = async () => {
     setIsGenerating(true);
     try {
@@ -752,7 +1020,10 @@ const PromoImageApp: React.FC = () => {
       if (!previewEl) throw new Error("Preview element not found");
 
       const canvas = await html2canvas(previewEl, {
-        onclone: rasterizeIconsForCanvas,
+        onclone: (clonedDoc: Document) => {
+          rasterizeIconsForCanvas(clonedDoc);
+          clonedDoc.querySelectorAll('.safe-zone-guide').forEach(el => el.remove());
+        },
         scale: 1.5, // Enough for a snippet, light enough for memory
         useCORS: true,
         backgroundColor: '#000',
@@ -779,7 +1050,7 @@ const PromoImageApp: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setBg(ev.target?.result as string);
+    reader.onload = (ev) => { const data = ev.target?.result as string; setBg(data); setCoverArt(data); }; // imagen manual = portada + fondo
     reader.readAsDataURL(file);
   };
 
@@ -802,16 +1073,35 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  // Contraste estimado del titulo sobre el fondo ya oscurecido (WCAG)
+  const contrastInfo = (() => {
+    if (!bgAvg) return null;
+    const eff = mixRgb(bgAvg, hexToRgb(overlayColor), overlay);
+    const ratio = contrastRatio(relLuminance(...eff), relLuminance(...hexToRgb(textColor)));
+    const level = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'Bajo' : 'Ilegible';
+    return { ratio, level };
+  })();
+
+  const handleFixContrast = () => {
+    if (!bgAvg) return;
+    const ovRgb = hexToRgb(overlayColor);
+    const textLum = relLuminance(...hexToRgb(textColor));
+    for (let ov = Math.max(overlay, 0.3); ov <= 0.951; ov += 0.05) {
+      if (contrastRatio(relLuminance(...mixRgb(bgAvg, ovRgb, ov)), textLum) >= 4.5) { setOverlay(Math.round(ov * 100) / 100); return; }
+    }
+    setOverlay(0.95);
+  };
+
   const smartLinkUrl = getSmartLink();
 
   const commonProps = {
-    title, artist, bg, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
+    title, artist, bg, cover: coverArt, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, country, trackList: tracks.split("\n"),
     config: sizes[size],
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
     footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare,
-    smartLinkUrl,
+    smartLinkUrl, qrDataUrl,
     bgBlur, bgBrightness, bgContrast, bgScale,
     watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
     ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
@@ -819,7 +1109,7 @@ const PromoImageApp: React.FC = () => {
   };
 
   // 4K MASTER PROPS: Scaled configuration for high-res render
-  const masterWidth = PROMO_MASTER_WIDTH;
+  const masterWidth = getMasterWidth(size);
   const masterMultiplier = masterWidth / sizes[size].w;
   const masterCommonProps = {
     ...commonProps,
@@ -844,12 +1134,20 @@ const PromoImageApp: React.FC = () => {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span> <span className="text-white/80">v5.0 PRO</span></h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Studio <span className="text-[#c5a059]">PRO GENERATOR</span></h1>
         </div>
-        <div className="w-20"></div> {/* Spacer */}
+        <button
+          type="button"
+          onClick={handleResetStyle}
+          title="Vuelve a los ajustes de estilo por defecto"
+          className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white transition-all px-4 py-2 rounded-full border border-white/10 hover:border-white/30"
+        >
+          <i className="fas fa-rotate-left text-[8px]"></i>
+          Restablecer estilo
+        </button>
       </div>
 
-      <div ref={containerRef} className="flex-1 p-4 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-auto">
+      <div ref={containerRef} className="flex-1 p-4 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* LEFT COMPONENT: CONTROLS */}
         <div className="lg:col-span-5 space-y-8 animate-fade-in-up">
           
@@ -1093,6 +1391,32 @@ const PromoImageApp: React.FC = () => {
             </div>
           </div>
 
+          {/* GROUP: LOOKS (un clic) */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-2 flex items-center gap-2">
+              <i className="fas fa-wand-magic-sparkles"></i>
+              Looks
+            </h2>
+            <p className="text-[9px] text-white/30 tracking-wide mb-5">Un clic aplica plantilla, filtro, tipografía, portada, footer y sticker. Luego ajusta lo que quieras.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {LOOKS.map((l) => {
+                const active = Object.entries(l.style).every(([k, v]) => currentStyle[k] === v);
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => applyStyle({ ...LOOK_RESET, ...l.style })}
+                    className={`py-3 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all flex flex-col items-center gap-1.5 ${active ? 'text-black' : 'bg-black/40 text-white/50 border-white/5 hover:text-white hover:border-white/20'}`}
+                    style={active ? { backgroundColor: l.color, borderColor: l.color, boxShadow: `0 0 24px ${l.color}33` } : {}}
+                  >
+                    <i className={`fas ${l.icon} text-sm`} style={active ? {} : { color: l.color }}></i>
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* GROUP: FONDO & TEXTURAS HD (BACKGROUND SUITE) */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
@@ -1134,12 +1458,9 @@ const PromoImageApp: React.FC = () => {
                 <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Fondos de Estudio Prediseñados</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'original', label: '🎵 Portada Tema', url: null },
-                    { id: 'studio-dark', label: '🌌 Dark Studio', url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1440&auto=format&fit=crop' },
-                    { id: 'gym-dark', label: '🏋️ Hierro & Gym', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1440&auto=format&fit=crop' },
-                    { id: 'gold-abstract', label: '👑 Luxury Gold', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1440&auto=format&fit=crop' },
-                    { id: 'chihuahua-sierra', label: '🌵 Sierra Norte', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1440&auto=format&fit=crop' },
-                    { id: 'stage-lights', label: '⚡ Cyber Stage', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1440&auto=format&fit=crop' },
+                    { id: 'original', label: '🎵 Portada Tema', url: null as string | null },
+                    ...LOCAL_BACKGROUNDS,
+                    ...PHOTO_BACKGROUNDS,
                   ].map((p) => (
                     <button
                       key={p.id}
@@ -1149,7 +1470,8 @@ const PromoImageApp: React.FC = () => {
                           setBg(p.url);
                         } else {
                           const currentSong = catalog.find(s => s.name.toUpperCase() === title.toUpperCase());
-                          if (currentSong?.cover) setBg(currentSong.cover);
+                          const cover = currentSong?.cover || coverArt;
+                          if (cover) setBg(cover);
                         }
                       }}
                       className="py-2.5 px-2 bg-black/40 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/40 rounded-xl text-[8px] font-black uppercase tracking-wider text-white/70 hover:text-white transition-all text-center"
@@ -1240,6 +1562,12 @@ const PromoImageApp: React.FC = () => {
             </h2>
 
             <div className="space-y-6">
+              {/* Marca de agua y listón: poco usados, plegados por defecto (el sello/logo queda a la vista) */}
+              <details open={watermarkEnabled || ribbonStyle !== 'none'} className="rounded-2xl border border-white/5 bg-black/20 p-4 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer text-[9px] uppercase font-black tracking-[0.25em] text-white/50 hover:text-white flex items-center gap-2">
+                  <i className="fas fa-chevron-down text-[8px]"></i> Avanzado: marca de agua y listón
+                </summary>
+                <div className="space-y-6 pt-5">
               {/* SUB-SECCIÓN 1: HASHTAG MARCA DE AGUA EN FONDO */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1379,6 +1707,9 @@ const PromoImageApp: React.FC = () => {
                   </div>
                 )}
               </div>
+
+                              </div>
+              </details>
 
               {/* SUB-SECCIÓN 3: SELLO / LOGO FLOTANTE */}
               <div className="space-y-3 pt-4 border-t border-white/5">
@@ -1609,6 +1940,19 @@ const PromoImageApp: React.FC = () => {
               </button>
             </div>
             
+            {contrastInfo && (
+              <div className={`mb-6 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-[9px] font-black uppercase tracking-widest ${contrastInfo.ratio >= 4.5 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-amber-500/40 bg-amber-500/10 text-amber-300'}`}>
+                <span>
+                  <i className={`fas ${contrastInfo.ratio >= 4.5 ? 'fa-circle-check' : 'fa-triangle-exclamation'} mr-2`}></i>
+                  Contraste del título: {contrastInfo.ratio.toFixed(1)}:1 · {contrastInfo.level}
+                </span>
+                {contrastInfo.ratio < 4.5 && (
+                  <button type="button" onClick={handleFixContrast} className="px-3 py-1.5 rounded-lg bg-amber-400 text-black hover:bg-amber-300 transition-all">
+                    Corregir
+                  </button>
+                )}
+              </div>
+              )}
             <div className="grid grid-cols-1 gap-8">
               {/* CINEMATIC COLOR FILTERS */}
               <div className="space-y-4">
@@ -1658,6 +2002,11 @@ const PromoImageApp: React.FC = () => {
                  </div>
               </div>
 
+              <details open={grit > 0 || noise || industrial || scanlines > 0 || vignette > 0} className="rounded-2xl border border-white/5 bg-black/20 p-4 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer text-[9px] uppercase font-black tracking-[0.25em] text-white/50 hover:text-white flex items-center gap-2">
+                  <i className="fas fa-chevron-down text-[8px]"></i> Avanzado: textura y efectos
+                </summary>
+                <div className="space-y-6 pt-5">
               <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex justify-between items-center">
                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Nivel de Grano ({Math.round(grit * 100)}%)</label>
@@ -1679,6 +2028,9 @@ const PromoImageApp: React.FC = () => {
                    <input type="range" min="0" max="0.9" step="0.05" value={vignette} onChange={(e) => setVignette(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
                 </div>
               </div>
+
+              </div>
+              </details>
 
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
                 <div className="space-y-2">
@@ -1755,6 +2107,14 @@ const PromoImageApp: React.FC = () => {
                   className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
                   <i className="fas fa-eye"></i> Descargar Social HD (Vista Pro)
+                </button>
+
+                <button
+                  onClick={handleExportAll}
+                  disabled={isGenerating}
+                  className="w-full py-4 bg-white/5 border border-[#c5a059]/30 text-[#c5a059] font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <i className="fas fa-file-zipper"></i> {exportProgress ? `Exportando ${exportProgress}` : 'Todos los formatos (ZIP)'}
                 </button>
 
                 <button 
@@ -1835,15 +2195,14 @@ const PromoImageApp: React.FC = () => {
         </div>
 
         {/* RIGHT COMPONENT: PREVIEW */}
-        <div className="lg:col-span-7 flex flex-col items-center justify-start gap-10">
-          <div className="w-full h-full min-h-[600px] bg-black/60 rounded-[40px] border border-white/5 flex items-center justify-center relative overflow-hidden group shadow-inner">
+        <div className="lg:col-span-7 flex flex-col items-center justify-start gap-4 lg:sticky lg:top-24 lg:self-start w-full">
+          <div ref={previewBoxRef} className="w-full pb-20 min-h-[460px] lg:h-[calc(100vh-8rem)] bg-black/60 rounded-[40px] border border-white/5 flex items-center justify-center relative overflow-hidden group shadow-inner">
             {/* STUDIO LIGHTING EFFECTS */}
             <div className="absolute top-0 left-1/4 w-1/2 h-40 bg-[#c5a059]/10 blur-[100px] pointer-events-none"></div>
             <div className="absolute bottom-0 right-1/4 w-1/2 h-40 bg-blue-500/5 blur-[100px] pointer-events-none"></div>
             
             <div 
-              onClick={() => handleDownload(false)}
-              style={{ 
+              style={{
                 width: config.w * scale, 
                 height: config.h * scale, 
                 display: 'block',
@@ -1851,8 +2210,7 @@ const PromoImageApp: React.FC = () => {
                 transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                 filter: isSendingToMake ? 'brightness(0.5) blur(10px)' : 'none'
               }}
-              className="hover:scale-[1.02] cursor-download promo-container-wrapper"
-              title="Haz clic para descargar exactamente lo que ves"
+              className="promo-container-wrapper"
             >
               <div 
                 style={{ 
@@ -1869,53 +2227,69 @@ const PromoImageApp: React.FC = () => {
                 }}
               >
                 <PromoTemplate {...commonProps} />
+                {size === 'story' && showSafeZone && (
+                  <div className="safe-zone-guide" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 999 }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: config.h * STORY_SAFE_ZONE.top / STORY_SAFE_ZONE.total, background: 'repeating-linear-gradient(45deg, rgba(239,68,68,0.28) 0 6px, rgba(239,68,68,0.10) 6px 12px)', borderBottom: '1px dashed rgba(239,68,68,0.9)' }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: config.h * STORY_SAFE_ZONE.bottom / STORY_SAFE_ZONE.total, background: 'repeating-linear-gradient(45deg, rgba(239,68,68,0.28) 0 6px, rgba(239,68,68,0.10) 6px 12px)', borderTop: '1px dashed rgba(239,68,68,0.9)' }} />
+                  </div>
+                )}
               </div>
             </div>
 
             {isGenerating && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-[250] bg-black/60 backdrop-blur-md animate-fade-in rounded-[40px]">
                 <div className="w-16 h-16 border-t-2 border-r-2 border-[#c5a059] rounded-full animate-spin shadow-[0_0_30px_rgba(197,160,89,0.3)]"></div>
-                <div className="text-[10px] font-black uppercase tracking-[1em] text-[#c5a059] animate-pulse">Masterizando 4K</div>
+                <div className="text-[10px] font-black uppercase tracking-[1em] text-[#c5a059] animate-pulse text-center px-4">{exportProgress ? `Exportando ${exportProgress}` : 'Masterizando'}</div>
               </div>
             )}
             
-            {/* SIZE SELECTOR OVERLAY */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 bg-black/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all">
-                {Object.keys(sizes).map((s) => (
-                  <button 
-                    key={s}
-                    onClick={(e) => { e.stopPropagation(); setSize(s as any); }}
-                    className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${size === s ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            {/* SELECTOR DE FORMATO (siempre visible: antes solo aparecia con hover y no existia en tactil) */}
+            <div className="absolute bottom-4 inset-x-0 flex justify-center px-3 z-[200] pointer-events-none">
+            <div className="pointer-events-auto flex flex-wrap justify-center items-center gap-1.5 bg-black/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl shadow-2xl">
+              {(Object.keys(sizes) as SizeKey[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  title={sizeLabels[s].hint}
+                  onClick={(e) => { e.stopPropagation(); setSize(s); }}
+                  className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${size === s ? 'bg-[#c5a059] text-black' : 'text-white/50 hover:text-white'}`}
+                >
+                  {sizeLabels[s].label}
+                </button>
+              ))}
+              {size === 'story' && (
+                <button
+                  type="button"
+                  title="Muestra la zona que Instagram/TikTok tapan con su interfaz (no aparece en la imagen exportada)"
+                  onClick={(e) => { e.stopPropagation(); setShowSafeZone(v => !v); }}
+                  className={`ml-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${showSafeZone ? 'border-red-400/60 text-red-300 bg-red-500/10' : 'border-white/10 text-white/40 hover:text-white'}`}
+                >
+                  <i className="fas fa-ruler-vertical mr-1.5"></i>Zona segura
+                </button>
+              )}
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleQuickCopy(); }}
+                disabled={isGenerating}
+                title="Copiar imagen al portapapeles"
+                className="ml-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all disabled:opacity-50"
+              >
+                <i className="fas fa-copy mr-1.5 text-[#c5a059]"></i>Copiar
+              </button>
+            </div>
             </div>
 
-            {/* #1 — QUICK COPY BUTTON */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleQuickCopy(); }}
-              disabled={isGenerating}
-              className="absolute top-5 right-5 z-[200] flex items-center gap-2 px-4 py-2 rounded-full bg-black/70 backdrop-blur-xl border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
-              title="Copiar imagen al portapapeles"
-            >
-              <i className="fas fa-copy text-[#c5a059]"></i>
-              Copiar
-            </button>
+            
 
             {/* Quick copy toast */}
             {quickCopySuccess && (
-              <div className="absolute top-16 right-5 z-[201] px-4 py-2 rounded-full bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest animate-pulse shadow-lg">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[201] px-4 py-2 rounded-full bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest animate-pulse shadow-lg">
                 {quickCopySuccess}
               </div>
             )}
           </div>
           
-          <div className="flex gap-10 opacity-20 hover:opacity-50 transition-opacity">
-             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-layer-group"></i> Adobe Style Engine</div>
-             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-microchip"></i> Vercel Logic Core</div>
-             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest"><i className="fas fa-signal"></i> Make.com Link Active</div>
-          </div>
+          
         </div>
       </div>
 
@@ -1934,19 +2308,21 @@ const PromoImageApp: React.FC = () => {
           background: '#000'
         }}
       >
-        <div ref={masterRef}>
-          {/* We mirror the exact structure that the capture engine expects but with Master Props */}
-          <div 
-            className="promo-master-target" 
-            style={{ 
-              width: masterWidth, 
-              height: masterWidth * (sizes[size].h / sizes[size].w),
-              position: 'relative',
-              display: 'block'
-            }}
-          >
-             <PromoTemplate {...masterCommonProps} isExport={true} />
-          </div>
+                <div ref={masterRef}>
+          {/* Solo se monta mientras se exporta: mantenerlo siempre duplicaba el render y frenaba los sliders */}
+          {renderMaster && (
+            <div
+              className="promo-master-target"
+              style={{
+                width: masterWidth,
+                height: masterWidth * (sizes[size].h / sizes[size].w),
+                position: 'relative',
+                display: 'block'
+              }}
+            >
+               <PromoTemplate {...masterCommonProps} isExport={true} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -2302,19 +2678,48 @@ const PromoImageApp: React.FC = () => {
   );
 };
 
+// En lienzos anchos (1:1, 3:2, 16:9) la plantilla vertical se recortaba o se solapaba.
+// El contenido se dibuja en un "escenario" 4:5 centrado; el fondo sigue cubriendo todo el lienzo.
+const StageWrap: React.FC<{ on: boolean; width: number; children: React.ReactNode }> = ({ on, width, children }) =>
+  on
+    ? <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width, marginLeft: -width / 2, zIndex: 10 }}>{children}</div>
+    : <>{children}</>;
+
 const PromoTemplate: React.FC<any> = ({ 
-    title, artist, bg, mode, config, overlay, overlayColor, textColor, contrastColor, glow, stroke,
+    title, artist, bg, cover = null, mode, config: canvasConfig, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, trackList, isExport = false, country,
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
     footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
     badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = true,
-    smartLinkUrl = 'https://diosmasgym.com',
+    smartLinkUrl = 'https://diosmasgym.com', qrDataUrl = null,
     bgBlur = 0, bgBrightness = 100, bgContrast = 100, bgScale = 100,
     watermarkEnabled = false, watermarkStyle = 'diagonal', watermarkText = '#PuroSeñorJesucristoCompa', watermarkOpacity = 12, watermarkSize = 100,
     ribbonStyle = 'none', ribbonText = '#PuroSeñorJesucristoCompa', ribbonColor = 'gold', ribbonOpacity = 90,
     watermarkLogo = 'none', watermarkLogoPos = 'top-left', watermarkLogoOpacity = 75, watermarkLogoScale = 100
 }) => {
+    const coverSrc: string | null = cover || bg;
+    const isWide = canvasConfig.w / canvasConfig.h > 0.85;
+    const stageW = canvasConfig.h * (500 / 650);
+    const config = isWide ? { ...canvasConfig, w: stageW, title: 32 * canvasConfig.h / 650 } : canvasConfig;
+
+    // Los textos secundarios se calculaban como fracciones del titulo (2.5-5 px en una imagen de 500 px):
+    // ilegibles al exportar. Se fija un minimo proporcional al ancho del lienzo.
+    const fz = (k: number) => Math.max(config.title * k, 9 * (config.w / 500));
+
+    // Titulo: tamano continuo segun largo y ancho del lienzo (antes solo 3 saltos fijos)
+    const titleFs = (() => {
+      const charW = ({ bebas: 0.42, anton: 0.46, cinzel: 0.56, grotesk: 0.6 } as Record<string, number>)[titleFont] ?? 0.5;
+      const avail = config.w * 0.84;
+      const base = config.title * 1.9;
+      const len = Math.max(title.length, 1);
+      const single = avail / (len * charW);      // tamano con el que cabe en una linea
+      if (single >= base) return base;
+      if (single >= config.title * 1.15) return single;
+      const two = (avail * 2 * 0.9) / (len * charW); // dos lineas (90%: el corte cae en espacios)
+      return Math.max(config.title, Math.min(config.title * 1.4, two));
+    })();
+
     // Dynamic theme mapping
     const theme = {
       'original-v1': { accent: contrastColor || '#c5a059', glow: glow ? contrastColor : 'rgba(197,160,89,0.15)', effect: null },
@@ -2333,7 +2738,7 @@ const PromoTemplate: React.FC<any> = ({
     }[titleFont] || "'Bebas Neue', sans-serif";
 
     // QR Code URL (clean high-res SVG/PNG proxied for 4K)
-    const qrCodeSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(smartLinkUrl)}&bgcolor=000000&color=ffffff&margin=1`;
+    const qrCodeSrc = qrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(smartLinkUrl)}&bgcolor=000000&color=ffffff&margin=1`;
 
     const displayUrl = customFooterUrl && customFooterUrl.trim()
       ? customFooterUrl.trim().replace(/^https?:\/\//i, '')
@@ -2636,7 +3041,7 @@ const PromoTemplate: React.FC<any> = ({
               })
             }}>
               <span style={{
-                fontSize: config.title * 0.22,
+                fontSize: fz(0.22),
                 fontWeight: 900,
                 letterSpacing: '0.15em',
                 fontStyle: 'italic',
@@ -2682,6 +3087,7 @@ const PromoTemplate: React.FC<any> = ({
           {noise && <div className="real-grain" />}
           {industrial && <div className="industrial-overlay" />}
 
+          <StageWrap on={isWide} width={stageW}>
           {/* === BOKEH BACKGROUND === */}
           {[{x:'15%',y:'20%',s:80,o:0.07},{x:'75%',y:'10%',s:120,o:0.05},{x:'88%',y:'55%',s:60,o:0.08},{x:'5%',y:'70%',s:100,o:0.06},{x:'50%',y:'85%',s:90,o:0.05},{x:'30%',y:'40%',s:50,o:0.04}].map((b,i) => (
             <div key={i} style={{ position:'absolute', left:b.x, top:b.y, width:b.s, height:b.s, borderRadius:'50%', background:`radial-gradient(circle, ${theme.accent}${b.o}) 0%, transparent 70%)`, filter:'blur(12px)', zIndex:3, pointerEvents:'none' }} />
@@ -2713,7 +3119,7 @@ const PromoTemplate: React.FC<any> = ({
 
           {/* === VERTICAL SIDEBAR === */}
           <div style={{ position:'absolute', left:0, top:0, bottom:0, width: config.title * 1.0, zIndex:13, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <div style={{ transform:'rotate(-90deg)', whiteSpace:'nowrap', fontSize: config.title * 0.13, fontWeight:900, letterSpacing:'0.35em', color: theme.accent, opacity:0.6, fontFamily:'Inter', textTransform:'uppercase' as const }}>
+            <div style={{ transform:'rotate(-90deg)', whiteSpace:'nowrap', fontSize: fz(0.13), fontWeight:900, letterSpacing:'0.35em', color: theme.accent, opacity:0.6, fontFamily:'Inter', textTransform:'uppercase' as const }}>
               {artist.toUpperCase().includes('JUAN 614') ? 'JUAN 614 · JESUCRISTO · 2026 · DIOSMASGYM' : 'DIOSMASGYM RECORDS · PURO CHIHUAHUA · 2026'}
             </div>
             <div style={{ position:'absolute', right:0, top:'10%', bottom:'10%', width:'1px', background:`linear-gradient(to bottom, transparent, ${theme.accent}55, transparent)` }} />
@@ -2734,9 +3140,9 @@ const PromoTemplate: React.FC<any> = ({
                   lineHeight: 1.1,
                   transform: 'rotate(-2deg)'
                 }}>
-                  <span style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.2em', fontFamily: "'Bebas Neue', sans-serif" }}>PARENTAL ADVISORY</span>
-                  <span style={{ fontSize: config.title * 0.11, fontWeight: 900, color: theme.accent, letterSpacing: '0.12em', fontFamily: 'Inter' }}>100% MENSAJE BÍBLICO</span>
-                  <span style={{ fontSize: config.title * 0.08, fontWeight: 700, color: '#aaa', letterSpacing: '0.15em', fontFamily: 'Inter' }}>EDIFICACIÓN PURA</span>
+                  <span style={{ fontSize: fz(0.16), fontWeight: 900, color: '#fff', letterSpacing: '0.2em', fontFamily: "'Bebas Neue', sans-serif" }}>PARENTAL ADVISORY</span>
+                  <span style={{ fontSize: fz(0.11), fontWeight: 900, color: theme.accent, letterSpacing: '0.12em', fontFamily: 'Inter' }}>100% MENSAJE BÍBLICO</span>
+                  <span style={{ fontSize: fz(0.08), fontWeight: 700, color: '#aaa', letterSpacing: '0.15em', fontFamily: 'Inter' }}>EDIFICACIÓN PURA</span>
                 </div>
               )}
               {badgeType === 'exclusive' && (
@@ -2747,7 +3153,7 @@ const PromoTemplate: React.FC<any> = ({
                   borderRadius: 100,
                   boxShadow: `0 8px 30px ${theme.accent}44`,
                   color: '#fff',
-                  fontSize: config.title * 0.13,
+                  fontSize: fz(0.13),
                   fontWeight: 900,
                   letterSpacing: '0.25em',
                   fontFamily: 'Inter',
@@ -2768,10 +3174,10 @@ const PromoTemplate: React.FC<any> = ({
                   alignItems: 'center',
                   gap: config.title * 0.15
                 }}>
-                  <div style={{ width: config.title * 0.35, height: config.title * 0.35, borderRadius: '50%', border: `1.5px solid ${theme.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: config.title * 0.18, color: theme.accent, fontWeight: 900 }}>Hi</div>
+                  <div style={{ width: config.title * 0.35, height: config.title * 0.35, borderRadius: '50%', border: `1.5px solid ${theme.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: fz(0.18), color: theme.accent, fontWeight: 900 }}>Hi</div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: config.title * 0.13, fontWeight: 900, color: '#fff', letterSpacing: '0.15em', fontFamily: 'Inter' }}>HI-RES AUDIO</span>
-                    <span style={{ fontSize: config.title * 0.08, fontWeight: 700, color: theme.accent, letterSpacing: '0.2em', fontFamily: 'Inter' }}>24-BIT / 96kHz</span>
+                    <span style={{ fontSize: fz(0.13), fontWeight: 900, color: '#fff', letterSpacing: '0.15em', fontFamily: 'Inter' }}>HI-RES AUDIO</span>
+                    <span style={{ fontSize: fz(0.08), fontWeight: 700, color: theme.accent, letterSpacing: '0.2em', fontFamily: 'Inter' }}>24-BIT / 96kHz</span>
                   </div>
                 </div>
               )}
@@ -2783,7 +3189,7 @@ const PromoTemplate: React.FC<any> = ({
                   borderRadius: 6,
                   boxShadow: `0 10px 30px rgba(0,0,0,0.8)`,
                   color: theme.accent,
-                  fontSize: config.title * 0.13,
+                  fontSize: fz(0.13),
                   fontWeight: 900,
                   letterSpacing: '0.2em',
                   fontFamily: 'Inter',
@@ -2805,16 +3211,14 @@ const PromoTemplate: React.FC<any> = ({
               {/* HEADER ROW */}
               <div style={{ display: "flex", flexWrap: 'wrap', justifyContent: "space-between", alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontSize: config.title * 0.28, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
-                    <div style={{ fontSize: config.title * 0.12, letterSpacing: '0.8em', opacity: 0.5, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span>STUDIO PRO V5.0</span>
-                      <span style={{ color: theme.accent, opacity: 0.8 }}>//</span>
+                    <div style={{ fontSize: fz(0.28), fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, fontFamily: 'Inter' }}>{artist.toUpperCase() === "JUAN 614" ? "JUAN 614" : `${artist.toUpperCase()} RECORDS`}</div>
+                    <div style={{ fontSize: fz(0.12), letterSpacing: '0.8em', opacity: 0.5, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ color: theme.accent }}>{artist.toUpperCase().includes('JUAN 614') ? 'PURO SEÑOR JESUCRISTO' : 'PURO CHIHUAHUA'}</span>
                     </div>
                 </div>
                 <div 
                   data-backdrop-polyfill
-                  style={{ padding: "8px 20px", borderRadius: 4, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.5)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: config.title * 0.22, fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter', boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }}>
+                  style={{ padding: "8px 20px", borderRadius: 4, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.5)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: fz(0.22), fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter', boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }}>
                   {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY"}
                 </div>
               </div>
@@ -2823,7 +3227,7 @@ const PromoTemplate: React.FC<any> = ({
               <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
                 
                 {/* 3D COVER MOCKUP WRAPPER */}
-                {bg && (
+                {coverSrc && (
                   <div style={{ position: 'relative', margin: `${config.title * 0.2}px 0`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     
                     {/* VINYL 3D RECORD DISK POPPING OUT */}
@@ -2866,14 +3270,14 @@ const PromoTemplate: React.FC<any> = ({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundImage: `url("${getHighResUrl(bg)}")`,
+                          backgroundImage: `url("${getHighResUrl(coverSrc)}")`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           position: 'relative',
                           overflow: 'hidden'
                         }}>
                           <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
-                          <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', color: theme.accent, fontSize: config.title * 0.11, fontWeight: 900, letterSpacing: '0.15em' }}>
+                          <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', color: theme.accent, fontSize: fz(0.11), fontWeight: 900, letterSpacing: '0.15em' }}>
                             33⅓ RPM
                           </div>
                           {/* Center Spindle Hole */}
@@ -2915,7 +3319,7 @@ const PromoTemplate: React.FC<any> = ({
                           style={{ 
                             width: '100%', 
                             height: '100%', 
-                            backgroundImage: `url("${getHighResUrl(bg)}${isExport && bg && !bg.startsWith('data:') && !bg.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`,
+                            backgroundImage: `url("${getHighResUrl(coverSrc)}${isExport && coverSrc && !coverSrc.startsWith('data:') && !coverSrc.startsWith('blob:') ? '&export_cb=' + Date.now() : ''}")`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             display: 'block', 
@@ -2942,7 +3346,7 @@ const PromoTemplate: React.FC<any> = ({
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 15 }}>
                       <div style={{ height: 1, width: 40, background: `linear-gradient(to right, transparent, ${theme.accent})` }}></div>
                       <h4 style={{ 
-                        fontSize: config.title * 0.22, 
+                        fontSize: fz(0.22), 
                         color: theme.accent, 
                         fontWeight: 900, 
                         letterSpacing: '0.6em', 
@@ -2959,7 +3363,7 @@ const PromoTemplate: React.FC<any> = ({
 
                   {/* HIGH-IMPACT TITLE WITH CUSTOM FONT & EFFECT */}
                   <h1 style={{ 
-                    fontSize: config.title * (title.length > 18 ? 1.3 : title.length > 12 ? 1.55 : 1.9), 
+                    fontSize: titleFs, 
                     fontWeight: 900, 
                     lineHeight: 0.88, 
                     fontFamily: titleFontFamily,
@@ -3014,7 +3418,7 @@ const PromoTemplate: React.FC<any> = ({
                   {slogan && slogan.trim() && (
                     <div style={{
                       marginTop: config.title * 0.25,
-                      fontSize: config.title * 0.28,
+                      fontSize: fz(0.28),
                       color: theme.accent,
                       fontFamily: "'DM Serif Display', serif",
                       fontStyle: 'italic',
@@ -3052,7 +3456,7 @@ const PromoTemplate: React.FC<any> = ({
                       </div>
                     </div>
                     {country && country.iso !== 'un' && (
-                      <div style={{ fontSize: config.title * 0.15, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, opacity: 0.7, marginTop: 4 }}>
+                      <div style={{ fontSize: fz(0.15), fontWeight: 900, letterSpacing: '0.5em', color: theme.accent, opacity: 0.7, marginTop: 4 }}>
                         EXCLUSIVO // {country.name.toUpperCase()}
                       </div>
                     )}
@@ -3062,7 +3466,7 @@ const PromoTemplate: React.FC<any> = ({
                 {/* DISPONIBLE PLATFORMS ROW (When inside center) */}
                 {mode === "disponible" && footerStyle !== 'qr' && (
                   <div style={{ marginTop: config.title * 0.3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: config.title * 0.25, color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, fontSize: fz(0.25), color: theme.accent, fontWeight: 900, letterSpacing: '0.3em' }}>
                        <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)`, width: 50 }}></div>
                        <span>PLATAFORMAS DIGITALES</span>
                        <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)`, width: 50 }}></div>
@@ -3082,14 +3486,14 @@ const PromoTemplate: React.FC<any> = ({
                   <div style={{ width: '100%', marginTop: config.title * 0.25, marginBottom: config.title * 0.2 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: config.title * 0.15 }}>
                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${theme.accent}80)` }}></div>
-                      <div style={{ fontSize: config.title * 0.2, fontWeight: 900, letterSpacing: '0.5em', color: theme.accent }}>TRACKLIST</div>
+                      <div style={{ fontSize: fz(0.2), fontWeight: 900, letterSpacing: '0.5em', color: theme.accent }}>TRACKLIST</div>
                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)` }}></div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: trackList.filter(t => t.trim()).length > 5 ? '1fr 1fr' : '1fr', gap: `${config.title * 0.1}px ${config.title * 0.6}px` }}>
                       {trackList.filter(t => t.trim()).map((track, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07 }}>
-                          <span style={{ fontSize: config.title * 0.18, fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7 }}>{String(i + 1).padStart(2, '0')}</span>
-                          <span style={{ fontSize: config.title * 0.22, fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase' }}>{track.trim()}</span>
+                          <span style={{ fontSize: fz(0.18), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7 }}>{String(i + 1).padStart(2, '0')}</span>
+                          <span style={{ fontSize: fz(0.22), fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase' }}>{track.trim()}</span>
                         </div>
                       ))}
                     </div>
@@ -3118,10 +3522,10 @@ const PromoTemplate: React.FC<any> = ({
               }}>
                 {/* Left: Floating Artist / Edition */}
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.18, fontWeight: 900, letterSpacing: '0.4em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 16px rgba(0,0,0,0.8)' }}>
+                  <div style={{ fontSize: fz(0.18), fontWeight: 900, letterSpacing: '0.4em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 16px rgba(0,0,0,0.8)' }}>
                     {artist.toUpperCase()}
                   </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                  <div style={{ fontSize: fz(0.11), color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     {template.split('-')[1]?.toUpperCase() || 'PRO'} RELEASE · 2026
                   </div>
                 </div>
@@ -3134,7 +3538,7 @@ const PromoTemplate: React.FC<any> = ({
                     <i className="fab fa-youtube" style={{ fontSize: config.title * 0.32 }}></i>
                     <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.3 }}></i>
                   </div>
-                  <div style={{ fontSize: config.title * 0.16, color: '#ffffff', fontWeight: 900, letterSpacing: '0.25em', fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)' }}>
+                  <div style={{ fontSize: fz(0.16), color: '#ffffff', fontWeight: 900, letterSpacing: '0.25em', fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8)' }}>
                     {displayUrl}
                   </div>
                 </div>
@@ -3148,11 +3552,12 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 12px ${theme.accent}66)`
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 12px ${theme.accent}66)`,
+                        transform: 'scale(1.5)', transformOrigin: 'right center'
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
+                  <div style={{ fontSize: fz(0.09), color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
                 </div>
               </div>
             )}
@@ -3171,17 +3576,17 @@ const PromoTemplate: React.FC<any> = ({
               }}>
                 {/* Left: Audio spec + Edition */}
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.35em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
+                  <div style={{ fontSize: fz(0.16), fontWeight: 900, letterSpacing: '0.35em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {template.split('-')[1]?.toUpperCase() || 'GOLD'} EDITION
                   </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, fontFamily: 'Inter', opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                  <div style={{ fontSize: fz(0.11), color: '#ffffff', letterSpacing: '0.2em', fontWeight: 700, fontFamily: 'Inter', opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     HI-RES AUDIO · 24-BIT / 96kHz
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.2, marginTop: 4, opacity: 0.95, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9))' }}>
-                    <i className="fab fa-spotify" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
-                    <i className="fab fa-apple" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
-                    <i className="fab fa-youtube" style={{ fontSize: config.title * 0.28, color: theme.accent }}></i>
-                    <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.26, color: theme.accent }}></i>
+                    <i className="fab fa-spotify" style={{ fontSize: fz(0.28), color: theme.accent }}></i>
+                    <i className="fab fa-apple" style={{ fontSize: fz(0.28), color: theme.accent }}></i>
+                    <i className="fab fa-youtube" style={{ fontSize: fz(0.28), color: theme.accent }}></i>
+                    <i className="fab fa-tiktok" style={{ fontSize: fz(0.26), color: theme.accent }}></i>
                   </div>
                 </div>
 
@@ -3189,7 +3594,7 @@ const PromoTemplate: React.FC<any> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <div style={{
                     fontWeight: 900,
-                    fontSize: config.title * 0.18,
+                    fontSize: fz(0.18),
                     color: theme.accent,
                     letterSpacing: '0.25em',
                     fontFamily: 'Inter',
@@ -3198,7 +3603,7 @@ const PromoTemplate: React.FC<any> = ({
                   }}>
                     {displayUrl}
                   </div>
-                  <div style={{ fontSize: config.title * 0.13, color: '#ffffff', letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700, fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                  <div style={{ fontSize: fz(0.13), color: '#ffffff', letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700, fontFamily: 'Inter', textTransform: 'uppercase' as const, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     {artist.toUpperCase().includes('JUAN 614') ? 'Puro Señor Jesucristo' : 'Puro Chihuahua · Records'}
                   </div>
                 </div>
@@ -3217,7 +3622,7 @@ const PromoTemplate: React.FC<any> = ({
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
+                  <div style={{ fontSize: fz(0.09), color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
                 </div>
               </div>
             )}
@@ -3236,13 +3641,13 @@ const PromoTemplate: React.FC<any> = ({
               }}>
                 {/* Left: Catalog Ficha */}
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.3em', color: theme.accent, fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
+                  <div style={{ fontSize: fz(0.16), fontWeight: 900, letterSpacing: '0.3em', color: theme.accent, fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     CAT: DGM-2026-X
                   </div>
-                  <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                  <div style={{ fontSize: fz(0.11), color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     PROD // DIOSMASGYM RECORDS
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, opacity: 0.8, letterSpacing: '0.15em', fontWeight: 900, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                  <div style={{ fontSize: fz(0.1), color: theme.accent, opacity: 0.8, letterSpacing: '0.15em', fontWeight: 900, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                     STEREO MASTERING 24-BIT
                   </div>
                 </div>
@@ -3264,7 +3669,7 @@ const PromoTemplate: React.FC<any> = ({
                       />
                     ))}
                   </div>
-                  <div style={{ fontSize: config.title * 0.16, fontWeight: 900, color: '#fff', letterSpacing: '0.25em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
+                  <div style={{ fontSize: fz(0.16), fontWeight: 900, color: '#fff', letterSpacing: '0.25em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {displayUrl}
                   </div>
                 </div>
@@ -3278,11 +3683,12 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`,
+                        transform: 'scale(1.5)', transformOrigin: 'right center'
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.1, color: theme.accent, fontWeight: 800, letterSpacing: '0.2em', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>OFFICIAL RELEASE</div>
+                  <div style={{ fontSize: fz(0.1), color: theme.accent, fontWeight: 800, letterSpacing: '0.2em', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>OFFICIAL RELEASE</div>
                 </div>
               </div>
             )}
@@ -3321,10 +3727,10 @@ const PromoTemplate: React.FC<any> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ fontSize: config.title * 0.16, fontWeight: 900, letterSpacing: '0.2em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
+                    <div style={{ fontSize: fz(0.16), fontWeight: 900, letterSpacing: '0.2em', color: theme.accent, fontFamily: 'Inter', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                       ESCANEA PARA ESCUCHAR
                     </div>
-                    <div style={{ fontSize: config.title * 0.11, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
+                    <div style={{ fontSize: fz(0.11), color: '#ffffff', letterSpacing: '0.15em', fontWeight: 700, opacity: 0.85, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>
                       SMART LINK OFICIAL
                     </div>
                   </div>
@@ -3338,7 +3744,7 @@ const PromoTemplate: React.FC<any> = ({
                     <i className="fab fa-youtube" style={{ fontSize: config.title * 0.35 }}></i>
                     <i className="fab fa-tiktok" style={{ fontSize: config.title * 0.32 }}></i>
                   </div>
-                  <div style={{ fontSize: config.title * 0.15, color: '#fff', fontWeight: 900, letterSpacing: '0.2em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
+                  <div style={{ fontSize: fz(0.15), color: '#fff', fontWeight: 900, letterSpacing: '0.2em', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.95)' }}>
                     {displayUrl}
                   </div>
                 </div>
@@ -3352,16 +3758,18 @@ const PromoTemplate: React.FC<any> = ({
                         maxWidth: '100%',
                         maxHeight: '100%',
                         objectFit: 'contain',
-                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`
+                        filter: `drop-shadow(0 2px 10px rgba(0,0,0,0.95)) drop-shadow(0 0 10px ${theme.accent}66)`,
+                        transform: 'scale(1.5)', transformOrigin: 'right center'
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: config.title * 0.09, color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
+                  <div style={{ fontSize: fz(0.09), color: '#ffffff', fontWeight: 800, letterSpacing: '0.15em', opacity: 0.6, textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>© 2026 DIOSMASGYM</div>
                 </div>
               </div>
             )}
 
           </div>
+          </StageWrap>
         </div>
     );
 };
