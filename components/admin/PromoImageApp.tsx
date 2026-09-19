@@ -60,7 +60,7 @@ const PHOTO_BACKGROUNDS = [
 // Ajustes de estilo que se recuerdan entre sesiones y que los "Looks" pueden cambiar de golpe
 const DEFAULT_STYLE: Record<string, any> = {
   template: 'original-v1', colorFilter: 'none', titleFont: 'bebas', titleEffect: 'glow',
-  footerStyle: 'minimal', coverMockup: 'vinyl', badgeType: 'biblical-advisory', showLensFlare: true,
+  footerStyle: 'minimal', coverMockup: 'vinyl', badgeType: 'biblical-advisory', showLensFlare: false,
   autoColor: true, glow: true,
   grit: 0, noise: false, scanlines: 0, vignette: 0, industrial: false,
   bgBlur: 0, bgBrightness: 100, bgContrast: 100, bgScale: 100,
@@ -89,7 +89,7 @@ const LOOKS: { id: string; label: string; icon: string; color: string; style: Re
   { id: 'limpio', label: 'Limpio', icon: 'fa-circle-half-stroke', color: '#ffffff',
     style: { template: 'original-v1', colorFilter: 'none', titleFont: 'bebas', titleEffect: 'solid', coverMockup: 'flat', footerStyle: 'minimal', badgeType: 'none', showLensFlare: false } },
 ];
-const LOOK_RESET = { grit: 0, noise: false, scanlines: 0, vignette: 0, industrial: false, watermarkEnabled: false, ribbonStyle: 'none', showLensFlare: true };
+const LOOK_RESET = { grit: 0, noise: false, scanlines: 0, vignette: 0, industrial: false, watermarkEnabled: false, ribbonStyle: 'none', showLensFlare: false };
 
 const countryOptions = [
   { name: 'GLOBAL (TODAS)', flag: '🌎', iso: 'un' },
@@ -262,7 +262,7 @@ const PromoImageApp: React.FC = () => {
   const [titleEffect, setTitleEffect] = useState<'glow' | 'gold' | 'chrome' | 'solid'>('glow');
   const [badgeType, setBadgeType] = useState<'none' | 'biblical-advisory' | 'exclusive' | 'hires' | 'chihuahua'>('biblical-advisory');
   const [colorFilter, setColorFilter] = useState<'none' | 'warm-gold' | 'midnight-blue' | 'bleach-bypass' | 'vintage' | 'noir'>('none');
-  const [showLensFlare, setShowLensFlare] = useState<boolean>(true);
+  const [showLensFlare, setShowLensFlare] = useState<boolean>(false);
 
   // ESTADOS DE FONDO & TEXTURAS HD
   const [bgBlur, setBgBlur] = useState<number>(0);
@@ -1060,7 +1060,7 @@ const PromoImageApp: React.FC = () => {
     config: sizes[size],
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
-    footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare,
+    footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare: false, // el destello horizontal ya no se ofrece ni se dibuja
     smartLinkUrl, qrDataUrl,
     bgBlur, bgBrightness, bgContrast, bgScale,
     watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
@@ -2506,7 +2506,7 @@ const PromoTemplate: React.FC<any> = ({
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
     footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
-    badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = true,
+    badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = false,
     smartLinkUrl = 'https://diosmasgym.com', qrDataUrl = null,
     bgBlur = 0, bgBrightness = 100, bgContrast = 100, bgScale = 100,
     watermarkEnabled = false, watermarkStyle = 'diagonal', watermarkText = '#PuroSeñorJesucristoCompa', watermarkOpacity = 12, watermarkSize = 100,
