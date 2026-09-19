@@ -2198,20 +2198,42 @@ const AudioStudioPro:React.FC=()=>{
     setAiStems(null);
     setSelectedStemsToZip({});
     abortControllerRef.current = new AbortController();
-    setExtractStatus('Subiendo audio a servidor temporal...');
+    setExtractStatus('Subiendo audio de forma segura...');
+    let blobUrlToClean = '';
     try {
       const blob = new Blob([fi.arrayBuffer], { type: fi.type });
-      const formData = new FormData();
-      formData.append('file', blob, fi.name);
-      
-      const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
-        method: 'POST',
-        body: formData,
-        signal: abortControllerRef.current.signal
-      });
-      const uploadData = await uploadRes.json();
-      if (!uploadData?.data?.url) throw new Error('Error subiendo archivo');
-      const directUrl = uploadData.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+      let directUrl = '';
+
+      // 1) Almacenamiento propio (Vercel Blob): direccion con sufijo aleatorio imposible de adivinar, y se borra al terminar
+      try {
+        const { upload } = await import('@vercel/blob/client');
+        const safeName = fi.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'audio.wav';
+        const up = await upload(`stems/${safeName}`, blob, {
+          access: 'public',
+          handleUploadUrl: '/api/separate-audio',
+          headers: { 'x-admin-password': localStorage.getItem('admin_password') || '' },
+          contentType: fi.type || 'audio/wav',
+        });
+        directUrl = up.url;
+        blobUrlToClean = up.url;
+      } catch (blobErr) {
+        console.warn('[Stems] Almacenamiento propio no disponible, se usa el servicio temporal:', blobErr);
+      }
+
+      // 2) Respaldo: servicio temporal publico (solo si el almacenamiento propio no esta configurado)
+      if (!directUrl) {
+        setExtractStatus('Subiendo audio a servidor temporal...');
+        const formData = new FormData();
+        formData.append('file', blob, fi.name);
+        const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
+          method: 'POST',
+          body: formData,
+          signal: abortControllerRef.current.signal
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadData?.data?.url) throw new Error('Error subiendo archivo');
+        directUrl = uploadData.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+      }
 
       setExtractStatus('Iniciando Inteligencia Artificial...');
       const repRes = await fetch('/api/separate-audio', {
@@ -2309,6 +2331,15 @@ const AudioStudioPro:React.FC=()=>{
     } catch (e: any) {
       if (e.name !== 'AbortError') notify(`Error: ${e.message}`, 'err');
     } finally {
+      if (blobUrlToClean) {
+        // El audio original ya no hace falta: se borra de nuestro almacenamiento
+        fetch('/api/separate-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-password': localStorage.getItem('admin_password') || '' },
+          body: JSON.stringify({ action: 'cleanup', url: blobUrlToClean }),
+          keepalive: true,
+        }).catch(() => { /* si falla, queda un archivo suelto en tu Blob */ });
+      }
       setIsExtracting(false);
       setExtractStatus('');
       abortControllerRef.current = null;
@@ -3973,7 +4004,7 @@ const AudioStudioPro:React.FC=()=>{
 
                 <p className="text-[10px] text-white/30 max-w-xl mx-auto mb-5 leading-relaxed">
                   <i className="fas fa-circle-info mr-1.5"></i>
-                  Para separar, el audio se sube a un servidor temporal público (tmpfiles.org, se borra solo en aproximadamente una hora) y se procesa en Replicate. No subas aquí música que no quieras exponer hasta su estreno.
+                  Para separar, el audio se sube a tu almacenamiento (dirección aleatoria imposible de adivinar, se borra al terminar) y se procesa en Replicate. Si el almacenamiento no está configurado, se usa un servidor temporal público (tmpfiles.org): en ese caso no subas música que no quieras exponer antes del estreno.
                 </p>
 
                 {!isExtracting ? (

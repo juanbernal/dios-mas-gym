@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { del } from '@vercel/blob';
+
+const isBlobHost = (h: string) => h.endsWith('.public.blob.vercel-storage.com');
 
 // Cada POST inicia una prediccion de pago en Replicate con tu token: solo el admin puede lanzarla.
 function isAdminRequest(req: any): boolean {
@@ -32,6 +36,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'REPLICATE_API_TOKEN no configurado en Vercel. Ve a Settings → Environment Variables.' });
     }
 
+    // POST de Vercel Blob: el navegador pide un permiso de subida directa (solo audio, tamaño limitado)
+    if (req.method === 'POST' && req.body && typeof req.body.type === 'string' && req.body.type.startsWith('blob.')) {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        return res.status(501).json({ error: 'Almacenamiento privado no configurado (falta BLOB_READ_WRITE_TOKEN)' });
+      }
+      const json = await handleUpload({
+        body: req.body as HandleUploadBody,
+        request: req as any,
+        onBeforeGenerateToken: async () => ({
+          allowedContentTypes: ['audio/*', 'application/octet-stream'],
+          maximumSizeInBytes: 200 * 1024 * 1024,
+          addRandomSuffix: true,
+        }),
+        onUploadCompleted: async () => { /* nada que hacer: el audio se borra al terminar la separacion */ },
+      });
+      return res.status(200).json(json);
+    }
+
+    // POST de limpieza: borra el audio subido en cuanto Replicate termino
+    if (req.method === 'POST' && req.body && req.body.action === 'cleanup') {
+      try {
+        const u = new URL(String(req.body.url || ''));
+        if (u.protocol === 'https:' && isBlobHost(u.hostname) && process.env.BLOB_READ_WRITE_TOKEN) {
+          await del(u.toString());
+          return res.status(200).json({ deleted: true });
+        }
+      } catch { /* url invalida */ }
+      return res.status(200).json({ deleted: false });
+    }
+
     // POST: iniciar separación de pistas
     if (req.method === 'POST') {
       let { audioUrl, model_name } = req.body as { audioUrl?: string; model_name?: string };
@@ -47,9 +81,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // descargue cualquier URL que le manden)
       let host = '';
       try { const u = new URL(audioUrl); if (u.protocol === 'https:' || u.protocol === 'http:') host = u.hostname; } catch { /* invalida */ }
-      const hostOk = host === 'tmpfiles.org' || host.endsWith('.tmpfiles.org') || host === 'replicate.delivery' || host.endsWith('.replicate.delivery');
+      const hostOk = host === 'tmpfiles.org' || host.endsWith('.tmpfiles.org') || host === 'replicate.delivery' || host.endsWith('.replicate.delivery') || isBlobHost(host);
       if (!hostOk) {
-        return res.status(400).json({ error: 'audioUrl no permitido: solo tmpfiles.org o replicate.delivery' });
+        return res.status(400).json({ error: 'audioUrl no permitido: solo almacenamiento privado, tmpfiles.org o replicate.delivery' });
       }
 
       // Si viene de tmpfiles.org, resolver el enlace de descarga directo real (WAV binario)
