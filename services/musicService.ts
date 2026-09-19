@@ -37,23 +37,39 @@ const clearCache = (artist: string) => {
  * Fetches music catalog for a specific artist via the backend proxy.
  * Uses sessionStorage cache (5 min TTL) to avoid redundant network calls.
  */
+const catalogInFlight: Record<string, Promise<MusicItem[]> | null> = {};
+const revalidating: Record<string, boolean> = {};
+
 export const fetchMusicCatalog = async (artist: 'diosmasgym' | 'juan614', forceRefresh = false): Promise<MusicItem[]> => {
   try {
     // Return cached data if fresh and not forced
     if (!forceRefresh) {
       const cached = readCache(artist);
       if (cached) {
-        // Revalidate in background (stale-while-revalidate pattern)
-        doFetch(artist).then(fresh => { if (fresh.length > 0) writeCache(artist, fresh); }).catch(() => {});
+        // Revalidate in background (stale-while-revalidate pattern).
+        // Una sola revalidacion por artista aunque varios componentes llamen a la vez.
+        if (!revalidating[artist]) {
+          revalidating[artist] = true;
+          doFetch(artist)
+            .then(fresh => { if (fresh.length > 0) writeCache(artist, fresh); })
+            .catch(() => {})
+            .finally(() => { revalidating[artist] = false; });
+        }
         return cached;
       }
+      if (catalogInFlight[artist]) return catalogInFlight[artist]!;
     } else {
       clearCache(artist);
     }
 
-    const data = await doFetch(artist, forceRefresh);
-    if (data.length > 0) writeCache(artist, data);
-    return data;
+    const request = doFetch(artist, forceRefresh)
+      .then(data => {
+        if (data.length > 0) writeCache(artist, data);
+        return data;
+      })
+      .finally(() => { catalogInFlight[artist] = null; });
+    catalogInFlight[artist] = request;
+    return await request;
   } catch (error) {
     console.error(`Error fetching music for ${artist}:`, error);
     return [];
@@ -295,17 +311,44 @@ export const deduplicateCatalog = (items: MusicItem[]): MusicItem[] => {
 
 /**
  * Fetches custom saved lyrics directly from the website backend.
+ *
+ * /api/lyrics devuelve ~190 KB con TODAS las letras y lo piden a la vez App,
+ * SearchView, HomeLyricsSection y LyricsView. Sin memoizar, una sola carga de
+ * la home disparaba la misma peticion 4-6 veces. Guardamos la promesa en vuelo
+ * y el resultado durante unos minutos.
  */
+const LYRICS_TTL_MS = 5 * 60 * 1000;
+let lyricsCache: { at: number; data: any[] } | null = null;
+let lyricsInFlight: Promise<any[]> | null = null;
+
+export const invalidateSavedLyricsCache = () => {
+  lyricsCache = null;
+  lyricsInFlight = null;
+};
+
 export const fetchSavedLyrics = async (): Promise<any[]> => {
-  try {
-    const res = await fetch('/api/lyrics');
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : (data?.lyrics || []);
-  } catch (err) {
-    console.error("Error fetching saved lyrics:", err);
-    return [];
+  if (lyricsCache && Date.now() - lyricsCache.at < LYRICS_TTL_MS) {
+    return lyricsCache.data;
   }
+  if (lyricsInFlight) return lyricsInFlight;
+
+  lyricsInFlight = (async () => {
+    try {
+      const res = await fetch('/api/lyrics');
+      if (!res.ok) return [];
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data?.lyrics || []);
+      lyricsCache = { at: Date.now(), data: list };
+      return list;
+    } catch (err) {
+      console.error("Error fetching saved lyrics:", err);
+      return [];
+    } finally {
+      lyricsInFlight = null;
+    }
+  })();
+
+  return lyricsInFlight;
 };
 
 /**
@@ -328,6 +371,7 @@ export const saveLyricToWeb = async (lyric: { id?: string; title: string; artist
     if (!res.ok) {
       throw new Error(data.error || 'Error al guardar la letra');
     }
+    invalidateSavedLyricsCache();
     return { success: true, message: data.message || 'Letra guardada con éxito' };
   } catch (err: any) {
     console.error("Error saving lyric to web:", err);

@@ -1425,18 +1425,34 @@ export default async function handler(
       
       const seenSlugs = new Set<string>();
 
-      // All songs from catalog
+      // Solo publicamos en el sitemap las canciones que REALMENTE tienen letra.
+      // Antes se listaba el catálogo entero (~995 URLs) y el 93% eran soft 404.
+      const MIN_LYRIC_LENGTH = 50;
+      const hasLyricText = (t: any) => typeof t === 'string' && t.trim().length >= MIN_LYRIC_LENGTH;
+
+      const availableLyricSlugs = new Set<string>();
+      storedLyrics.forEach(item => {
+        if (!item || !hasLyricText(item.content)) return;
+        if (item.id) availableLyricSlugs.add(generateSlug(String(item.id)));
+        if (item.title) availableLyricSlugs.add(generateSlug(String(item.title)));
+      });
+
+      // Canciones del catálogo con letra propia o con letra guardada asociada
       songs.forEach(song => {
         const slug = generateSlug(song.name) || song.id;
         if (!slug || seenSlugs.has(slug)) return;
+        const idSlug = song.id ? generateSlug(String(song.id)) : '';
+        const hasLyric = hasLyricText(song.lyrics) || availableLyricSlugs.has(slug) || (!!idSlug && availableLyricSlugs.has(idSlug));
+        if (!hasLyric) return;
         seenSlugs.add(slug);
         const lastmod = song.date ? song.date.split('T')[0] : today;
         xml += urlBlock(`${BASE}/letra/${slug}`, lastmod, 'weekly', '0.9');
       });
 
-      // All custom stored lyrics
+      // Letras guardadas que no están en el catálogo
       storedLyrics.forEach(item => {
-        const slug = item.id || generateSlug(item.title);
+        if (!item || !hasLyricText(item.content)) return;
+        const slug = item.id ? generateSlug(String(item.id)) : generateSlug(String(item.title || ''));
         if (!slug || seenSlugs.has(slug)) return;
         seenSlugs.add(slug);
         const lastmod = item.date ? item.date.split('T')[0] : today;
@@ -2097,6 +2113,59 @@ export default async function handler(
       const songTitle = song?.name || matchedStored?.title || slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
       const songArtist = song?.artist || matchedStored?.artist || 'Dios Mas Gym';
       const lyricText = (matchedStored?.content || song?.lyrics || '').trim();
+
+      // ---------------------------------------------------------------
+      // Sin letra disponible -> 404 real + noindex.
+      // Antes devolviamos 200 + "index, follow" para CUALQUIER slug, lo que
+      // generaba cientos de soft 404 indexables (p.ej. /letra/loquesea).
+      // Si la fuente de letras no respondio, NO marcamos 404 (seria un falso
+      // negativo temporal): servimos la app tal cual y Google reintentara.
+      // ---------------------------------------------------------------
+      const MIN_LYRIC_LENGTH = 50;
+      const lyricsSourceAvailable = Array.isArray(storedLyrics) && storedLyrics.length > 0;
+
+      if (lyricText.length < MIN_LYRIC_LENGTH) {
+        let fallbackHtml = await getBaseIndexHtml();
+
+        if (lyricsSourceAvailable) {
+          const missingTitle = song?.name || matchedStored?.title ||
+            slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+          fallbackHtml = fallbackHtml.replace(
+            /<title>[^<]*<\/title>/i,
+            `<title>Letra no disponible | Dios M\u00e1s Gym</title>`
+          );
+          fallbackHtml = fallbackHtml.replace(
+            /<meta\s+name=["']robots["'][^>]*>/i,
+            `<meta name="robots" content="noindex, follow">`
+          );
+          fallbackHtml = fallbackHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/i, '');
+
+          const notFoundBody = `
+<div id="root">
+  <div style="min-height:100vh;background:linear-gradient(160deg,#020d1a 0%,#071325 50%,#0b1929 100%);color:#f8fafc;font-family:'Inter',sans-serif;padding:2rem 1rem;">
+    <main style="max-width:640px;margin:0 auto;text-align:center;">
+      <h1 style="font-size:2rem;font-weight:900;margin:1rem 0;color:#fff;">Esta letra todav\u00eda no est\u00e1 disponible</h1>
+      <p style="color:#94a3b8;line-height:1.7;">A\u00fan no hemos publicado la letra de &quot;${escapeXml(missingTitle)}&quot;. Mientras tanto puedes buscar entre el resto del cat\u00e1logo.</p>
+      <p style="margin-top:2rem;">
+        <a href="/buscar" style="display:inline-block;margin:0.4rem;padding:0.7rem 1.3rem;background:#2563a8;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Buscar canciones</a>
+        <a href="/" style="display:inline-block;margin:0.4rem;padding:0.7rem 1.3rem;border:1px solid rgba(148,163,184,0.4);color:#e2e8f0;text-decoration:none;border-radius:6px;font-weight:bold;">Inicio</a>
+      </p>
+    </main>
+  </div>
+</div>`;
+          fallbackHtml = fallbackHtml.replace('<div id="root"></div>', notFoundBody);
+
+          res.setHeader('X-Robots-Tag', 'noindex, follow');
+          res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res.status(404).send(fallbackHtml);
+        }
+
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(200).send(fallbackHtml);
+      }
       const songCover = song?.cover || '/logo-diosmasgym.png';
       const canonicalUrl = `https://www.diosmasgym.com/letra/${normSlug}`;
 
@@ -2163,31 +2232,38 @@ ${JSON.stringify(breadcrumbJsonLd, null, 2)}
       // Use branded OG image for social sharing meta tags
       const safeImage = escapeXml(ogImageUrl);
 
+      // Sustituye la etiqueta si ya existe (en cualquier orden de atributos) y
+      // la anade si no. Antes se anadian duplicados: og:type salia dos veces
+      // (website heredado de index.html + music.song) y la description generica
+      // del sitio se quedaba sin sustituir en todas las paginas de letra.
+      const upsertMeta = (src: string, attr: 'name' | 'property', key: string, value: string) => {
+        const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(`<meta[^>]*\\s${attr}=["']${esc}["'][^>]*>`, 'i');
+        const tag = `<meta ${attr}="${key}" content="${value}">`;
+        return rx.test(src) ? src.replace(rx, tag) : src.replace('</head>', `${tag}\n</head>`);
+      };
+
       html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="${canonicalUrl}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="${canonicalUrl}">`);
-      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${canonicalUrl}" />`);
-      
-      html = html.replace(
-        /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
-        `<meta name="robots" content="index, follow">`
-      );
 
-      const extraMeta = [
-        `<meta property="og:type" content="music.song">`,
-        `<meta name="twitter:card" content="summary_large_image">`,
-        `<meta name="twitter:title" content="${safeTitle}">`,
-        `<meta name="twitter:description" content="${safeDesc}">`,
-        `<meta name="twitter:image" content="${safeImage}">`,
-      ].join('\n');
+      html = upsertMeta(html, 'name', 'description', safeDesc);
+      html = upsertMeta(html, 'property', 'og:title', safeTitle);
+      html = upsertMeta(html, 'property', 'og:description', safeDesc);
+      html = upsertMeta(html, 'property', 'og:image', safeImage);
+      // /api/og-image entrega 1200x630; antes se anunciaba 512x512
+      html = upsertMeta(html, 'property', 'og:image:width', '1200');
+      html = upsertMeta(html, 'property', 'og:image:height', '630');
+      html = upsertMeta(html, 'property', 'og:image:alt', `${safeTitle} - Letra oficial`);
+      html = upsertMeta(html, 'property', 'og:url', canonicalUrl);
+      html = upsertMeta(html, 'property', 'og:type', 'music.song');
+      html = upsertMeta(html, 'name', 'twitter:card', 'summary_large_image');
+      html = upsertMeta(html, 'name', 'twitter:title', safeTitle);
+      html = upsertMeta(html, 'name', 'twitter:description', safeDesc);
+      html = upsertMeta(html, 'name', 'twitter:image', safeImage);
+      html = upsertMeta(html, 'name', 'robots', 'index, follow');
 
-      html = html.replace('</head>', `${extraMeta}\n${jsonLdBlock}\n</head>`);
+      html = html.replace(/<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${canonicalUrl}" />`);
+
+      html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
 
       // Inject semantic HTML structure inside #root for crawlers
       const versesHtml = lyricText

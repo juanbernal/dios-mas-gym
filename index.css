@@ -308,3 +308,97 @@ input:focus, textarea:focus {
 /* --- Testimonial card hover --- */
 .testimony-card:hover { transform: translateY(-3px); }
 
+
+/* ==========================================================================
+   Accesibilidad y detalles de navegacion
+   ========================================================================== */
+
+/* --- Foco visible con teclado ---
+   No habia ninguna regla :focus-visible, asi que quien navega con Tab no veia
+   donde estaba. Solo se muestra con teclado, no al hacer clic con el raton. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  /* !important porque varios componentes usan la clase focus:outline-none de Tailwind */
+  outline: 3px solid var(--blue-steel) !important;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Enlace para saltar al contenido --- */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -150%);
+  z-index: 10000;
+  padding: 0.85rem 1.5rem;
+  background: var(--blue-bright);
+  color: #fff;
+  font-family: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 0 0 8px 8px;
+  transition: transform 0.15s ease;
+}
+.skip-link:focus-visible,
+.skip-link:focus {
+  transform: translate(-50%, 0);
+}
+
+/* --- El header fijo tapaba el titulo de cada seccion al saltar a un ancla --- */
+:target,
+section[id],
+[data-section] {
+  scroll-margin-top: 6.5rem;
+}
+
+/* --- Objetivos tactiles ---
+   Habia un centenar de botones por debajo de 40 px (el boton PRE-SAVE medía
+   79x14). Se amplia el area pulsable sin cambiar el aspecto visual. */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  [role="tab"] {
+    min-height: 44px;
+  }
+  button.tap-compact,
+  a.tap-compact {
+    min-height: 0;
+    position: relative;
+  }
+  button.tap-compact::after,
+  a.tap-compact::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 0 0;
+    transform: translateY(-50%);
+    height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* --- Los carruseles horizontales atrapaban el scroll vertical de la pagina --- */
+.snap-x,
+[class*="overflow-x-auto"],
+[class*="overflow-x-scroll"] {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}
+
+/* --- Respeto por quien prefiere menos movimiento --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -24,6 +24,11 @@ const SearchView: React.FC<SearchViewProps> = ({ catalog, onPlaySong }) => {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [savedLyrics, setSavedLyrics] = useState<any[]>([]);
 
+  // El catalogo llega por props desde App y tarda un par de segundos. Antes esta
+  // pantalla mostraba "0 canciones disponibles / Sin resultados" mientras tanto,
+  // que parece un sitio roto.
+  const isCatalogLoading = !catalog || catalog.length === 0;
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const qParam = params.get('q');
@@ -150,7 +155,7 @@ const SearchView: React.FC<SearchViewProps> = ({ catalog, onPlaySong }) => {
             Buscar Música
           </h1>
           <p className="label-tag" style={{ color: 'rgba(200,205,212,0.35)', letterSpacing: '0.25em' }}>
-            {catalog.length} canciones disponibles
+            {isCatalogLoading ? 'Cargando catálogo…' : `${catalog.length} canciones disponibles`}
           </p>
         </div>
 
@@ -171,6 +176,8 @@ const SearchView: React.FC<SearchViewProps> = ({ catalog, onPlaySong }) => {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Buscar por título, artista, álbum o letra..."
+              aria-label="Buscar por título, artista, álbum o letra"
+              enterKeyHint="search"
               autoFocus
               style={{
                 flex: 1,
@@ -323,6 +330,18 @@ const SearchView: React.FC<SearchViewProps> = ({ catalog, onPlaySong }) => {
                 </div>
               );
             })}
+          </div>
+        ) : isCatalogLoading ? (
+          <div
+            className="grid gap-5"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <span className="sr-only">Cargando el catálogo de canciones…</span>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="shimmer" style={{ aspectRatio: '1 / 1.25', borderRadius: '8px' }} />
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center py-24 text-center">

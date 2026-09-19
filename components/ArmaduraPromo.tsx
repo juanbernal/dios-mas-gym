@@ -70,6 +70,8 @@ const ArmaduraPromo: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="TU CORREO..."
+                  aria-label="Tu correo electrónico"
+                  autoComplete="email"
                   required
                   className="flex-1 label-tag px-5 py-4 outline-none transition-all"
                   style={{

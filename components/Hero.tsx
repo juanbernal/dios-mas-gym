@@ -89,17 +89,21 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
 
               {/* Main title — split layout */}
               <div className="mb-4">
-                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', color: 'rgba(255,255,255,0.12)', WebkitTextStroke: '1px rgba(74,144,217,0.4)' }}>
-                  PURO
-                </h1>
-                <h1 className="h1-gothic leading-none text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.15em' }}>
-                  SEÑOR
-                </h1>
-                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
-                  JESUCRISTO
-                </h1>
-                <h1 className="h1-gothic leading-none" style={{ fontSize: 'clamp(2.2rem, 5.5vw, 5rem)', color: '#4a90d9', marginTop: '-0.05em', letterSpacing: '0.12em' }}>
-                  COMPA
+                {/* Un solo h1: antes eran cuatro y Google/lectores de pantalla
+                    veian cuatro titulos principales en la misma pagina. */}
+                <h1 className="h1-gothic leading-none" aria-label="Puro Señor Jesucristo compa">
+                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', color: 'rgba(255,255,255,0.2)', WebkitTextStroke: '1px rgba(126,184,247,0.55)' }}>
+                    PURO
+                  </span>
+                  <span aria-hidden="true" className="block text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.15em' }}>
+                    SEÑOR
+                  </span>
+                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
+                    JESUCRISTO
+                  </span>
+                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(2.2rem, 5.5vw, 5rem)', color: '#7eb8f7', marginTop: '-0.05em', letterSpacing: '0.12em' }}>
+                    COMPA
+                  </span>
                 </h1>
               </div>
 
@@ -135,9 +139,9 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
 
               {/* Artist logos row */}
               <div className="flex items-center gap-6 mt-12 pt-8" style={{ borderTop: '1px solid rgba(37,99,168,0.15)' }}>
-                <img src="/logo-diosmasgym.png" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)' }} />
+                <img src="/logo-diosmasgym-sm.webp" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)' }} />
                 <div style={{ width: '1px', height: '40px', background: 'rgba(37,99,168,0.3)' }}></div>
-                <img src="/logo-juan614-v2.png" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.2)' }} />
+                <img src="/logo-juan614-v2-sm.webp" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.2)' }} />
                 <div>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.4)', fontSize: '0.5rem' }}>Artistas</p>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.7)', fontSize: '0.55rem' }}>Diosmasgym × Juan 614</p>
@@ -182,12 +186,17 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                   <span className="label-tag px-4 py-2" style={{ background: 'rgba(37,99,168,0.15)', color: '#7eb8f7', borderRadius: '2px', border: '1px solid rgba(37,99,168,0.3)' }}>
                     {verse.r}
                   </span>
+                  {/* Los indicadores median 6x6 px y no tenian nombre accesible:
+                      ahora llevan etiqueta y un area pulsable de 44 px de alto. */}
                   <div className="flex gap-1">
                     {VERSES.map((_, i) => (
                       <button
                         key={i}
+                        type="button"
                         onClick={() => setVerseIndex(i)}
-                        className="transition-all"
+                        aria-label={`Ver versículo ${i + 1} de ${VERSES.length}`}
+                        aria-current={i === verseIndex}
+                        className="transition-all relative after:content-[''] after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:min-w-[24px]"
                         style={{
                           width: i === verseIndex ? '24px' : '6px',
                           height: '6px',

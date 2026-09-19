@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, selectedCategory, changeView, setSelectedCategory, topCategories, streak }) => {
-  const LOGO_URL = "/logo-diosmasgym.png";
+  const LOGO_URL = "/logo-diosmasgym-sm.webp";
 
   return (
     <aside className="hidden lg:flex flex-col w-80 bg-bg-deep border-r border-white/5 p-12 z-50 overflow-y-auto no-scrollbar">

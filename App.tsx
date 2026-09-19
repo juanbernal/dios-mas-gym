@@ -393,7 +393,7 @@ const App: React.FC = () => {
           {/* Diosmasgym Emblem */}
           <div className="relative group flex flex-col items-center">
             <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-3xl overflow-hidden bg-black/60 shadow-[0_0_60px_rgba(74,144,217,0.25)] ring-1 ring-[#4a90d9]/40 flex items-center justify-center p-2">
-              <img src="/logo-diosmasgym.png" alt="Diosmasgym" className="w-full h-full object-contain rounded-2xl" />
+              <img src="/logo-diosmasgym-md.webp" alt="Diosmasgym" className="w-full h-full object-contain rounded-2xl" />
             </div>
             <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Dios Mas Gym</span>
           </div>
@@ -408,7 +408,7 @@ const App: React.FC = () => {
           {/* Juan 614 Emblem */}
           <div className="relative group flex flex-col items-center">
             <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-3xl overflow-hidden bg-black/60 shadow-[0_0_60px_rgba(197,160,89,0.25)] ring-1 ring-[#c5a059]/40 flex items-center justify-center p-2">
-              <img src="/logo-juan614-v2.png" alt="Juan 614" className="w-full h-full object-contain rounded-2xl" />
+              <img src="/logo-juan614-v2-md.webp" alt="Juan 614" className="w-full h-full object-contain rounded-2xl" />
             </div>
             <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-[#c5a059]/70">Juan 614</span>
           </div>
@@ -438,9 +438,11 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#05070a] text-[#f8fafc] font-sans selection:bg-[#4a90d9] selection:text-black cinematic-grain relative">
       <div className="stripe-accent"></div>
       {!hideGlobalUI && <SocialPopup />}
+      {/* Primer elemento enfocable: permite saltarse el menu con el teclado */}
+      {!hideGlobalUI && <a href="#contenido" className="skip-link">Saltar al contenido</a>}
       {!hideGlobalUI && <Navbar currentView={state.currentView} changeView={changeView} />}
       {!hideGlobalUI && <PWAInstallPrompt />}
-      <main className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
+      <main id="contenido" tabIndex={-1} className={!hideGlobalUI ? "pt-20 pb-24 md:pb-0" : ""}>
         <Routes>
           <Route path="/" element={
             <>

@@ -8,7 +8,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
-  const LOGO_URL = "/logo-diosmasgym.png";
+  const LOGO_URL = "/logo-diosmasgym-sm.webp";
   const navigate = useNavigate();
   const location = useLocation();
   const [navSearch, setNavSearch] = useState('');
@@ -69,6 +69,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
             value={navSearch}
             onChange={(e) => setNavSearch(e.target.value)}
             placeholder="Buscar canción, letra..."
+            aria-label="Buscar canciones y letras"
+            enterKeyHint="search"
             className="w-32 sm:w-44 md:w-52 lg:w-64 bg-white/5 hover:bg-white/10 focus:bg-black/70 text-xs text-white placeholder:text-white/40 pl-8 md:pl-9 pr-3 py-2 rounded-full border border-white/10 focus:border-[#4a90d9]/60 focus:outline-none transition-all"
           />
           <i className="fas fa-search absolute left-3 text-white/40 text-xs pointer-events-none"></i>

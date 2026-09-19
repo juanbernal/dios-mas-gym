@@ -272,13 +272,25 @@ const UpcomingReleases: React.FC = () => {
 
                                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
                                     {release.preSaveLink ? (
-                                        <a href={release.preSaveLink} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4a90d9] hover:text-white transition-colors">
+                                        <a
+                                            href={release.preSaveLink}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            aria-label={`Pre-guardar ${release.name}`}
+                                            className="inline-flex items-center min-h-[44px] py-2 pr-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#4a90d9] hover:text-white transition-colors"
+                                        >
                                             <i className="fas fa-link mr-1"></i> Pre-Save
                                         </a>
                                     ) : <span></span>}
                                     {release.audioUrl && (
-                                        <a href={release.audioUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-red-500 transition-colors">
-                                            <i className="fab fa-youtube text-lg"></i>
+                                        <a
+                                            href={release.audioUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            aria-label={`Escuchar ${release.name} en YouTube`}
+                                            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] text-[9px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-red-500 transition-colors"
+                                        >
+                                            <i className="fab fa-youtube text-lg" aria-hidden="true"></i>
                                         </a>
                                     )}
                                 </div>

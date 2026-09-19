@@ -77,7 +77,7 @@ const PWAInstallPrompt: React.FC = () => {
           style={{ borderBottom: '1px solid rgba(37,99,168,0.15)' }}>
           <div className="flex items-center gap-3">
             <img
-              src="/logo-diosmasgym.png"
+              src="/logo-diosmasgym-sm.webp"
               alt="Dios Más Gym"
               className="w-9 h-9 object-cover"
               style={{ borderRadius: '6px', border: '1px solid rgba(37,99,168,0.3)' }}
