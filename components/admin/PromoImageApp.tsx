@@ -57,6 +57,19 @@ const PHOTO_BACKGROUNDS = [
   { id: 'chihuahua-sierra', label: '🌵 Sierra Norte', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1440&auto=format&fit=crop' },
 ];
 
+// Texto de cuenta regresiva a partir de la fecha del estreno (dias naturales, hora local)
+const getCountdownLabel = (date: string): string => {
+  const target = new Date(date.includes('T') ? date : `${date}T12:00:00`);
+  if (isNaN(target.getTime())) return '';
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(target) - startOfDay(new Date())) / 86400000);
+  if (days < 0) return '';
+  if (days === 0) return 'ESTRENO HOY';
+  if (days === 1) return 'ESTRENO MAÑANA';
+  return `FALTAN ${days} DÍAS`;
+};
+const STATUS_SUGGESTIONS = ['PRE-SAVE', 'ESTE VIERNES', 'NUEVO SENCILLO', 'ESCÚCHALA YA'];
+
 // Ajustes de estilo que se recuerdan entre sesiones y que los "Looks" pueden cambiar de golpe
 const DEFAULT_STYLE: Record<string, any> = {
   template: 'original-v1', colorFilter: 'none', titleFont: 'bebas', titleEffect: 'glow',
@@ -67,7 +80,7 @@ const DEFAULT_STYLE: Record<string, any> = {
   watermarkEnabled: false, watermarkStyle: 'diagonal', watermarkText: '#PuroSeñorJesucristoCompa', watermarkOpacity: 12, watermarkSize: 100,
   ribbonStyle: 'none', ribbonText: '#PuroSeñorJesucristoCompa', ribbonColor: 'gold', ribbonOpacity: 90,
   watermarkLogo: 'none', watermarkLogoPos: 'top-left', watermarkLogoOpacity: 75, watermarkLogoScale: 100,
-  customFooterUrl: '', exportFormat: 'png', exportQuality: 0.92, size: 'instagram',
+  customFooterUrl: '', exportFormat: 'png', exportQuality: 0.92, size: 'instagram', statusCountdown: false,
 };
 const STYLE_STORAGE_KEY = 'promo_studio_style_v1';
 const CUSTOM_LOOKS_KEY = 'promo_studio_custom_looks_v1';
@@ -206,6 +219,8 @@ const PromoImageApp: React.FC = () => {
   const [showSafeZone, setShowSafeZone] = useState(true);
   const [renderMaster, setRenderMaster] = useState(false); // el master 4K solo existe mientras se exporta
   const [hydrated, setHydrated] = useState(false);
+  const [statusText, setStatusText] = useState(""); // texto del sello superior (vacio = automatico)
+  const [statusCountdown, setStatusCountdown] = useState(false); // cuenta regresiva automatica en "proximamente"
   const [customLooks, setCustomLooks] = useState<{ id: string; label: string; style: Record<string, any> }[]>([]);
   const [bgAvg, setBgAvg] = useState<[number, number, number] | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -304,6 +319,7 @@ const PromoImageApp: React.FC = () => {
     watermarkLogo: setWatermarkLogo, watermarkLogoPos: setWatermarkLogoPos,
     watermarkLogoOpacity: setWatermarkLogoOpacity, watermarkLogoScale: setWatermarkLogoScale,
     customFooterUrl: setCustomFooterUrl, exportFormat: setExportFormat, exportQuality: setExportQuality, size: setSize,
+    statusCountdown: setStatusCountdown,
   };
   const applyStyle = (s: Record<string, any>) => {
     Object.entries(s).forEach(([k, v]) => styleSetters[k]?.(v));
@@ -315,7 +331,7 @@ const PromoImageApp: React.FC = () => {
     watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
     ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
     watermarkLogo, watermarkLogoPos, watermarkLogoOpacity, watermarkLogoScale,
-    customFooterUrl, exportFormat, exportQuality, size,
+    customFooterUrl, exportFormat, exportQuality, size, statusCountdown,
   };
 
   useEffect(() => {
@@ -1054,6 +1070,9 @@ const PromoImageApp: React.FC = () => {
 
   const smartLinkUrl = getSmartLink();
 
+  // Prioridad: texto propio > cuenta regresiva (solo "proximamente") > automatico de la plantilla
+  const statusLabel = statusText.trim() || (mode === 'proximamente' && statusCountdown ? getCountdownLabel(date) : '');
+
   const commonProps = {
     title, artist, bg, cover: coverArt, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, country, trackList: tracks.split("\n"),
@@ -1061,7 +1080,7 @@ const PromoImageApp: React.FC = () => {
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
     footerStyle, coverMockup, titleFont, titleEffect, badgeType, colorFilter, showLensFlare: false, // el destello horizontal ya no se ofrece ni se dibuja
-    smartLinkUrl, qrDataUrl,
+    smartLinkUrl, qrDataUrl, statusLabel,
     bgBlur, bgBrightness, bgContrast, bgScale,
     watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
     ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
@@ -1251,6 +1270,49 @@ const PromoImageApp: React.FC = () => {
                 </div>
               )}
 
+              {/* TEXTO DEL SELLO SUPERIOR + CUENTA REGRESIVA */}
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                  <i className="fas fa-tag text-[#c5a059]" />
+                  Texto del sello (vacío = automático)
+                </label>
+                <input
+                  type="text"
+                  maxLength={24}
+                  className="w-full bg-black/40 border border-white/5 p-3 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059] uppercase transition-all"
+                  placeholder={mode === 'proximamente' ? 'PRÓXIMO ESTRENO' : mode === 'disponible' ? 'YA DISPONIBLE' : 'AUTOMÁTICO'}
+                  value={statusText}
+                  onChange={(e) => setStatusText(e.target.value.toUpperCase())}
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {STATUS_SUGGESTIONS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setStatusText(t)}
+                      className="px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-[#c5a059]/15 border border-white/5 hover:border-[#c5a059]/30 text-[8px] font-bold text-white/50 hover:text-[#c5a059] transition-all"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                  {mode === 'proximamente' && (
+                    <button
+                      type="button"
+                      onClick={() => { if (statusText) { setStatusText(''); setStatusCountdown(true); } else { setStatusCountdown(v => !v); } }}
+                      title="Calcula sola «FALTAN N DÍAS» a partir de la fecha del estreno"
+                      className={`px-2.5 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest transition-all ${statusCountdown && !statusText ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/[0.03] border-white/10 text-white/50 hover:text-white'}`}
+                    >
+                      <i className="fas fa-hourglass-half mr-1.5"></i>Cuenta regresiva{statusCountdown && !statusText && getCountdownLabel(date) ? `: ${getCountdownLabel(date)}` : ''}
+                    </button>
+                  )}
+                  {statusText && (
+                    <button type="button" onClick={() => setStatusText('')} className="px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 text-[8px] font-black uppercase tracking-widest">
+                      Borrar
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* #2 — VERSÍCULO / SLOGAN CONEXIÓN DIRECTA API BIBLIA */}
               <div className="space-y-3 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between">
@@ -1422,6 +1484,7 @@ const PromoImageApp: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: 'original', label: '🎵 Portada Tema', url: null as string | null },
+                    { id: 'cover-blur', label: '🖼️ Portada difuminada', url: null as string | null },
                     ...LOCAL_BACKGROUNDS,
                     ...PHOTO_BACKGROUNDS,
                   ].map((p) => (
@@ -1430,11 +1493,17 @@ const PromoImageApp: React.FC = () => {
                       type="button"
                       onClick={() => {
                         if (p.url) {
-                          setBg(p.url);
+                          setBg(p.url); setBgBlur(0); setBgScale(100); setBgBrightness(100);
                         } else {
                           const currentSong = catalog.find(s => s.name.toUpperCase() === title.toUpperCase());
                           const cover = currentSong?.cover || coverArt;
-                          if (cover) setBg(cover);
+                          if (cover) {
+                            const blurred = p.id === 'cover-blur'; // la portada como fondo, desenfocada y ampliada para que no se vean bordes
+                            setBg(cover);
+                            setBgBlur(blurred ? 14 : 0);
+                            setBgScale(blurred ? 118 : 100);
+                            setBgBrightness(blurred ? 90 : 100);
+                          }
                         }
                       }}
                       className="py-2.5 px-2 bg-black/40 hover:bg-[#c5a059]/20 border border-white/5 hover:border-[#c5a059]/40 rounded-xl text-[8px] font-black uppercase tracking-wider text-white/70 hover:text-white transition-all text-center"
@@ -2507,7 +2576,7 @@ const PromoTemplate: React.FC<any> = ({
     slogan, customFooterUrl,
     footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
     badgeType = 'biblical-advisory', colorFilter = 'none', showLensFlare = false,
-    smartLinkUrl = 'https://diosmasgym.com', qrDataUrl = null,
+    smartLinkUrl = 'https://diosmasgym.com', qrDataUrl = null, statusLabel = '',
     bgBlur = 0, bgBrightness = 100, bgContrast = 100, bgScale = 100,
     watermarkEnabled = false, watermarkStyle = 'diagonal', watermarkText = '#PuroSeñorJesucristoCompa', watermarkOpacity = 12, watermarkSize = 100,
     ribbonStyle = 'none', ribbonText = '#PuroSeñorJesucristoCompa', ribbonColor = 'gold', ribbonOpacity = 90,
@@ -3034,7 +3103,7 @@ const PromoTemplate: React.FC<any> = ({
                 <div 
                   data-backdrop-polyfill
                   style={{ padding: "8px 20px", borderRadius: 4, border: `1px solid ${theme.accent}66`, background: "rgba(0, 0, 0, 0.5)", backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', color: theme.accent, fontSize: fz(0.22), fontWeight: '900', letterSpacing: '0.2em', fontFamily: 'Inter', boxShadow: `0 4px 20px rgba(0,0,0,0.5)` }}>
-                  {mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY"}
+                  {statusLabel || (mode === "proximamente" ? "PRÓXIMO ESTRENO" : mode === "disponible" ? "YA DISPONIBLE" : mode === "branding" ? "MINISTERIO" : "EXTENDED PLAY")}
                 </div>
               </div>
 
