@@ -1,5 +1,97 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+
+// ─────────────────────────────────────────────────────────────
+// SMART LINKS: estadisticas por enlace (vistas, clics por plataforma, origen)
+// Se calculan desde GA4 sin dimensiones personalizadas:
+//   - vistas:  pagePath  + screenPageViews
+//   - clics:   eventName "sl_click_<plataforma>" + pagePath + eventCount
+//   - origen:  landingPage + sessionSource/sessionMedium + sessions (utm_source del enlace)
+// ─────────────────────────────────────────────────────────────
+export type GaRow = { dims: string[]; value: number };
+export type SmartLinkStat = {
+  path: string;
+  id: string;
+  views: number;
+  clicks: Record<string, number>;
+  totalClicks: number;
+  sources: { source: string; medium: string; sessions: number }[];
+};
+
+const normPath = (p: string) => (p || '').split('?')[0].replace(/\/+$/, '') || '/';
+const idFromPath = (p: string) => {
+  const raw = p.replace(/^\/link\//, '');
+  try { return decodeURIComponent(raw); } catch { return raw; }
+};
+
+export function buildSmartLinkStats(views: GaRow[], clicks: GaRow[], sources: GaRow[]) {
+  const map = new Map<string, SmartLinkStat>();
+  const get = (rawPath: string): SmartLinkStat => {
+    const path = normPath(rawPath);
+    let st = map.get(path);
+    if (!st) {
+      st = { path, id: idFromPath(path), views: 0, clicks: {}, totalClicks: 0, sources: [] };
+      map.set(path, st);
+    }
+    return st;
+  };
+
+  for (const r of views) {
+    if (!r.dims[0]?.startsWith('/link/')) continue;
+    get(r.dims[0]).views += r.value;
+  }
+  for (const r of clicks) {
+    const [eventName, path] = r.dims;
+    if (!eventName?.startsWith('sl_click_') || !path?.startsWith('/link/')) continue;
+    const platform = eventName.slice('sl_click_'.length);
+    const st = get(path);
+    st.clicks[platform] = (st.clicks[platform] || 0) + r.value;
+    st.totalClicks += r.value;
+  }
+  const totalSources = new Map<string, { source: string; medium: string; sessions: number }>();
+  for (const r of sources) {
+    const [landing, source, medium] = r.dims;
+    if (!landing?.startsWith('/link/')) continue;
+    const src = source || '(direct)';
+    const med = medium || '(none)';
+    const st = get(landing);
+    const found = st.sources.find(x => x.source === src && x.medium === med);
+    if (found) found.sessions += r.value; else st.sources.push({ source: src, medium: med, sessions: r.value });
+    const key = src + '|' + med;
+    const t = totalSources.get(key);
+    if (t) t.sessions += r.value; else totalSources.set(key, { source: src, medium: med, sessions: r.value });
+  }
+
+  const links = [...map.values()]
+    .map(l => ({ ...l, sources: l.sources.sort((a, b) => b.sessions - a.sessions) }))
+    .sort((a, b) => b.views - a.views);
+  return {
+    links,
+    totals: {
+      views: links.reduce((n, l) => n + l.views, 0),
+      clicks: links.reduce((n, l) => n + l.totalClicks, 0),
+    },
+    sources: [...totalSources.values()].sort((a, b) => b.sessions - a.sessions),
+  };
+}
+
+const toRows = (res: any): GaRow[] =>
+  (res?.rows || []).map((r: any) => ({
+    dims: (r.dimensionValues || []).map((d: any) => d.value || ''),
+    value: Number(r.metricValues?.[0]?.value || 0),
+  }));
+
+// Autenticacion del admin (misma variable que /api/common, sin las llaves de confianza fijas)
+export function isAdminRequest(req: any): boolean {
+  const keyName = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN_PASSWORD')) || 'ADMIN_PASSWORD');
+  const master = (process.env[keyName] || '').trim().replace(/^["']|["']$/g, '');
+  const provided = String(req.headers?.['x-admin-password'] || '').trim();
+  if (!master) return !process.env.VERCEL; // en desarrollo local sin variable se permite
+  const a = Buffer.from(provided);
+  const b = Buffer.from(master);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configuración de CORS
@@ -14,6 +106,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  if (req.query.action === 'smartlinks' && !isAdminRequest(req)) {
+    return res.status(401).json({ status: 'error', message: 'No autorizado' });
   }
 
   // Leer credenciales del entorno
@@ -41,6 +137,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         private_key: privateKey,
       },
     });
+
+    // ── Estadisticas de Smart Links (panel de admin) ──
+    if (req.query.action === 'smartlinks') {
+      const days = Math.min(Math.max(parseInt(String(req.query.days || '30'), 10) || 30, 1), 90);
+      const dateRanges = [{ startDate: `${days}daysAgo`, endDate: 'today' }];
+      const property = `properties/${propertyId}`;
+      const linkFilter = (fieldName: string) => ({ filter: { fieldName, stringFilter: { matchType: 'BEGINS_WITH' as const, value: '/link/' } } });
+
+      const [[viewsRes], [clicksRes], [sourcesRes]] = await Promise.all([
+        analyticsDataClient.runReport({
+          property, dateRanges,
+          dimensions: [{ name: 'pagePath' }],
+          metrics: [{ name: 'screenPageViews' }],
+          dimensionFilter: linkFilter('pagePath'),
+          limit: 500,
+        }),
+        analyticsDataClient.runReport({
+          property, dateRanges,
+          dimensions: [{ name: 'eventName' }, { name: 'pagePath' }],
+          metrics: [{ name: 'eventCount' }],
+          dimensionFilter: {
+            andGroup: {
+              expressions: [
+                { filter: { fieldName: 'eventName', stringFilter: { matchType: 'BEGINS_WITH' as const, value: 'sl_click_' } } },
+                linkFilter('pagePath'),
+              ],
+            },
+          },
+          limit: 1000,
+        }),
+        analyticsDataClient.runReport({
+          property, dateRanges,
+          dimensions: [{ name: 'landingPage' }, { name: 'sessionSource' }, { name: 'sessionMedium' }],
+          metrics: [{ name: 'sessions' }],
+          dimensionFilter: linkFilter('landingPage'),
+          limit: 1000,
+        }),
+      ]);
+
+      const stats = buildSmartLinkStats(toRows(viewsRes), toRows(clicksRes), toRows(sourcesRes));
+      res.setHeader('Cache-Control', 'private, max-age=120');
+      return res.status(200).json({ status: 'ok', days, ...stats });
+    }
 
     const isReportAction = req.query.action === 'sendReport' || (typeof req.body === 'object' && req.body?.action === 'sendReport');
 

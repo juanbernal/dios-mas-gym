@@ -8,6 +8,7 @@ import https from "https";
 import http from "http";
 import commonHandler from "./api/common.ts";
 import separateAudioHandler from "./api/separate-audio.ts";
+import analyticsHandler from "./api/analytics.ts";
 
 dotenv.config({ path: ".env.local" });
 
@@ -29,6 +30,10 @@ async function startServer() {
   // Proxy to Vercel API Handlers for local development compatibility
   app.all("/api/common", (req, res) => {
     commonHandler(req as any, res as any);
+  });
+
+  app.all("/api/analytics", (req, res) => {
+    analyticsHandler(req as any, res as any);
   });
 
   app.all("/api/separate-audio", (req, res) => {

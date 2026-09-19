@@ -413,10 +413,50 @@ const BIBLE_BOOKS: Record<string, { apiName: string; prettyName: string; chapter
 
 const DGM_FAVORITE_BOOKS = ["josue", "salmos", "proverbios", "romanos", "1-corintios", "efesios", "filipenses", "isaias", "hebreos", "santiago"];
 const JUAN_FAVORITE_BOOKS = ["salmos", "proverbios", "filipenses", "efesios", "juan", "mateo", "1-juan", "romanos"];
-const PlatformButton = ({ platform, icon, color, url, isJuan }: { platform: string, icon: string, color: string, url: string, isJuan: boolean }) => {
+// Origen del trafico: el admin genera enlaces con ?utm_source=whatsapp|instagram|... y GA4 lo atribuye solo
+const getTrafficSource = () => {
+    try { return new URLSearchParams(window.location.search).get('utm_source') || ''; } catch { return ''; }
+};
+
+const PlatformButton = ({ platform, icon, color, url, isJuan, variant = 'card' }: { platform: string, icon: string, color: string, url: string, isJuan: boolean, variant?: 'card' | 'primary' | 'compact' }) => {
+    const { trackEvent } = useAnalytics();
+    // Un evento por plataforma (sl_click_spotify, sl_click_apple_music...): GA4 los cuenta sin dimensiones personalizadas
+    const handleClick = () => {
+        const slug = platform.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        trackEvent(`sl_click_${slug}`, { platform, path: window.location.pathname, src: getTrafficSource() });
+    };
+
+    // Boton principal: grande, con el color de la plataforma y texto con contraste legible
+    if (variant === 'primary') {
+        const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
+        const lin = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+        const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+        const fg = 1.05 / (lum + 0.05) >= 3.5 ? '#ffffff' : '#000000';
+        return (
+            <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:brightness-110 active:scale-[0.98] transition-all"
+                style={{ backgroundColor: color, color: fg }}>
+                <i className={`${icon} text-2xl w-8 text-center`}></i>
+                <span className={`flex-1 text-left text-[13px] font-black uppercase tracking-[0.15em] ${isJuan ? 'font-mono' : ''}`}>Escuchar en {platform}</span>
+                <i className="fas fa-arrow-right text-sm opacity-70"></i>
+            </a>
+        );
+    }
+
+    // Boton compacto para plataformas secundarias
+    if (variant === 'compact') {
+        return (
+            <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
+                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all hover:scale-[1.02] ${isJuan ? 'bg-[#0b1929]/60 border-[#1e4a7a]/25 hover:border-[#4a90d9]/50' : 'bg-white/[0.03] border-white/10 hover:border-white/30'}`}>
+                <i className={`${icon} text-lg w-6 text-center`} style={{ color }}></i>
+                <span className={`flex-1 text-left text-[12px] font-bold truncate ${isJuan ? 'font-mono text-[#f1f5f9]' : 'text-white'}`}>{platform}</span>
+            </a>
+        );
+    }
+
     if (isJuan) {
         return (
-            <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/40 hover:bg-[#1e4a7a]/10 transition-all group">
+            <a href={url} target="_blank" rel="noreferrer" onClick={handleClick} className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/40 hover:bg-[#1e4a7a]/10 transition-all group">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xl md:text-2xl mr-4" style={{ backgroundColor: `${color}15`, color: color }}>
                     <i className={icon}></i>
                 </div>
@@ -429,7 +469,7 @@ const PlatformButton = ({ platform, icon, color, url, isJuan }: { platform: stri
         );
     }
     return (
-        <a href={url} target="_blank" rel="noreferrer" className="w-full flex items-center p-3 md:p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all group relative overflow-hidden">
+        <a href={url} target="_blank" rel="noreferrer" onClick={handleClick} className="w-full flex items-center p-3 md:p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all group relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ backgroundColor: color }}></div>
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-xl md:text-2xl mr-4 bg-white/5 group-hover:scale-110 transition-transform duration-300" style={{ color: color }}>
                 <i className={icon}></i>
@@ -715,7 +755,11 @@ const SmartLinkView: React.FC = () => {
 
     const getShareUrl = () => {
         if (id === 'custom') {
-            return `https://www.diosmasgym.com/link/custom${location.search}`;
+            // el enlace que se comparte desde la pagina no arrastra el origen (utm_*) de quien lo abrio
+            const params = new URLSearchParams(location.search);
+            [...params.keys()].filter(k => k.startsWith('utm_')).forEach(k => params.delete(k));
+            const qs = params.toString();
+            return `https://www.diosmasgym.com/link/custom${qs ? '?' + qs : ''}`;
         }
         if (id && id.startsWith('prx-') && song) {
             const params = new URLSearchParams();
@@ -723,6 +767,7 @@ const SmartLinkView: React.FC = () => {
             params.set('artist', song.artist);
             params.set('cover', song.cover || '');
             params.set('url', song.url || '');
+            if (song.date) params.set('date', song.date);
             return `https://www.diosmasgym.com/link/custom?${params.toString()}`;
         }
         return `https://www.diosmasgym.com/link/${id}`;
@@ -738,7 +783,8 @@ const SmartLinkView: React.FC = () => {
         if (song) {
             trackEvent('smart_link_view', {
                 title: song.name,
-                artist: song.artist
+                artist: song.artist,
+                src: getTrafficSource()
             });
             fetchBibleVerse(song.artist.toLowerCase().includes('juan'));
         }
@@ -755,7 +801,9 @@ const SmartLinkView: React.FC = () => {
                 ]);
                 let fullCatalog = [...dM, ...j6];
 
-                // Fetch de la hoja de Próximos Lanzamientos
+                // Hoja de Próximos Lanzamientos: solo se espera si la canción no está en el catálogo.
+                // Antes se esperaba siempre y la página tardaba varios segundos en mostrar algo.
+                const mergeUpcomingReleases = async () => {
                 try {
                     const response = await fetch(`/api/sheet-proxy?read=true`);
                     if (response.ok) {
@@ -789,6 +837,8 @@ const SmartLinkView: React.FC = () => {
                 } catch (e) {
                     console.error("Error fetching future releases from sheet:", e);
                 }
+                };
+                const upcomingPromise = mergeUpcomingReleases();
 
                 if (id === 'custom') {
                     const queryParams = new URLSearchParams(location.search);
@@ -796,6 +846,8 @@ const SmartLinkView: React.FC = () => {
                     const artist = queryParams.get('artist');
                     const cover = queryParams.get('cover');
                     const url = queryParams.get('url') || '#';
+                    const dateParam = queryParams.get('date');
+                    const releaseDate = dateParam && !isNaN(new Date(dateParam).getTime()) ? dateParam : new Date().toISOString();
                     
                     if (title && artist && cover) {
                         const manualSong: MusicItem = {
@@ -805,7 +857,7 @@ const SmartLinkView: React.FC = () => {
                             cover: cover,
                             url: url,
                             type: 'Manual',
-                            date: new Date().toISOString()
+                            date: releaseDate
                         };
                         setSong(manualSong);
                         document.title = `${manualSong.name} - ${manualSong.artist}`;
@@ -825,7 +877,7 @@ const SmartLinkView: React.FC = () => {
                 // 2. URL contains the id fragment
                 // 3. Normalized ID match (handles accent differences in slugs)
                 // 4. Slug built from artist+name matches the id
-                const found = fullCatalog.find(s => {
+                const matchesId = (s: MusicItem) => {
                     if (s.id === id) return true;
                     if (s.url && id && s.url.includes(id)) return true;
                     if (id && s.id && normalize(s.id) === normalize(id)) return true;
@@ -833,7 +885,12 @@ const SmartLinkView: React.FC = () => {
                     const slugFromNameOnly = normalize(s.name);
                     if (id && (normalize(id) === slugFromName || normalize(id) === slugFromNameOnly)) return true;
                     return false;
-                });
+                };
+                let found = fullCatalog.find(matchesId);
+                if (!found) {
+                    await upcomingPromise;
+                    found = fullCatalog.find(matchesId);
+                }
 
                 if (found) {
                     let songWithLyrics = { ...found };
@@ -1076,10 +1133,10 @@ const SmartLinkView: React.FC = () => {
                     style={{ backgroundImage: `url(${song.cover})` }}
                 ></div>
 
-                <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-8 md:py-16 gap-8 md:gap-12 animate-fade-in">
+                <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-6 md:py-16 gap-6 md:gap-12 animate-fade-in">
                     
                     {/* HERO SECTION */}
-                    <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+                    <div className="w-full flex flex-col md:flex-row items-center justify-center gap-5 md:gap-16">
                         <div className="w-full max-w-sm shrink-0 transition-transform duration-500 group relative">
                             {/* Ambient Glow using Cover image */}
                             <div 
@@ -1087,7 +1144,7 @@ const SmartLinkView: React.FC = () => {
                                 style={{ backgroundImage: `url(${song.cover})` }}
                             ></div>
                             <div className="absolute -inset-1.5 bg-gradient-to-r from-[#4a90d9] to-[#8c6b32] rounded-[36px] opacity-10 group-hover:opacity-30 transition duration-700 pointer-events-none"></div>
-                            <div className="relative w-64 h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[32px] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.02]">
+                            <div className="relative w-44 h-44 sm:w-64 sm:h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[32px] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.02]">
                                 <img 
                                     src={song.cover} 
                                     alt={song.name} 
@@ -1097,10 +1154,17 @@ const SmartLinkView: React.FC = () => {
                         </div>
                         
                         <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                            <h1 className="h1-gothic text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold tracking-wide text-white">{song.name}</h1>
-                            <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.5em] mb-6 md:mb-8">{song.artist}</p>
+                            <h1 className="h1-gothic text-4xl sm:text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold tracking-wide text-white">{song.name}</h1>
+                            <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8">{song.artist}</p>
 
                             <ReleaseCountdown releaseDate={song.date} isJuan={false} />
+
+                            {/* Botones principales: lo primero que ve quien llega desde WhatsApp / Instagram */}
+                            <div className="w-full max-w-md flex flex-col gap-3 mb-5 md:mb-6">
+                                <PlatformButton variant="primary" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
+                                <PlatformButton variant="primary" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
+                                <PlatformButton variant="primary" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
+                            </div>
 
                             {embedData?.type === 'youtube' && (
                                 <YouTubeAudioPlayer videoId={embedData.id} isJuan={false} />
@@ -1134,18 +1198,16 @@ const SmartLinkView: React.FC = () => {
                         <HUDCorners color="#4a90d9" />
                         
                         <h3 className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.3em] mb-8 flex items-center justify-center gap-3">
-                            <i className="fas fa-play-circle animate-pulse"></i> ESCUCHAR EL TEMA COMPLETO
+                            <i className="fas fa-play-circle"></i> MÁS PLATAFORMAS
                         </h3>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
-                            <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
-                            <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
-                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={false} />
-                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={false} />
-                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={false} />
-                            <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={false} />
-                            <PlatformButton platform="Sitio Oficial" icon="fas fa-globe" color="#4a90d9" url="https://musica.diosmasgym.com/" isJuan={false} />
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                            
+                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={false} variant="compact" />
+                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={false} variant="compact" />
+                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={false} variant="compact" />
+                            <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={false} variant="compact" />
+                            <PlatformButton platform="Sitio Oficial" icon="fas fa-globe" color="#4a90d9" url="https://musica.diosmasgym.com/" isJuan={false} variant="compact" />
                         </div>
                     </div>
 
@@ -1407,10 +1469,10 @@ const SmartLinkView: React.FC = () => {
                 ))}
             </div>
 
-            <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-8 md:py-16 gap-8 md:gap-12 animate-fade-in">
+            <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-6 md:py-16 gap-6 md:gap-12 animate-fade-in">
                 
                 {/* HERO SECTION */}
-                <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+                <div className="w-full flex flex-col md:flex-row items-center justify-center gap-5 md:gap-16">
                     <div className="w-full max-w-sm shrink-0 transition-transform duration-500 group relative">
                         {/* Ambient Glow */}
                         <div 
@@ -1418,7 +1480,7 @@ const SmartLinkView: React.FC = () => {
                             style={{ backgroundImage: `url(${song.cover})` }}
                         ></div>
                         <div className="absolute -inset-2 bg-gradient-to-tr from-[#4a90d9]/30 to-transparent rounded-[16px] opacity-20 group-hover:opacity-50 transition duration-700 pointer-events-none animate-rustic-glow"></div>
-                        <div className="relative w-64 h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[12px] border-2 border-[#1e4a7a]/40 shadow-[0_20px_50px_rgba(20,10,5,0.8)] transition-transform duration-500 group-hover:scale-[1.02]">
+                        <div className="relative w-44 h-44 sm:w-64 sm:h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[12px] border-2 border-[#1e4a7a]/40 shadow-[0_20px_50px_rgba(20,10,5,0.8)] transition-transform duration-500 group-hover:scale-[1.02]">
                             <img 
                                 src={song.cover} 
                                 alt={song.name} 
@@ -1428,10 +1490,17 @@ const SmartLinkView: React.FC = () => {
                     </div>
                     
                     <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                        <h1 className="h1-gothic text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
-                        <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-6 md:mb-8 font-mono">{song.artist}</p>
+                        <h1 className="h1-gothic text-4xl sm:text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
+                        <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-4 md:mb-8 font-mono">{song.artist}</p>
 
                         <ReleaseCountdown releaseDate={song.date} isJuan={true} />
+
+                            {/* Botones principales: lo primero que ve quien llega desde WhatsApp / Instagram */}
+                            <div className="w-full max-w-md flex flex-col gap-3 mb-5 md:mb-6">
+                                <PlatformButton variant="primary" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
+                                <PlatformButton variant="primary" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
+                                <PlatformButton variant="primary" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
+                            </div>
 
                         {embedData?.type === 'youtube' && (
                             <YouTubeAudioPlayer videoId={embedData.id} isJuan={true} />
@@ -1462,18 +1531,16 @@ const SmartLinkView: React.FC = () => {
                 {/* PLATFORMS SECTION */}
                 <div className="w-full max-w-6xl relative z-20 backdrop-blur-xl bg-[#081830]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.5)] transition-all hover:border-[#1e4a7a]/40 duration-500">
                     <h3 className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
-                        <i className="fas fa-headphones"></i> DÓNDE ESCUCHAR
+                        <i className="fas fa-headphones"></i> MÁS PLATAFORMAS
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <PlatformButton platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
-                        <PlatformButton platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
-                        <PlatformButton platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
-                        <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={true} />
-                        <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={true} />
-                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={true} />
-                        <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} />
-                        <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#4a90d9" url="https://juan614.diosmasgym.com/" isJuan={true} />
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                        
+                        <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={true} variant="compact" />
+                        <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={true} variant="compact" />
+                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={true} variant="compact" />
+                        <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} variant="compact" />
+                        <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#4a90d9" url="https://juan614.diosmasgym.com/" isJuan={true} variant="compact" />
                     </div>
                 </div>
 
