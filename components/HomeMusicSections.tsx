@@ -316,7 +316,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                 target="_blank" rel="noreferrer"
                 className="px-10 py-5 rounded-full border border-white/20 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-white/10 transition-all"
               >
-                Guardar / Pre-Save
+                {(() => { const t = new Date((featured.date || '').includes('T') ? featured.date : (featured.date || '') + 'T00:00:00').getTime(); return !isNaN(t) && t > Date.now() ? 'Guardar / Pre-Save' : 'Todas las plataformas'; })()}
               </a>
             </div>
           </div>

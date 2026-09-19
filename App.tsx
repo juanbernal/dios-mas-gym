@@ -472,7 +472,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={
             <>
-              <Hero verse={verse} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => {
+              <Hero verse={verse} catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => {
                 if (combinedCatalog.length === 0) return;
                 const song = combinedCatalog[Math.floor(Math.random() * combinedCatalog.length)];
                 setState(p => ({ ...p, activeSong: song }));

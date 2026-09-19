@@ -12,6 +12,12 @@ interface ReleaseData {
     isFromCatalog?: boolean;
 }
 
+const releaseTime = (dateStr: string): number => {
+    let d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) d = new Date(dateStr);
+    return d.getTime();
+};
+
 const CountdownUnit: React.FC<{ targetDate: string, currentTime: Date }> = ({ targetDate, currentTime }) => {
     const target = new Date(targetDate.includes('T') ? targetDate : targetDate + 'T00:00:00');
     const diff = target.getTime() - currentTime.getTime();
@@ -209,6 +215,8 @@ const UpcomingReleases: React.FC = () => {
 
     if (loading || releases.length === 0) return null;
 
+    const hasUpcoming = releases.some(r => releaseTime(r.releaseDate) > currentTime.getTime());
+
     const timeZones = [
         { city: 'MEX', time: '00:00' },
         { city: 'COL', time: '01:00' },
@@ -225,27 +233,29 @@ const UpcomingReleases: React.FC = () => {
             <div className="section-container relative z-10 max-w-7xl mx-auto px-6">
                 <div className="text-center mb-24 md:mb-32">
                     <div className="inline-flex items-center gap-4 mb-6 px-8 py-3 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 backdrop-blur-md shadow-[0_0_30px_rgba(37,99,168,0.15)]">
-                        <i className="fas fa-satellite-dish text-[#4a90d9] animate-ping"></i>
-                        <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#4a90d9]">Próximos Estrenos Globales</span>
+                        <i className="fas fa-satellite-dish text-[#4a90d9]"></i>
+                        <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#4a90d9]">{hasUpcoming ? 'Próximos Estrenos Globales' : 'Recién Salidos'}</span>
                     </div>
                     <h2 className="font-serif italic text-6xl md:text-8xl text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-                        Próxima <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] via-yellow-400 to-[#4a90d9] animate-gradient-x">Artillería</span>
+                        {hasUpcoming ? 'Próxima' : 'Nueva'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] via-[#9cc8f5] to-[#4a90d9] animate-gradient-x">Artillería</span>
                     </h2>
                     <div className="mt-8 flex justify-center items-center gap-4 text-white/30 text-[10px] md:text-xs uppercase tracking-[0.3em] font-black">
                         <span className="w-16 h-px bg-white/20"></span>
-                        Radar de Inteligencia Activado
+                        {hasUpcoming ? 'Radar de Inteligencia Activado' : 'Ya disponible en todas las plataformas'}
                         <span className="w-16 h-px bg-white/20"></span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {releases.map((release, index) => (
+                    {releases.map((release, index) => {
+                        const released = releaseTime(release.releaseDate) <= currentTime.getTime();
+                        return (
                         <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#4a90d9]/10 rounded-[2rem] overflow-hidden group hover:border-[#4a90d9]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
                             <div className="relative aspect-square w-full overflow-hidden">
                                 <img loading="lazy" 
                                     src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
                                     alt={release.name}
-                                    className="w-full h-full object-cover grayscale opacity-60 transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"
+                                    className={`w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100 ${released ? 'opacity-90' : 'grayscale opacity-60'}`}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-transparent"></div>
                                 <div className="absolute top-4 left-4">
@@ -258,7 +268,7 @@ const UpcomingReleases: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="absolute bottom-4 left-4 right-4">
-                                    <CountdownUnit targetDate={release.releaseDate} currentTime={currentTime} />
+                                    {!released && <CountdownUnit targetDate={release.releaseDate} currentTime={currentTime} />}
                                 </div>
                             </div>
 
@@ -276,10 +286,10 @@ const UpcomingReleases: React.FC = () => {
                                             href={release.preSaveLink}
                                             target="_blank"
                                             rel="noreferrer"
-                                            aria-label={`Pre-guardar ${release.name}`}
+                                            aria-label={`${released ? 'Escuchar' : 'Pre-guardar'} ${release.name}`}
                                             className="inline-flex items-center min-h-[44px] py-2 pr-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#4a90d9] hover:text-white transition-colors"
                                         >
-                                            <i className="fas fa-link mr-1"></i> Pre-Save
+                                            <i className={`fas ${released ? 'fa-play' : 'fa-link'} mr-1.5`}></i> {released ? 'Escuchar' : 'Pre-Save'}
                                         </a>
                                     ) : <span></span>}
                                     {release.audioUrl && (
@@ -296,7 +306,8 @@ const UpcomingReleases: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
             </div>

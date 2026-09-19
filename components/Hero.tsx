@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
   verse: { t: string; r: string };
+  catalog?: any[];
+  onPlaySong?: (song: any) => void;
   onEntrenar: () => void;
   onAleatorio: () => void;
 }
@@ -35,7 +37,7 @@ const scrollToSection = (sectionId: string) => {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
-const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatorio }) => {
+const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySong, onEntrenar, onAleatorio }) => {
   const navigate = useNavigate();
   const [verseIndex, setVerseIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -55,6 +57,15 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
   }, [verseIndex]);
 
   const verse = VERSES[verseIndex];
+
+  // Ultimo estreno real del catalogo (el mas reciente con portada y enlace)
+  const latest = React.useMemo(() => {
+    const t = (d: string) => { const n = new Date(d || '').getTime(); return isNaN(n) ? 0 : n; };
+    return catalog
+      .filter(s => s && s.name && s.cover && s.url && t(s.date) <= Date.now())
+      .sort((a, b) => t(b.date) - t(a.date))[0];
+  }, [catalog]);
+  const songCount = catalog.length;
 
   return (
     <header className="relative min-h-screen overflow-hidden cinematic-grain" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 50%, #0b1929 100%)' }}>
@@ -139,9 +150,9 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
 
               {/* Artist logos row */}
               <div className="flex items-center gap-6 mt-12 pt-8" style={{ borderTop: '1px solid rgba(37,99,168,0.15)' }}>
-                <img src="/logo-diosmasgym-sm.webp" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)' }} />
+                <img src="/logo-diosmasgym-sm.webp" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)', background: 'rgba(255,255,255,0.05)' }} />
                 <div style={{ width: '1px', height: '40px', background: 'rgba(37,99,168,0.3)' }}></div>
-                <img src="/logo-juan614-v2-sm.webp" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.2)' }} />
+                <img src="/logo-juan614-v2-sm.webp" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)', background: 'rgba(255,255,255,0.05)' }} />
                 <div>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.4)', fontSize: '0.5rem' }}>Artistas</p>
                   <p className="label-tag" style={{ color: 'rgba(200,205,212,0.7)', fontSize: '0.55rem' }}>Diosmasgym × Juan 614</p>
@@ -219,12 +230,33 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, onEntrenar, onAleatori
                 </div>
               </div>
 
+              {/* Ultimo estreno */}
+              {latest && (
+                <button
+                  type="button"
+                  onClick={() => onPlaySong && onPlaySong(latest)}
+                  className="card-street p-4 flex items-center gap-4 text-left group transition-all hover:border-[#4a90d9]/50"
+                  style={{ borderRadius: '2px' }}
+                  aria-label={`Escuchar ${latest.name}`}
+                >
+                  <img src={latest.cover} alt="" className="w-16 h-16 object-cover rounded-md flex-shrink-0" style={{ border: '1px solid rgba(37,99,168,0.4)' }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="label-tag mb-1" style={{ color: '#4a90d9' }}>Último estreno</p>
+                    <p className="text-white font-bold text-sm truncate">{latest.name}</p>
+                    <p className="label-tag truncate" style={{ color: 'rgba(200,205,212,0.5)', fontSize: '0.55rem' }}>{latest.artist}</p>
+                  </div>
+                  <span className="w-11 h-11 rounded-full bg-[#4a90d9] text-black flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <i className="fas fa-play text-sm ml-0.5"></i>
+                  </span>
+                </button>
+              )}
+
               {/* Stats strip */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { icon: 'fa-dumbbell', label: 'Entrenamientos', val: '∞' },
-                  { icon: 'fa-music', label: 'Canciones', val: '100+' },
-                  { icon: 'fa-cross', label: 'Versículos', val: '4+' },
+                  { icon: 'fa-music', label: 'Canciones', val: songCount > 0 ? songCount.toLocaleString('es-MX') : '—' },
+                  { icon: 'fa-users', label: 'Artistas', val: '2' },
+                  { icon: 'fa-cross', label: 'Fe', val: '∞' },
                 ].map((s) => (
                   <div key={s.label} className="card-street p-4 text-center" style={{ borderRadius: '2px' }}>
                     <i className={`fas ${s.icon} text-xl mb-2`} style={{ color: '#2563a8' }}></i>
