@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
 
 interface VersiculoPredefinido {
   versiculo: string;
@@ -229,6 +230,7 @@ const MunicionFe: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const canvas = await html2canvas(element, {
+        onclone: rasterizeIconsForCanvas,
         useCORS: true,
         allowTaint: false,
         scale: 4, // 360 * 4 = 1440px (ultra high resolution, premium quality)
@@ -273,6 +275,7 @@ const MunicionFe: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 50));
       const canvas = await html2canvas(element, {
+        onclone: rasterizeIconsForCanvas,
         useCORS: true, allowTaint: false, scale: 3, backgroundColor: '#05070a', logging: false
       });
 

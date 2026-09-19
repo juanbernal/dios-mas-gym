@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import { getCorsFriendlyUrl } from '../../services/imageHelpers';
@@ -102,6 +103,7 @@ const CanvasCreator: React.FC = () => {
             await document.fonts.ready;
             
             const canvas = await html2canvas(canvasRef.current, {
+              onclone: rasterizeIconsForCanvas,
                 scale: 5, // Resolución masiva (5x) para máxima nitidez
                 useCORS: true,
                 allowTaint: false,

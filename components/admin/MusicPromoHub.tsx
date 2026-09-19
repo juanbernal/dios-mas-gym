@@ -4,6 +4,7 @@ import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 import html2canvas from 'html2canvas';
+import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
 
 interface CampaignStrategy {
   phase: string;
@@ -245,6 +246,7 @@ Genera lo siguiente en JSON estricto:
     setIsExportingBanner(true);
     try {
       const canvas = await html2canvas(previewRef.current, {
+        onclone: rasterizeIconsForCanvas,
         useCORS: true,
         scale: 2,
         backgroundColor: null

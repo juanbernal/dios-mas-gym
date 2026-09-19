@@ -18,21 +18,36 @@ const getApiBase = (): string => {
 /**
  * Fetches the global maintenance status.
  */
+const MAINTENANCE_FALLBACK: MaintenanceStatus = {
+  enabled: false,
+  videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
+};
+
 export const fetchMaintenanceStatus = async (): Promise<MaintenanceStatus> => {
   try {
     const apiBase = getApiBase();
     const url = new URL('/api/common', apiBase);
     url.searchParams.append('action', 'maintenance');
-    url.searchParams.append('t', Date.now().toString()); // Avoid aggressively caching status
+    // Sin parametro t= y sin no-store: eran justo lo que impedia que la
+    // respuesta se cachease, y la app entera esperaba por ella en cada visita.
 
-    const response = await fetch(url.toString(), { cache: 'no-store' });
+    // La app arranca esperando esto, asi que nunca puede tardar mas de 1,5 s.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+
     if (!response.ok) {
       throw new Error(`Failed to fetch maintenance status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching maintenance status:', error);
-    return { enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' };
+    console.warn('Maintenance status no disponible a tiempo, se asume sitio activo:', error);
+    return MAINTENANCE_FALLBACK;
   }
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
 import { jsPDF } from 'jspdf';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
@@ -111,6 +112,7 @@ const EPKGenerator: React.FC = () => {
             setIsExporting(true);
             
             const canvas = await html2canvas(element, {
+              onclone: rasterizeIconsForCanvas,
                 scale: 2, // Alta resolución
                 useCORS: true,
                 allowTaint: false,

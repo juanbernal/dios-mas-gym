@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
+import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
 import { fetchMusicCatalog } from "../../services/musicService";
 import { generateSocialCaption, SocialCaptionResult } from "../../services/geminiService";
 import { MusicItem } from "../../types";
@@ -420,6 +421,9 @@ const PromoImageApp: React.FC = () => {
       logging: false,
       imageTimeout: 15000,
       onclone: (clonedDoc) => {
+        // Los iconos son mascaras SVG y html2canvas no las rasteriza
+        rasterizeIconsForCanvas(clonedDoc);
+
         // FONT INJECTION: Critical for 4K Master Parity on Windows/Vercel
         const fontLink = clonedDoc.createElement('link');
         fontLink.rel = 'stylesheet';
@@ -748,6 +752,7 @@ const PromoImageApp: React.FC = () => {
       if (!previewEl) throw new Error("Preview element not found");
 
       const canvas = await html2canvas(previewEl, {
+        onclone: rasterizeIconsForCanvas,
         scale: 1.5, // Enough for a snippet, light enough for memory
         useCORS: true,
         backgroundColor: '#000',
