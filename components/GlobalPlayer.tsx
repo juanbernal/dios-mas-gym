@@ -41,14 +41,7 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
     if (songKey !== prevSongRef.current) {
       setIsPlaying(true);
       prevSongRef.current = songKey;
-      
-      // Track song play
-      if (typeof window !== 'undefined' && (window as any).gtag && activeSong) {
-        (window as any).gtag('event', 'play_song', {
-          song_title: activeSong.name,
-          song_artist: activeSong.artist
-        });
-      }
+      // La reproduccion se cuenta en App.tsx (una vez por cancion, respetando el filtro de administrador)
     }
 
     if (!videoId || !containerRef.current) return;
@@ -148,13 +141,6 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
         }
     } catch (e) {
         console.error('togglePlay error:', e);
-    }
-    
-    if (nextState && typeof window !== 'undefined' && (window as any).gtag && activeSong) {
-        (window as any).gtag('event', 'play_song', {
-            song_title: activeSong.name,
-            song_artist: activeSong.artist
-        });
     }
   };
 

@@ -166,6 +166,13 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+      // Los dispositivos marcados como administrador no se cuentan en Google Analytics
+      // (antes solo se excluian los eventos propios, pero las paginas vistas de tu propio uso si contaban)
+      try {
+        if (localStorage.getItem('pwa_admin_user') === 'true' || document.cookie.indexOf('is_admin_user=true') !== -1) {
+          window['ga-disable-G-ZL60YWDMDD'] = true;
+        }
+      } catch (e) {}
       gtag('config', 'G-ZL60YWDMDD', { anonymize_ip: true });
     </script>
 

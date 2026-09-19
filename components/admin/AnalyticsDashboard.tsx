@@ -8,7 +8,7 @@ const AnalyticsDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [rawData, setRawData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [debugError, setDebugError] = useState<string>('');
+    const [loadError, setLoadError] = useState<string>('');
     const [excludeVisits, setExcludeVisits] = useState(() => {
         return localStorage.getItem('pwa_admin_user') === 'true';
     });
@@ -46,6 +46,8 @@ const AnalyticsDashboard: React.FC = () => {
     const handleToggleExclusion = () => {
         const nextVal = !excludeVisits;
         setExcludeVisits(nextVal);
+        // Tambien se apaga/enciende Google Analytics en esta sesion (al recargar lo decide index.html)
+        (window as any)['ga-disable-G-ZL60YWDMDD'] = nextVal;
         if (nextVal) {
             localStorage.setItem('pwa_admin_user', 'true');
             document.cookie = "is_admin_user=true; path=/; max-age=31536000; samesite=lax";
@@ -57,68 +59,28 @@ const AnalyticsDashboard: React.FC = () => {
 
     const [refreshing, setRefreshing] = useState(false);
 
-    const fetchAnalytics = async (forceRefresh = false) => {
-        if (forceRefresh) setRefreshing(true);
+    const fetchAnalytics = async (forceRefresh = false, scope: string = samplingFilter) => {
+        setRefreshing(true);
+        setLoadError('');
         try {
-            const url = forceRefresh ? '/api/analytics?refresh=true' : '/api/analytics';
-            const res = await fetch(url, {
+            const params = new URLSearchParams();
+            if (forceRefresh) params.set('refresh', 'true');
+            if (scope !== 'all') params.set('scope', scope);
+            const qs = params.toString();
+            const res = await fetch(`/api/analytics${qs ? `?${qs}` : ''}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'getAnalytics' })
             });
-            if (!res.ok) throw new Error('API Error');
-            const json = await res.json();
-            
-            if (json && json.status === 'success' && json.data) {
-                setRawData(json.data);
-            } else {
-                throw new Error(json.message || 'Error en respuesta de Google');
+            const json = await res.json().catch(() => null);
+            if (!res.ok || !json || json.status !== 'success' || !json.data) {
+                throw new Error(json?.message || `Error ${res.status} al consultar Google Analytics`);
             }
+            setRawData(json.data);
         } catch (err: any) {
-            setDebugError(err.message || 'Error de conexión');
-            console.warn('Failed to fetch real analytics, using mock data for preview.', err);
-            
-            // Fallback a datos de prueba (Mock Data) avanzados
-            setRawData({
-                totalViews: 12450,
-                topPosts: [
-                    { title: 'El Silencio de Dios en la Prueba', views: 3420 },
-                    { title: 'Armadura Completa: Rutina y Oración', views: 2850 },
-                    { title: 'Cómo Vencer la Pereza Espiritual', views: 1930 },
-                    { title: 'Ansiedad vs Fe: La Batalla Diaria', views: 1200 },
-                    { title: 'Construyendo Disciplina Real', views: 980 }
-                ],
-                topSongs: [
-                    { title: 'Guerrero de Luz', artist: 'Dios Mas Gym', plays: 4500 },
-                    { title: 'Fe Inquebrantable', artist: 'Juan 614', plays: 3200 },
-                    { title: 'Levántate', artist: 'Dios Mas Gym', plays: 2100 },
-                    { title: 'Amanecer', artist: 'Juan 614', plays: 1500 },
-                    { title: 'Vencedores', artist: 'Dios Mas Gym', plays: 1100 }
-                ],
-                history: [
-                    { date: '11/05', views: 120 },
-                    { date: '12/05', views: 450 },
-                    { date: '13/05', views: 800 },
-                    { date: '14/05', views: 750 },
-                    { date: '15/05', views: 1300 },
-                    { date: '16/05', views: 2100 },
-                    { date: '17/05', views: 3200 }
-                ],
-                distribution: [
-                    { name: 'Canciones', value: 7500 },
-                    { name: 'Reflexiones', value: 4950 }
-                ],
-                avgSessionDuration: '04:32',
-                bounceRate: '32%',
-                newVsReturning: { new: 65, returning: 35 },
-                deviceBreakdown: { mobile: 85, desktop: 12, tablet: 3 },
-                trafficSources: [
-                    { source: 'Instagram', value: 45 },
-                    { source: 'Directo', value: 30 },
-                    { source: 'Google', value: 25 }
-                ],
-                isMock: true
-            });
+            // Ya no se muestran numeros inventados: si Google no responde, se dice claramente
+            console.error('No se pudo consultar Google Analytics:', err);
+            setLoadError(err?.message || 'Error de conexión');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -128,98 +90,65 @@ const AnalyticsDashboard: React.FC = () => {
     const getFilteredData = () => {
         if (!rawData) return null;
 
-        if (!rawData.isMock) {
-            let filteredHistory = rawData.history || [];
-            let currentTotal = rawData.totalViews;
-            
-            if (timeframeFilter === 'week') {
-                filteredHistory = filteredHistory.slice(-7);
-                currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
-            } else if (timeframeFilter === 'day') {
-                const todayFormatted = new Intl.DateTimeFormat('es-MX', {
-                    timeZone: 'America/Mexico_City',
-                    day: '2-digit',
-                    month: '2-digit'
-                }).format(new Date());
+        let filteredHistory = rawData.history || [];
+        let currentTotal = rawData.totalViews;
+        // Las fechas vienen en la zona horaria de la propiedad de Analytics; "hoy" se calcula en esa misma zona
+        const tz = rawData.meta?.timeZone || 'America/Mexico_City';
 
-                const todayEntry = filteredHistory.find((h: any) => h.date === todayFormatted);
-                if (todayEntry) {
-                    filteredHistory = [todayEntry];
-                    currentTotal = todayEntry.views;
-                } else {
-                    filteredHistory = [{ date: todayFormatted, views: 0 }];
-                    currentTotal = 0;
-                }
+        if (timeframeFilter === 'week') {
+            filteredHistory = filteredHistory.slice(-7);
+            currentTotal = filteredHistory.reduce((sum: number, h: any) => sum + h.views, 0);
+        } else if (timeframeFilter === 'day') {
+            const todayFormatted = new Intl.DateTimeFormat('es-MX', {
+                timeZone: tz,
+                day: '2-digit',
+                month: '2-digit'
+            }).format(new Date());
+
+            const todayEntry = filteredHistory.find((h: any) => h.date === todayFormatted);
+            if (todayEntry) {
+                filteredHistory = [todayEntry];
+                currentTotal = todayEntry.views;
+            } else {
+                filteredHistory = [{ date: todayFormatted, views: 0 }];
+                currentTotal = 0;
             }
-
-            return {
-                ...rawData,
-                history: filteredHistory,
-                totalViews: currentTotal
-            };
-        }
-        
-        // Lógica para datos de prueba (Mock Data)
-        let sourceMultiplier = 1;
-        if (samplingFilter === 'main') sourceMultiplier = 0.65;
-        if (samplingFilter === 'external') sourceMultiplier = 0.35;
-        
-        let timeMultiplier = 1;
-        let filteredHistory = [];
-        
-        if (timeframeFilter === 'day') {
-            timeMultiplier = 0.07;
-            filteredHistory = [
-                { date: '08:00 AM', views: Math.round(180 * sourceMultiplier) },
-                { date: '12:00 PM', views: Math.round(350 * sourceMultiplier) },
-                { date: '04:00 PM', views: Math.round(290 * sourceMultiplier) },
-                { date: '08:00 PM', views: Math.round(420 * sourceMultiplier) },
-            ];
-        } else if (timeframeFilter === 'month') {
-            timeMultiplier = 4.3;
-            filteredHistory = [
-                { date: 'Semana 1', views: Math.round(2800 * sourceMultiplier) },
-                { date: 'Semana 2', views: Math.round(3400 * sourceMultiplier) },
-                { date: 'Semana 3', views: Math.round(4900 * sourceMultiplier) },
-                { date: 'Semana 4', views: Math.round(6200 * sourceMultiplier) },
-            ];
-        } else {
-            timeMultiplier = 1;
-            filteredHistory = rawData.history?.map((h: any) => ({
-                ...h,
-                views: Math.round(h.views * sourceMultiplier)
-            })) || [];
         }
 
-        const isMain = samplingFilter === 'main';
-        
         return {
             ...rawData,
-            totalViews: Math.round(rawData.totalViews * sourceMultiplier * timeMultiplier),
-            distribution: rawData.distribution?.map((d: any) => ({
-                ...d,
-                value: Math.round(d.value * sourceMultiplier * timeMultiplier * (isMain ? 1.25 : 0.85))
-            })),
             history: filteredHistory,
-            topSongs: isMain 
-                ? rawData.topSongs?.slice(0, 5).map((s: any) => ({ ...s, plays: Math.round(s.plays * timeMultiplier * 0.9) }))
-                : rawData.topSongs?.slice(2, 7).map((s: any) => ({ ...s, plays: Math.round(s.plays * timeMultiplier * 0.4) })),
-            topPosts: isMain 
-                ? rawData.topPosts?.slice(0, 5).map((p: any) => ({ ...p, views: Math.round(p.views * timeMultiplier * 0.9) }))
-                : rawData.topPosts?.slice(2, 7).map((p: any) => ({ ...p, views: Math.round(p.views * timeMultiplier * 0.4) }))
+            totalViews: currentTotal
         };
     };
 
     const data = getFilteredData();
 
     useEffect(() => {
-        fetchAnalytics();
-    }, []);
+        fetchAnalytics(false, samplingFilter);
+    }, [samplingFilter]);
 
     if (loading) {
         return (
             <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
                 <div className="w-12 h-12 border-2 border-white/5 border-t-[#c5a059] rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (!rawData) {
+        return (
+            <div className="min-h-screen bg-[#05070a] flex items-center justify-center px-6 font-['Poppins']">
+                <div className="max-w-md w-full bg-[#0f111a] border border-[#f43f5e]/30 rounded-3xl p-8 text-center">
+                    <i className="fas fa-triangle-exclamation text-3xl text-[#f43f5e] mb-4"></i>
+                    <h2 className="text-white text-lg font-bold mb-2">No se pudo consultar Google Analytics</h2>
+                    <p className="text-white/50 text-xs leading-relaxed mb-6 break-words">{loadError || 'Sin respuesta del servidor.'}</p>
+                    <p className="text-white/30 text-[11px] leading-relaxed mb-6">No se muestran números de ejemplo para que nunca confundas datos inventados con datos reales.</p>
+                    <div className="flex gap-3 justify-center">
+                        <button onClick={() => { setLoading(true); fetchAnalytics(true); }} className="px-5 py-2.5 rounded-full bg-[#c5a059] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all">Reintentar</button>
+                        <button onClick={() => navigate('/admin')} className="px-5 py-2.5 rounded-full border border-white/15 text-white/60 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Volver</button>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -291,14 +220,14 @@ const AnalyticsDashboard: React.FC = () => {
                             </p>
                         </div>
                         
-                        {data?.isMock && (
-                            <div className="bg-[#f43f5e]/10 border border-[#f43f5e]/30 px-4 py-3 rounded-xl flex flex-col gap-1 shrink-0 max-w-sm">
+                        {data?.meta && (
+                            <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-xl flex flex-col gap-1 shrink-0 max-w-sm">
                                 <div className="flex items-center gap-2">
-                                    <i className="fas fa-exclamation-circle text-[#f43f5e]"></i>
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#f43f5e]">Mostrando datos de prueba</span>
+                                    <i className="fas fa-circle-info text-[#c5a059]"></i>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Fuente: Google Analytics</span>
                                 </div>
-                                <span className="text-white/40 text-[10px] break-words">Esperando primer registro real en Google Sheets.</span>
-                                {debugError && <span className="text-[#f43f5e]/50 text-[9px] mt-1">Debug: {debugError}</span>}
+                                <span className="text-white/40 text-[10px] break-words">Solo tráfico público (sin tu panel /admin). Zona horaria de Analytics: {data.meta.timeZone}.</span>
+                                
                             </div>
                         )}
                     </div>
@@ -350,8 +279,8 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="mb-6 flex flex-col md:flex-row gap-4">
                     {[
                         { id: 'all', label: 'Muestreo Global (Todo)', icon: 'fa-globe', desc: 'Tráfico total acumulado de todos los dominios' },
-                        { id: 'main', label: 'App Principal (Vercel)', icon: 'fa-cubes', desc: 'Tráfico de app.diosmasgym.com' },
-                        { id: 'external', label: 'Páginas Externas (GitHub Pages)', icon: 'fa-github', desc: 'Rastreo en blogs y landing pages externas (.github.io)' }
+                        { id: 'main', label: 'App Principal (Vercel)', icon: 'fa-cubes', desc: 'Tráfico de diosmasgym.com (sin el panel admin)' },
+                        { id: 'external', label: 'Páginas Externas (GitHub Pages)', icon: 'fa-github', desc: 'Blogs y sitios externos con tu código de rastreo' }
                     ].map(option => (
                         <button
                             key={option.id}
@@ -375,9 +304,9 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="mb-12">
                     <div className="flex bg-[#0f111a] border border-white/5 rounded-2xl p-1 gap-1">
                         {[
-                            { id: 'day', label: 'Hoy (Por Horas)', icon: 'fa-sun' },
-                            { id: 'week', label: 'Últimos 7 Días (Por Día)', icon: 'fa-calendar-week' },
-                            { id: 'month', label: 'Último Mes (Por Semanas)', icon: 'fa-calendar-alt' }
+                            { id: 'day', label: 'Hoy', icon: 'fa-sun' },
+                            { id: 'week', label: 'Últimos 7 días', icon: 'fa-calendar-week' },
+                            { id: 'month', label: 'Últimos 30 días', icon: 'fa-calendar-alt' }
                         ].map(period => (
                             <button
                                 key={period.id}
@@ -496,7 +425,7 @@ const AnalyticsDashboard: React.FC = () => {
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 relative lg:col-span-2 h-48">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[50px] pointer-events-none"></div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4 relative z-10">
-                            <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Tráfico en Tiempo Real de Hoy (Horas)' : timeframeFilter === 'month' ? 'Tráfico del Último Mes (Semanas)' : 'Tráfico de los últimos 7 días'}
+                            <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Páginas vistas de hoy' : timeframeFilter === 'month' ? 'Páginas vistas de los últimos 30 días (por día)' : 'Páginas vistas de los últimos 7 días (por día)'}
                         </p>
                         <div className="w-full h-32 relative z-10" style={{ minHeight: 0 }}>
                             {data?.history && data.history.length > 0 ? (

@@ -9,6 +9,22 @@ import crypto from 'crypto';
 //   - clics:   eventName "sl_click_<plataforma>" + pagePath + eventCount
 //   - origen:  landingPage + sessionSource/sessionMedium + sessions (utm_source del enlace)
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// TRAFICO PUBLICO: los reportes excluyen tu propio panel (/admin/*), que antes inflaba visitas, paginas
+// mas vistas y sesiones. scope: 'all' (todo) | 'main' (dominio principal) | 'external' (blogs y sitios externos).
+// ─────────────────────────────────────────────────────────────
+const HOST_MAIN = 'diosmasgym.com';
+export const publicFilter = (scope: string, extra?: any) => {
+  const exprs: any[] = [
+    { notExpression: { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/admin' } } } },
+  ];
+  const host = { filter: { fieldName: 'hostName', stringFilter: { matchType: 'CONTAINS', value: HOST_MAIN } } };
+  if (scope === 'main') exprs.push(host);
+  if (scope === 'external') exprs.push({ notExpression: host });
+  if (extra) exprs.push(extra);
+  return exprs.length === 1 ? exprs[0] : { andGroup: { expressions: exprs } };
+};
+
 export type GaRow = { dims: string[]; value: number };
 export type SmartLinkStat = {
   path: string;
@@ -181,6 +197,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ status: 'ok', days, ...stats });
     }
 
+    const scope = ['main', 'external'].includes(String(req.query.scope)) ? String(req.query.scope) : 'all';
+    // Consulta solo trafico publico. Si Google rechazara el filtro para alguna combinacion de metricas,
+    // se reintenta sin filtro para no romper el panel ni el correo.
+    const runPublic = async (request: any): Promise<any[]> => {
+      try {
+        return await analyticsDataClient.runReport({ ...request, dimensionFilter: publicFilter(scope, request.dimensionFilter) });
+      } catch (e: any) {
+        console.warn('[analytics] filtro de trafico publico rechazado, se reintenta sin filtro:', e?.message);
+        return await analyticsDataClient.runReport(request);
+      }
+    };
+
     const isReportAction = req.query.action === 'sendReport' || (typeof req.body === 'object' && req.body?.action === 'sendReport');
 
     // ── Si la acción es Enviar Reporte por Correo (11 PM o manual) ──
@@ -210,32 +238,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         [sourcesRes],
         [countriesRes]
       ] = await Promise.all([
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           metrics: [{ name: 'screenPageViews' }, { name: 'activeUsers' }, { name: 'sessions' }],
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'yesterday', endDate: 'yesterday' }],
           metrics: [{ name: 'screenPageViews' }],
         }),
         // Total visitas últimos 30 días
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
           metrics: [{ name: 'screenPageViews' }],
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           dimensions: [{ name: 'customEvent:song_title' }, { name: 'customEvent:song_artist' }],
           metrics: [{ name: 'eventCount' }],
-          dimensionFilter: { filter: { fieldName: 'eventName', stringFilter: { value: 'play_song' } } },
+          dimensionFilter: { filter: { fieldName: 'eventName', inListFilter: { values: ['play_song', 'song_play'] } } },
           orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
           limit: 8,
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           dimensions: [{ name: 'pageTitle' }],
@@ -243,18 +271,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
           limit: 8,
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           metrics: [{ name: 'averageSessionDuration' }],
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           dimensions: [{ name: 'deviceCategory' }],
           metrics: [{ name: 'activeUsers' }],
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           dimensions: [{ name: 'sessionSource' }],
@@ -262,7 +290,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
           limit: 5,
         }),
-        analyticsDataClient.runReport({
+        runPublic({
           property: `properties/${propertyId}`,
           dateRanges: [{ startDate: 'today', endDate: 'today' }],
           dimensions: [{ name: 'country' }],
@@ -412,6 +440,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     </div>
     <div class="footer">
       Dios Mas Gym &bull; Reporte automatizado diario 11:00 PM<br>
+      Solo tráfico público (sin tu panel /admin) &bull; Fuente: Google Analytics &bull; Zona horaria: ${(todayViewsRes as any)?.metadata?.timeZone || 'America/Mexico_City'}<br>
       Enviado a ${recipientEmail}
     </div>
   </div>
@@ -475,7 +504,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       [sourcesResponse]
     ] = await Promise.all([
       // 1. Obtener Histórico de Visitas Generales
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'date' }],
@@ -483,19 +512,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderBys: [{ dimension: { dimensionName: 'date' } }],
       }),
       // 2. Obtener Top Canciones
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'customEvent:song_title' }, { name: 'customEvent:song_artist' }],
         metrics: [{ name: 'eventCount' }],
         dimensionFilter: {
-          filter: { fieldName: 'eventName', stringFilter: { value: 'play_song' } },
+          filter: { fieldName: 'eventName', inListFilter: { values: ['play_song', 'song_play'] } },
         },
         orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
         limit: 10,
       }),
       // 3. Obtener Top Reflexiones
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'customEvent:title' }],
@@ -507,7 +536,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         limit: 10,
       }),
       // 4. Obtener Top Páginas
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'pageTitle' }],
@@ -516,27 +545,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         limit: 10,
       }),
       // 5. Estadísticas Generales (Duración y Rebote)
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         metrics: [{ name: 'averageSessionDuration' }, { name: 'bounceRate' }],
       }),
       // 6. Dispositivos
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'deviceCategory' }],
         metrics: [{ name: 'activeUsers' }],
       }),
       // 7. Nuevos vs Recurrentes
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'newVsReturning' }],
         metrics: [{ name: 'activeUsers' }],
       }),
       // 8. Fuentes de Tráfico
-      analyticsDataClient.runReport({
+      runPublic({
         property: `properties/${propertyId}`,
         dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
         dimensions: [{ name: 'sessionSource' }],
@@ -547,6 +576,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
 
     // --- Formatear Resultados ---
+
+    // Zona horaria de la propiedad de Analytics: las fechas (date) vienen en esa zona, asi que "hoy" tambien
+    const propertyTz: string = (pageViewsResponse as any)?.metadata?.timeZone || 'America/Mexico_City';
 
     // Historial
     let history = (pageViewsResponse.rows || []).map(row => {
@@ -563,7 +595,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Asegurar que la fecha de hoy exista en el historial (para que 'Hoy' no muestre el conteo de ayer)
     const todayFormatted = new Intl.DateTimeFormat('es-MX', {
-      timeZone: 'America/Mexico_City',
+      timeZone: propertyTz,
       day: '2-digit',
       month: '2-digit'
     }).format(new Date());
@@ -686,7 +718,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         newVsReturning,
         deviceBreakdown,
         trafficSources,
-        isMock: false
+        isMock: false,
+        meta: { timeZone: propertyTz, scope, excludes: '/admin', generatedAt: new Date().toISOString() }
       }
     });
   } catch (error: any) {

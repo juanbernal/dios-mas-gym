@@ -253,14 +253,31 @@ const App: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { trackEvent } = useAnalytics();
+  const { trackEvent, trackPageView } = useAnalytics();
 
 
+  // Una pagina vista por cada cambio de ruta dentro del sitio. La primera carga la envia gtag por su cuenta.
+  // La ruta de entrada ya la cuenta gtag; despues se cuenta solo cuando la ruta cambia de verdad
+  // (comparar con la ultima ruta contada evita duplicar la de entrada en redirecciones o en modo estricto).
+  const lastTrackedPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (location.pathname === lastTrackedPathRef.current) return;
+    lastTrackedPathRef.current = location.pathname;
+    // Se espera un momento para que la pagina actualice su titulo antes de reportarla
+    const t = setTimeout(() => trackPageView(location.pathname), 600);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+
+  // Una reproduccion por cancion iniciada. song_title/song_artist son los parametros que leen el Centro de Analisis
+  // y el reporte; title/artist los que lee la hoja de Google. (Antes GlobalPlayer enviaba ademas su propio
+  // "play_song" en cada pausa/reanudacion y sin respetar el filtro de administrador: dobles conteos.)
   useEffect(() => {
     if (state.activeSong) {
-      trackEvent('song_play', { 
-        title: state.activeSong.name, 
-        artist: state.activeSong.artist 
+      trackEvent('song_play', {
+        title: state.activeSong.name,
+        artist: state.activeSong.artist,
+        song_title: state.activeSong.name,
+        song_artist: state.activeSong.artist,
       });
     }
   }, [state.activeSong]);

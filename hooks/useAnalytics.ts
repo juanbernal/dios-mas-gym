@@ -46,7 +46,27 @@ export const useAnalytics = () => {
         }
     };
 
-    return { trackEvent };
+    // Google Analytics solo registraba la pagina de entrada: al navegar dentro del sitio (sin recargar)
+    // no se enviaba ninguna pagina vista. Esta funcion la envia, respetando la exclusion de administrador.
+    const trackPageView = (path: string) => {
+        try {
+            const isAdminStorage = localStorage.getItem('pwa_admin_user') === 'true';
+            const isAdminCookie = document.cookie.includes('is_admin_user=true');
+            if (isAdminStorage || isAdminCookie) return;
+            if (path.startsWith('/admin')) return;
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'page_view', {
+                    page_path: path,
+                    page_location: window.location.href,
+                    page_title: document.title,
+                });
+            }
+        } catch {
+            // no romper la interfaz por un fallo de medicion
+        }
+    };
+
+    return { trackEvent, trackPageView };
 };
 
 /* 
