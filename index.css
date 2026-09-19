@@ -391,11 +391,13 @@ section[id],
   overscroll-behavior-y: auto;
 }
 
-/* --- Respeto por quien prefiere menos movimiento --- */
+/* --- Respeto por quien prefiere menos movimiento ---
+   La pantalla de carga "Entrando al Templo" (.splash-motion) queda fuera: es un
+   indicador de progreso, no movimiento decorativo. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *:not(.splash-motion):not(.splash-motion *),
+  *:not(.splash-motion):not(.splash-motion *)::before,
+  *:not(.splash-motion):not(.splash-motion *)::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

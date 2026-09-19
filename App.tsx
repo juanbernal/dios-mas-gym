@@ -171,6 +171,8 @@ const DiagnosticConsole: React.FC<DiagnosticConsoleProps> = ({ appError }) => {
   );
 };
 
+const SPLASH_MIN_MS = 2200;
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => {
     return {
@@ -275,7 +277,16 @@ const App: React.FC = () => {
       // Fallback para ocultar el splash si la API tarda demasiado
       const splashTimeout = setTimeout(() => {
          setShowSplash(false);
-      }, 2500);
+      }, 3500);
+
+      // Con la cache del catalogo los datos llegan casi al instante y la animacion
+      // desaparecia en un parpadeo: se garantiza un minimo visible.
+      const splashStart = Date.now();
+      const hideSplash = () => {
+        clearTimeout(splashTimeout);
+        const remaining = Math.max(0, SPLASH_MIN_MS - (Date.now() - splashStart));
+        setTimeout(() => setShowSplash(false), remaining);
+      };
 
       try {
         const [musicD, musicJ, maintStatus, savedLyricsList] = await Promise.all([
@@ -338,8 +349,7 @@ const App: React.FC = () => {
         if (enrichedD.length > 0) setRandomMusicSong(enrichedD[Math.floor(Math.random() * enrichedD.length)]);
         if (enrichedJ.length > 0) setRandomJuan614Song(enrichedJ[Math.floor(Math.random() * enrichedJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
-        clearTimeout(splashTimeout);
-        setShowSplash(false);
+        hideSplash();
       } catch (err: any) {
         console.error("Critical error during app initialization:", err);
         setState(prev => ({ 
@@ -347,8 +357,7 @@ const App: React.FC = () => {
           loading: false, 
           error: err?.message || String(err)
         }));
-        clearTimeout(splashTimeout);
-        setShowSplash(false);
+        hideSplash();
       }
     };
     init();
@@ -383,7 +392,7 @@ const App: React.FC = () => {
 
   if (showSplash && !isBioRoute && !isSmartLinkRoute) {
     return (
-      <div className="bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl px-4">
+      <div className="splash-motion bg-[#05070a] fixed inset-0 z-[10000] flex flex-col items-center justify-center select-none overflow-hidden backdrop-blur-3xl px-4">
         {/* Ambient Glows */}
         <div className="absolute w-96 h-96 bg-[#4a90d9]/10 rounded-full blur-[120px] pointer-events-none -translate-x-20"></div>
         <div className="absolute w-96 h-96 bg-[#c5a059]/10 rounded-full blur-[120px] pointer-events-none translate-x-20"></div>
