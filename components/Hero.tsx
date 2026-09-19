@@ -67,6 +67,13 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
   }, [catalog]);
   const songCount = catalog.length;
 
+  // Barras del ecualizador de fondo (alturas y tiempos fijos para que no cambien en cada render)
+  const eqBars = React.useMemo(() => Array.from({ length: 72 }, (_, i) => ({
+    delay: `${((i * 37) % 17) * 0.09}s`,
+    duration: `${0.9 + ((i * 13) % 9) * 0.12}s`,
+    peak: 35 + ((i * 29) % 60),
+  })), []);
+
   return (
     <header className="relative min-h-screen overflow-hidden cinematic-grain" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 50%, #0b1929 100%)' }}>
 
@@ -81,6 +88,21 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
 
       {/* Top accent line */}
       <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #2563a8 30%, #4a90d9 50%, #2563a8 70%, transparent)' }}></div>
+
+      {/* Ecualizador de fondo: da ritmo al hero sin quitar lectura al texto */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-40 md:h-56 flex items-end justify-center gap-[5px] md:gap-[8px] px-3 pointer-events-none z-0"
+        style={{ opacity: 0.22, WebkitMaskImage: 'linear-gradient(to top, #000 10%, transparent)', maskImage: 'linear-gradient(to top, #000 10%, transparent)' }}
+        aria-hidden="true"
+      >
+        {eqBars.map((b, i) => (
+          <div
+            key={i}
+            className="eq-bar flex-1 max-w-[14px] rounded-t-sm"
+            style={{ height: `${b.peak}%`, background: 'linear-gradient(to top, rgba(37,99,168,0.15), #4a90d9)', animationDelay: b.delay, animationDuration: b.duration }}
+          ></div>
+        ))}
+      </div>
 
       <div className="section-container relative z-10">
         <div className="min-h-screen flex flex-col">

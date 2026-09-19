@@ -404,3 +404,31 @@ section[id],
     scroll-behavior: auto !important;
   }
 }
+
+/* ===== Toque musical ===== */
+@keyframes eqPulse { 0%, 100% { transform: scaleY(0.12); } 50% { transform: scaleY(1); } }
+.eq-bar { transform-origin: bottom; animation: eqPulse infinite ease-in-out; will-change: transform; }
+
+/* Disco de vinilo que sale de detras de la portada */
+.vinyl-disc {
+  position: absolute; top: 4%; left: 4%; width: 92%; height: 92%; border-radius: 9999px; z-index: 0;
+  background:
+    radial-gradient(circle at center, #05070a 0 4%, var(--disc-accent, #4a90d9) 4.5% 22%, #05070a 22.5% 24%, transparent 24.5%),
+    repeating-radial-gradient(circle at center, #171b27 0 3px, #2a3042 3px 4px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  transition: transform 700ms cubic-bezier(.2,.8,.2,1);
+}
+.vinyl-wrap:hover .vinyl-disc, .vinyl-wrap:focus-within .vinyl-disc { transform: translateX(46%) rotate(180deg); }
+
+/* Linea de luz entre secciones de la portada (reemplaza los cortes duros) */
+.home-sections > section { border-top: 0 !important; border-bottom: 0 !important; }
+.home-sections > section + section::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 5; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(74,144,217,0.4) 50%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar { animation: none !important; transform: scaleY(0.4); }
+  .vinyl-disc { transition: none; }
+}

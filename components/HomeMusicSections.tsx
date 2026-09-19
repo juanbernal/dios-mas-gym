@@ -1,3 +1,4 @@
+import { useDominantColor } from '../hooks/useDominantColor';
 import React, { useState, useEffect, useMemo } from 'react';
 import { MusicItem } from '../types';
 
@@ -26,6 +27,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
   // 1. Featured Release (Latest)
   const featured = catalog[0];
+  const featuredColor = useDominantColor(featured?.cover);
 
   const [topAnalytics, setTopAnalytics] = useState<string[]>([]);
   const [topVideos, setTopVideos] = useState<YTVideoItem[]>([]);
@@ -273,7 +275,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   ];
 
   return (
-    <div className="flex flex-col gap-0 mb-0 overflow-hidden">
+    <div className="home-sections flex flex-col gap-0 mb-0 overflow-hidden">
       
       {/* FEATURED RELEASE */}
       <section className="relative w-full overflow-hidden border-b border-white/5 group mt-0">
@@ -283,8 +285,9 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         </div>
         
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col md:flex-row items-center gap-10 md:gap-20">
-          <div className="w-52 h-52 md:w-80 md:h-80 flex-shrink-0 relative cursor-pointer" onClick={() => onPlaySong(featured)}>
-            <div className="absolute inset-0 bg-[#4a90d9] blur-[80px] opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
+          <div className="vinyl-wrap w-52 h-52 md:w-80 md:h-80 flex-shrink-0 relative cursor-pointer" style={{ ['--disc-accent' as any]: featuredColor }} onClick={() => onPlaySong(featured)}>
+            <div className="absolute inset-0 blur-[80px] opacity-30 rounded-full group-hover:opacity-50 transition-opacity" style={{ background: featuredColor }}></div>
+            <div className="vinyl-disc hidden md:block" aria-hidden="true"></div>
             <img 
               src={featured.cover} 
               alt={featured.name} 
@@ -297,7 +300,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
             </div>
           </div>
           
-          <div className="flex-1 text-center md:text-left">
+          <div className="relative z-10 flex-1 text-center md:text-left">
             <span className="inline-block py-2 px-6 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 text-[9px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6">
               Destacado
             </span>
@@ -377,20 +380,20 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       {/* SECCIÓN 1: 🏆 TOP 50 YOUTUBE (MÁS ESCUCHADAS)                             */}
       {/* ========================================================================= */}
       <section className="relative py-16 md:py-24 overflow-hidden bg-[#04060a] border-t border-b border-white/5">
-        <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-red-600 via-amber-500/40 to-transparent"></div>
-        <div className="absolute -left-60 top-1/3 w-[600px] h-[600px] bg-red-900/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-[#4a90d9] via-[#4a90d9]/40 to-transparent"></div>
+        <div className="absolute -left-60 top-1/3 w-[600px] h-[600px] bg-[#4a90d9]/8 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="max-w-[1400px] mx-auto px-6 md:px-16 relative z-10">
           
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10">
             <div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.35em] text-red-400 mb-3">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.35em] text-[#7eb8f7] mb-3">
                 <i className="fab fa-youtube text-red-500 text-sm"></i>
                 <span>Catálogo Musical Oficial</span>
               </div>
               <h2 className="font-serif italic text-4xl sm:text-5xl md:text-6xl text-white leading-tight">
-                Top 50 <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-red-400 to-amber-300">Más Escuchadas</span>
+                Top 50 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] via-[#7eb8f7] to-[#bfdcff]">Más Escuchadas</span>
               </h2>
               <p className="text-xs md:text-sm text-white/50 mt-2 max-w-xl">
                 Las canciones con más reproducciones en YouTube. Haz clic en cualquiera para escucharla al instante.
@@ -810,7 +813,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                   rel="noreferrer"
                   className={`group relative rounded-3xl overflow-hidden border border-white/5 hover:border-red-500/30 transition-colors bg-[#0a0c14] ${idx === 0 ? 'md:row-span-2 aspect-[4/3] md:aspect-auto md:min-h-[400px]' : 'aspect-video'}`}
                 >
-                  <img loading="lazy" src={video.cover} alt={video.name} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 group-hover:scale-105 transition-all duration-700" />
+                  <img loading="lazy" src={video.cover} alt={video.name} className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-55 group-hover:scale-105 transition-all duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={`rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_40px_rgba(220,38,38,0.6)] group-hover:scale-110 group-hover:shadow-[0_0_60px_rgba(220,38,38,0.8)] transition-all duration-300 ${idx === 0 ? 'w-20 h-20 text-3xl' : 'w-14 h-14 text-xl'}`}>
