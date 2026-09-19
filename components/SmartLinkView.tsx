@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useDominantColor } from '../hooks/useDominantColor';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { fetchMusicCatalog, fetchSavedLyrics } from '../services/musicService';
 import { MusicItem } from '../types';
@@ -18,6 +19,37 @@ declare global {
   }
 }
 
+
+// Portada de la cancion: brillo con su color dominante, disco de vinilo que asoma por detras
+// y barras de ecualizador debajo (se mueven solas, se apagan con "reducir movimiento").
+const HeroCover = ({ cover, name }: { cover: string; name: string }) => {
+    const accent = useDominantColor(cover);
+    const bars = useMemo(() => Array.from({ length: 28 }, (_, i) => ({
+        peak: 30 + ((i * 37) % 70),
+        delay: `${((i * 29) % 13) * 0.08}s`,
+        duration: `${0.8 + ((i * 17) % 8) * 0.12}s`,
+    })), []);
+
+    return (
+        <div className="justify-self-center w-full max-w-[12.5rem] sm:max-w-[19rem] md:max-w-none relative group" style={{ ['--accent' as any]: accent }}>
+            <div className="absolute -inset-6 rounded-[3rem] blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-700" style={{ background: accent }}></div>
+            <div className="absolute -inset-6 bg-cover bg-center rounded-[3rem] blur-2xl opacity-30" style={{ backgroundImage: `url(${cover})` }}></div>
+
+            <div className="sl-disc hidden md:block" aria-hidden="true"><div className="sl-disc-inner"></div></div>
+            <img src={cover} alt={name} className="relative z-10 w-full aspect-square object-cover rounded-[1.75rem] ring-1 ring-white/15 shadow-[0_30px_70px_rgba(0,0,0,0.6)]" />
+
+            <div
+                className="relative z-10 mt-4 h-8 flex items-end justify-center gap-[3px] px-2 opacity-70"
+                style={{ WebkitMaskImage: 'linear-gradient(to top, #000 20%, transparent)', maskImage: 'linear-gradient(to top, #000 20%, transparent)' }}
+                aria-hidden="true"
+            >
+                {bars.map((b, i) => (
+                    <div key={i} className="sl-eq flex-1 rounded-t-sm" style={{ height: `${b.peak}%`, background: accent, animationDelay: b.delay, animationDuration: b.duration }}></div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const HUDCorners = ({ color }: { color: string }) => (
     <>
@@ -437,10 +469,10 @@ const PlatformButton = ({ platform, icon, color, url, isJuan, variant = 'primary
     if (variant === 'primary') {
         return (
             <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
-                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:brightness-110 active:scale-[0.98] transition-all"
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:brightness-110 active:scale-[0.98] transition-all"
                 style={{ backgroundColor: color, color: fg }}>
                 <i className={`${icon} text-2xl w-8 text-center`}></i>
-                <span className={`flex-1 text-left text-[13px] font-black uppercase tracking-[0.15em] ${mono}`}>Escuchar en {platform}</span>
+                <span className={`flex-1 text-left text-[12px] sm:text-[13px] font-black uppercase tracking-[0.08em] sm:tracking-[0.15em] whitespace-nowrap ${mono}`}>Escuchar en {platform}</span>
                 <i className="fas fa-arrow-right text-sm opacity-70"></i>
             </a>
         );
@@ -1171,6 +1203,20 @@ const SmartLinkView: React.FC = () => {
                 0%, 100% { height: 5px; }
                 50% { height: 32px; }
               }
+              @keyframes sl-eq { 0%, 100% { transform: scaleY(0.15); } 50% { transform: scaleY(1); } }
+              .sl-eq { transform-origin: bottom; animation: sl-eq infinite ease-in-out; }
+              @keyframes sl-spin { to { transform: rotate(360deg); } }
+              .sl-disc { position: absolute; top: 4%; left: 4%; width: 92%; height: 92%; z-index: 0; transform: translateX(15%); transition: transform 700ms cubic-bezier(.2,.8,.2,1); }
+              .group:hover .sl-disc { transform: translateX(32%); }
+              .sl-disc-inner {
+                width: 100%; height: 100%; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.12);
+                background:
+                  radial-gradient(circle at center, #05070a 0 4%, var(--accent, #4a90d9) 4.5% 22%, #05070a 22.5% 24%, transparent 24.5%),
+                  repeating-radial-gradient(circle at center, #171b27 0 3px, #2a3042 3px 4px);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+                animation: sl-spin 14s linear infinite;
+              }
+              @media (prefers-reduced-motion: reduce) { .sl-eq, .sl-disc-inner { animation: none !important; } .sl-eq { transform: scaleY(0.4); } .sl-disc { transition: none; } }
             `}</style>
 
             {/* Fondo: la portada desenfocada tiñe toda la pagina con sus colores */}
@@ -1202,13 +1248,10 @@ const SmartLinkView: React.FC = () => {
 
                     {/* HERO */}
                     <section className="pt-5 md:pt-12 grid md:grid-cols-[minmax(0,400px)_1fr] gap-6 md:gap-14 items-center">
-                        <div className="justify-self-center w-full max-w-[12.5rem] sm:max-w-[19rem] md:max-w-none relative group">
-                            <div className="absolute -inset-6 bg-cover bg-center rounded-[3rem] blur-2xl opacity-40 transition-opacity duration-700 group-hover:opacity-60" style={{ backgroundImage: `url(${song.cover})` }}></div>
-                            <img src={song.cover} alt={song.name} className="relative w-full aspect-square object-cover rounded-[1.75rem] ring-1 ring-white/15 shadow-[0_30px_70px_rgba(0,0,0,0.6)]" />
-                        </div>
+                        <HeroCover cover={song.cover} name={song.name} />
 
-                        <div className="w-full flex flex-col items-center md:items-start text-center md:text-left">
-                            <h1 className={`h1-gothic text-3xl sm:text-5xl md:text-6xl leading-[1.05] mb-3 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] break-words max-w-full ${T.titleColor}`}>{song.name}</h1>
+                        <div className="relative z-10 w-full flex flex-col items-center md:items-start text-center md:text-left">
+                            <h1 className={`h1-gothic mb-3 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] break-words max-w-full ${T.titleColor}`} style={{ fontSize: 'clamp(2rem, 6.5vw, 4.25rem)', lineHeight: 1.08 }}>{song.name}</h1>
                             <p className={`text-[12px] md:text-[13px] font-black uppercase tracking-[0.4em] mb-5 ${T.mono}`} style={{ color: T.accent }}>{song.artist}</p>
 
                             <ReleaseCountdown releaseDate={song.date} isJuan={isJuan} />
