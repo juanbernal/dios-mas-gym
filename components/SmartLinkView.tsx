@@ -418,7 +418,7 @@ const getTrafficSource = () => {
     try { return new URLSearchParams(window.location.search).get('utm_source') || ''; } catch { return ''; }
 };
 
-const PlatformButton = ({ platform, icon, color, url, isJuan, variant = 'card' }: { platform: string, icon: string, color: string, url: string, isJuan: boolean, variant?: 'card' | 'primary' | 'compact' }) => {
+const PlatformButton = ({ platform, icon, color, url, isJuan, variant = 'primary' }: { platform: string, icon: string, color: string, url: string, isJuan: boolean, variant?: 'primary' | 'compact' | 'bar' | 'icon' }) => {
     const { trackEvent } = useAnalytics();
     // Un evento por plataforma (sl_click_spotify, sl_click_apple_music...): GA4 los cuenta sin dimensiones personalizadas
     const handleClick = () => {
@@ -426,59 +426,55 @@ const PlatformButton = ({ platform, icon, color, url, isJuan, variant = 'card' }
         trackEvent(`sl_click_${slug}`, { platform, path: window.location.pathname, src: getTrafficSource() });
     };
 
-    // Boton principal: grande, con el color de la plataforma y texto con contraste legible
+    // Texto legible sobre el color de la plataforma (blanco salvo que el contraste sea pobre, como el verde de Spotify)
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
+    const lin = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+    const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const fg = 1.05 / (lum + 0.05) >= 3.5 ? '#ffffff' : '#000000';
+    const mono = isJuan ? 'font-mono' : '';
+
+    // Boton principal: grande, con el color de la plataforma
     if (variant === 'primary') {
-        const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
-        const lin = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
-        const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-        const fg = 1.05 / (lum + 0.05) >= 3.5 ? '#ffffff' : '#000000';
         return (
             <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
                 className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:brightness-110 active:scale-[0.98] transition-all"
                 style={{ backgroundColor: color, color: fg }}>
                 <i className={`${icon} text-2xl w-8 text-center`}></i>
-                <span className={`flex-1 text-left text-[13px] font-black uppercase tracking-[0.15em] ${isJuan ? 'font-mono' : ''}`}>Escuchar en {platform}</span>
+                <span className={`flex-1 text-left text-[13px] font-black uppercase tracking-[0.15em] ${mono}`}>Escuchar en {platform}</span>
                 <i className="fas fa-arrow-right text-sm opacity-70"></i>
             </a>
         );
     }
 
-    // Boton compacto para plataformas secundarias
-    if (variant === 'compact') {
+    // Barra fija inferior (movil): boton ancho con el nombre
+    if (variant === 'bar') {
         return (
             <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
-                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all hover:scale-[1.02] ${isJuan ? 'bg-[#0b1929]/60 border-[#1e4a7a]/25 hover:border-[#4a90d9]/50' : 'bg-white/[0.03] border-white/10 hover:border-white/30'}`}>
-                <i className={`${icon} text-lg w-6 text-center`} style={{ color }}></i>
-                <span className={`flex-1 text-left text-[12px] font-bold truncate ${isJuan ? 'font-mono text-[#f1f5f9]' : 'text-white'}`}>{platform}</span>
+                className="flex-1 min-w-0 flex items-center justify-center gap-2.5 h-12 rounded-xl active:scale-[0.98] transition-all"
+                style={{ backgroundColor: color, color: fg }}>
+                <i className={`${icon} text-xl`}></i>
+                <span className={`text-[12px] font-black uppercase tracking-[0.12em] truncate ${mono}`}>Escuchar en {platform}</span>
             </a>
         );
     }
 
-    if (isJuan) {
+    // Barra fija inferior (movil): boton cuadrado solo con el icono
+    if (variant === 'icon') {
         return (
-            <a href={url} target="_blank" rel="noreferrer" onClick={handleClick} className="w-full flex items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/40 hover:bg-[#1e4a7a]/10 transition-all group">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-xl md:text-2xl mr-4" style={{ backgroundColor: `${color}15`, color: color }}>
-                    <i className={icon}></i>
-                </div>
-                <div className="flex-1 text-left">
-                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#f1f5f9] group-hover:text-white transition-colors font-mono">{platform}</h5>
-                    <p className="text-[8px] md:text-[9px] uppercase tracking-wider text-[#4a90d9]/60 font-mono">Reproducir</p>
-                </div>
-                <i className="fas fa-chevron-right text-[#4a90d9]/40 group-hover:text-[#4a90d9] transition-colors"></i>
+            <a href={url} target="_blank" rel="noreferrer" onClick={handleClick} aria-label={`Escuchar en ${platform}`}
+                className="w-12 h-12 shrink-0 flex items-center justify-center rounded-xl active:scale-[0.96] transition-all"
+                style={{ backgroundColor: color, color: fg }}>
+                <i className={`${icon} text-xl`}></i>
             </a>
         );
     }
+
+    // Plataformas secundarias
     return (
-        <a href={url} target="_blank" rel="noreferrer" onClick={handleClick} className="w-full flex items-center p-3 md:p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all group relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ backgroundColor: color }}></div>
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-xl md:text-2xl mr-4 bg-white/5 group-hover:scale-110 transition-transform duration-300" style={{ color: color }}>
-                <i className={icon}></i>
-            </div>
-            <div className="flex-1 text-left">
-                <h5 className="text-[12px] md:text-[14px] font-bold text-white group-hover:text-[var(--hover-color)] transition-colors" style={{ '--hover-color': color } as React.CSSProperties}>{platform}</h5>
-                <p className="text-[8px] md:text-[9px] font-mono uppercase tracking-widest text-white/40">Reproducir ahora</p>
-            </div>
-            <i className="fas fa-chevron-right text-white/20 group-hover:text-white transition-colors"></i>
+        <a href={url} target="_blank" rel="noreferrer" onClick={handleClick}
+            className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all hover:scale-[1.02] ${isJuan ? 'bg-[#0b1f36]/60 border-[#4a90d9]/20 hover:border-[#4a90d9]/50' : 'bg-white/[0.05] border-white/10 hover:border-white/30'}`}>
+            <i className={`${icon} text-lg w-6 text-center`} style={{ color }}></i>
+            <span className={`flex-1 text-left text-[12px] font-bold truncate ${isJuan ? 'font-mono text-[#f1f5f9]' : 'text-white'}`}>{platform}</span>
         </a>
     );
 };
@@ -697,6 +693,9 @@ const SmartLinkView: React.FC = () => {
     const { trackEvent } = useAnalytics();
 
     const [showQrModal, setShowQrModal] = useState(false);
+    // Barra fija inferior (movil): aparece cuando los botones principales salen de la pantalla hacia arriba
+    const heroBtnRef = React.useRef<HTMLDivElement>(null);
+    const [showStickyBar, setShowStickyBar] = useState(false);
     const [copied, setCopied] = useState(false);
     const [showPlatforms, setShowPlatforms] = useState(false);
     const [devotional, setDevotional] = useState<{ verse: string; reference: string } | null>(null);
@@ -778,6 +777,16 @@ const SmartLinkView: React.FC = () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
+
+    useEffect(() => {
+        const el = heroBtnRef.current;
+        if (!el || typeof IntersectionObserver === 'undefined') return;
+        const io = new IntersectionObserver(([entry]) => {
+            setShowStickyBar(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+        }, { threshold: 0 });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [song?.id, loading]);
 
     useEffect(() => {
         if (song) {
@@ -1104,627 +1113,288 @@ const SmartLinkView: React.FC = () => {
 
     const embedData = getEmbedData();
 
-        // === TEMA DIOSMASGYM (Urbano / Oscuro / Dorado) ===
-    if (!isJuan) {
-        return (
-            <div className="min-h-screen bg-transparent text-white font-['Poppins'] flex flex-col relative overflow-hidden">
-                <style>{`
-                  @keyframes wave-bounce {
-                    0%, 100% { height: 5px; }
-                    50% { height: 32px; }
-                  }
-                  @keyframes float-slow-orb {
-                    0%, 100% { transform: translate(0px, 0px) scale(1); }
-                    33% { transform: translate(40px, -60px) scale(1.1); }
-                    66% { transform: translate(-30px, 30px) scale(0.95); }
-                  }
-                  .animate-float-slow {
-                    animation: float-slow-orb 18s ease-in-out infinite;
-                  }
-                `}</style>
+    // === DISEÑO UNIFICADO: un solo layout para Diosmasgym y Juan 614; cada artista aporta su tema ===
+    const T = isJuan ? {
+        bg: '#07111d', accent: '#4a90d9',
+        mono: 'font-mono', titleColor: 'text-[#f2ebd9]', text: 'text-[#f1f5f9]',
+        card: 'bg-[#0b1f36]/55 border-[#4a90d9]/15',
+        chip: 'bg-[#0b1f36]/60 border-[#4a90d9]/20 hover:border-[#4a90d9]/50',
+        round: 'bg-[#0b1f36]/60 border-[#4a90d9]/20 hover:bg-[#4a90d9] hover:text-black',
+        logo: '/logo-juan614-v2-sm.webp', brand: 'Juan 614', home: 'https://juan614.diosmasgym.com/', siteLabel: 'Sitio Web Oficial',
+        verseTitle: 'Palabra de esperanza', verseIcon: 'fa-book-bible', verseRef: 'text-[#4a90d9]/70',
+        shareTitle: 'Compartir', shareText: `Escucha esto: "${song.name}" de ${song.artist}: `,
+        showX: false, dedicate: false, temple: false,
+        subTitle: 'Próximos estrenos', subLabel: 'Avísame', subDone: '¡Suscrito!', subHint: '',
+        otherTitle: `Más de ${song.artist}`, showType: false,
+        followTitle: 'Sígueme', copyright: 'Juan 614.',
+        socials: [
+            { href: 'https://instagram.com/juan614oficial', icon: 'fab fa-instagram', hover: 'hover:bg-[#4a90d9]/30' },
+            { href: 'https://tiktok.com/@juan614oficial', icon: 'fab fa-tiktok', hover: 'hover:bg-[#4a90d9]/30' },
+        ],
+    } : {
+        bg: '#060810', accent: '#4a90d9',
+        mono: '', titleColor: 'text-white', text: 'text-white',
+        card: 'bg-white/[0.05] border-white/10',
+        chip: 'bg-white/[0.05] border-white/10 hover:border-white/30',
+        round: 'bg-white/5 border-white/10 hover:bg-[#4a90d9] hover:text-black',
+        logo: '/logo-diosmasgym-sm.webp', brand: 'Dios Mas Gym', home: 'https://musica.diosmasgym.com/', siteLabel: 'Sitio Oficial',
+        verseTitle: 'Escudo de fe / aliento diario', verseIcon: 'fa-shield-halved', verseRef: 'text-white/40',
+        shareTitle: 'Compartir con el mundo', shareText: `¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: `,
+        showX: true, dedicate: true, temple: true,
+        subTitle: 'No te pierdas de nada', subLabel: 'Avísame de nuevos estrenos', subDone: '¡Suscrito! Espera música pronto',
+        subHint: `Recibe una notificación push cuando ${song.artist} saque música nueva`,
+        otherTitle: `Otros lanzamientos de ${song.artist}`, showType: true,
+        followTitle: 'Únete a la comunidad', copyright: 'DiosMasGym Records. Todos los derechos reservados.',
+        socials: [
+            { href: 'https://instagram.com/diosmasgym', icon: 'fab fa-instagram', hover: 'hover:bg-[#E1306C]' },
+            { href: 'https://tiktok.com/@diosmasgym', icon: 'fab fa-tiktok', hover: 'hover:bg-white/20' },
+            { href: 'https://youtube.com/@diosmasgym', icon: 'fab fa-youtube', hover: 'hover:bg-[#FF0000]' },
+        ],
+    };
 
-                {/* Dynamic Gold Glowing Orbs (Premium background effect) */}
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#4a90d9]/8 rounded-full blur-[120px] animate-float-slow pointer-events-none"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8c6b32]/8 rounded-full blur-[120px] animate-float-slow pointer-events-none" style={{ animationDelay: '5s' }}></div>
+    const card = `rounded-3xl border backdrop-blur-xl p-5 md:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.35)] ${T.card}`;
+    const sectionTitle = `text-[11px] font-black uppercase tracking-[0.22em] flex items-center gap-2 mb-5 ${T.mono}`;
+    const roundBtn = `w-12 h-12 rounded-full flex items-center justify-center border transition-all text-base ${T.round}`;
+    const shareUrl = getShareUrl();
 
-                {/* Background Blur */}
-                <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-15 scale-110 blur-2xl saturate-75 pointer-events-none"
-                    style={{ backgroundImage: `url(${song.cover})` }}
-                ></div>
+    return (
+        <div className={`min-h-screen font-['Poppins'] relative overflow-x-hidden ${T.text} ${showStickyBar ? 'pb-24 md:pb-0' : ''}`} style={{ backgroundColor: T.bg }}>
+            <style>{`
+              @keyframes wave-bounce {
+                0%, 100% { height: 5px; }
+                50% { height: 32px; }
+              }
+            `}</style>
 
-                <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-6 md:py-16 gap-6 md:gap-12 animate-fade-in">
-                    
-                    {/* HERO SECTION */}
-                    <div className="w-full flex flex-col md:flex-row items-center justify-center gap-5 md:gap-16">
-                        <div className="w-full max-w-sm shrink-0 transition-transform duration-500 group relative">
-                            {/* Ambient Glow using Cover image */}
-                            <div 
-                                className="absolute -inset-4 bg-cover bg-center rounded-[40px] blur-xl opacity-30 group-hover:opacity-55 transition duration-700 pointer-events-none"
-                                style={{ backgroundImage: `url(${song.cover})` }}
-                            ></div>
-                            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#4a90d9] to-[#8c6b32] rounded-[36px] opacity-10 group-hover:opacity-30 transition duration-700 pointer-events-none"></div>
-                            <div className="relative w-44 h-44 sm:w-64 sm:h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[32px] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.02]">
-                                <img 
-                                    src={song.cover} 
-                                    alt={song.name} 
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
+            {/* Fondo: la portada desenfocada tiñe toda la pagina con sus colores */}
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute inset-0 bg-cover bg-center scale-125 blur-3xl opacity-50 saturate-150" style={{ backgroundImage: `url(${song.cover})` }}></div>
+                <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${T.bg}80 0%, ${T.bg}d9 42%, ${T.bg} 88%)` }}></div>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center w-full animate-fade-in">
+
+                {/* Barra superior: marca + compartir */}
+                <header className="w-full max-w-5xl flex items-center justify-between px-4 pt-4">
+                    <a href={T.home} className="flex items-center gap-2.5 pr-4 pl-1.5 py-1.5 rounded-full border border-white/10 bg-black/30 backdrop-blur-md hover:bg-black/50 transition-all">
+                        <img src={T.logo} alt={T.brand} className="w-8 h-8 rounded-full object-cover bg-black/40" />
+                        <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${T.mono}`}>{T.brand}</span>
+                    </a>
+                    <div className="flex items-center gap-2">
+                        <button onClick={copyToClipboard} title="Copiar enlace" className="w-11 h-11 rounded-full border border-white/10 bg-black/30 backdrop-blur-md hover:bg-black/50 flex items-center justify-center transition-all relative">
+                            <i className={`fas ${copied ? 'fa-check' : 'fa-link'} text-sm`}></i>
+                            {copied && <span className="absolute top-12 right-0 bg-black text-white text-[10px] px-3 py-1.5 rounded-lg border border-white/10 whitespace-nowrap">¡Copiado!</span>}
+                        </button>
+                        <button onClick={() => setShowQrModal(true)} title="Código QR" className="w-11 h-11 rounded-full border border-white/10 bg-black/30 backdrop-blur-md hover:bg-black/50 flex items-center justify-center transition-all">
+                            <i className="fas fa-qrcode text-sm"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <main className="w-full max-w-5xl px-4 pb-10 flex flex-col gap-6 md:gap-8">
+
+                    {/* HERO */}
+                    <section className="pt-5 md:pt-12 grid md:grid-cols-[minmax(0,400px)_1fr] gap-6 md:gap-14 items-center">
+                        <div className="justify-self-center w-full max-w-[12.5rem] sm:max-w-[19rem] md:max-w-none relative group">
+                            <div className="absolute -inset-6 bg-cover bg-center rounded-[3rem] blur-2xl opacity-40 transition-opacity duration-700 group-hover:opacity-60" style={{ backgroundImage: `url(${song.cover})` }}></div>
+                            <img src={song.cover} alt={song.name} className="relative w-full aspect-square object-cover rounded-[1.75rem] ring-1 ring-white/15 shadow-[0_30px_70px_rgba(0,0,0,0.6)]" />
                         </div>
-                        
-                        <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                            <h1 className="h1-gothic text-4xl sm:text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] font-bold tracking-wide text-white">{song.name}</h1>
-                            <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.5em] mb-4 md:mb-8">{song.artist}</p>
 
-                            <ReleaseCountdown releaseDate={song.date} isJuan={false} />
+                        <div className="w-full flex flex-col items-center md:items-start text-center md:text-left">
+                            <h1 className={`h1-gothic text-3xl sm:text-5xl md:text-6xl leading-[1.05] mb-3 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] break-words max-w-full ${T.titleColor}`}>{song.name}</h1>
+                            <p className={`text-[12px] md:text-[13px] font-black uppercase tracking-[0.4em] mb-5 ${T.mono}`} style={{ color: T.accent }}>{song.artist}</p>
+
+                            <ReleaseCountdown releaseDate={song.date} isJuan={isJuan} />
 
                             {/* Botones principales: lo primero que ve quien llega desde WhatsApp / Instagram */}
-                            <div className="w-full max-w-md flex flex-col gap-3 mb-5 md:mb-6">
-                                <PlatformButton variant="primary" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={false} />
-                                <PlatformButton variant="primary" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={false} />
-                                <PlatformButton variant="primary" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={false} />
+                            <div ref={heroBtnRef} className="w-full max-w-md flex flex-col gap-3 mb-5">
+                                <PlatformButton variant="primary" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={isJuan} />
+                                <PlatformButton variant="primary" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={isJuan} />
+                                <PlatformButton variant="primary" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={isJuan} />
                             </div>
 
                             {embedData?.type === 'youtube' && (
-                                <YouTubeAudioPlayer videoId={embedData.id} isJuan={false} />
+                                <YouTubeAudioPlayer videoId={embedData.id} isJuan={isJuan} />
                             )}
-                            
+
                             {embedData?.type === 'spotify' && (
-                                <div className="w-full max-w-md mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#4a90d9]/20 bg-black/40 p-2 backdrop-blur-md">
+                                <div className="w-full max-w-md rounded-2xl overflow-hidden border border-white/10 bg-black/40 p-2 backdrop-blur-md">
                                     <div className="flex items-center justify-between mb-3 px-2 pt-2">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-[#4a90d9] flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></div>
+                                        <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${T.mono}`} style={{ color: T.accent }}>
+                                            <span className="w-2 h-2 rounded-full bg-[#1DB954] animate-pulse"></span>
                                             Previa Spotify
                                         </span>
                                         <span className="text-[8px] uppercase tracking-widest text-white/40">Escucha un fragmento</span>
                                     </div>
-                                    <iframe 
-                                        src={embedData.url} 
-                                        width="100%" 
-                                        height="80" 
-                                        frameBorder="0" 
-                                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                                        loading="lazy"
-                                        className="rounded-lg"
-                                    ></iframe>
+                                    <iframe src={embedData.url} width="100%" height="80" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-lg"></iframe>
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </section>
 
-                    {/* PLATFORMS SECTION */}
-                    <div className="w-full max-w-6xl relative z-20 backdrop-blur-xl bg-black/45 p-6 md:p-10 rounded-3xl border border-[#4a90d9]/20 shadow-[0_20px_50px_rgba(37,99,168,0.08)] transition-all hover:border-[#4a90d9]/30 duration-500 overflow-hidden">
-                        <HUDCorners color="#4a90d9" />
-                        
-                        <h3 className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.3em] mb-8 flex items-center justify-center gap-3">
-                            <i className="fas fa-play-circle"></i> MÁS PLATAFORMAS
-                        </h3>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                            
-                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={false} variant="compact" />
-                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={false} variant="compact" />
-                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={false} variant="compact" />
-                            <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={false} variant="compact" />
-                            <PlatformButton platform="Sitio Oficial" icon="fas fa-globe" color="#4a90d9" url="https://musica.diosmasgym.com/" isJuan={false} variant="compact" />
+                    {/* MAS PLATAFORMAS */}
+                    <section className={card}>
+                        <h2 className={sectionTitle} style={{ color: T.accent }}><i className="fas fa-headphones"></i> Más plataformas</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                            <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={isJuan} variant="compact" />
+                            <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={isJuan} variant="compact" />
+                            <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={isJuan} variant="compact" />
+                            <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={isJuan} variant="compact" />
+                            <PlatformButton platform={T.siteLabel} icon="fas fa-globe" color="#4a90d9" url={T.home} isJuan={isJuan} variant="compact" />
                         </div>
-                    </div>
+                    </section>
 
-                    <DynamicBanner isJuan={false} onSubscribe={subscribe} />
+                    <DynamicBanner isJuan={isJuan} onSubscribe={subscribe} />
 
                     {song.lyrics && (
-                        <div className="w-full flex justify-center mt-2 mb-2">
-                            <InlineLyrics lyrics={song.lyrics} songName={song.name} songSlug={song.id || generateSlug(song.name)} isJuan={false} />
+                        <div className="w-full flex justify-center">
+                            <InlineLyrics lyrics={song.lyrics} songName={song.name} songSlug={song.id || generateSlug(song.name)} isJuan={isJuan} />
                         </div>
                     )}
 
-                    {/* TWO-COLUMN CONTENT GRID */}
-                    <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                        {/* LEFT COLUMN */}
+                    {/* CONTENIDO EN DOS COLUMNAS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
                         <div className="flex flex-col gap-6 md:gap-8">
-                            <SongCredits isJuan={false} song={song} />
-                            
-                            {/* Palabra de Aliento Card */}
-                            <div className="w-full h-full backdrop-blur-xl bg-black/45 p-6 md:p-8 rounded-2xl border border-[#4a90d9]/15 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
-                                <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#4a90d9] to-[#8c6b32]"></div>
-                                
-                                <div className="flex justify-between items-center mb-6">
-                                    <h4 className="text-[#4a90d9] text-[10px] md:text-[12px] font-black uppercase tracking-[0.25em] flex items-center gap-2">
-                                        <i className="fas fa-shield-halved text-[#4a90d9]"></i> ESCUDO DE FE / ALIENTO DIARIO
-                                    </h4>
-                                    <button 
-                                        onClick={() => fetchBibleVerse(false)} 
-                                        disabled={loadingVerse}
-                                        className="text-[#4a90d9] hover:text-white transition-colors p-2 flex items-center justify-center font-bold uppercase tracking-widest disabled:opacity-40"
-                                    >
+                            <SongCredits isJuan={isJuan} song={song} />
+
+                            {/* Versiculo */}
+                            <section className={`${card} relative overflow-hidden`}>
+                                <div className="absolute top-0 left-0 w-1 h-full" style={{ background: `linear-gradient(180deg, ${T.accent}, transparent)` }}></div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className={`${sectionTitle} !mb-0`} style={{ color: T.accent }}><i className={`fas ${T.verseIcon}`}></i> {T.verseTitle}</h2>
+                                    <button onClick={() => fetchBibleVerse(isJuan)} disabled={loadingVerse} title="Otro versículo" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors disabled:opacity-40" style={{ color: T.accent }}>
                                         <i className={`fas fa-dice text-lg ${loadingVerse ? 'animate-spin' : ''}`}></i>
                                     </button>
                                 </div>
-                                
                                 {loadingVerse ? (
-                                    <div className="py-8 flex justify-center items-center">
-                                        <div className="w-6 h-6 border-2 border-[#4a90d9] border-t-transparent animate-spin rounded-full"></div>
-                                    </div>
+                                    <div className="py-8 flex justify-center"><div className="w-6 h-6 border-2 border-t-transparent animate-spin rounded-full" style={{ borderColor: T.accent, borderTopColor: 'transparent' }}></div></div>
                                 ) : (
-                                    <p className="text-white/90 text-sm md:text-base font-serif italic leading-relaxed tracking-wide mb-6">
-                                        "{devotional?.verse || 'Cargando palabra de fe...'}"
+                                    <p className="text-[15px] md:text-base font-serif italic leading-relaxed text-white/90 mb-5">
+                                        “{devotional?.verse || (isJuan ? 'Buscando palabra...' : 'Cargando palabra de fe...')}”
                                     </p>
                                 )}
-
-                                <div className="flex justify-between items-center border-t border-white/5 pt-4 mt-auto">
-                                    <span className="text-[9px] md:text-[10px] font-mono text-white/40 uppercase tracking-wider font-bold">{loadingVerse ? 'Cargando...' : devotional?.reference}</span>
-                                    <a 
-                                        href="/" 
-                                        className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#4a90d9] hover:text-white transition-colors flex items-center gap-1.5"
-                                    >
-                                        ⚔️ Entrar al Templo <i className="fas fa-chevron-right text-[8px]"></i>
-                                    </a>
+                                <div className="flex justify-between items-center border-t border-white/10 pt-4">
+                                    <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${T.verseRef}`}>{loadingVerse ? 'Cargando...' : devotional?.reference}</span>
+                                    {T.temple && (
+                                        <a href="/" className="text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1.5" style={{ color: T.accent }}>
+                                            ⚔️ Entrar al templo <i className="fas fa-chevron-right text-[8px]"></i>
+                                        </a>
+                                    )}
                                 </div>
-                            </div>
+                            </section>
                         </div>
 
-                        {/* RIGHT COLUMN */}
                         <div className="flex flex-col gap-6 md:gap-8">
-                            {/* Compartir & Redes */}
-                            <div className="w-full backdrop-blur-xl bg-black/45 p-6 md:p-8 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                                <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6 text-left flex items-center gap-2">
-                                    <i className="fas fa-share-nodes"></i> Compartir con el mundo
-                                </h3>
-                                <div className="flex flex-wrap gap-4 justify-center mb-6">
-                                    <a 
-                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-12 h-12 rounded-full flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366] hover:text-white transition-all text-sm md:text-base"
-                                        title="Compartir por WhatsApp"
-                                    >
-                                        <i className="fab fa-whatsapp"></i>
-                                    </a>
-                                    <a 
-                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}:`)}&url=${encodeURIComponent(getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-black hover:text-white transition-all text-sm md:text-base"
-                                        title="Compartir en X (Twitter)"
-                                    >
-                                        <i className="fab fa-x-twitter"></i>
-                                    </a>
-                                    <a 
-                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/20 hover:bg-[#1877F2] hover:text-white transition-all text-sm md:text-base"
-                                        title="Compartir en Facebook"
-                                    >
-                                        <i className="fab fa-facebook-f"></i>
-                                    </a>
-                                    <button 
-                                        onClick={() => setShowQrModal(true)}
-                                        className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#4a90d9] hover:text-black transition-all text-sm md:text-base"
-                                        title="Código QR"
-                                    >
-                                        <i className="fas fa-qrcode"></i>
-                                    </button>
-                                    <button 
-                                        onClick={copyToClipboard}
-                                        className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-[#4a90d9] hover:text-black transition-all relative text-sm md:text-base"
-                                        title="Copiar enlace"
-                                    >
-                                        <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
-                                        {copied && (
-                                            <span className="absolute -top-12 bg-black text-white text-[10px] px-3 py-1.5 rounded border border-white/10 animate-bounce whitespace-nowrap z-50">
-                                                ¡Copiado!
-                                            </span>
-                                        )}
-                                    </button>
+                            {/* Compartir */}
+                            <section className={card}>
+                                <h2 className={sectionTitle} style={{ color: T.accent }}><i className="fas fa-share-nodes"></i> {T.shareTitle}</h2>
+                                <div className="flex flex-wrap gap-3 justify-center">
+                                    <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(T.shareText + shareUrl)}`} target="_blank" rel="noreferrer" title="Compartir por WhatsApp" className="w-12 h-12 rounded-full flex items-center justify-center bg-[#25D366]/15 border border-[#25D366]/30 hover:bg-[#25D366] hover:text-white transition-all"><i className="fab fa-whatsapp text-lg"></i></a>
+                                    {T.showX && (
+                                        <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(T.shareText)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer" title="Compartir en X" className={roundBtn}><i className="fab fa-x-twitter"></i></a>
+                                    )}
+                                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer" title="Compartir en Facebook" className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1877F2]/15 border border-[#1877F2]/30 hover:bg-[#1877F2] hover:text-white transition-all"><i className="fab fa-facebook-f"></i></a>
+                                    <button onClick={() => setShowQrModal(true)} title="Código QR" className={roundBtn}><i className="fas fa-qrcode"></i></button>
+                                    <button onClick={copyToClipboard} title="Copiar enlace" className={roundBtn}><i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i></button>
                                 </div>
-                                
-                                <div className="flex justify-center border-t border-white/5 pt-5">
-                                    <a 
-                                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + getShareUrl())}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest border transition-all text-white bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500 hover:shadow-[0_0_15px_rgba(37,211,102,0.455)]"
-                                    >
-                                        <i className="fas fa-heart text-red-500 animate-pulse"></i> Dedicar por WhatsApp
-                                    </a>
-                                </div>
-                            </div>
+                                {T.dedicate && (
+                                    <div className="flex justify-center border-t border-white/10 pt-5 mt-5">
+                                        <a
+                                            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Hola! Te dedico esta canción que me inspiró bastante: *${song.name}* de ${song.artist} 🎵✨. Escúchala completa aquí: ` + shareUrl)}`}
+                                            target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest border transition-all bg-green-500/10 border-green-500/25 hover:bg-green-500 hover:text-black hover:border-green-500"
+                                        >
+                                            <i className="fas fa-heart text-red-500"></i> Dedicar por WhatsApp
+                                        </a>
+                                    </div>
+                                )}
+                            </section>
 
-                            {/* Avísame Card */}
-                            <div className="w-full backdrop-blur-xl bg-black/45 p-6 md:p-8 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center text-center">
-                                <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-4">No te pierdas de nada</h3>
-                                <button 
+                            {/* Avisos de nuevos estrenos */}
+                            <section className={`${card} text-center flex flex-col items-center`}>
+                                <h2 className={`${sectionTitle} justify-center`} style={{ color: T.accent }}>{T.subTitle}</h2>
+                                <button
                                     onClick={subscribe}
-                                    className={`flex items-center gap-3 px-8 py-4 rounded-full border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 hover:border-[#4a90d9] hover:bg-[#4a90d9]/10'}`}
+                                    className={`flex items-center gap-3 px-7 py-3.5 rounded-full border transition-all ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/15 hover:bg-white/10'}`}
                                 >
-                                    <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500 text-lg' : 'fa-bell text-[#4a90d9] group-hover:animate-bounce text-lg'}`}></i>
-                                    <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest ${isSubscribed ? 'text-green-500' : 'text-white/70 group-hover:text-white'}`}>
-                                        {isSubscribed ? '¡Suscrito! Espera música pronto' : 'Avísame de nuevos estrenos'}
+                                    <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell'} text-lg`} style={isSubscribed ? {} : { color: T.accent }}></i>
+                                    <span className={`text-[11px] font-black uppercase tracking-widest ${T.mono} ${isSubscribed ? 'text-green-500' : 'text-white/80'}`}>
+                                        {isSubscribed ? T.subDone : T.subLabel}
                                     </span>
                                 </button>
-                                <p className="mt-4 text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-white/20">Recibe una notificación push cuando {song.artist} saque música nueva</p>
+                                {T.subHint && <p className="mt-4 text-[9px] font-bold uppercase tracking-widest text-white/30">{T.subHint}</p>}
                                 {isSubscribed && (
-                                    <button 
-                                        onClick={unsubscribe}
-                                        className="mt-4 text-[8px] font-bold uppercase tracking-widest text-white/10 hover:text-red-500 transition-all underline underline-offset-4"
-                                    >
+                                    <button onClick={unsubscribe} className="mt-4 text-[9px] font-bold uppercase tracking-widest text-white/30 hover:text-red-400 transition-all underline underline-offset-4">
                                         Darse de baja
                                     </button>
                                 )}
-                            </div>
+                            </section>
 
                             {relatedSongs.length > 0 && (
-                                <div className="w-full backdrop-blur-xl bg-black/45 p-6 md:p-8 rounded-2xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                                    <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6 flex items-center gap-3 text-left">
-                                        <i className="fas fa-list-ul"></i>
-                                        Lista de Canciones / Tracks
-                                    </h3>
-                                    <div className="space-y-3">
+                                <section className={card}>
+                                    <h2 className={sectionTitle} style={{ color: T.accent }}><i className="fas fa-list-ul"></i> Lista de canciones</h2>
+                                    <div className="space-y-2">
                                         {relatedSongs.map((track, i) => (
-                                            <button 
-                                                key={i} 
-                                                onClick={() => navigate(`/link/${track.id}`)}
-                                                className="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all group"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-[11px] md:text-[12px] font-mono text-white/20">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
-                                                    <span className="text-sm md:text-base font-bold text-white/80 group-hover:text-white transition-colors">{track.name}</span>
+                                            <button key={i} onClick={() => navigate(`/link/${track.id}`)} className="w-full flex items-center justify-between p-3.5 bg-white/5 rounded-xl hover:bg-white/10 transition-all group">
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <span className="text-[11px] font-mono text-white/30">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
+                                                    <span className="text-sm font-bold text-white/85 group-hover:text-white truncate">{track.name}</span>
                                                 </div>
-                                                <i className="fas fa-chevron-right text-[12px] text-white/20 group-hover:text-[#4a90d9] transition-colors"></i>
+                                                <i className="fas fa-chevron-right text-[11px] text-white/25 group-hover:text-white transition-colors"></i>
                                             </button>
                                         ))}
                                     </div>
-                                </div>
+                                </section>
                             )}
                         </div>
                     </div>
 
-                    {/* OTROS LANZAMIENTOS (FULL WIDTH GRID) */}
+                    {/* OTROS LANZAMIENTOS */}
                     {otherReleases.length > 0 && (
-                        <div className="w-full max-w-6xl backdrop-blur-xl bg-black/45 p-6 md:p-10 rounded-3xl border border-white/5 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-center">
-                            <h4 className="text-[#4a90d9] text-[12px] md:text-[14px] font-black uppercase tracking-[0.3em] mb-8 flex items-center justify-center gap-3">
-                                <i className="fas fa-compact-disc"></i> OTROS LANZAMIENTOS DE {song.artist.toUpperCase()}
-                            </h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                        <section className={card}>
+                            <h2 className={`${sectionTitle} justify-center text-center`} style={{ color: T.accent }}><i className="fas fa-compact-disc"></i> {T.otherTitle}</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
                                 {otherReleases.map((other, idx) => (
-                                    <button 
-                                        key={idx}
-                                        onClick={() => navigate(`/link/${other.id}`)}
-                                        className="w-full flex flex-col items-center p-3 md:p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-[#4a90d9]/30 transition-all duration-300 group"
-                                    >
-                                        <div className="w-full aspect-square mb-3 md:mb-4 overflow-hidden rounded-xl">
-                                            <img 
-                                                src={other.cover} 
-                                                alt={other.name} 
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
+                                    <button key={idx} onClick={() => navigate(`/link/${other.id}`)} className="w-full flex flex-col items-center p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 group">
+                                        <div className="w-full aspect-square mb-3 overflow-hidden rounded-xl">
+                                            <img src={other.cover} alt={other.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
-                                        <h5 className="text-[12px] md:text-[14px] font-bold text-white leading-snug group-hover:text-[#4a90d9] transition-colors line-clamp-1">{other.name}</h5>
-                                        <p className="text-[8px] md:text-[9px] font-mono uppercase text-white/40 tracking-wider mt-1">{other.type || 'Sencillo'}</p>
+                                        <h3 className="text-[13px] font-bold leading-snug line-clamp-1 w-full text-center">{other.name}</h3>
+                                        {T.showType && <p className="text-[8px] font-mono uppercase text-white/40 tracking-wider mt-1">{other.type || 'Sencillo'}</p>}
                                     </button>
                                 ))}
                             </div>
-                        </div>
+                        </section>
                     )}
-                </div>
+                </main>
 
-                {/* Footer */}
-                <div className="mt-8 text-center w-full border-t border-white/10 pb-8 pt-8 relative z-20 max-w-7xl mx-auto px-4">
-                    <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/50 mb-6">Únete a la Comunidad</h3>
-                    <div className="flex justify-center gap-6">
-                        <a href="https://instagram.com/diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#E1306C] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-instagram text-xl md:text-2xl text-white"></i></a>
-                        <a href="https://tiktok.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all duration-300"><i className="fab fa-tiktok text-xl md:text-2xl text-white"></i></a>
-                        <a href="https://youtube.com/@diosmasgym" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF0000] hover:border-transparent hover:scale-110 transition-all duration-300"><i className="fab fa-youtube text-xl md:text-2xl text-white"></i></a>
+                {/* Pie */}
+                <footer className="w-full max-w-5xl mt-2 text-center border-t border-white/10 px-4 pt-8 pb-10">
+                    <h2 className={`text-[10px] font-black uppercase tracking-[0.35em] text-white/50 mb-5 ${T.mono}`}>{T.followTitle}</h2>
+                    <div className="flex justify-center gap-4">
+                        {T.socials.map(s => (
+                            <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className={`w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all duration-300 hover:scale-110 ${s.hover}`}>
+                                <i className={`${s.icon} text-xl`}></i>
+                            </a>
+                        ))}
                     </div>
-                    <p className="text-white/30 text-[8px] md:text-[9px] mt-8 tracking-widest uppercase font-mono">&copy; {new Date().getFullYear()} DiosMasGym Records. Todos los derechos reservados.</p>
-                </div>
-
-                {/* Modals */}
-                <QrModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} url={getShareUrl()} />
-            </div>
-        );
-    }
-
-    // === TEMA JUAN 614 (Acústico / Norteño / Tierra - Dark Mode) ===
-    return (
-        <div className="min-h-screen bg-transparent text-[#f1f5f9] font-sans flex flex-col relative overflow-hidden">
-            <style>{`
-              @keyframes dust-float {
-                0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.1; }
-                50% { transform: translateY(-20px) translateX(10px); opacity: 0.3; }
-              }
-              @keyframes rustic-glow {
-                0%, 100% { opacity: 0.3; }
-                50% { opacity: 0.6; }
-              }
-              .animate-dust {
-                animation: dust-float 15s ease-in-out infinite;
-              }
-              .animate-rustic-glow {
-                animation: rustic-glow 8s ease-in-out infinite;
-              }
-            `}</style>
-
-            {/* Rustic Ambience Background */}
-            <div className="absolute inset-0 bg-[#0b1929] opacity-60"></div>
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_#3a2820_0%,_transparent_60%)] pointer-events-none opacity-50"></div>
-            
-            {/* Background Blur Image */}
-            <div 
-                className="absolute inset-0 bg-cover bg-center opacity-[0.08] scale-110 blur-xl saturate-50 mix-blend-luminosity pointer-events-none"
-                style={{ backgroundImage: `url(${song.cover})` }}
-            ></div>
-
-            {/* Ambient dust motes */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                {[...Array(15)].map((_, i) => (
-                    <div 
-                        key={i}
-                        className="absolute w-1 h-1 bg-[#4a90d9] rounded-full animate-dust"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
-                            animationDuration: `${10 + Math.random() * 10}s`
-                        }}
-                    ></div>
-                ))}
+                    <p className={`text-white/30 text-[9px] mt-7 tracking-widest uppercase ${T.mono}`}>&copy; {new Date().getFullYear()} {T.copyright}</p>
+                </footer>
             </div>
 
-            <div className="relative z-10 flex-1 flex flex-col items-center w-full max-w-7xl mx-auto px-4 py-6 md:py-16 gap-6 md:gap-12 animate-fade-in">
-                
-                {/* HERO SECTION */}
-                <div className="w-full flex flex-col md:flex-row items-center justify-center gap-5 md:gap-16">
-                    <div className="w-full max-w-sm shrink-0 transition-transform duration-500 group relative">
-                        {/* Ambient Glow */}
-                        <div 
-                            className="absolute -inset-6 bg-cover bg-center rounded-[20px] blur-2xl opacity-20 group-hover:opacity-40 transition duration-700 pointer-events-none"
-                            style={{ backgroundImage: `url(${song.cover})` }}
-                        ></div>
-                        <div className="absolute -inset-2 bg-gradient-to-tr from-[#4a90d9]/30 to-transparent rounded-[16px] opacity-20 group-hover:opacity-50 transition duration-700 pointer-events-none animate-rustic-glow"></div>
-                        <div className="relative w-44 h-44 sm:w-64 sm:h-64 md:w-96 md:h-96 mx-auto overflow-hidden rounded-[12px] border-2 border-[#1e4a7a]/40 shadow-[0_20px_50px_rgba(20,10,5,0.8)] transition-transform duration-500 group-hover:scale-[1.02]">
-                            <img 
-                                src={song.cover} 
-                                alt={song.name} 
-                                className="w-full h-full object-cover mix-blend-normal"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="w-full max-w-lg flex flex-col items-center md:items-start text-center md:text-left">
-                        <h1 className="h1-gothic text-4xl sm:text-5xl md:text-7xl mb-2 md:mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold text-[#f2ebd9] tracking-tight">{song.name}</h1>
-                        <p className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.4em] mb-4 md:mb-8 font-mono">{song.artist}</p>
-
-                        <ReleaseCountdown releaseDate={song.date} isJuan={true} />
-
-                            {/* Botones principales: lo primero que ve quien llega desde WhatsApp / Instagram */}
-                            <div className="w-full max-w-md flex flex-col gap-3 mb-5 md:mb-6">
-                                <PlatformButton variant="primary" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={true} />
-                                <PlatformButton variant="primary" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={true} />
-                                <PlatformButton variant="primary" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={true} />
-                            </div>
-
-                        {embedData?.type === 'youtube' && (
-                            <YouTubeAudioPlayer videoId={embedData.id} isJuan={true} />
-                        )}
-                        
-                        {embedData?.type === 'spotify' && (
-                            <div className="w-full max-w-md mb-4 md:mb-8 rounded-xl overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.6)] border border-[#1e4a7a]/30 bg-[#081830]/60 p-2 backdrop-blur-md">
-                                <div className="flex items-center justify-between mb-3 px-2 pt-2">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4a90d9] flex items-center gap-2 font-mono">
-                                        <div className="w-2 h-2 rounded-full bg-[#1DB954]"></div>
-                                        Previa Spotify
-                                    </span>
-                                </div>
-                                <iframe 
-                                    src={embedData.url} 
-                                    width="100%" 
-                                    height="80" 
-                                    frameBorder="0" 
-                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                                    loading="lazy"
-                                    className="rounded-lg opacity-90 hover:opacity-100 transition-opacity"
-                                ></iframe>
-                            </div>
-                        )}
+            {/* Barra fija inferior (solo movil): aparece al bajar, para escuchar sin volver arriba */}
+            {showStickyBar && (
+                <div className="md:hidden fixed bottom-0 inset-x-0 z-40 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl border-t border-white/10" style={{ backgroundColor: `${T.bg}ee` }}>
+                    <div className="flex gap-2 max-w-md mx-auto">
+                        <PlatformButton variant="bar" platform="Spotify" icon="fab fa-spotify" color="#1DB954" url={getPlatformUrl('Spotify')} isJuan={isJuan} />
+                        <PlatformButton variant="icon" platform="Apple Music" icon="fab fa-apple" color="#FA243C" url={getPlatformUrl('Apple Music')} isJuan={isJuan} />
+                        <PlatformButton variant="icon" platform="YouTube" icon="fab fa-youtube" color="#FF0000" url={getPlatformUrl('YouTube')} isJuan={isJuan} />
                     </div>
                 </div>
-
-                {/* PLATFORMS SECTION */}
-                <div className="w-full max-w-6xl relative z-20 backdrop-blur-xl bg-[#081830]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.5)] transition-all hover:border-[#1e4a7a]/40 duration-500">
-                    <h3 className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
-                        <i className="fas fa-headphones"></i> MÁS PLATAFORMAS
-                    </h3>
-
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                        
-                        <PlatformButton platform="Amazon Music" icon="fab fa-amazon" color="#00A8E1" url={getPlatformUrl('Amazon Music')} isJuan={true} variant="compact" />
-                        <PlatformButton platform="Tidal" icon="fas fa-water" color="#ffffff" url={getPlatformUrl('Tidal')} isJuan={true} variant="compact" />
-                        <PlatformButton platform="Deezer" icon="fab fa-deezer" color="#FEAA2D" url={getPlatformUrl('Deezer')} isJuan={true} variant="compact" />
-                        <PlatformButton platform="Audiomack" icon="fas fa-music" color="#FFA500" url={getPlatformUrl('Audiomack')} isJuan={true} variant="compact" />
-                        <PlatformButton platform="Sitio Web Oficial" icon="fas fa-globe" color="#4a90d9" url="https://juan614.diosmasgym.com/" isJuan={true} variant="compact" />
-                    </div>
-                </div>
-
-                <DynamicBanner isJuan={true} onSubscribe={subscribe} />
-
-                {song.lyrics && (
-                    <div className="w-full flex justify-center mt-2 mb-2">
-                        <InlineLyrics lyrics={song.lyrics} songName={song.name} songSlug={song.id || generateSlug(song.name)} isJuan={true} />
-                    </div>
-                )}
-
-                {/* TWO-COLUMN CONTENT GRID */}
-                <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                    {/* LEFT COLUMN */}
-                    <div className="flex flex-col gap-6 md:gap-8">
-                        <SongCredits isJuan={true} song={song} />
-                        
-                        {/* Palabra de Aliento Card */}
-                        <div className="w-full h-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_35px_rgba(0,0,0,0.4)] text-left relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#4a90d9] to-[#1e4a7a]"></div>
-                            
-                            <div className="flex justify-between items-center mb-6">
-                                <h4 className="text-[#4a90d9] text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 font-mono">
-                                    <i className="fas fa-book-bible text-[#4a90d9]"></i> PALABRA DE ESPERANZA
-                                </h4>
-                                <button 
-                                    onClick={() => fetchBibleVerse(true)} 
-                                    disabled={loadingVerse}
-                                    className="text-[#4a90d9] hover:text-[#f2ebd9] transition-colors p-2 flex items-center justify-center font-bold uppercase tracking-widest disabled:opacity-40"
-                                >
-                                    <i className={`fas fa-dice text-lg ${loadingVerse ? 'animate-spin' : ''}`}></i>
-                                </button>
-                            </div>
-                            
-                            {loadingVerse ? (
-                                <div className="py-8 flex justify-center items-center">
-                                    <div className="w-6 h-6 border-2 border-[#4a90d9] border-t-transparent animate-spin rounded-full"></div>
-                                </div>
-                            ) : (
-                                <p className="text-[#f2ebd9]/90 text-sm md:text-base font-serif italic leading-relaxed tracking-wide mb-6">
-                                    "{devotional?.verse || 'Buscando palabra...'}"
-                                </p>
-                            )}
-
-                            <div className="flex justify-between items-center border-t border-[#1e4a7a]/20 pt-4 mt-auto">
-                                <span className="text-[9px] md:text-[10px] font-mono text-[#4a90d9]/60 uppercase tracking-wider font-bold">{loadingVerse ? 'Cargando...' : devotional?.reference}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* RIGHT COLUMN */}
-                    <div className="flex flex-col gap-6 md:gap-8">
-                        {/* Compartir & Redes */}
-                        <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-6 text-left flex items-center gap-2 font-mono">
-                                <i className="fas fa-share-nodes"></i> Compartir
-                            </h3>
-                            <div className="flex flex-wrap gap-4 justify-center mb-6">
-                                <a 
-                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Escucha esto: "${song.name}" de ${song.artist}: ` + getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366] hover:text-white transition-all text-sm md:text-base"
-                                    title="Compartir por WhatsApp"
-                                >
-                                    <i className="fab fa-whatsapp"></i>
-                                </a>
-                                <a 
-                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2] hover:text-white transition-all text-sm md:text-base"
-                                    title="Compartir en Facebook"
-                                >
-                                    <i className="fab fa-facebook-f"></i>
-                                </a>
-                                <button 
-                                    onClick={() => setShowQrModal(true)}
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#1e4a7a]/10 border border-[#1e4a7a]/30 hover:bg-[#1e4a7a] hover:text-white transition-all text-sm md:text-base"
-                                    title="Código QR"
-                                >
-                                    <i className="fas fa-qrcode"></i>
-                                </button>
-                                <button 
-                                    onClick={copyToClipboard}
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center bg-[#1e4a7a]/10 border border-[#1e4a7a]/30 hover:bg-[#1e4a7a] hover:text-white transition-all relative text-sm md:text-base"
-                                    title="Copiar enlace"
-                                >
-                                    <i className={`fas ${copied ? 'fa-check' : 'fa-link'}`}></i>
-                                    {copied && (
-                                        <span className="absolute -top-12 bg-black text-[#4a90d9] text-[10px] px-3 py-1.5 rounded border border-[#1e4a7a] animate-bounce whitespace-nowrap z-50">
-                                            ¡Copiado!
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Avísame Card */}
-                        <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center text-center">
-                            <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-4 font-mono">Próximos Estrenos</h3>
-                            <button 
-                                onClick={subscribe}
-                                className={`flex items-center gap-3 px-8 py-4 rounded-lg border transition-all group ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-[#1e4a7a]/10 border-[#1e4a7a]/30 hover:bg-[#1e4a7a]/20'}`}
-                            >
-                                <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500 text-lg' : 'fa-bell text-[#4a90d9] text-lg'}`}></i>
-                                <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-widest font-mono ${isSubscribed ? 'text-green-500' : 'text-[#4a90d9]'}`}>
-                                    {isSubscribed ? '¡Suscrito!' : 'Avísame'}
-                                </span>
-                            </button>
-                            {isSubscribed && (
-                                <button 
-                                    onClick={unsubscribe}
-                                    className="mt-4 text-[8px] font-bold uppercase tracking-widest text-[#4a90d9]/50 hover:text-red-400 transition-all underline underline-offset-4"
-                                >
-                                    Darse de baja
-                                </button>
-                            )}
-                        </div>
-
-                        {relatedSongs.length > 0 && (
-                            <div className="w-full backdrop-blur-xl bg-[#081830]/50 p-6 md:p-8 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-                                <h3 className="text-[10px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#4a90d9] mb-6 flex items-center gap-3 text-left font-mono">
-                                    <i className="fas fa-list-ul"></i>
-                                    Canciones del Álbum
-                                </h3>
-                                <div className="space-y-3">
-                                    {relatedSongs.map((track, i) => (
-                                        <button 
-                                            key={i} 
-                                            onClick={() => navigate(`/link/${track.id}`)}
-                                            className="w-full flex items-center justify-between p-4 bg-[#0b1929]/50 rounded-lg border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all group"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-[11px] md:text-[12px] font-mono text-[#4a90d9]/50">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
-                                                <span className="text-sm md:text-base font-bold text-[#f1f5f9]/80 group-hover:text-[#f1f5f9] transition-colors">{track.name}</span>
-                                            </div>
-                                            <i className="fas fa-chevron-right text-[12px] text-[#4a90d9]/40 group-hover:text-[#4a90d9] transition-colors"></i>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* OTROS LANZAMIENTOS (FULL WIDTH GRID) */}
-                {otherReleases.length > 0 && (
-                    <div className="w-full max-w-6xl backdrop-blur-xl bg-[#081830]/50 p-6 md:p-10 rounded-2xl border border-[#1e4a7a]/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] text-center">
-                        <h4 className="text-[#4a90d9] text-[12px] md:text-[14px] font-bold uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-3 font-mono">
-                            <i className="fas fa-compact-disc"></i> MÁS DE {song.artist.toUpperCase()}
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                            {otherReleases.map((other, idx) => (
-                                <button 
-                                    key={idx}
-                                    onClick={() => navigate(`/link/${other.id}`)}
-                                    className="w-full flex flex-col items-center p-3 md:p-4 rounded-xl bg-[#0b1929]/50 border border-[#1e4a7a]/10 hover:border-[#1e4a7a]/30 transition-all duration-300 group"
-                                >
-                                    <div className="w-full aspect-square mb-3 md:mb-4 overflow-hidden rounded-lg">
-                                        <img 
-                                            src={other.cover} 
-                                            alt={other.name} 
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                        />
-                                    </div>
-                                    <h5 className="text-[12px] md:text-[14px] font-bold text-[#f1f5f9] leading-snug group-hover:text-[#4a90d9] transition-colors line-clamp-1">{other.name}</h5>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 text-center w-full border-t border-[#1e4a7a]/20 pb-8 pt-8 relative z-20 max-w-7xl mx-auto px-4">
-                <h3 className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-[#4a90d9]/70 mb-6 font-mono">Sígueme</h3>
-                <div className="flex justify-center gap-6">
-                    <a href="https://instagram.com/juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-instagram text-xl md:text-2xl text-[#4a90d9]"></i></a>
-                    <a href="https://tiktok.com/@juan614oficial" target="_blank" rel="noreferrer" className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#1e4a7a]/10 border border-[#1e4a7a]/20 flex items-center justify-center hover:bg-[#1e4a7a]/30 transition-all duration-300"><i className="fab fa-tiktok text-xl md:text-2xl text-[#4a90d9]"></i></a>
-                </div>
-                <p className="text-[#4a90d9]/40 text-[8px] md:text-[9px] mt-8 tracking-widest uppercase font-mono">&copy; {new Date().getFullYear()} Juan 614.</p>
-            </div>
+            )}
 
             {/* Modals */}
-            <QrModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} url={getShareUrl()} />
+            <QrModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} url={shareUrl} />
         </div>
     );
 };
