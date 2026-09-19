@@ -70,6 +70,9 @@ const DEFAULT_STYLE: Record<string, any> = {
   customFooterUrl: '', exportFormat: 'png', exportQuality: 0.92, size: 'instagram',
 };
 const STYLE_STORAGE_KEY = 'promo_studio_style_v1';
+const CUSTOM_LOOKS_KEY = 'promo_studio_custom_looks_v1';
+// Ajustes que forman parte de un "look" (los que guarda "Guardar mi look actual")
+const LOOK_KEYS = ['template', 'colorFilter', 'titleFont', 'titleEffect', 'footerStyle', 'coverMockup', 'badgeType', 'showLensFlare', 'autoColor'];
 
 // "Looks": un clic aplica plantilla + filtro + tipografia + portada + footer + sello
 const LOOKS: { id: string; label: string; icon: string; color: string; style: Record<string, any> }[] = [
@@ -203,6 +206,7 @@ const PromoImageApp: React.FC = () => {
   const [showSafeZone, setShowSafeZone] = useState(true);
   const [renderMaster, setRenderMaster] = useState(false); // el master 4K solo existe mientras se exporta
   const [hydrated, setHydrated] = useState(false);
+  const [customLooks, setCustomLooks] = useState<{ id: string; label: string; style: Record<string, any> }[]>([]);
   const [bgAvg, setBgAvg] = useState<[number, number, number] | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState("");
@@ -218,7 +222,6 @@ const PromoImageApp: React.FC = () => {
   const [scale, setScale] = useState(1);
   const [catalog, setCatalog] = useState<MusicItem[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
-  const [isSendingToMake, setIsSendingToMake] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
@@ -324,6 +327,13 @@ const PromoImageApp: React.FC = () => {
         applyStyle(Object.fromEntries(Object.entries(saved).filter(([k]) => k in DEFAULT_STYLE)));
       }
     } catch (e) { console.warn("No se pudo leer el estilo guardado:", e); }
+    try {
+      const rawLooks = localStorage.getItem(CUSTOM_LOOKS_KEY);
+      if (rawLooks) {
+        const parsed = JSON.parse(rawLooks);
+        if (Array.isArray(parsed)) setCustomLooks(parsed.filter(l => l && l.id && l.label && l.style));
+      }
+    } catch { /* ignore */ }
     setHydrated(true);
   }, []);
 
@@ -332,6 +342,18 @@ const PromoImageApp: React.FC = () => {
     if (!hydrated) return;
     try { localStorage.setItem(STYLE_STORAGE_KEY, currentStyleJson); } catch { /* cuota / modo privado */ }
   }, [currentStyleJson, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try { localStorage.setItem(CUSTOM_LOOKS_KEY, JSON.stringify(customLooks)); } catch { /* ignore */ }
+  }, [customLooks, hydrated]);
+
+  const handleSaveLook = () => {
+    const name = window.prompt('Nombre para tu look:');
+    if (!name || !name.trim()) return;
+    const style = Object.fromEntries(LOOK_KEYS.map(k => [k, currentStyle[k]]));
+    setCustomLooks(list => [...list, { id: 'custom-' + Date.now(), label: name.trim().slice(0, 24), style }]);
+  };
 
   const handleResetStyle = () => {
     applyStyle(DEFAULT_STYLE);
@@ -696,42 +718,6 @@ const PromoImageApp: React.FC = () => {
     return prepareCanvas(Math.min(1, targetWidth / masterW));
   };
 
-  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'twitter' | 'generic') => {
-    setIsGenerating(true);
-    try {
-      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share);
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
-      if (!blob) throw new Error("Blob failed");
-
-      const file = new File([blob], `PROMO-${title.toLowerCase().replace(/\s+/g, '-')}.png`, { type: 'image/png' });
-      const text = `¡Escucha "${title}" de ${artist}! Ya disponible. #DiosMasGym #Juan614`;
-      const url = "https://diosmasgym.com";
-
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title, text, url });
-      } else {
-        try {
-          if (typeof ClipboardItem !== 'undefined') {
-            await navigator.clipboard.write([new ClipboardItem({ [file.type]: blob })]);
-            alert("✅ Imagen copiada al portapapeles.");
-          }
-        } catch (e) {
-          switch (platform) {
-            case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, '_blank'); break;
-            case 'facebook': window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank'); break;
-            case 'twitter': window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank'); break;
-            default: alert("Usa 'Descargar Master 4K' para compartir.");
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Share error:", err);
-      alert("Error al compartir la imagen.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   // SMART LINK REAL — usa la ruta del proyecto igual que SmartLinksAdmin
   const getSmartLink = useCallback(() => {
     if (songId) return `${window.location.origin}/link/${songId}`;
@@ -884,32 +870,6 @@ const PromoImageApp: React.FC = () => {
     setTimeout(() => setCopySuccess(''), 5000);
   };
 
-
-  const handleSendToMake = async () => {
-    setIsGenerating(true);
-    setIsSendingToMake(true);
-    try {
-      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.share);
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
-      if (!blob) throw new Error("Blob failed");
-
-      const formData = new FormData();
-      formData.append("file", blob, `PROMO-${artistRef.current}.png`);
-      formData.append("artist", artistRef.current);
-      formData.append("title", titleRef.current);
-      formData.append("mode", modeRef.current);
-
-      const res = await fetch("https://hook.us2.make.com/9jkc3se9ac5kragltqzru0tw0zppmwx4", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Server error");
-      alert("✅ Promo enviada al Arsenal exitosamente.");
-    } catch (err) {
-      console.error("Make error:", err);
-      alert("Error al enviar al Arsenal.");
-    } finally {
-      setIsSendingToMake(false);
-      setIsGenerating(false);
-    }
-  };
 
   // #1 — Quick copy: copia la imagen de la preview directamente al portapapeles
   const handleQuickCopy = async () => {
@@ -1274,20 +1234,7 @@ const PromoImageApp: React.FC = () => {
                 </div>
               )}
 
-              {/* NEW COUNTRY SELECTOR */}
-              <div className="space-y-2 pt-4 border-t border-white/5">
-                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">País del Estreno</label>
-                <select 
-                  className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-xs appearance-none cursor-pointer text-[#c5a059] font-black"
-                  value={country.name}
-                  onChange={(e) => {
-                    const sel = countryOptions.find(c => c.name === e.target.value);
-                    if (sel) setCountry(sel);
-                  }}
-                >
-                  {countryOptions.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-                </select>
-              </div>
+              
 
               {/* DATE PICKER (Conditional Simple Calendar for Proximamente) */}
               {mode !== 'branding' && (
@@ -1321,7 +1268,7 @@ const PromoImageApp: React.FC = () => {
                       title="Obtener versículo aleatorio de la API de la Biblia"
                     >
                       <i className={`fas ${isLoadingVerse ? 'fa-spinner fa-spin' : 'fa-dice'}`}></i>
-                      {isLoadingVerse ? 'Buscando...' : 'Biblia API'}
+                      {isLoadingVerse ? 'Buscando...' : 'Otro'}
                     </button>
                     {/* Botón Biblioteca */}
                     <button
@@ -1354,26 +1301,14 @@ const PromoImageApp: React.FC = () => {
                   onChange={(e) => setSlogan(e.target.value)}
                 />
 
-                {/* Quick suggestions pills */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[
-                    { label: "Filipenses 4:13", text: '"Todo lo puedo en Cristo que me fortalece." · Filipenses 4:13' },
-                    { label: "Juan 6:14", text: '"Este verdaderamente es el profeta que había de venir." · Juan 6:14' },
-                    { label: "Josué 1:9", text: '"Esfuérzate y sé valiente; no temas ni desmayes." · Josué 1:9' },
-                    { label: "Salmos 27:1", text: '"Jehová es mi luz y mi salvación; ¿de quién temeré?" · Salmos 27:1' }
-                  ].map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSlogan(p.text)}
-                      className="px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-[#c5a059]/15 border border-white/5 hover:border-[#c5a059]/30 text-[8px] font-bold text-white/50 hover:text-[#c5a059] transition-all"
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+                
               </div>
 
+              <details className="rounded-2xl border border-white/5 bg-black/20 p-4 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer text-[9px] uppercase font-black tracking-[0.25em] text-white/50 hover:text-white flex items-center gap-2">
+                  <i className="fas fa-chevron-down text-[8px]"></i> Más opciones
+                </summary>
+                <div>
               {/* #8 — URL PERSONALIZADA EN FOOTER */}
               <div className="space-y-2 pt-4 border-t border-white/5">
                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
@@ -1388,6 +1323,8 @@ const PromoImageApp: React.FC = () => {
                   onChange={(e) => setCustomFooterUrl(e.target.value)}
                 />
               </div>
+                </div>
+              </details>
             </div>
           </div>
 
@@ -1397,25 +1334,51 @@ const PromoImageApp: React.FC = () => {
               <i className="fas fa-wand-magic-sparkles"></i>
               Looks
             </h2>
-            <p className="text-[9px] text-white/30 tracking-wide mb-5">Un clic aplica plantilla, filtro, tipografía, portada, footer y sticker. Luego ajusta lo que quieras.</p>
+            <p className="text-[9px] text-white/30 tracking-wide mb-5">Un clic aplica plantilla, filtro, tipografía, portada, footer y sticker.</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {LOOKS.map((l) => {
+              {[...LOOKS, ...customLooks.map(c => ({ ...c, icon: 'fa-star', color: '#c5a059', custom: true }))].map((l: any) => {
                 const active = Object.entries(l.style).every(([k, v]) => currentStyle[k] === v);
                 return (
-                  <button
-                    key={l.id}
-                    type="button"
-                    onClick={() => applyStyle({ ...LOOK_RESET, ...l.style })}
-                    className={`py-3 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all flex flex-col items-center gap-1.5 ${active ? 'text-black' : 'bg-black/40 text-white/50 border-white/5 hover:text-white hover:border-white/20'}`}
-                    style={active ? { backgroundColor: l.color, borderColor: l.color, boxShadow: `0 0 24px ${l.color}33` } : {}}
-                  >
-                    <i className={`fas ${l.icon} text-sm`} style={active ? {} : { color: l.color }}></i>
-                    {l.label}
-                  </button>
+                  <div key={l.id} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => applyStyle({ ...LOOK_RESET, ...l.style })}
+                      className={`w-full h-full py-3 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all flex flex-col items-center gap-1.5 ${active ? 'text-black' : 'bg-black/40 text-white/50 border-white/5 hover:text-white hover:border-white/20'}`}
+                      style={active ? { backgroundColor: l.color, borderColor: l.color, boxShadow: `0 0 24px ${l.color}33` } : {}}
+                    >
+                      <i className={`fas ${l.icon} text-sm`} style={active ? {} : { color: l.color }}></i>
+                      {l.label}
+                    </button>
+                    {l.custom && (
+                      <button
+                        type="button"
+                        title="Borrar este look"
+                        onClick={() => setCustomLooks(list => list.filter(x => x.id !== l.id))}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
+            <button
+              type="button"
+              onClick={handleSaveLook}
+              className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-[#c5a059]/40 text-[9px] font-black uppercase tracking-widest text-[#c5a059] hover:bg-[#c5a059]/10 transition-all"
+            >
+              <i className="fas fa-plus mr-2"></i>Guardar mi look actual
+            </button>
           </div>
+
+          {/* AJUSTES AVANZADOS: todo lo demas queda plegado para que lo esencial se vea de un vistazo */}
+          <details className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer text-[11px] font-black uppercase tracking-[0.3em] text-white/60 hover:text-white flex items-center justify-between">
+              <span><i className="fas fa-sliders mr-3 text-[#c5a059]"></i>Ajustes avanzados</span>
+              <span className="text-[8px] text-white/30 tracking-widest normal-case font-bold">fondo · marca · portada · tipografía · color</span>
+            </summary>
+            <div className="space-y-8 pt-6">
 
           {/* GROUP: FONDO & TEXTURAS HD (BACKGROUND SUITE) */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
@@ -1862,7 +1825,7 @@ const PromoImageApp: React.FC = () => {
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 lg:p-8 shadow-2xl">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6 flex items-center gap-2">
               <i className="fas fa-font"></i>
-              Tipografía & Efectos de Título
+              Tipografía
             </h2>
 
             <div className="space-y-6">
@@ -1888,42 +1851,7 @@ const PromoImageApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* TITLE EFFECT SELECTOR */}
-              <div className="space-y-3 pt-4 border-t border-white/5">
-                <label className="text-[9px] uppercase font-bold text-white/40 tracking-widest block">Acabado del Título</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'glow', label: '✨ Glow Neón' },
-                    { id: 'gold', label: '👑 Oro Metálico 3D' },
-                    { id: 'chrome', label: '⚡ Cromo Plateado' },
-                    { id: 'solid', label: '🔲 Sólido en Relieve' },
-                  ].map((eff) => (
-                    <button
-                      key={eff.id}
-                      type="button"
-                      onClick={() => setTitleEffect(eff.id as any)}
-                      className={`py-2.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${titleEffect === eff.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/40 text-white/40 border-white/5 hover:text-white'}`}
-                    >
-                      {eff.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* LENS FLARE TOGGLE */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-white">Destello Anamórfico (Lens Flare)</div>
-                  <div className="text-[8px] text-white/30">Haz de luz cinematográfico horizontal</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowLensFlare(!showLensFlare)}
-                  className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${showLensFlare ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/30'}`}
-                >
-                  {showLensFlare ? 'ACTIVO' : 'APAGADO'}
-                </button>
-              </div>
+              
             </div>
           </div>
 
@@ -1954,30 +1882,6 @@ const PromoImageApp: React.FC = () => {
               </div>
               )}
             <div className="grid grid-cols-1 gap-8">
-              {/* CINEMATIC COLOR FILTERS */}
-              <div className="space-y-4">
-                <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Filtros Cinematográficos</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'none', label: 'Original' },
-                    { id: 'warm-gold', label: 'Warm Gold' },
-                    { id: 'midnight-blue', label: 'Midnight' },
-                    { id: 'bleach-bypass', label: 'Bleach Cine' },
-                    { id: 'vintage', label: '90s Tape' },
-                    { id: 'noir', label: 'Noir B&W' },
-                  ].map((fil) => (
-                    <button
-                      key={fil.id}
-                      type="button"
-                      onClick={() => setColorFilter(fil.id as any)}
-                      className={`py-2 px-2 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-all text-center ${colorFilter === fil.id ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/40 border-white/5 hover:text-white'}`}
-                    >
-                      {fil.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* TEMPLATE SELECTOR: THE BEAT SERIES */}
               <div className="space-y-4 pt-4 border-t border-white/5">
                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">The Beat Series (Variaciones Estéticas)</label>
@@ -2002,35 +1906,7 @@ const PromoImageApp: React.FC = () => {
                  </div>
               </div>
 
-              <details open={grit > 0 || noise || industrial || scanlines > 0 || vignette > 0} className="rounded-2xl border border-white/5 bg-black/20 p-4 [&_summary::-webkit-details-marker]:hidden">
-                <summary className="cursor-pointer text-[9px] uppercase font-black tracking-[0.25em] text-white/50 hover:text-white flex items-center gap-2">
-                  <i className="fas fa-chevron-down text-[8px]"></i> Avanzado: textura y efectos
-                </summary>
-                <div className="space-y-6 pt-5">
-              <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex justify-between items-center">
-                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Nivel de Grano ({Math.round(grit * 100)}%)</label>
-                  <div className="flex gap-4">
-                    <button onClick={() => setNoise(!noise)} className={`text-[8px] px-2 py-1 rounded border ${noise ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}>NOISE</button>
-                    <button onClick={() => setIndustrial(!industrial)} className={`text-[8px] px-2 py-1 rounded border ${industrial ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/10 text-white/40'}`}>GRID</button>
-                  </div>
-                </div>
-                <input type="range" min="0" max="1" step="0.05" value={grit} onChange={(e) => setGrit(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Scanlines</label>
-                   <input type="range" min="0" max="0.3" step="0.01" value={scanlines} onChange={(e) => setScanlines(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
-                </div>
-                <div className="space-y-4">
-                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Viñeta</label>
-                   <input type="range" min="0" max="0.9" step="0.05" value={vignette} onChange={(e) => setVignette(parseFloat(e.target.value))} className="w-full accent-[#c5a059]" />
-                </div>
-              </div>
-
-              </div>
-              </details>
+              
 
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
                 <div className="space-y-2">
@@ -2059,136 +1935,76 @@ const PromoImageApp: React.FC = () => {
             </div>
           </div>
 
-          {/* GROUP: EXPORT & SHARE */}
+                      </div>
+          </details>
+
+          {/* GROUP: EXPORT */}
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6">Exportar &amp; Compartir</h2>
+             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#c5a059] mb-6">Exportar</h2>
              <div className="flex flex-col gap-5">
 
-               {/* #9 — FORMATO DE EXPORTACIÓN */}
-               <div className="space-y-3">
-                 <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Formato de Exportación</label>
-                 <div className="grid grid-cols-2 gap-3">
-                   {(['png', 'jpeg'] as const).map(fmt => (
-                     <button
-                       key={fmt}
-                       onClick={() => setExportFormat(fmt)}
-                       className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${exportFormat === fmt ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/30 border-white/5 hover:text-white'}`}
-                     >
-                       {fmt === 'png' ? '🖼️ PNG (máx calidad)' : '📸 JPEG (ligero)'}
-                     </button>
-                   ))}
-                 </div>
-                 {exportFormat === 'jpeg' && (
-                   <div className="space-y-2">
-                     <label className="text-[9px] uppercase font-bold text-white/20 tracking-widest">
-                       Calidad JPEG: {Math.round(exportQuality * 100)}%
-                     </label>
-                     <input
-                       type="range" min="0.5" max="1" step="0.05"
-                       value={exportQuality}
-                       onChange={(e) => setExportQuality(parseFloat(e.target.value))}
-                       className="w-full accent-[#c5a059]"
-                     />
-                   </div>
-                 )}
+               {/* Formato del archivo */}
+               <div className="grid grid-cols-2 gap-3">
+                 {(['png', 'jpeg'] as const).map(fmt => (
+                   <button
+                     key={fmt}
+                     onClick={() => setExportFormat(fmt)}
+                     className={`py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${exportFormat === fmt ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/30 border-white/5 hover:text-white'}`}
+                   >
+                     {fmt === 'png' ? 'PNG · máxima calidad' : 'JPG · más ligero'}
+                   </button>
+                 ))}
                </div>
 
-               <button 
-                 onClick={() => handleDownload(true)}
+               <button
+                 onClick={() => handleDownload(false)}
                  disabled={isGenerating}
-                 className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95"
+                 className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-50"
                >
-                 <i className="fas fa-crown group-hover:scale-110 transition-transform"></i> Descargar Master 4K Ultra
+                 <i className="fas fa-download group-hover:scale-110 transition-transform"></i> Descargar imagen
                </button>
 
-                <button 
-                  onClick={() => handleDownload(false)}
-                  disabled={isGenerating}
-                  className="w-full py-3 bg-white/5 border border-white/10 text-white/40 font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
-                >
-                  <i className="fas fa-eye"></i> Descargar Social HD (Vista Pro)
-                </button>
+               <div className="grid grid-cols-2 gap-3">
+                 <button
+                   onClick={() => handleDownload(true)}
+                   disabled={isGenerating}
+                   title="Máxima resolución (hasta ~16 megapíxeles)"
+                   className="py-3.5 bg-white/5 border border-white/10 text-white/60 font-black uppercase text-[9px] tracking-[0.2em] rounded-xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                 >
+                   <i className="fas fa-crown"></i> Master 4K
+                 </button>
+                 <button
+                   onClick={handleExportAll}
+                   disabled={isGenerating}
+                   className="py-3.5 bg-white/5 border border-[#c5a059]/30 text-[#c5a059] font-black uppercase text-[9px] tracking-[0.2em] rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                 >
+                   <i className="fas fa-file-zipper"></i> {exportProgress ? 'Exportando...' : 'Todos (ZIP)'}
+                 </button>
+               </div>
 
-                <button
-                  onClick={handleExportAll}
-                  disabled={isGenerating}
-                  className="w-full py-4 bg-white/5 border border-[#c5a059]/30 text-[#c5a059] font-black uppercase text-[9px] tracking-[0.3em] rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <i className="fas fa-file-zipper"></i> {exportProgress ? `Exportando ${exportProgress}` : 'Todos los formatos (ZIP)'}
-                </button>
+               <button
+                 onClick={handleGoToSnippet}
+                 disabled={isGenerating}
+                 className="w-full py-4 bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#c5a059]/20 disabled:opacity-50"
+               >
+                 <i className="fas fa-video"></i> Crear Video Snippet
+               </button>
 
-                <button 
-                  onClick={handleGoToSnippet}
-                  disabled={isGenerating}
-                  className="w-full py-5 bg-gradient-to-r from-[#c5a059] to-[#8B5A2B] text-black font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#c5a059]/20"
-                >
-                  <i className="fas fa-video"></i> Crear Video Snippet
-                </button>
-                
-                <div className="space-y-4">
-                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest text-center block">Compartir en Redes Sociales</label>
-                  <div className="grid grid-cols-4 gap-3">
-                    <button 
-                      onClick={() => handleShare('whatsapp')}
-                      disabled={isGenerating}
-                      className="py-4 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] rounded-xl hover:bg-[#25D366] hover:text-white transition-all flex items-center justify-center text-lg"
-                      title="WhatsApp"
-                    >
-                      <i className="fab fa-whatsapp"></i>
-                    </button>
-                    <button 
-                      onClick={() => handleShare('facebook')}
-                      disabled={isGenerating}
-                      className="py-4 bg-[#1877F2]/10 border border-[#1877F2]/20 text-[#1877F2] rounded-xl hover:bg-[#1877F2] hover:text-white transition-all flex items-center justify-center text-lg"
-                      title="Facebook"
-                    >
-                      <i className="fab fa-facebook-f"></i>
-                    </button>
-                    <button 
-                      onClick={() => handleShare('twitter')}
-                      disabled={isGenerating}
-                      className="py-4 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center justify-center text-lg"
-                      title="Twitter/X"
-                    >
-                      <i className="fab fa-x-twitter"></i>
-                    </button>
-                    <button 
-                      onClick={() => handleShare('generic')}
-                      disabled={isGenerating}
-                      className="py-4 bg-[#c5a059]/10 border border-[#c5a059]/20 text-[#c5a059] rounded-xl hover:bg-[#c5a059] hover:text-white transition-all flex items-center justify-center text-lg"
-                      title="Compartir"
-                    >
-                      <i className="fas fa-share-nodes"></i>
-                    </button>
-                  </div>
-                </div>
-
-                {/* PREMIUM: PREPARAR PARA REDES */}
-                <button
-                  id="btn-preparar-redes"
-                  onClick={handleOpenSharePanel}
-                  disabled={isGenerating}
-                  className="w-full py-6 rounded-2xl font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
-                  style={{
-                    background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
-                    boxShadow: '0 20px 50px rgba(131,58,180,0.35)',
-                    color: 'white'
-                  }}
-                >
-                  <i className="fas fa-rocket"></i>
-                  Preparar para Redes Sociales
-                </button>
-
-                <div className="pt-6 border-t border-white/5">
-                  <button 
-                    onClick={() => handleSendToMake()}
-                    disabled={isSendingToMake || isGenerating}
-                    className="w-full py-3 bg-black/40 border border-white/10 text-white/40 text-[8px] font-black uppercase tracking-[0.3em] rounded-xl hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-                  >
-                    <i className={`fas ${isSendingToMake ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`}></i>
-                    {isSendingToMake ? 'Sincronizando...' : 'Sincronizar con Make.com (Manual)'}
-                  </button>
-                </div>
+               {/* PREPARAR PARA REDES: imagen + caption con IA + compartir */}
+               <button
+                 id="btn-preparar-redes"
+                 onClick={handleOpenSharePanel}
+                 disabled={isGenerating}
+                 className="w-full py-6 rounded-2xl font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                 style={{
+                   background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)',
+                   boxShadow: '0 20px 50px rgba(131,58,180,0.35)',
+                   color: 'white'
+                 }}
+               >
+                 <i className="fas fa-rocket"></i>
+                 Preparar para Redes Sociales
+               </button>
              </div>
           </div>
 
@@ -2207,8 +2023,7 @@ const PromoImageApp: React.FC = () => {
                 height: config.h * scale, 
                 display: 'block',
                 position: 'relative',
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                filter: isSendingToMake ? 'brightness(0.5) blur(10px)' : 'none'
+                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
               className="promo-container-wrapper"
             >
