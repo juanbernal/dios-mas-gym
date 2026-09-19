@@ -2,6 +2,75 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as piexif from 'piexifjs';
 
+type QueueItem = { id: string; name: string; src: string; width: number; height: number };
+
+const SETTINGS_KEY = 'mando_ejecutivo_settings_v1';
+
+// Valores iniciales de todos los ajustes (los mismos de los useState)
+const DEFAULT_SETTINGS: Record<string, any> = {
+    logoSelection: 'mando',
+    logoSize: 19,
+    logoOpacity: 100,
+    logoPosition: 'bottom-right',
+    showText: true,
+    textPosition: 'bottom',
+    textStyle: 'classic',
+    ribbonStyle: 'none',
+    ribbonText: '#PuroSeñorJesucristoCompa',
+    ribbonColor: 'gold',
+    ribbonOpacity: 90,
+    showSocials: true,
+    socialText: '@diosmasgym',
+    socialInstagram: true,
+    socialTikTok: true,
+    socialYouTube: true,
+    socialFacebook: true,
+    socialSpotify: true,
+    socialX: true,
+    socialPosition: 'bottom-left',
+    socialColor: 'white',
+    socialBackground: true,
+    socialOpacity: 90,
+    socialBlockStyle: 'imperial-gold',
+    socialLayout: 'classic-compact',
+    socialPaddingScale: 1.0,
+    socialIconScale: 1.1,
+    socialGapScale: 1.0,
+    socialFontSizeVal: 1.6,
+    exportFormat: 'png',
+    frameStyle: 'none',
+    frameOpacity: 100,
+    vignetteEnabled: false,
+    vignetteStrength: 50,
+    showMusicPlatforms: true,
+    musicPlatformsText: 'Escucha nuestra música en:',
+    musicSpotify: true,
+    musicApple: true,
+    musicYouTube: true,
+    musicAmazon: true,
+    musicTidal: true,
+    musicDeezer: true,
+    musicAudiomack: true,
+    watermarkEnabled: true,
+    watermarkStyle: 'diagonal',
+    watermarkText: '#PuroSeñorJesucristoCompa',
+    watermarkOpacity: 8,
+    watermarkSize: 35,
+    injectExif: true,
+};
+
+// Perfiles de un clic (los ajustes que no se mencionan se conservan)
+const PRESETS: { id: string; label: string; icon: string; hint: string; settings: Record<string, any> }[] = [
+    { id: 'oficial', label: 'Oficial', icon: 'fa-shield-halved', hint: 'Sello, redes, listón y marca de fondo',
+      settings: { logoSelection: 'mando', showSocials: true, showMusicPlatforms: true, ribbonStyle: 'bottom', watermarkEnabled: true, showText: true, textPosition: 'bottom', frameStyle: 'none', vignetteEnabled: false } },
+    { id: 'sello-redes', label: 'Sello + redes', icon: 'fa-share-nodes', hint: 'Logo y tus redes, sin listón ni marca de fondo',
+      settings: { logoSelection: 'mando', showSocials: true, showMusicPlatforms: false, ribbonStyle: 'none', watermarkEnabled: false, showText: false, frameStyle: 'none', vignetteEnabled: false } },
+    { id: 'discreto', label: 'Solo sello', icon: 'fa-crown', hint: 'Únicamente el logo en la esquina',
+      settings: { logoSelection: 'mando', showSocials: false, showMusicPlatforms: false, ribbonStyle: 'none', watermarkEnabled: false, showText: false, frameStyle: 'none', vignetteEnabled: false } },
+    { id: 'proteccion', label: 'Protección', icon: 'fa-lock', hint: 'Marca de fondo repetida + sello + texto del sitio, para desalentar el uso sin crédito',
+      settings: { logoSelection: 'mando', showSocials: false, showMusicPlatforms: false, ribbonStyle: 'none', watermarkEnabled: true, watermarkStyle: 'tiled', watermarkOpacity: 10, showText: true, textPosition: 'bottom', frameStyle: 'none', vignetteEnabled: false } },
+];
+
 const AntiAIWatermark: React.FC = () => {
     const navigate = useNavigate();
     const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -74,6 +143,19 @@ const AntiAIWatermark: React.FC = () => {
 
     const [injectExif, setInjectExif] = useState<boolean>(true);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [queue, setQueue] = useState<QueueItem[]>([]);
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [currentName, setCurrentName] = useState('imagen');
+    const [showOriginal, setShowOriginal] = useState(false); // mantener pulsado: ver la foto sin marca
+    const [dragOver, setDragOver] = useState(false);
+    const [batchProgress, setBatchProgress] = useState('');
+    const [notice, setNotice] = useState('');
+    const [sourceVersion, setSourceVersion] = useState(0);
+    const [logosVersion, setLogosVersion] = useState(0);
+    const [containerSize, setContainerSize] = useState({ w: 800, h: 600 });
+    const [hydrated, setHydrated] = useState(false);
+    const sourceImgRef = useRef<HTMLImageElement | null>(null);
+    const previewBoxRef = useRef<HTMLDivElement>(null);
     
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,25 +165,200 @@ const AntiAIWatermark: React.FC = () => {
     const juan614LogoRef = useRef<HTMLImageElement>(new Image());
 
     useEffect(() => {
+        const bump = () => setLogosVersion(v => v + 1);
+        [mandoLogoRef.current, diosmasgymLogoRef.current, juan614LogoRef.current].forEach(img => { img.onload = bump; });
         mandoLogoRef.current.src = '/logo-mando-ejecutivo.png';
         diosmasgymLogoRef.current.src = '/logo-diosmasgym.png';
         juan614LogoRef.current.src = '/logo-juan614-v2.png';
     }, []);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Mapa de todos los ajustes (para perfiles, guardado y restablecer)
+    const settingSetters: Record<string, (v: any) => void> = {
+        logoSelection: setLogoSelection,
+        logoSize: setLogoSize,
+        logoOpacity: setLogoOpacity,
+        logoPosition: setLogoPosition,
+        showText: setShowText,
+        textPosition: setTextPosition,
+        textStyle: setTextStyle,
+        ribbonStyle: setRibbonStyle,
+        ribbonText: setRibbonText,
+        ribbonColor: setRibbonColor,
+        ribbonOpacity: setRibbonOpacity,
+        showSocials: setShowSocials,
+        socialText: setSocialText,
+        socialInstagram: setSocialInstagram,
+        socialTikTok: setSocialTikTok,
+        socialYouTube: setSocialYouTube,
+        socialFacebook: setSocialFacebook,
+        socialSpotify: setSocialSpotify,
+        socialX: setSocialX,
+        socialPosition: setSocialPosition,
+        socialColor: setSocialColor,
+        socialBackground: setSocialBackground,
+        socialOpacity: setSocialOpacity,
+        socialBlockStyle: setSocialBlockStyle,
+        socialLayout: setSocialLayout,
+        socialPaddingScale: setSocialPaddingScale,
+        socialIconScale: setSocialIconScale,
+        socialGapScale: setSocialGapScale,
+        socialFontSizeVal: setSocialFontSizeVal,
+        exportFormat: setExportFormat,
+        frameStyle: setFrameStyle,
+        frameOpacity: setFrameOpacity,
+        vignetteEnabled: setVignetteEnabled,
+        vignetteStrength: setVignetteStrength,
+        showMusicPlatforms: setShowMusicPlatforms,
+        musicPlatformsText: setMusicPlatformsText,
+        musicSpotify: setMusicSpotify,
+        musicApple: setMusicApple,
+        musicYouTube: setMusicYouTube,
+        musicAmazon: setMusicAmazon,
+        musicTidal: setMusicTidal,
+        musicDeezer: setMusicDeezer,
+        musicAudiomack: setMusicAudiomack,
+        watermarkEnabled: setWatermarkEnabled,
+        watermarkStyle: setWatermarkStyle,
+        watermarkText: setWatermarkText,
+        watermarkOpacity: setWatermarkOpacity,
+        watermarkSize: setWatermarkSize,
+        injectExif: setInjectExif,
+    };
+    const currentSettings: Record<string, any> = {
+        logoSelection,
+        logoSize,
+        logoOpacity,
+        logoPosition,
+        showText,
+        textPosition,
+        textStyle,
+        ribbonStyle,
+        ribbonText,
+        ribbonColor,
+        ribbonOpacity,
+        showSocials,
+        socialText,
+        socialInstagram,
+        socialTikTok,
+        socialYouTube,
+        socialFacebook,
+        socialSpotify,
+        socialX,
+        socialPosition,
+        socialColor,
+        socialBackground,
+        socialOpacity,
+        socialBlockStyle,
+        socialLayout,
+        socialPaddingScale,
+        socialIconScale,
+        socialGapScale,
+        socialFontSizeVal,
+        exportFormat,
+        frameStyle,
+        frameOpacity,
+        vignetteEnabled,
+        vignetteStrength,
+        showMusicPlatforms,
+        musicPlatformsText,
+        musicSpotify,
+        musicApple,
+        musicYouTube,
+        musicAmazon,
+        musicTidal,
+        musicDeezer,
+        musicAudiomack,
+        watermarkEnabled,
+        watermarkStyle,
+        watermarkText,
+        watermarkOpacity,
+        watermarkSize,
+        injectExif,
+    };
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                setOriginalSize({ width: img.width, height: img.height });
-                setImageSrc(img.src);
-            };
-            img.src = event.target?.result as string;
+    // ── Carga de imagenes (una o varias; arrastrar, pegar o elegir) ──
+    const readImageFile = (file: File): Promise<QueueItem | null> => new Promise(resolve => {
+        const src = URL.createObjectURL(file); // URL de objeto: no duplica la foto en memoria como un data-URL
+        const img = new Image();
+        img.onload = () => resolve({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            name: file.name || 'imagen',
+            src,
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height,
+        });
+        img.onerror = () => { URL.revokeObjectURL(src); resolve(null); };
+        img.src = src;
+    });
+
+    const selectItem = (item: QueueItem) => {
+        setActiveId(item.id);
+        setImageSrc(item.src);
+        setOriginalSize({ width: item.width, height: item.height });
+        setCurrentName(item.name);
+    };
+
+    const handleFiles = async (fileList: FileList | File[]) => {
+        const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+        if (files.length === 0) { setNotice('Elige archivos de imagen (JPG, PNG o WebP).'); return; }
+        const items = (await Promise.all(files.map(readImageFile))).filter((x): x is QueueItem => !!x);
+        if (items.length === 0) { setNotice('No se pudo leer la imagen.'); return; }
+        setNotice('');
+        setQueue(q => [...q, ...items]);
+        selectItem(items[0]);
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.length) handleFiles(e.target.files);
+        e.target.value = '';
+    };
+
+    const removeItem = (id: string) => {
+        const item = queue.find(q => q.id === id);
+        if (item) URL.revokeObjectURL(item.src);
+        const rest = queue.filter(q => q.id !== id);
+        setQueue(rest);
+        if (activeId === id) {
+            if (rest.length) selectItem(rest[0]);
+            else { setActiveId(null); setImageSrc(null); setOriginalSize(null); }
+        }
+    };
+
+    // Pegar una imagen desde el portapapeles (Ctrl+V)
+    useEffect(() => {
+        const onPaste = (e: ClipboardEvent) => {
+            const files = Array.from(e.clipboardData?.files || []);
+            if (files.length) { e.preventDefault(); handleFiles(files); }
         };
-        reader.readAsDataURL(file);
+        window.addEventListener('paste', onPaste);
+        return () => window.removeEventListener('paste', onPaste);
+    });
+
+    // Ajustes: aplicar, recordar entre sesiones y restablecer
+    const settingsJson = JSON.stringify(currentSettings);
+    const applySettings = (s: Record<string, any>) => {
+        Object.entries(s).forEach(([k, v]) => settingSetters[k]?.(v));
+    };
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            if (raw) {
+                const saved = JSON.parse(raw);
+                applySettings(Object.fromEntries(Object.entries(saved).filter(([k]) => k in DEFAULT_SETTINGS)));
+            }
+        } catch (e) { console.warn('No se pudieron leer los ajustes guardados:', e); }
+        setHydrated(true);
+    }, []);
+
+    useEffect(() => {
+        if (!hydrated) return;
+        try { localStorage.setItem(SETTINGS_KEY, settingsJson); } catch { /* cuota o modo privado */ }
+    }, [settingsJson, hydrated]);
+
+    const handleResetSettings = () => {
+        applySettings(DEFAULT_SETTINGS);
+        try { localStorage.removeItem(SETTINGS_KEY); } catch { /* ignore */ }
     };
 
     // Quick phrases for Ribbon
@@ -1424,151 +1681,199 @@ const AntiAIWatermark: React.FC = () => {
         ctx.globalAlpha = 1.0;
     };
 
+    // Imagen origen decodificada UNA sola vez (antes se decodificaba de nuevo con cada cambio de un control)
     useEffect(() => {
-        if (!imageSrc || !originalSize || !previewCanvasRef.current) return;
-        
+        if (!imageSrc) { sourceImgRef.current = null; return; }
+        let cancelled = false;
+        const img = new Image();
+        img.onload = () => {
+            if (cancelled) return;
+            sourceImgRef.current = img;
+            setSourceVersion(v => v + 1);
+        };
+        img.src = imageSrc;
+        return () => { cancelled = true; };
+    }, [imageSrc]);
+
+    // Tamano disponible de la mesa de trabajo (se recalcula al redimensionar la ventana)
+    useEffect(() => {
+        const el = previewBoxRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return;
+        const update = () => setContainerSize({ w: el.clientWidth || 800, h: el.clientHeight || 600 });
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        update();
+        return () => ro.disconnect();
+    }, []);
+
+    const hasFooterNow = (showText && textPosition === 'bottom') || (showSocials && socialPosition.startsWith('bottom'));
+
+    // Vista previa: se pinta con requestAnimationFrame y solo cuando cambia algo
+    useEffect(() => {
+        const img = sourceImgRef.current;
         const canvas = previewCanvasRef.current;
+        if (!img || !originalSize || !canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
-        const img = new Image();
-        img.onload = () => {
-            const containerWidth = canvas.parentElement?.clientWidth || 800;
-            const containerHeight = canvas.parentElement?.clientHeight || 600;
-            const scale = Math.min(containerWidth / originalSize.width, containerHeight / originalSize.height, 1);
-            const hasFooter = (showText && textPosition === 'bottom') || (showSocials && socialPosition.startsWith('bottom'));
-            const footerRatio = hasFooter ? 0.08 : 0; // 8% of the image height for footer
-
-            canvas.width = originalSize.width * scale;
+        const raf = requestAnimationFrame(() => {
+            const scale = Math.min(containerSize.w / originalSize.width, containerSize.h / originalSize.height, 1);
+            const footerRatio = hasFooterNow && !showOriginal ? 0.08 : 0; // 8% de la altura para el pie
+            canvas.width = Math.max(1, Math.round(originalSize.width * scale));
             const footerPixels = (originalSize.height * scale) * footerRatio;
-            canvas.height = (originalSize.height * scale) + footerPixels;
-            
-            drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
-        };
-        img.src = imageSrc;
-
-    }, [
-        imageSrc, originalSize, logoSelection, logoSize, logoOpacity, logoPosition, showText, textPosition, textStyle,
-        ribbonStyle, ribbonText, ribbonColor, ribbonOpacity,
-        showSocials, socialText, socialInstagram, socialTikTok, socialYouTube, socialFacebook, socialSpotify, socialX, socialPosition, socialColor, socialBackground, socialOpacity, socialBlockStyle, socialLayout,
-        showMusicPlatforms, musicPlatformsText, musicSpotify, musicApple, musicYouTube, musicAmazon, musicTidal, musicDeezer, musicAudiomack,
-        watermarkEnabled, watermarkStyle, watermarkText, watermarkOpacity, watermarkSize,
-        frameStyle, frameOpacity, vignetteEnabled, vignetteStrength,
-        socialPaddingScale, socialIconScale, socialGapScale, socialFontSizeVal
-    ]);
-
-    const handleDownload = () => {
-        if (!imageSrc || !originalSize) return;
-        
-        setIsDownloading(true);
-        
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const hasFooter = (showText && textPosition === 'bottom') || (showSocials && socialPosition.startsWith('bottom'));
-            const footerRatio = hasFooter ? 0.08 : 0;
-            
-            canvas.width = originalSize.width;
-            const footerPixels = originalSize.height * footerRatio;
-            canvas.height = originalSize.height + footerPixels;
-            
-            if (ctx) {
-                drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
-                
-                try {
-                    if (injectExif) {
-                        const piexifLib = (piexif as any).default || piexif;
-                        const dataURL = canvas.toDataURL('image/jpeg', 0.95);
-                        const zeroth: any = {};
-                        const exif: any = {};
-                        const gps: any = {};
-
-                        zeroth[piexifLib.ImageIFD.Make] = "Diosmasgym Records";
-                        zeroth[piexifLib.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
-                        zeroth[piexifLib.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.3";
-                        zeroth[piexifLib.ImageIFD.Artist] = "Diosmasgym";
-                        zeroth[piexifLib.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
-
-                        const now = new Date();
-                        const dateStr = `${now.getFullYear()}:${String(now.getMonth()+1).padStart(2, '0')}:${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-                        exif[piexifLib.ExifIFD.DateTimeOriginal] = dateStr;
-                        exif[piexifLib.ExifIFD.DateTimeDigitized] = dateStr;
-
-                        const exifObj = {"0th": zeroth, "Exif": exif, "GPS": gps};
-                        const exifBytes = piexifLib.dump(exifObj);
-                        const newJpegDataUrl = piexifLib.insert(exifBytes, dataURL);
-                        
-                        // Lossless formats routing based on format selection
-                        if (exportFormat === 'png') {
-                            canvas.toBlob((blob) => {
-                                if (blob) {
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `mando_ejecutivo_${new Date().getTime()}.png`;
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                }
-                                setIsDownloading(false);
-                            }, 'image/png', 1.0);
-                        } else {
-                            const arr = newJpegDataUrl.split(',');
-                            const mime = arr[0].match(/:(.*?);/)[1];
-                            const bstr = atob(arr[1]);
-                            let n = bstr.length;
-                            const u8arr = new Uint8Array(n);
-                            while (n--) {
-                                u8arr[n] = bstr.charCodeAt(n);
-                            }
-                            const blob = new Blob([u8arr], { type: mime });
-                            const blobUrl = URL.createObjectURL(blob);
-
-                            const a = document.createElement('a');
-                            a.href = blobUrl;
-                            a.download = `mando_ejecutivo_${new Date().getTime()}.jpg`;
-                            a.click();
-                            
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                            setIsDownloading(false);
-                        }
-                    } else {
-                        const formatMime = exportFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-                        const formatQuality = exportFormat === 'jpg' ? 0.95 : undefined;
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `mando_ejecutivo_${new Date().getTime()}.${exportFormat}`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                            }
-                            setIsDownloading(false);
-                        }, formatMime, formatQuality);
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("Error al inyectar metadatos. Descargando sin EXIF.");
-                    const formatMime = exportFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-                    const formatQuality = exportFormat === 'jpg' ? 0.95 : undefined;
-                    canvas.toBlob((blob) => {
-                        if (blob) {
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `mando_ejecutivo_${new Date().getTime()}.${exportFormat}`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                        }
-                        setIsDownloading(false);
-                    }, formatMime, formatQuality);
-                }
+            canvas.height = Math.max(1, Math.round((originalSize.height * scale) + footerPixels));
+            if (showOriginal) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             } else {
-                setIsDownloading(false);
+                drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
             }
-        };
-        img.src = imageSrc;
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [sourceVersion, logosVersion, originalSize, containerSize, showOriginal, settingsJson]);
+
+    // ── Exportacion ─────────────────────────────────────────────
+    // Un canvas demasiado grande falla en silencio (sobre todo en Safari y moviles): se limita al maximo seguro
+    const MAX_SIDE = 16384;
+    const MAX_PIXELS = 120_000_000;
+    const JPG_QUALITY = 0.97;
+
+    const renderFull = (img: HTMLImageElement): { canvas: HTMLCanvasElement; downscaled: boolean } => {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        const footerRatio = hasFooterNow ? 0.08 : 0;
+        const totalH = h * (1 + footerRatio);
+        const k = Math.min(1, MAX_SIDE / w, MAX_SIDE / totalH, Math.sqrt(MAX_PIXELS / (w * totalH)));
+        w = Math.round(w * k);
+        h = Math.round(h * k);
+        const footerPixels = Math.round(h * footerRatio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h + footerPixels;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('El navegador no pudo crear el lienzo');
+        drawComposition(ctx, canvas.width, canvas.height, img, footerPixels);
+        return { canvas, downscaled: k < 1 };
+    };
+
+    const canvasToBlob = (canvas: HTMLCanvasElement, mime: string, quality?: number) =>
+        new Promise<Blob>((resolve, reject) =>
+            canvas.toBlob(b => (b ? resolve(b) : reject(new Error('No se pudo generar la imagen'))), mime, quality));
+
+    const dataUrlToBlob = (dataUrl: string): Blob => {
+        const [head, body] = dataUrl.split(',');
+        const mime = head.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bin = atob(body);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return new Blob([arr], { type: mime });
+    };
+
+    const buildExifBytes = () => {
+        const piexifLib = (piexif as any).default || piexif;
+        const zeroth: any = {};
+        const exif: any = {};
+        const gps: any = {};
+        zeroth[piexifLib.ImageIFD.Make] = "Diosmasgym Records";
+        zeroth[piexifLib.ImageIFD.Model] = "Mando Ejecutivo Suite (DSLR-Simulation)";
+        zeroth[piexifLib.ImageIFD.Software] = "Mando Ejecutivo Watermark Engine v5.3";
+        zeroth[piexifLib.ImageIFD.Artist] = "Diosmasgym";
+        zeroth[piexifLib.ImageIFD.Copyright] = `Copyright ${new Date().getFullYear()} Diosmasgym`;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}:${String(now.getMonth() + 1).padStart(2, '0')}:${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        exif[piexifLib.ExifIFD.DateTimeOriginal] = dateStr;
+        exif[piexifLib.ExifIFD.DateTimeDigitized] = dateStr;
+        return piexifLib.dump({ "0th": zeroth, "Exif": exif, "GPS": gps });
+    };
+
+    // PNG no admite EXIF: solo se genera el JPG con metadatos cuando de verdad se va a exportar JPG
+    const encodeCanvas = async (canvas: HTMLCanvasElement): Promise<{ blob: Blob; ext: 'png' | 'jpg' }> => {
+        if (exportFormat === 'png') return { blob: await canvasToBlob(canvas, 'image/png'), ext: 'png' };
+        if (injectExif) {
+            try {
+                const piexifLib = (piexif as any).default || piexif;
+                const withExif = piexifLib.insert(buildExifBytes(), canvas.toDataURL('image/jpeg', JPG_QUALITY));
+                return { blob: dataUrlToBlob(withExif), ext: 'jpg' };
+            } catch (e) {
+                console.error('No se pudo inyectar EXIF, se exporta sin metadatos:', e);
+                setNotice('No se pudieron inyectar los metadatos EXIF; la imagen se exportó sin ellos.');
+            }
+        }
+        return { blob: await canvasToBlob(canvas, 'image/jpeg', JPG_QUALITY), ext: 'jpg' };
+    };
+
+    const baseName = (name: string) => (name || 'imagen').replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'imagen';
+
+    // La URL no se revoca de inmediato: hacerlo cancelaba la descarga en algunos navegadores
+    const downloadBlob = (blob: Blob, filename: string) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+
+    const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('No se pudo leer una de las imágenes'));
+        i.src = src;
+    });
+
+    const handleDownload = async () => {
+        const img = sourceImgRef.current;
+        if (!img) return;
+        setIsDownloading(true);
+        setNotice('');
+        try {
+            await new Promise(r => setTimeout(r, 30)); // deja pintar el estado "Procesando"
+            const { canvas, downscaled } = renderFull(img);
+            const { blob, ext } = await encodeCanvas(canvas);
+            downloadBlob(blob, `${baseName(currentName)}_mando.${ext}`);
+            if (downscaled) setNotice('La imagen superaba el límite del navegador y se redujo ligeramente.');
+        } catch (e: any) {
+            console.error(e);
+            alert(`No se pudo exportar: ${e?.message || 'error desconocido'}`);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    // Todas las imagenes de la cola con la misma marca, en un ZIP
+    const handleDownloadAll = async () => {
+        if (queue.length === 0) return;
+        setIsDownloading(true);
+        setNotice('');
+        try {
+            const { default: JSZip } = await import('jszip');
+            const zip = new JSZip();
+            const used = new Set<string>();
+            for (let i = 0; i < queue.length; i++) {
+                const item = queue[i];
+                setBatchProgress(`${i + 1}/${queue.length}`);
+                const img = await loadImage(item.src);
+                const { canvas } = renderFull(img);
+                const { blob, ext } = await encodeCanvas(canvas);
+                let name = `${baseName(item.name)}_mando`;
+                let n = 2;
+                while (used.has(`${name}.${ext}`)) name = `${baseName(item.name)}_mando_${n++}`;
+                used.add(`${name}.${ext}`);
+                zip.file(`${name}.${ext}`, blob);
+                await new Promise(r => setTimeout(r, 0)); // cede el hilo para que la pagina no se congele
+            }
+            setBatchProgress('Comprimiendo...');
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            downloadBlob(zipBlob, `mando_ejecutivo_${queue.length}_imagenes.zip`);
+        } catch (e: any) {
+            console.error(e);
+            alert(`No se pudo exportar el lote: ${e?.message || 'error desconocido'}`);
+        } finally {
+            setBatchProgress('');
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -1590,7 +1895,7 @@ const AntiAIWatermark: React.FC = () => {
                             <i className="fas fa-shield-halved text-[#c5a059] text-xl"></i>
                             <div className="flex flex-col">
                                 <h1 className="text-xl md:text-2xl font-serif italic text-white leading-none">Mando Ejecutivo</h1>
-                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">v5.5.1 PRO PREMIUM</span>
+                                <span className="text-[9px] font-black tracking-widest text-[#c5a059] uppercase mt-1">Marca y protección de imágenes</span>
                             </div>
                         </div>
                         <p className="text-white/40 text-[11px] leading-relaxed">
@@ -1600,33 +1905,70 @@ const AntiAIWatermark: React.FC = () => {
 
                     {/* Image Upload */}
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
-                        <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">1. Imagen de Fondo</label>
-                        <input 
-                            type="file" 
-                            accept="image/*" 
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 block">1. Imágenes</label>
+                            {queue.length > 0 && <span className="text-[9px] text-white/40">{queue.length} en la cola</span>}
+                        </div>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
                             ref={fileInputRef}
                             onChange={handleImageUpload}
                             className="hidden"
                         />
-                        {imageSrc ? (
-                            <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-3">
-                                <span className="text-[10px] font-bold text-[#c5a059] truncate max-w-[200px]">✓ Imagen cargada</span>
-                                <button 
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white underline"
-                                >
-                                    Cambiar
-                                </button>
-                            </div>
-                        ) : (
-                            <button 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full py-4 bg-black/40 border border-white/10 rounded-xl hover:border-[#c5a059]/50 transition-all flex flex-col items-center gap-1.5"
-                            >
+                        <div
+                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+                            className={`rounded-xl border-2 border-dashed transition-all ${dragOver ? 'border-[#c5a059] bg-[#c5a059]/10' : 'border-white/10 hover:border-[#c5a059]/40'}`}
+                        >
+                            <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 flex flex-col items-center gap-1.5">
                                 <i className="fas fa-cloud-arrow-up text-lg text-white/30"></i>
-                                <span className="text-[10px] font-bold text-white/60">Subir Imagen HD / Foto</span>
+                                <span className="text-[10px] font-bold text-white/60">{imageSrc ? 'Agregar más imágenes' : 'Subir, arrastrar o pegar (Ctrl+V)'}</span>
+                                <span className="text-[8px] text-white/30 px-3 text-center">Puedes elegir varias: se les aplica la misma marca y las bajas juntas en un ZIP</span>
                             </button>
+                        </div>
+                        {queue.length > 0 && (
+                            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 pt-2 px-1">
+                                {queue.map(item => (
+                                    <div key={item.id} className="relative shrink-0">
+                                        <button
+                                            onClick={() => selectItem(item)}
+                                            title={item.name}
+                                            className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${activeId === item.id ? 'border-[#c5a059]' : 'border-white/10 opacity-70 hover:opacity-100'}`}
+                                        >
+                                            <img src={item.src} alt={item.name} className="w-full h-full object-cover" />
+                                        </button>
+                                        <button onClick={() => removeItem(item.id)} title="Quitar de la cola" className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center">
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         )}
+                    </div>
+
+                    {/* Perfiles de marca */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="text-[8px] font-black uppercase tracking-widest text-zinc-400 block">2. Perfil de marca</label>
+                            <button onClick={handleResetSettings} className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white underline underline-offset-2">Restablecer</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {PRESETS.map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => applySettings(p.settings)}
+                                    title={p.hint}
+                                    className="py-2.5 px-2 rounded-xl border border-white/10 bg-black/40 text-[9px] font-black uppercase tracking-wider text-white/70 hover:border-[#c5a059]/60 hover:text-[#c5a059] transition-all flex flex-col items-center gap-1"
+                                >
+                                    <i className={`fas ${p.icon} text-sm`}></i>
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-white/30 mt-3 leading-relaxed">Un clic aplica el perfil; luego afina en las pestañas. Tus ajustes se recuerdan la próxima vez.</p>
                     </div>
 
                     {/* Exif Metadata & Image Export Controls */}
@@ -1647,7 +1989,7 @@ const AntiAIWatermark: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                            <span className="text-[9px] text-white/40">Inyectar Metadata Oficial (Exif)</span>
+                            <span className="text-[9px] text-white/40">Inyectar Metadata Oficial (Exif · solo JPG)</span>
                             <input 
                                 type="checkbox" 
                                 checked={injectExif} 
@@ -1959,7 +2301,10 @@ const AntiAIWatermark: React.FC = () => {
                                             </div>
                                         )}
 
-                                        {/* Custom sliders for precise visual layouts */}
+                                        {/* Ajustes finos: plegados por defecto */}
+                                        <details className="mb-4 rounded-xl border border-white/5 bg-black/20 p-3 [&_summary::-webkit-details-marker]:hidden">
+                                        <summary className="cursor-pointer text-[9px] font-black uppercase tracking-widest text-[#c5a059] flex items-center gap-2"><i className="fas fa-sliders text-[8px]"></i> Ajustes finos de la insignia</summary>
+                                        <div className="pt-3">
                                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 space-y-3.5 mb-4">
                                             <label className="text-[9px] font-black uppercase tracking-widest text-[#c5a059] block">Ajustes Finos de la Insignia</label>
                                             
@@ -2011,6 +2356,9 @@ const AntiAIWatermark: React.FC = () => {
                                                 />
                                             </div>
                                         </div>
+
+                                        </div>
+                                        </details>
 
                                         {/* Music Platforms Section (New) */}
                                         <div className="border-t border-white/5 pt-4">
@@ -2343,7 +2691,17 @@ const AntiAIWatermark: React.FC = () => {
                     </div>
 
                     {/* Export Button */}
-                    <div className="pt-2 mt-auto">
+                    <div className="pt-2 mt-auto space-y-2">
+                        {queue.length > 1 && (
+                            <button
+                                onClick={handleDownloadAll}
+                                disabled={isDownloading}
+                                className="w-full py-3 bg-white/5 border border-[#c5a059]/40 text-[#c5a059] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-40 flex justify-center items-center gap-2 text-[10px]"
+                            >
+                                <i className={`fas ${batchProgress ? 'fa-circle-notch fa-spin' : 'fa-file-zipper'}`}></i>
+                                {batchProgress ? `Procesando ${batchProgress}` : `Descargar las ${queue.length} en ZIP`}
+                            </button>
+                        )}
                         <button 
                             onClick={handleDownload}
                             disabled={!imageSrc || isDownloading}
@@ -2362,14 +2720,28 @@ const AntiAIWatermark: React.FC = () => {
                 <div className="flex-1 bg-black rounded-3xl border border-white/5 flex flex-col overflow-hidden relative shadow-2xl min-h-[450px] lg:min-h-0">
                     <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#0a0c14]">
                         <span className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Mesa de Trabajo / Master HD</span>
+                        {imageSrc && (
+                            <button
+                                onMouseDown={() => setShowOriginal(true)}
+                                onMouseUp={() => setShowOriginal(false)}
+                                onMouseLeave={() => setShowOriginal(false)}
+                                onTouchStart={() => setShowOriginal(true)}
+                                onTouchEnd={() => setShowOriginal(false)}
+                                title="Mantén pulsado para ver la foto original sin marca"
+                                className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all select-none ${showOriginal ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'border-white/15 text-white/60 hover:text-white'}`}
+                            >
+                                <i className="fas fa-eye mr-1.5"></i>Ver original
+                            </button>
+                        )}
+                        {notice && <span className="text-[9px] text-amber-300 max-w-[260px] leading-snug">{notice}</span>}
                         {originalSize && (
                             <span className="text-[9px] font-mono text-white/40 bg-white/5 px-3 py-1 rounded-full">
-                                {originalSize.width}x{originalSize.height}px (Calidad Original Preservada)
+                                {originalSize.width}x{originalSize.height}px (resolución original)
                             </span>
                         )}
                     </div>
                     
-                    <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDkwOTA5Ii8+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMTExIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxMTEiLz48L3N2Zz4=')]">
+                    <div ref={previewBoxRef} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDkwOTA5Ii8+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMTExIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMxMTEiLz48L3N2Zz4=')]">
                         {imageSrc ? (
                             <canvas 
                                 ref={previewCanvasRef} 
