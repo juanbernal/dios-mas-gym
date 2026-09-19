@@ -181,13 +181,19 @@
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function(OneSignal) {
-            await OneSignal.init({
-                appId: "7cf6d7f5-c5fc-4528-a45f-dec85b099881",
-                safari_web_id: "web.onesignal.auto.21eb64f1-a307-4b53-9fa9-5af0b410a31b",
-                notifyButton: { enable: false },
-                serviceWorkerParam: { scope: '/' },
-                serviceWorkerPath: '/OneSignalSDKWorker.js',
-            });
+            try {
+                await OneSignal.init({
+                    appId: "7cf6d7f5-c5fc-4528-a45f-dec85b099881",
+                    safari_web_id: "web.onesignal.auto.21eb64f1-a307-4b53-9fa9-5af0b410a31b",
+                    notifyButton: { enable: false },
+                    serviceWorkerParam: { scope: '/' },
+                    serviceWorkerPath: '/OneSignalSDKWorker.js',
+                });
+            } catch (e) {
+                // Se guarda el motivo para que la pagina explique el problema en vez de quedarse esperando
+                window.__ONESIGNAL_INIT_ERROR__ = String((e && e.message) || e || 'init_failed');
+                console.warn('[OneSignal] No se pudo iniciar:', window.__ONESIGNAL_INIT_ERROR__);
+            }
         });
     </script>
 </head>

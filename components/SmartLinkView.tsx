@@ -1401,7 +1401,9 @@ const SmartLinkView: React.FC = () => {
                                     <p className="mt-3 text-[11px] text-amber-200/80 max-w-xs">
                                         {pushError === 'sdk_unavailable'
                                             ? 'No se pudo cargar el servicio de avisos. Si tienes un bloqueador de anuncios, desactívalo para este sitio e inténtalo de nuevo.'
-                                            : 'No se pudo activar los avisos. Inténtalo de nuevo.'}
+                                            : pushError === 'init_failed'
+                                                ? 'Los avisos no están disponibles en este momento. Puedes seguirnos en Instagram o TikTok para enterarte de los estrenos.'
+                                                : 'No se pudo activar los avisos. Inténtalo de nuevo.'}
                                     </p>
                                 )}
                                 {T.subHint && !isSubscribed && pushPermission !== 'denied' && pushPermission !== 'unsupported' && (

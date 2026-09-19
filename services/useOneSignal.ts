@@ -30,6 +30,7 @@ declare global {
         OneSignalDeferred?: any[];
         OneSignal?: any;
         __ONESIGNAL_APP_ID__?: string;
+        __ONESIGNAL_INIT_ERROR__?: string;
     }
 }
 
@@ -69,6 +70,9 @@ export function useOneSignal(): OneSignalState {
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             window.OneSignalDeferred.push(async (OS: any) => {
                 try {
+                    // Si el SDK no pudo iniciar (por ejemplo, el sitio no coincide con la direccion configurada
+                    // en OneSignal) no tiene sentido seguir: se avisa con un motivo claro.
+                    if (window.__ONESIGNAL_INIT_ERROR__) throw new Error('init_failed');
                     await fn(OS);
                 } catch (e: any) {
                     console.error('[useOneSignal] Error:', e);
