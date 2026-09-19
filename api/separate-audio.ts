@@ -1,4 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+
+// Cada POST inicia una prediccion de pago en Replicate con tu token: solo el admin puede lanzarla.
+function isAdminRequest(req: any): boolean {
+  const keyName = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN_PASSWORD')) || 'ADMIN_PASSWORD');
+  const master = (process.env[keyName] || '').trim().replace(/^["']|["']$/g, '');
+  const provided = String(req.headers?.['x-admin-password'] || '').trim();
+  if (!master) return !process.env.VERCEL; // en desarrollo local sin variable se permite
+  const a = Buffer.from(provided);
+  const b = Buffer.from(master);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
@@ -8,6 +20,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
+  }
+
+  if (!isAdminRequest(req)) {
+    return res.status(401).json({ error: 'No autorizado: falta la clave de administrador' });
   }
 
   try {
@@ -23,8 +39,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'audioUrl es requerido' });
       }
 
-      // Validar modelo seleccionado: 'htdemucs' (4 stems) o 'htdemucs_6s' (6 stems)
-      const selectedModel = (model_name === 'htdemucs_6s') ? 'htdemucs_6s' : 'htdemucs';
+      // Validar el modelo: 'htdemucs' (4 pistas), 'htdemucs_ft' (4 pistas, mayor calidad y mas lento) o 'htdemucs_6s' (6 pistas)
+      const ALLOWED_MODELS = ['htdemucs', 'htdemucs_ft', 'htdemucs_6s'];
+      const selectedModel = ALLOWED_MODELS.includes(String(model_name)) ? String(model_name) : 'htdemucs';
+
+      // Solo se aceptan direcciones del servicio temporal de subida o de Replicate (evita que el servidor
+      // descargue cualquier URL que le manden)
+      let host = '';
+      try { const u = new URL(audioUrl); if (u.protocol === 'https:' || u.protocol === 'http:') host = u.hostname; } catch { /* invalida */ }
+      const hostOk = host === 'tmpfiles.org' || host.endsWith('.tmpfiles.org') || host === 'replicate.delivery' || host.endsWith('.replicate.delivery');
+      if (!hostOk) {
+        return res.status(400).json({ error: 'audioUrl no permitido: solo tmpfiles.org o replicate.delivery' });
+      }
 
       // Si viene de tmpfiles.org, resolver el enlace de descarga directo real (WAV binario)
       // porque tmpfiles.org/dl/ID/name.wav ahora redirige a una página HTML con el botón de descarga

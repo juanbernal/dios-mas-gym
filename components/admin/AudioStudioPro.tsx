@@ -382,6 +382,41 @@ const ID3G:Record<number,string>={0:'Blues',1:'Classic Rock',7:'Hip-Hop',9:'Meta
 export const DIOSMASGYM_GENRES = ['Rap', 'Pop Latino', 'Reggaeton', 'Worship'] as const;
 export const JUAN614_GENRES = ['Banda Sinaloense', 'Corrido Tumbado', 'Bélico'] as const;
 
+// decodeAudioData remuestrea a la frecuencia del dispositivo (normalmente 48 kHz), asi que un archivo de 44.1 kHz
+// parecia de 48 kHz y se exportaba a 48 kHz. Se lee la frecuencia real de la cabecera (WAV, MP3, FLAC).
+const detectNativeSampleRate = (buf: ArrayBuffer, fallback: number): number => {
+  try {
+    const u8 = new Uint8Array(buf);
+    const dv = new DataView(buf);
+    const tag = (o: number) => String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]);
+    if (u8.length > 44 && tag(0) === 'RIFF' && tag(8) === 'WAVE') {
+      let o = 12;
+      while (o + 8 <= u8.length) {
+        const id = tag(o);
+        const sz = dv.getUint32(o + 4, true);
+        if (id === 'fmt ') return dv.getUint32(o + 12, true) || fallback;
+        o += 8 + sz + (sz % 2);
+      }
+    }
+    if (u8.length > 42 && tag(0) === 'fLaC') {
+      return ((u8[18] << 12) | (u8[19] << 4) | (u8[20] >> 4)) || fallback;
+    }
+    // MP3: se salta el ID3v2 y se lee el primer encabezado de trama
+    let p = 0;
+    if (u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) p = 10 + (((u8[6] & 0x7f) << 21) | ((u8[7] & 0x7f) << 14) | ((u8[8] & 0x7f) << 7) | (u8[9] & 0x7f));
+    for (let i = p; i < Math.min(u8.length - 4, p + 65536); i++) {
+      if (u8[i] === 0xff && (u8[i + 1] & 0xe0) === 0xe0) {
+        const version = (u8[i + 1] >> 3) & 0x03; // 3 = MPEG1, 2 = MPEG2, 0 = MPEG2.5
+        const idx = (u8[i + 2] >> 2) & 0x03;
+        if (idx === 3 || version === 1) continue;
+        const table: Record<number, number[]> = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+        return table[version]?.[idx] || fallback;
+      }
+    }
+  } catch { /* se usa el valor del decodificador */ }
+  return fallback;
+};
+
 const GENRES = [
   'Rap',
   'Pop Latino',
@@ -487,7 +522,8 @@ const AudioStudioPro:React.FC=()=>{
   const [aiStems,setAiStems]=useState<Record<string,string>|null>(null);
   const [isExtracting,setIsExtracting]=useState(false);
   const [extractStatus,setExtractStatus]=useState('');
-  const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_6s'>('htdemucs');
+  const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_ft'|'htdemucs_6s'>('htdemucs');
+  const [isMixing,setIsMixing]=useState(false);
   const [isZipping,setIsZipping]=useState(false);
   const [zipProgress,setZipProgress]=useState('');
   const [downloadingStem,setDownloadingStem]=useState<string|null>(null);
@@ -743,10 +779,19 @@ const AudioStudioPro:React.FC=()=>{
     }
   }, [tab, drawMasterCurve]);
 
-  const renderMasteredAudio = async (): Promise<{ wavBuffer: ArrayBuffer; blob: Blob; url: string }> => {
+  const renderMasteredAudio = async (opts: { standard?: boolean } = {}): Promise<{ wavBuffer: ArrayBuffer; blob: Blob; url: string }> => {
+    // Modo estandar: masterizacion normal (EQ + compresor + ganancia + limitador de picos), sin el blindaje
+    // Anti-IA ni sellos de metadatos automaticos.
+    const standard = !!opts.standard;
+    const shieldOn = !standard && antiAiShieldActive;
+    const tapeOn = !standard && antiAiTapeWarmth;
+    const deHarshOn = !standard && antiAiDeHarsh;
     if (!fi) throw new Error('No hay archivo de audio cargado');
     const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ac = new AudioCtxClass();
+    // El contexto se crea con la frecuencia de muestreo del archivo: sin esto el navegador remuestrea todo a la del
+    // dispositivo (normalmente 48 kHz) y un audio de 44.1 kHz salia a 48 kHz sin avisar.
+    let ac: AudioContext;
+    try { ac = new AudioCtxClass({ sampleRate: fi.sampleRate }); } catch { ac = new AudioCtxClass(); }
     const audioBuf = await ac.decodeAudioData(fi.arrayBuffer.slice(0));
 
     const offlineCtx = new OfflineAudioContext(
@@ -782,23 +827,23 @@ const AudioStudioPro:React.FC=()=>{
     deHarshFilter.type = 'peaking';
     deHarshFilter.frequency.value = 4200;
     deHarshFilter.Q.value = 1.6;
-    deHarshFilter.gain.value = (!bypassMaster && antiAiDeHarsh) ? -1.8 : 0;
+    deHarshFilter.gain.value = (!bypassMaster && deHarshOn) ? -1.8 : 0;
 
     // 5. Anti-AI Cascaded Ultrasonic Low-Pass Filters (19.2kHz, 48dB/oct)
     // Erradica de raíz marcas de agua acústicas inaudibles (>18.5kHz)
     const antiAiFilter1 = offlineCtx.createBiquadFilter();
     antiAiFilter1.type = 'lowpass';
-    antiAiFilter1.frequency.value = (!bypassMaster && antiAiShieldActive) ? 19200 : 22000;
+    antiAiFilter1.frequency.value = (!bypassMaster && shieldOn) ? 19200 : 22000;
     antiAiFilter1.Q.value = 0.707;
 
     const antiAiFilter2 = offlineCtx.createBiquadFilter();
     antiAiFilter2.type = 'lowpass';
-    antiAiFilter2.frequency.value = (!bypassMaster && antiAiShieldActive) ? 19200 : 22000;
+    antiAiFilter2.frequency.value = (!bypassMaster && shieldOn) ? 19200 : 22000;
     antiAiFilter2.Q.value = 0.707;
 
     // 6. Anti-AI Tape Warmth / Analog Saturation (WaveShaper)
     let tapeNode: WaveShaperNode | null = null;
-    if (!bypassMaster && antiAiTapeWarmth) {
+    if (!bypassMaster && tapeOn) {
       tapeNode = offlineCtx.createWaveShaper();
       tapeNode.curve = makeTapeSaturationCurve(18) as any;
       tapeNode.oversample = '4x';
@@ -832,11 +877,23 @@ const AudioStudioPro:React.FC=()=>{
     }
 
     compressor.connect(gainNode);
-    gainNode.connect(offlineCtx.destination);
+    if (standard) {
+      // El compresor solo no impide que la ganancia final sature: se agrega un limitador de picos
+      const limiter = offlineCtx.createDynamicsCompressor();
+      limiter.threshold.value = -1.5;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.08;
+      gainNode.connect(limiter);
+      limiter.connect(offlineCtx.destination);
+    } else {
+      gainNode.connect(offlineCtx.destination);
+    }
 
     // 9. Micro-pitch Humanizer — rompe la afinación perfecta característica de la IA
     // Aplica variaciones aleatorias de ±3 cents (imperceptibles al oído, devastadoras para la firma espectral)
-    if (!bypassMaster && antiAiShieldActive) {
+    if (!bypassMaster && shieldOn) {
       const duration = audioBuf.duration;
       const segmentSize = 0.4; // Variación cada 0.4 segundos
       source.playbackRate.setValueAtTime(1.0, 0);
@@ -853,12 +910,29 @@ const AudioStudioPro:React.FC=()=>{
     const rendered = await offlineCtx.startRendering();
     ac.close();
 
+    if (standard) {
+      // Techo de -1 dBFS: evita recortes al convertir a 16 bits
+      let peak = 0;
+      for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+        const d = rendered.getChannelData(ch);
+        for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
+      }
+      const ceiling = Math.pow(10, -1 / 20);
+      if (peak > ceiling) {
+        const k = ceiling / peak;
+        for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+          const d = rendered.getChannelData(ch);
+          for (let i = 0; i < d.length; i++) d[i] *= k;
+        }
+      }
+    }
+
     // ── POST-RENDER: Procesado Anti-IA directo sobre el buffer PCM ──────────────────
 
     // 10. Inyección de Piso de Ruido Analógico (Pink Noise ~-80dB)
     // El silencio digital perfecto de la IA no existe en grabaciones reales.
     // Se inyecta ruido rosa muy sutil para imitar el piso de ruido de un estudio analógico.
-    if (!bypassMaster && antiAiShieldActive) {
+    if (!bypassMaster && shieldOn) {
       const noiseAmplitude = 0.000095; // ≈ -80dB — completamente inaudible
       // Generador de ruido rosa simple (filtro acumulativo de 3 pasos)
       for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
@@ -879,7 +953,7 @@ const AudioStudioPro:React.FC=()=>{
     // 11. Aleatorización de Fase Mid/Side (±2°)
     // Los modelos generativos producen coherencia de fase estéreo artificial perfecta.
     // Una micro-rotación M/S aleatoria rompe esa firma sin afectar la imagen estéreo.
-    if (!bypassMaster && antiAiShieldActive && rendered.numberOfChannels >= 2) {
+    if (!bypassMaster && shieldOn && rendered.numberOfChannels >= 2) {
       const L = rendered.getChannelData(0);
       const R = rendered.getChannelData(1);
       // Ángulo de rotación aleatorio entre -2° y +2° (en radianes)
@@ -931,11 +1005,11 @@ const AudioStudioPro:React.FC=()=>{
     if (meta.isrc)   masterFrames.push(mktfM('TSRC', meta.isrc));
     if (meta.trackNumber) masterFrames.push(mktfM('TRCK', meta.trackNumber));
     masterFrames.push(mktfM('TPUB', meta.label || 'Diosmasgym records'));
-    masterFrames.push(mktfM('TSSE', 'LAME 3.100.1 64-bit (Studio Master Edition)'));
-    masterFrames.push(mktfM('TENC', 'Diosmasgym Records Studio HD Engine'));
+    if (!standard) masterFrames.push(mktfM('TSSE', 'LAME 3.100.1 64-bit (Studio Master Edition)'));
+    masterFrames.push(mktfM('TENC', standard ? 'Diosmasgym Audio Studio (Web Audio)' : 'Diosmasgym Records Studio HD Engine'));
     masterFrames.push(mktfM('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
     // Comment COMM
-    const commText = meta.comment || 'Master Oficial grabado y procesado en Diosmasgym Records Studio HD. 100% Producción de Estudio.';
+    const commText = meta.comment || (standard ? 'Master procesado en Diosmasgym Records Studio.' : 'Master Oficial grabado y procesado en Diosmasgym Records Studio HD. 100% Producción de Estudio.');
     const lbM = enc2.encode('spa'); const tbM = enc2.encode(commText);
     const dComm2 = new Uint8Array(1 + 3 + 1 + tbM.length);
     dComm2[0] = 3; dComm2.set(lbM, 1); dComm2[4] = 0; dComm2.set(tbM, 5);
@@ -960,7 +1034,7 @@ const AudioStudioPro:React.FC=()=>{
       const mbM = enc2.encode('image/jpeg');
       const dPicM = new Uint8Array(1 + mbM.length + 1 + 1 + 1 + covBytes.length);
       let posM = 0; dPicM[posM++]=0; dPicM.set(mbM,posM); posM+=mbM.length;
-      dPicM[posM++]=0; dPicM.set(covBytes,posM);
+      dPicM[posM++]=0; dPicM[posM++]=3; dPicM[posM++]=0; dPicM.set(covBytes,posM);
       const frPicM = new Uint8Array(10 + dPicM.length);
       ['A','P','I','C'].forEach((c,i)=>{ frPicM[i]=c.charCodeAt(0); });
       const szP=dPicM.length;
@@ -1005,12 +1079,12 @@ const AudioStudioPro:React.FC=()=>{
     return { wavBuffer: wavBuf, blob, url };
   };
 
-  const handleDownloadMasterWav = async () => {
+  const handleDownloadMasterWav = async (opts: { standard?: boolean } = {}) => {
     if (!fi) return;
     setIsRenderingMaster(true);
     setMasterRenderProgress('Procesando DSP (EQ 3 Bandas + Compresor + Normalizador)...');
     try {
-      const { blob } = await renderMasteredAudio();
+      const { blob } = await renderMasteredAudio(opts);
       const baseName = (meta.title || fi.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
       const a = document.createElement('a');
       const u = URL.createObjectURL(blob);
@@ -1019,7 +1093,7 @@ const AudioStudioPro:React.FC=()=>{
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(u);
+      setTimeout(() => URL.revokeObjectURL(u), 5000); // revocarlo al instante cancelaba la descarga en algunos navegadores
       notify(`✅ Master HD WAV exportado con éxito (${fmtB(blob.size)})`);
     } catch (e: any) {
       notify(`Error al masterizar: ${e.message}`, 'err');
@@ -1433,7 +1507,7 @@ const AudioStudioPro:React.FC=()=>{
       let ab:AudioBuffer;
       try{ab=await ac.decodeAudioData(buf.slice(0));}
       catch{ab={duration:0,sampleRate:44100,numberOfChannels:2,length:0}as any;}
-      const info:AudioFileInfo={name:file.name,size:file.size,type:file.type||(file.name.endsWith('.wav')?'audio/wav':'audio/mpeg'),duration:ab.duration,sampleRate:ab.sampleRate,channels:ab.numberOfChannels,bitDepth:file.name.endsWith('.wav')?'16/24-bit PCM':'Comprimido',arrayBuffer:buf,objectUrl:url,coverArtUrl:coverUrl,coverArtBytes:coverBytes};
+      const info:AudioFileInfo={name:file.name,size:file.size,type:file.type||(file.name.endsWith('.wav')?'audio/wav':'audio/mpeg'),duration:ab.duration,sampleRate:detectNativeSampleRate(buf,ab.sampleRate),channels:ab.numberOfChannels,bitDepth:file.name.endsWith('.wav')?'16/24-bit PCM':'Comprimido',arrayBuffer:buf,objectUrl:url,coverArtUrl:coverUrl,coverArtBytes:coverBytes};
       setFi(info);
       const guess=file.name.replace(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i,'').replace(/[_-]/g,' ');
       const defaultGenre = (tags.artist === 'Juan 614') ? 'Corrido Tumbado' : 'Rap';
@@ -1974,6 +2048,61 @@ const AudioStudioPro:React.FC=()=>{
     }
   };
 
+  // Instrumental (sin voz): se suman todas las pistas menos la voz aqui mismo, sin depender de la API
+  const createInstrumental = async () => {
+    if (!aiStems || !fi) return;
+    const parts = Object.entries(aiStems).filter(([name, url]) => name !== 'vocals' && typeof url === 'string' && url.trim().startsWith('http'));
+    if (parts.length === 0) { notify('No hay pistas instrumentales para mezclar', 'err'); return; }
+    setIsMixing(true);
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ac = new AudioCtxClass();
+      const buffers: AudioBuffer[] = [];
+      for (const [, url] of parts) {
+        const res = await fetch(url as string);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        buffers.push(await ac.decodeAudioData(await res.arrayBuffer()));
+      }
+      const channels = Math.max(...buffers.map(b => b.numberOfChannels));
+      const length = Math.max(...buffers.map(b => b.length));
+      const mix = ac.createBuffer(channels, length, buffers[0].sampleRate);
+      let peak = 0;
+      for (let ch = 0; ch < channels; ch++) {
+        const out = mix.getChannelData(ch);
+        for (const b of buffers) {
+          const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
+          for (let i = 0; i < src.length; i++) out[i] += src[i];
+        }
+        for (let i = 0; i < length; i++) { const a = Math.abs(out[i]); if (a > peak) peak = a; }
+      }
+      // La suma de pistas puede pasar de 0 dBFS: se baja lo justo para quedar en -1 dBFS
+      const ceiling = Math.pow(10, -1 / 20);
+      if (peak > ceiling) {
+        const k = ceiling / peak;
+        for (let ch = 0; ch < channels; ch++) { const d = mix.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] *= k; }
+      }
+      ac.close();
+      const wav = audioBufferToWav(mix, true);
+      const covBytes = await getCoverBytes();
+      const tagged = injectId3ToWav(wav, 'Instrumental', 'instrumental', covBytes);
+      const baseName = (meta.title || fi.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
+      const blob = new Blob([tagged], { type: 'audio/wav' });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = `${baseName}_instrumental.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+      notify(`✅ Instrumental creado con ${parts.length} pistas (sin voz)`);
+    } catch (e: any) {
+      notify(`No se pudo crear el instrumental: ${e.message}`, 'err');
+    } finally {
+      setIsMixing(false);
+    }
+  };
+
   const downloadZip = async () => {
     if (!aiStems || !fi) return;
     const stemsToExport = Object.entries(aiStems).filter(([name, url]) => 
@@ -2087,7 +2216,7 @@ const AudioStudioPro:React.FC=()=>{
       setExtractStatus('Iniciando Inteligencia Artificial...');
       const repRes = await fetch('/api/separate-audio', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': localStorage.getItem('admin_password') || '' },
         body: JSON.stringify({ audioUrl: directUrl, model_name: selectedModel }),
         signal: abortControllerRef.current.signal
       });
@@ -2097,7 +2226,7 @@ const AudioStudioPro:React.FC=()=>{
       const predictionId = repData.id;
       let result = repData;
       let elapsedSec = 0;
-      const MAX_WAIT_SEC = 720;
+      const MAX_WAIT_SEC = selectedModel === 'htdemucs_ft' ? 1500 : 720; // el modelo de alta calidad tarda mas
       const POLL_INTERVAL = 5000;
 
       const statusMessages: Record<string, string> = {
@@ -2108,7 +2237,7 @@ const AudioStudioPro:React.FC=()=>{
       };
 
       while (result.status !== 'succeeded' && result.status !== 'failed') {
-        if (elapsedSec >= MAX_WAIT_SEC) throw new Error('Tiempo agotado (12 min).');
+        if (elapsedSec >= MAX_WAIT_SEC) throw new Error(`Tiempo agotado (${Math.round(MAX_WAIT_SEC / 60)} min).`);
         const mins = Math.floor(elapsedSec / 60);
         const secs = elapsedSec % 60;
         const timerStr = elapsedSec > 0 ? ` — ${mins}m ${String(secs).padStart(2,'0')}s` : '';
@@ -2117,7 +2246,7 @@ const AudioStudioPro:React.FC=()=>{
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
         elapsedSec += POLL_INTERVAL / 1000;
         try {
-          const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`, { signal: abortControllerRef.current.signal });
+          const checkRes = await fetch(`/api/separate-audio?id=${predictionId}`, { headers: { 'x-admin-password': localStorage.getItem('admin_password') || '' }, signal: abortControllerRef.current.signal });
           if (!checkRes.ok) {
             console.warn('[Demucs] Polling HTTP error:', checkRes.status);
             continue;
@@ -2146,7 +2275,7 @@ const AudioStudioPro:React.FC=()=>{
       }
 
       // Filtrar estrictamente según el modelo seleccionado y URLs válidas
-      const allowedOrder = selectedModel === 'htdemucs'
+      const allowedOrder = selectedModel !== 'htdemucs_6s'
         ? ['vocals', 'drums', 'bass', 'other']
         : ['vocals', 'drums', 'bass', 'other', 'guitar', 'piano'];
 
@@ -2162,7 +2291,7 @@ const AudioStudioPro:React.FC=()=>{
       if (Object.keys(filteredStems).length === 0) {
         for (const [key, val] of Object.entries(result.output)) {
           if (val && typeof val === 'string' && val.trim().startsWith('http')) {
-            if (selectedModel === 'htdemucs' && (key === 'guitar' || key === 'piano')) continue;
+            if (selectedModel !== 'htdemucs_6s' && (key === 'guitar' || key === 'piano')) continue;
             filteredStems[key] = val.trim();
           }
         }
@@ -3297,6 +3426,15 @@ const AudioStudioPro:React.FC=()=>{
                     <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-file-arrow-down text-lg text-amber-300'}`}></i>
                     <span>{isRenderingMaster ? 'Procesando Master...' : 'Desinfectar y Descargar WAV (1-Click)'}</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadMasterWav({ standard: true })}
+                    disabled={isRenderingMaster}
+                    title="Aplica el preset elegido (EQ, compresor, ganancia) con limitador de picos a -1 dBFS. No cambia tus metadatos ni activa el blindaje."
+                    className="sm:w-auto px-6 py-4 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <i className="fas fa-sliders"></i> Master estándar (EQ + compresor + limitador)
+                  </button>
                 </div>
               </div>
 
@@ -3745,7 +3883,7 @@ const AudioStudioPro:React.FC=()=>{
                 </p>
 
                 {/* Selector de Modelo / Número de Pistas */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-8 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-8 text-left">
                   <div 
                     onClick={() => !isExtracting && setSelectedModel('htdemucs')}
                     className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -3772,6 +3910,34 @@ const AudioStudioPro:React.FC=()=>{
                       <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-bold">Rap / Trap</span>
                       <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">Banda Sinaloense</span>
                       <span className="text-[9px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-md font-bold">Pop Latino</span>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => !isExtracting && setSelectedModel('htdemucs_ft')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'htdemucs_ft'
+                        ? 'bg-purple-600/15 border-purple-500 shadow-lg shadow-purple-950/40'
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center">4+</span>
+                        <h4 className="text-white font-bold text-sm">4 Pistas (Alta calidad)</h4>
+                      </div>
+                      <input
+                        type="radio"
+                        name="modelSelect"
+                        checked={selectedModel === 'htdemucs_ft'}
+                        onChange={() => setSelectedModel('htdemucs_ft')}
+                        className="accent-purple-500"
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">Mismas 4 pistas con un modelo afinado: separa mejor voces y bajo, pero tarda más (hasta unos 25 min).</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">Mejor calidad</span>
+                      <span className="text-[9px] bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-bold">Más lento</span>
                     </div>
                   </div>
 
@@ -3805,13 +3971,18 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
                 </div>
 
+                <p className="text-[10px] text-white/30 max-w-xl mx-auto mb-5 leading-relaxed">
+                  <i className="fas fa-circle-info mr-1.5"></i>
+                  Para separar, el audio se sube a un servidor temporal público (tmpfiles.org, se borra solo en aproximadamente una hora) y se procesa en Replicate. No subas aquí música que no quieras exponer hasta su estreno.
+                </p>
+
                 {!isExtracting ? (
                   <button 
                     onClick={extractStems} 
                     className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
                   >
                     <i className="fas fa-wand-magic-sparkles text-lg"></i>
-                    Extraer {selectedModel === 'htdemucs' ? '4 Pistas' : '6 Pistas'} Ahora
+                    Extraer {selectedModel === 'htdemucs_6s' ? '6 Pistas' : '4 Pistas'} Ahora
                   </button>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
@@ -3873,6 +4044,15 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
                   
                   <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                      onClick={createInstrumental}
+                      disabled={isMixing}
+                      title="Suma todas las pistas menos la voz y descarga el instrumental"
+                      className="flex-1 md:flex-initial px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-white/15 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <i className={`fas ${isMixing ? 'fa-spinner fa-spin' : 'fa-music'} text-sm`}></i>
+                      {isMixing ? 'Mezclando...' : 'Crear instrumental'}
+                    </button>
                     <button
                       onClick={downloadZip}
                       disabled={isZipping || Object.values(selectedStemsToZip).filter(Boolean).length === 0}
@@ -4031,6 +4211,16 @@ const AudioStudioPro:React.FC=()=>{
                 <i className={`fas ${isRenderingMaster ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'} text-lg text-amber-300`}></i>
                 {isRenderingMaster ? 'Procesando y Exportando Master...' : 'Descargar Master WAV Blindado (Listo para DistroKid)'}
               </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadMasterWav({ standard: true })}
+                    disabled={isRenderingMaster}
+                    title="Aplica el preset elegido (EQ, compresor, ganancia) con limitador de picos a -1 dBFS. No cambia tus metadatos ni activa el blindaje."
+                    className="w-full mt-3 px-6 py-4 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <i className="fas fa-sliders"></i> Master estándar (EQ + compresor + limitador)
+                  </button>
             </div>
 
             <p className="text-center text-white/20 text-[9px] mt-4 uppercase tracking-widest">El archivo se descarga en tu dispositivo</p>
