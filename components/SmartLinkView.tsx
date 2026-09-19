@@ -689,7 +689,8 @@ const SmartLinkView: React.FC = () => {
     const [otherReleases, setOtherReleases] = useState<MusicItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const { isSubscribed, subscribe, unsubscribe } = useOneSignal();
+    const { isSubscribed, subscribe, unsubscribe, permission: pushPermission, busy: pushBusy, error: pushError, sendLocalTest } = useOneSignal();
+    const [pushTestMsg, setPushTestMsg] = useState('');
     const { trackEvent } = useAnalytics();
 
     const [showQrModal, setShowQrModal] = useState(false);
@@ -1157,6 +1158,12 @@ const SmartLinkView: React.FC = () => {
     const roundBtn = `w-12 h-12 rounded-full flex items-center justify-center border transition-all text-base ${T.round}`;
     const shareUrl = getShareUrl();
 
+    const handlePushTest = async () => {
+        const ok = await sendLocalTest();
+        setPushTestMsg(ok ? 'Te enviamos una notificación de prueba. Si no la ves, revisa el modo "No molestar".' : 'No se pudo mostrar la prueba en este dispositivo.');
+        setTimeout(() => setPushTestMsg(''), 6000);
+    };
+
     return (
         <div className={`min-h-screen font-['Poppins'] relative overflow-x-hidden ${T.text} ${showStickyBar ? 'pb-24 md:pb-0' : ''}`} style={{ backgroundColor: T.bg }}>
             <style>{`
@@ -1310,23 +1317,52 @@ const SmartLinkView: React.FC = () => {
                                 )}
                             </section>
 
-                            {/* Avisos de nuevos estrenos */}
+                            {/* Avisos de nuevos estrenos: refleja el estado REAL de la suscripcion */}
                             <section className={`${card} text-center flex flex-col items-center`}>
                                 <h2 className={`${sectionTitle} justify-center`} style={{ color: T.accent }}>{T.subTitle}</h2>
-                                <button
-                                    onClick={subscribe}
-                                    className={`flex items-center gap-3 px-7 py-3.5 rounded-full border transition-all ${isSubscribed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/15 hover:bg-white/10'}`}
-                                >
-                                    <i className={`fas ${isSubscribed ? 'fa-check-circle text-green-500' : 'fa-bell'} text-lg`} style={isSubscribed ? {} : { color: T.accent }}></i>
-                                    <span className={`text-[11px] font-black uppercase tracking-widest ${T.mono} ${isSubscribed ? 'text-green-500' : 'text-white/80'}`}>
-                                        {isSubscribed ? T.subDone : T.subLabel}
-                                    </span>
-                                </button>
-                                {T.subHint && <p className="mt-4 text-[9px] font-bold uppercase tracking-widest text-white/30">{T.subHint}</p>}
-                                {isSubscribed && (
-                                    <button onClick={unsubscribe} className="mt-4 text-[9px] font-bold uppercase tracking-widest text-white/30 hover:text-red-400 transition-all underline underline-offset-4">
-                                        Darse de baja
+
+                                {pushPermission === 'unsupported' ? (
+                                    <p className="text-[12px] text-white/60 leading-relaxed max-w-xs">
+                                        Este navegador no permite avisos. En iPhone: toca Compartir → «Añadir a pantalla de inicio» y abre la app desde ahí.
+                                    </p>
+                                ) : pushPermission === 'denied' ? (
+                                    <p className="text-[12px] text-amber-200/80 leading-relaxed max-w-xs">
+                                        Tienes las notificaciones bloqueadas para este sitio. Toca el candado junto a la dirección → Notificaciones → Permitir, y recarga la página.
+                                    </p>
+                                ) : isSubscribed ? (
+                                    <>
+                                        <div className="flex items-center gap-3 px-6 py-3 rounded-full border bg-green-500/10 border-green-500/30 text-green-400">
+                                            <i className="fas fa-check-circle text-lg"></i>
+                                            <span className={`text-[11px] font-black uppercase tracking-widest ${T.mono}`}>{T.subDone}</span>
+                                        </div>
+                                        <div className="mt-4 flex flex-wrap justify-center gap-5">
+                                            <button onClick={handlePushTest} className="text-[10px] font-bold uppercase tracking-widest underline underline-offset-4 hover:text-white transition-colors" style={{ color: T.accent }}>Enviarme una prueba</button>
+                                            <button onClick={unsubscribe} disabled={pushBusy} className="text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-red-400 underline underline-offset-4 transition-colors">Darse de baja</button>
+                                        </div>
+                                        {pushTestMsg && <p className="mt-3 text-[11px] text-white/60 max-w-xs">{pushTestMsg}</p>}
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={subscribe}
+                                        disabled={pushBusy}
+                                        className="flex items-center gap-3 px-7 py-3.5 rounded-full border transition-all bg-white/5 border-white/15 hover:bg-white/10 disabled:opacity-60"
+                                    >
+                                        <i className={`fas ${pushBusy ? 'fa-spinner fa-spin' : 'fa-bell'} text-lg`} style={{ color: T.accent }}></i>
+                                        <span className={`text-[11px] font-black uppercase tracking-widest text-white/80 ${T.mono}`}>
+                                            {pushBusy ? 'Activando...' : T.subLabel}
+                                        </span>
                                     </button>
+                                )}
+
+                                {pushError && pushPermission !== 'denied' && (
+                                    <p className="mt-3 text-[11px] text-amber-200/80 max-w-xs">
+                                        {pushError === 'sdk_unavailable'
+                                            ? 'No se pudo cargar el servicio de avisos. Si tienes un bloqueador de anuncios, desactívalo para este sitio e inténtalo de nuevo.'
+                                            : 'No se pudo activar los avisos. Inténtalo de nuevo.'}
+                                    </p>
+                                )}
+                                {T.subHint && !isSubscribed && pushPermission !== 'denied' && pushPermission !== 'unsupported' && (
+                                    <p className="mt-4 text-[9px] font-bold uppercase tracking-widest text-white/30">{T.subHint}</p>
                                 )}
                             </section>
 

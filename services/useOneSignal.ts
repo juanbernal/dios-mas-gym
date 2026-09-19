@@ -1,15 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useOneSignal: manages subscription state and prompt for the admin panel
+// useOneSignal: estado real de la suscripcion a notificaciones push.
+//
+// Antes el estado se leia UNA sola vez, en cuanto existia window.OneSignal y antes de que
+// terminara su init: el SDK todavia reportaba "no suscrito" y el boton se quedaba en
+// "Avisame" aunque la persona ya estuviera suscrita. Ahora se lee cuando el SDK termina de
+// iniciar, se vuelve a leer con los eventos de cambio y se expone el permiso del navegador
+// para poder explicar por que no funciona (bloqueado, no soportado...).
 // ─────────────────────────────────────────────────────────────────────────────
+
+export type PushPermission = 'default' | 'granted' | 'denied' | 'unsupported';
 
 interface OneSignalState {
     isSupported: boolean;
     isSubscribed: boolean;
     isPushEnabled: boolean;
+    permission: PushPermission;
+    busy: boolean;
+    error: string | null;
     subscribe: () => Promise<void>;
     unsubscribe: () => Promise<void>;
+    sendLocalTest: () => Promise<boolean>;
     testNotification: () => Promise<any>;
 }
 
@@ -21,119 +33,160 @@ declare global {
     }
 }
 
+const OPTOUT_KEY = 'onesignal_user_optout';
+const SDK_TIMEOUT_MS = 8000;
+
 export function useOneSignal(): OneSignalState {
+    const isSupported = typeof window !== 'undefined' && 'PushManager' in window && 'serviceWorker' in navigator && 'Notification' in window;
     const [isSubscribed, setIsSubscribed] = useState(false);
-    const [isPushEnabled, setIsPushEnabled] = useState(false);
-    const isSupported = typeof window !== 'undefined' && 'PushManager' in window && 'serviceWorker' in navigator;
+    const [permission, setPermission] = useState<PushPermission>(isSupported ? 'default' : 'unsupported');
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const mounted = useRef(true);
 
-    const getOS = useCallback(() => window.OneSignal, []);
-
-    const refreshState = useCallback(async () => {
-        const OS = getOS();
-        
-        // Hard override local
-        const localOptOut = localStorage.getItem('onesignal_user_optout') === 'true';
-        if (localOptOut) {
-            setIsSubscribed(false);
-            setIsPushEnabled(false);
-            return;
-        }
-
-        if (!OS) return;
+    // Lee el estado real desde el SDK (ya inicializado)
+    const readState = useCallback((OS: any) => {
+        if (!mounted.current || !OS) return;
         try {
-            const subscribed = await OS.User?.PushSubscription?.optedIn ?? false;
-            setIsSubscribed(subscribed);
-            setIsPushEnabled(subscribed);
+            const native: string = OS.Notifications?.permissionNative ?? (typeof Notification !== 'undefined' ? Notification.permission : 'default');
+            setPermission(native === 'granted' || native === 'denied' ? native : 'default');
+            const optedIn = !!OS.User?.PushSubscription?.optedIn;
+            const localOptOut = localStorage.getItem(OPTOUT_KEY) === 'true';
+            setIsSubscribed(optedIn && !localOptOut);
         } catch (e) {
-            console.warn('[useOneSignal] Could not get subscription state:', e);
+            console.warn('[useOneSignal] No se pudo leer el estado:', e);
         }
-    }, [getOS]);
+    }, []);
+
+    // Ejecuta una funcion con el SDK ya cargado, con tiempo maximo de espera
+    const withSdk = useCallback((fn: (OS: any) => Promise<void>): Promise<void> => {
+        return new Promise<void>((resolve) => {
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            const timer = setTimeout(() => {
+                if (!done) { setError('sdk_unavailable'); finish(); }
+            }, SDK_TIMEOUT_MS);
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async (OS: any) => {
+                try {
+                    await fn(OS);
+                } catch (e: any) {
+                    console.error('[useOneSignal] Error:', e);
+                    setError(e?.message ? String(e.message) : 'error');
+                } finally {
+                    clearTimeout(timer);
+                    finish();
+                }
+            });
+        });
+    }, []);
 
     useEffect(() => {
+        mounted.current = true;
         if (!isSupported) return;
 
-        // Wait for OneSignal to initialize (it uses deferred queue)
-        const timer = setInterval(async () => {
-            const OS = getOS();
-            if (OS && typeof OS.User !== 'undefined') {
-                clearInterval(timer);
-                await refreshState();
-            }
-        }, 500);
+        let removeListeners: (() => void) | undefined;
+        const timers: ReturnType<typeof setTimeout>[] = [];
 
-        return () => clearInterval(timer);
-    }, [isSupported, getOS, refreshState]);
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async (OS: any) => {
+            readState(OS);
+            const onChange = () => readState(OS);
+            try {
+                OS.User?.PushSubscription?.addEventListener('change', onChange);
+                OS.Notifications?.addEventListener('permissionChange', onChange);
+                removeListeners = () => {
+                    OS.User?.PushSubscription?.removeEventListener('change', onChange);
+                    OS.Notifications?.removeEventListener('permissionChange', onChange);
+                };
+            } catch { /* el SDK no expone eventos: se usan las relecturas */ }
+            // Relecturas de respaldo: el SDK puede tardar en registrar la suscripcion existente
+            [1500, 4000, 9000].forEach(ms => timers.push(setTimeout(() => readState(window.OneSignal), ms)));
+        });
+
+        return () => {
+            mounted.current = false;
+            timers.forEach(clearTimeout);
+            removeListeners?.();
+        };
+    }, [isSupported, readState]);
 
     const subscribe = useCallback(async () => {
-        const OS = getOS();
-        localStorage.removeItem('onesignal_user_optout');
-        
-        // Feedback inmediato
-        setIsSubscribed(true);
-        setIsPushEnabled(true);
-
-        if (typeof window !== 'undefined' && window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async (OneSignal: any) => {
-                try {
-                    await OneSignal.User?.PushSubscription?.optIn();
-                    setTimeout(refreshState, 1000);
-                } catch (e) {
-                    console.error('[useOneSignal] Subscribe error:', e);
-                }
-            });
-        } else if (OS) {
-            try {
-                await OS.User?.PushSubscription?.optIn();
-                setTimeout(refreshState, 1000);
-            } catch (e) {
-                console.error('[useOneSignal] Subscribe error:', e);
+        if (!isSupported) { setPermission('unsupported'); return; }
+        setError(null);
+        setBusy(true);
+        localStorage.removeItem(OPTOUT_KEY);
+        await withSdk(async (OS) => {
+            const native = OS.Notifications?.permissionNative ?? Notification.permission;
+            if (native === 'denied') {
+                setPermission('denied');
+                return;
             }
-        }
-    }, [getOS, refreshState]);
+            // Pide el permiso del navegador de forma explicita (antes solo se llamaba a optIn y en
+            // algunos navegadores no aparecia la ventana de "Permitir notificaciones")
+            if (native !== 'granted') await OS.Notifications?.requestPermission();
+            await OS.User?.PushSubscription?.optIn();
+            readState(OS);
+            setTimeout(() => readState(OS), 1200);
+        });
+        if (mounted.current) setBusy(false);
+    }, [isSupported, withSdk, readState]);
 
     const unsubscribe = useCallback(async () => {
-        const OS = getOS();
-        // Hard override local
-        localStorage.setItem('onesignal_user_optout', 'true');
-        // Feedback inmediato
+        setError(null);
+        setBusy(true);
+        localStorage.setItem(OPTOUT_KEY, 'true');
         setIsSubscribed(false);
-        setIsPushEnabled(false);
-        
-        if (typeof window !== 'undefined' && window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async (OneSignal: any) => {
-                try {
-                    await OneSignal.User?.PushSubscription?.optOut();
-                    setTimeout(refreshState, 1500);
-                } catch (e) {
-                    console.error('[useOneSignal] Unsubscribe error:', e);
-                }
-            });
-        } else if (OS) {
-            try {
-                await OS.User?.PushSubscription?.optOut();
-                setTimeout(refreshState, 1500);
-            } catch (e) {
-                console.error('[useOneSignal] Unsubscribe error:', e);
-            }
+        await withSdk(async (OS) => {
+            await OS.User?.PushSubscription?.optOut();
+            readState(OS);
+        });
+        if (mounted.current) setBusy(false);
+    }, [withSdk, readState]);
+
+    // Notificacion local de prueba: confirma que este dispositivo puede mostrar avisos
+    const sendLocalTest = useCallback(async (): Promise<boolean> => {
+        try {
+            if (Notification.permission !== 'granted') return false;
+            const reg = (await navigator.serviceWorker.getRegistration('/')) || (await navigator.serviceWorker.ready);
+            await reg.showNotification('🔔 ¡Todo listo!', {
+                body: 'Así te avisaremos cuando haya música nueva.',
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+            } as NotificationOptions);
+            return true;
+        } catch (e) {
+            console.warn('[useOneSignal] Prueba local fallo:', e);
+            return false;
         }
-    }, [getOS, refreshState]);
+    }, []);
 
     const testNotification = useCallback(async () => {
         try {
             const res = await fetch('/api/check-releases', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'x-admin-password': localStorage.getItem('admin_password') || ''
                 },
             });
-            const data = await res.json();
-            return data;
+            return await res.json();
         } catch (e) {
             console.error('[useOneSignal] Test notification error:', e);
             throw e;
         }
     }, []);
 
-    return { isSupported, isSubscribed, isPushEnabled, subscribe, unsubscribe, testNotification };
+    return {
+        isSupported,
+        isSubscribed,
+        isPushEnabled: isSubscribed,
+        permission,
+        busy,
+        error,
+        subscribe,
+        unsubscribe,
+        sendLocalTest,
+        testNotification,
+    };
 }
