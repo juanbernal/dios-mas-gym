@@ -98,6 +98,47 @@ const toRows = (res: any): GaRow[] =>
     value: Number(r.metricValues?.[0]?.value || 0),
   }));
 
+// Consulta de smart links (vistas, clics por plataforma y origen). La usan el panel y el correo diario.
+// startDate: 'today' | 'NdaysAgo'
+export async function querySmartLinkStats(client: any, propertyId: string, startDate: string) {
+  const dateRanges = [{ startDate, endDate: 'today' }];
+  const property = `properties/${propertyId}`;
+  const linkFilter = (fieldName: string) => ({ filter: { fieldName, stringFilter: { matchType: 'BEGINS_WITH' as const, value: '/link/' } } });
+
+  const [[viewsRes], [clicksRes], [sourcesRes]] = await Promise.all([
+    client.runReport({
+      property, dateRanges,
+      dimensions: [{ name: 'pagePath' }],
+      metrics: [{ name: 'screenPageViews' }],
+      dimensionFilter: linkFilter('pagePath'),
+      limit: 500,
+    }),
+    client.runReport({
+      property, dateRanges,
+      dimensions: [{ name: 'eventName' }, { name: 'pagePath' }],
+      metrics: [{ name: 'eventCount' }],
+      dimensionFilter: {
+        andGroup: {
+          expressions: [
+            { filter: { fieldName: 'eventName', stringFilter: { matchType: 'BEGINS_WITH' as const, value: 'sl_click_' } } },
+            linkFilter('pagePath'),
+          ],
+        },
+      },
+      limit: 1000,
+    }),
+    client.runReport({
+      property, dateRanges,
+      dimensions: [{ name: 'landingPage' }, { name: 'sessionSource' }, { name: 'sessionMedium' }],
+      metrics: [{ name: 'sessions' }],
+      dimensionFilter: linkFilter('landingPage'),
+      limit: 1000,
+    }),
+  ]);
+
+  return buildSmartLinkStats(toRows(viewsRes), toRows(clicksRes), toRows(sourcesRes));
+}
+
 // Autenticacion del admin (misma variable que /api/common, sin las llaves de confianza fijas)
 export function isAdminRequest(req: any): boolean {
   const keyName = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN_PASSWORD')) || 'ADMIN_PASSWORD');
@@ -124,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (req.query.action === 'smartlinks' && !isAdminRequest(req)) {
+  if (['smartlinks', 'realtime'].includes(String(req.query.action)) && !isAdminRequest(req)) {
     return res.status(401).json({ status: 'error', message: 'No autorizado' });
   }
 
@@ -156,45 +197,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Estadisticas de Smart Links (panel de admin) ──
     if (req.query.action === 'smartlinks') {
-      const days = Math.min(Math.max(parseInt(String(req.query.days || '30'), 10) || 30, 1), 90);
-      const dateRanges = [{ startDate: `${days}daysAgo`, endDate: 'today' }];
-      const property = `properties/${propertyId}`;
-      const linkFilter = (fieldName: string) => ({ filter: { fieldName, stringFilter: { matchType: 'BEGINS_WITH' as const, value: '/link/' } } });
-
-      const [[viewsRes], [clicksRes], [sourcesRes]] = await Promise.all([
-        analyticsDataClient.runReport({
-          property, dateRanges,
-          dimensions: [{ name: 'pagePath' }],
-          metrics: [{ name: 'screenPageViews' }],
-          dimensionFilter: linkFilter('pagePath'),
-          limit: 500,
-        }),
-        analyticsDataClient.runReport({
-          property, dateRanges,
-          dimensions: [{ name: 'eventName' }, { name: 'pagePath' }],
-          metrics: [{ name: 'eventCount' }],
-          dimensionFilter: {
-            andGroup: {
-              expressions: [
-                { filter: { fieldName: 'eventName', stringFilter: { matchType: 'BEGINS_WITH' as const, value: 'sl_click_' } } },
-                linkFilter('pagePath'),
-              ],
-            },
-          },
-          limit: 1000,
-        }),
-        analyticsDataClient.runReport({
-          property, dateRanges,
-          dimensions: [{ name: 'landingPage' }, { name: 'sessionSource' }, { name: 'sessionMedium' }],
-          metrics: [{ name: 'sessions' }],
-          dimensionFilter: linkFilter('landingPage'),
-          limit: 1000,
-        }),
-      ]);
-
-      const stats = buildSmartLinkStats(toRows(viewsRes), toRows(clicksRes), toRows(sourcesRes));
+      const daysParam = parseInt(String(req.query.days ?? '30'), 10);
+      const days = Number.isNaN(daysParam) ? 30 : Math.min(Math.max(daysParam, 0), 90); // 0 = solo hoy
+      const stats = await querySmartLinkStats(analyticsDataClient, propertyId, days === 0 ? 'today' : `${days}daysAgo`);
       res.setHeader('Cache-Control', 'private, max-age=120');
       return res.status(200).json({ status: 'ok', days, ...stats });
+    }
+
+    // ── Visitantes activos ahora (tiempo real, ultimos 30 minutos) ──
+    if (req.query.action === 'realtime') {
+      const property = `properties/${propertyId}`;
+      const last30 = [{ startMinutesAgo: 29, endMinutesAgo: 0 }];
+      const last5 = [{ startMinutesAgo: 4, endMinutesAgo: 0 }];
+      const notAdmin = { notExpression: { filter: { fieldName: 'unifiedPageScreen', stringFilter: { matchType: 'BEGINS_WITH' as const, value: '/admin' } } } };
+      // Sin tu panel /admin; si Google rechazara el filtro en tiempo real se reintenta sin el
+      const rt = async (request: any): Promise<any> => {
+        try {
+          const [r] = await analyticsDataClient.runRealtimeReport({ property, ...request, dimensionFilter: notAdmin });
+          return r;
+        } catch (e: any) {
+          console.warn('[analytics] tiempo real con filtro rechazado, se reintenta sin filtro:', e?.message);
+          const [r] = await analyticsDataClient.runRealtimeReport({ property, ...request });
+          return r;
+        }
+      };
+      const total = (r: any) => parseInt(r?.rows?.[0]?.metricValues?.[0]?.value || r?.totals?.[0]?.metricValues?.[0]?.value || '0', 10);
+      const [r30, r5, pagesRes, countriesRes] = await Promise.all([
+        rt({ metrics: [{ name: 'activeUsers' }], minuteRanges: last30 }),
+        rt({ metrics: [{ name: 'activeUsers' }], minuteRanges: last5 }),
+        rt({ dimensions: [{ name: 'unifiedScreenName' }], metrics: [{ name: 'activeUsers' }], minuteRanges: last30, orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }], limit: 5 }),
+        rt({ dimensions: [{ name: 'country' }], metrics: [{ name: 'activeUsers' }], minuteRanges: last30, orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }], limit: 5 }),
+      ]);
+      const list = (r: any, clean = false) => (r?.rows || [])
+        .map((row: any) => {
+          let name: string = row.dimensionValues?.[0]?.value || '';
+          if (clean) name = name.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
+          return { name, users: parseInt(row.metricValues?.[0]?.value || '0', 10) };
+        })
+        .filter((x: any) => x.name && x.name !== '(not set)');
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.status(200).json({
+        status: 'ok',
+        activeUsers30: total(r30),
+        activeUsers5: total(r5),
+        pages: list(pagesRes, true),
+        countries: list(countriesRes),
+        generatedAt: new Date().toISOString(),
+      });
     }
 
     const scope = ['main', 'external'].includes(String(req.query.scope)) ? String(req.query.scope) : 'all';
@@ -236,7 +285,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         [statsRes],
         [deviceRes],
         [sourcesRes],
-        [countriesRes]
+        [countriesRes],
+        [hostViewsRes]
       ] = await Promise.all([
         runPublic({
           property: `properties/${propertyId}`,
@@ -297,6 +347,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           metrics: [{ name: 'activeUsers' }],
           orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
           limit: 5,
+        }),
+        // Visitas de hoy por dominio (para el desglose "dominio principal / sitios externos")
+        runPublic({
+          dateRanges: [{ startDate: 'today', endDate: 'today' }],
+          dimensions: [{ name: 'hostName' }],
+          metrics: [{ name: 'screenPageViews' }],
+          limit: 50,
         })
       ]);
 
@@ -333,6 +390,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (src === '(not set)') return null;
         return { source: src, sessions: parseInt(r.metricValues?.[0]?.value || '0', 10) };
       }).filter(Boolean) as { source: string; sessions: number }[];
+
+      // Desglose del conteo por origen: dominio principal vs sitios externos (ya sin tu panel /admin)
+      let mainViews = 0;
+      let externalViews = 0;
+      ((hostViewsRes as any)?.rows || []).forEach((r: any) => {
+        const host: string = r.dimensionValues?.[0]?.value || '';
+        const n = parseInt(r.metricValues?.[0]?.value || '0', 10);
+        if (host.includes(HOST_MAIN)) mainViews += n; else externalViews += n;
+      });
+
+      // Smart links de hoy: visitas, clics por plataforma y origen (utm)
+      let sl: any = { links: [], totals: { views: 0, clicks: 0 }, sources: [] };
+      try {
+        sl = await querySmartLinkStats(analyticsDataClient, propertyId, 'today');
+      } catch (e: any) {
+        console.warn('[analytics] smart links en el correo no disponibles:', e?.message);
+      }
+      const PLATFORM_NAMES: Record<string, string> = {
+        spotify: 'Spotify', apple_music: 'Apple Music', youtube: 'YouTube', amazon_music: 'Amazon Music',
+        tidal: 'Tidal', deezer: 'Deezer', audiomack: 'Audiomack', sitio_oficial: 'Sitio Oficial', sitio_web_oficial: 'Sitio Web Oficial',
+      };
+      const SOURCE_NAMES: Record<string, string> = {
+        whatsapp: 'WhatsApp', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok',
+        youtube: 'YouTube', x: 'X', bio: 'Link en bio', qr: 'C&oacute;digo QR', google: 'Google', bing: 'Bing',
+      };
+      const clicksByPlatform: Record<string, number> = {};
+      (sl.links || []).forEach((l: any) => Object.entries(l.clicks || {}).forEach(([k, v]: any) => { clicksByPlatform[k] = (clicksByPlatform[k] || 0) + v; }));
+      const platformRows = Object.entries(clicksByPlatform).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+      const slSourceRows = (sl.sources || []).slice(0, 5);
+      const slCtr = sl.totals.views > 0 ? Math.round((sl.totals.clicks / sl.totals.views) * 100) : 0;
 
       const todayDateFormatted = new Intl.DateTimeFormat('es-MX', {
         dateStyle: 'full',
@@ -399,6 +486,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           </td>
         </tr>
       </table>
+
+      <!-- FILTRO APLICADO: de donde salen los numeros -->
+      <div style="margin:0 0 18px;padding:12px 14px;background-color:#0b0d14;border:1px solid #202638;border-radius:10px;font-size:11px;line-height:1.7;color:#8890a0;">
+        <strong style="color:#c5a059;letter-spacing:1px;">FILTRO APLICADO</strong> &nbsp;Solo tr&aacute;fico p&uacute;blico (sin tu panel /admin) &bull; Fuente: Google Analytics<br>
+        Dominio principal: <strong style="color:#ffffff;">${mainViews}</strong> vistas &nbsp;&bull;&nbsp; Sitios externos: <strong style="color:#ffffff;">${externalViews}</strong> vistas
+      </div>
+
+      <!-- SMART LINKS: CLICS Y ORIGEN -->
+      <div class="section-title">&#128279; Smart Links Hoy</div>
+      ${
+        sl.totals.views > 0
+          ? `<table class="metrics-grid">
+              <tr>
+                <td class="metric-card"><div class="metric-val gold">${sl.totals.views}</div><div class="metric-label">Visitas</div></td>
+                <td class="metric-card"><div class="metric-val">${sl.totals.clicks}</div><div class="metric-label">Clics a plataformas</div></td>
+                <td class="metric-card"><div class="metric-val">${slCtr}%</div><div class="metric-label">Clics por visita</div></td>
+              </tr>
+            </table>
+            ${platformRows.length > 0 ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin:6px 0 6px;">Clics por plataforma</div>${platformRows.map(([k, v]: any) => `
+              <div class="list-item">
+                <div class="list-left"><div class="item-title">${PLATFORM_NAMES[k] || String(k).replace(/_/g, ' ')}</div></div>
+                <div class="list-right">${v} clics</div>
+              </div>`).join('')}` : '<p style="color:#60687a;font-size:12px;text-align:center;">A&uacute;n sin clics a plataformas hoy.</p>'}
+            ${slSourceRows.length > 0 ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8890a0;margin:14px 0 6px;">Origen de las visitas (seg&uacute;n d&oacute;nde compartiste el link)</div>${slSourceRows.map((s: any) => `
+              <div class="list-item">
+                <div class="list-left"><div class="item-title">${s.source === '(direct)' ? 'Directo / sin origen' : (SOURCE_NAMES[s.source] || s.source)}</div></div>
+                <div class="list-right">${s.sessions} sesiones</div>
+              </div>`).join('')}` : ''}`
+          : '<p style="color:#60687a;font-size:12px;text-align:center;">Sin visitas a smart links hoy todav&iacute;a.</p>'
+      }
 
       <!-- TOP CANCIONES -->
       <div class="section-title">&#127925; Canciones Mas Escuchadas Hoy</div>

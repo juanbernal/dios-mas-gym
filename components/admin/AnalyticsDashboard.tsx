@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchMusicCatalog } from '../../services/musicService';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#c5a059', '#1a2536', '#0088cc', '#00ffcc'];
@@ -128,6 +129,70 @@ const AnalyticsDashboard: React.FC = () => {
         fetchAnalytics(false, samplingFilter);
     }, [samplingFilter]);
 
+    // ── Visitantes activos ahora + Smart Links (necesitan la clave de admin) ──
+    const adminHeaders = () => ({ 'x-admin-password': localStorage.getItem('admin_password') || '' });
+    const [realtime, setRealtime] = useState<any>(null);
+    const [realtimeError, setRealtimeError] = useState('');
+    const [sl, setSl] = useState<any>(null);
+    const [slError, setSlError] = useState('');
+    const [songNames, setSongNames] = useState<Record<string, string>>({});
+
+    // Tiempo real: se actualiza cada minuto mientras la pestaña esta visible
+    useEffect(() => {
+        let stop = false;
+        const load = async () => {
+            if (document.hidden) return;
+            try {
+                const res = await fetch('/api/analytics?action=realtime', { headers: adminHeaders() });
+                const json = await res.json().catch(() => null);
+                if (stop) return;
+                if (!res.ok || json?.status !== 'ok') { setRealtimeError(json?.message || `Error ${res.status}`); return; }
+                setRealtimeError('');
+                setRealtime(json);
+            } catch (e: any) {
+                if (!stop) setRealtimeError(e?.message || 'Sin conexión');
+            }
+        };
+        load();
+        const t = setInterval(load, 60000);
+        // Al volver a la pestaña se actualiza de inmediato (en segundo plano no se consulta para no gastar cuota)
+        const onVisible = () => { if (!document.hidden) load(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { stop = true; clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+    }, []);
+
+    // Smart links: clics por plataforma y origen, segun el periodo elegido
+    useEffect(() => {
+        let stop = false;
+        const days = timeframeFilter === 'day' ? 0 : timeframeFilter === 'week' ? 7 : 30;
+        setSlError('');
+        (async () => {
+            try {
+                const res = await fetch(`/api/analytics?action=smartlinks&days=${days}`, { headers: adminHeaders() });
+                const json = await res.json().catch(() => null);
+                if (stop) return;
+                if (!res.ok || json?.status !== 'ok') { setSl(null); setSlError(json?.message || `Error ${res.status}`); return; }
+                setSl(json);
+            } catch (e: any) {
+                if (!stop) { setSl(null); setSlError(e?.message || 'Sin conexión'); }
+            }
+        })();
+        return () => { stop = true; };
+    }, [timeframeFilter]);
+
+    // Nombres de canciones para mostrar en lugar del id del smart link
+    useEffect(() => {
+        (async () => {
+            try {
+                const [a, b] = await Promise.all([fetchMusicCatalog('diosmasgym'), fetchMusicCatalog('juan614')]);
+                const map: Record<string, string> = {};
+                [...a, ...b].forEach((s: any) => { if (s?.id) map[s.id] = s.name; });
+                setSongNames(map);
+            } catch { /* se mostrara el id */ }
+        })();
+    }, []);
+
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#05070a] flex items-center justify-center">
@@ -231,6 +296,51 @@ const AnalyticsDashboard: React.FC = () => {
                             </div>
                         )}
                     </div>
+                </div>
+
+                                {/* Visitantes activos ahora (tiempo real) */}
+                <div className="mb-8 bg-[#0f111a] border border-[#00ffcc]/20 rounded-3xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-[#00ffcc]/5 rounded-full blur-[60px] pointer-events-none"></div>
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10 relative z-10">
+                        <div className="flex items-center gap-6 shrink-0">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffcc] opacity-60"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00ffcc]"></span>
+                            </span>
+                            <div>
+                                <div className="text-5xl font-black text-white leading-none">{realtime ? realtime.activeUsers30 : '—'}</div>
+                                <div className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-2">Visitantes activos ahora</div>
+                                <div className="text-[9px] text-white/30 mt-0.5">últimos 30 minutos</div>
+                            </div>
+                            <div className="pl-6 border-l border-white/10">
+                                <div className="text-3xl font-black text-[#00ffcc] leading-none">{realtime ? realtime.activeUsers5 : '—'}</div>
+                                <div className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-2">Últimos 5 min</div>
+                            </div>
+                        </div>
+                        {realtime && (realtime.pages?.length > 0 || realtime.countries?.length > 0) && (
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Viendo ahora</p>
+                                    {realtime.pages.map((p: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between gap-3 text-xs py-1">
+                                            <span className="truncate text-white/80">{p.name}</span>
+                                            <span className="text-[#00ffcc] font-mono shrink-0">{p.users}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Desde</p>
+                                    {realtime.countries.map((c: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between gap-3 text-xs py-1">
+                                            <span className="truncate text-white/80">{c.name}</span>
+                                            <span className="text-[#00ffcc] font-mono shrink-0">{c.users}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {realtimeError && <p className="mt-4 text-[10px] text-amber-300/80 relative z-10">Tiempo real no disponible: {realtimeError}</p>}
                 </div>
 
                 {/* Control de Exclusión de Visitas (Filtro de Desarrollador) */}
@@ -514,6 +624,87 @@ const AnalyticsDashboard: React.FC = () => {
                     </div>
                 </div>
 
+
+                {/* Smart Links: clics a plataformas y origen de las visitas */}
+                {(() => {
+                    const periodLabel = timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'week' ? 'Últimos 7 días' : 'Últimos 30 días';
+                    const PLATFORM_NAMES: Record<string, string> = {
+                        spotify: 'Spotify', apple_music: 'Apple Music', youtube: 'YouTube', amazon_music: 'Amazon Music',
+                        tidal: 'Tidal', deezer: 'Deezer', audiomack: 'Audiomack', sitio_oficial: 'Sitio Oficial', sitio_web_oficial: 'Sitio Web Oficial',
+                    };
+                    const SOURCE_NAMES: Record<string, string> = {
+                        whatsapp: 'WhatsApp', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', youtube: 'YouTube',
+                        x: 'X', bio: 'Link en bio', qr: 'Código QR', google: 'Google', bing: 'Bing', '(direct)': 'Directo / sin origen',
+                    };
+                    const totalsByPlatform: Record<string, number> = {};
+                    (sl?.links || []).forEach((l: any) => Object.entries(l.clicks || {}).forEach(([k, v]: any) => { totalsByPlatform[k] = (totalsByPlatform[k] || 0) + v; }));
+                    const platformRows = Object.entries(totalsByPlatform).sort((a: any, b: any) => b[1] - a[1]);
+                    const maxPlatform = Math.max(1, ...platformRows.map(r => r[1] as number));
+                    const sourceRows = (sl?.sources || []).slice(0, 6);
+                    const maxSource = Math.max(1, ...sourceRows.map((s: any) => s.sessions));
+                    const topLinks = (sl?.links || []).slice(0, 6);
+                    const ctr = sl && sl.totals.views > 0 ? Math.round((sl.totals.clicks / sl.totals.views) * 100) : 0;
+                    const bar = (label: string, value: number, max: number, unit: string) => (
+                        <div key={label} className="flex items-center gap-3 text-xs">
+                            <span className="w-28 truncate text-white/75">{label}</span>
+                            <div className="flex-1 h-2 bg-black/50 rounded-full overflow-hidden"><div className="h-full bg-[#c5a059]" style={{ width: `${(value / max) * 100}%` }}></div></div>
+                            <span className="w-16 text-right font-mono text-white/60">{value} {unit}</span>
+                        </div>
+                    );
+                    return (
+                        <div className="mt-8 bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/5 rounded-full blur-[50px] pointer-events-none"></div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/50 relative z-10 mb-6"><i className="fas fa-link mr-2 text-[#c5a059]"></i> Smart Links · {periodLabel}</p>
+
+                            {slError ? (
+                                <p className="text-amber-300/80 text-xs relative z-10">Estadísticas de smart links no disponibles: {slError}</p>
+                            ) : !sl ? (
+                                <p className="text-white/40 text-xs relative z-10">Consultando...</p>
+                            ) : sl.totals.views === 0 && sl.totals.clicks === 0 ? (
+                                <p className="text-white/40 text-xs relative z-10">Aún no hay visitas a smart links en este periodo.</p>
+                            ) : (
+                                <div className="relative z-10 space-y-8">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[
+                                            { label: 'Visitas', value: sl.totals.views },
+                                            { label: 'Clics a plataformas', value: sl.totals.clicks },
+                                            { label: 'Clics por visita', value: `${ctr}%` },
+                                        ].map(k => (
+                                            <div key={k.label} className="bg-black/30 border border-white/5 rounded-2xl p-5 text-center">
+                                                <div className="text-3xl font-black text-white">{k.value}</div>
+                                                <div className="text-[9px] uppercase tracking-widest text-white/40 mt-1">{k.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        <div className="space-y-3">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Clics por plataforma</p>
+                                            {platformRows.length === 0
+                                                ? <p className="text-white/30 text-xs">Sin clics todavía.</p>
+                                                : platformRows.map(([k, v]: any) => bar(PLATFORM_NAMES[k] || String(k).replace(/_/g, ' '), v, maxPlatform, 'clics'))}
+                                        </div>
+                                        <div className="space-y-3">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Origen de las visitas</p>
+                                            {sourceRows.length === 0
+                                                ? <p className="text-white/30 text-xs">Sin datos de origen.</p>
+                                                : sourceRows.map((s: any) => bar(SOURCE_NAMES[s.source] || s.source, s.sessions, maxSource, 'ses.'))}
+                                            <p className="text-[9px] text-white/25 leading-relaxed pt-1">El origen sale de dónde copiaste el link en Smart Links (WhatsApp, Instagram…). Los links copiados sin origen cuentan como "Directo".</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Enlaces más visitados</p>
+                                            {topLinks.map((l: any) => (
+                                                <div key={l.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-black/30 border border-white/5">
+                                                    <span className="text-xs text-white/80 truncate">{songNames[l.id] || l.id}</span>
+                                                    <span className="text-[10px] font-mono text-white/50 shrink-0">{l.views} <i className="fas fa-eye text-[8px]"></i> · {l.totalClicks} <i className="fas fa-mouse-pointer text-[8px]"></i></span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );
