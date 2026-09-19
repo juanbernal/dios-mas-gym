@@ -16,6 +16,43 @@ interface LyricItem {
 
 const SYNC_SECRET = "DMG_SYNC_2026";
 
+// ── Prueba de autoria: fecha original + historial de versiones que solo crece ──
+const AUTH_KEY = 'lyric_authorship_v1';
+const TRASH_KEY = 'lyric_trash_v1';
+const MAX_VERSIONS = 25;
+
+interface AuthVersion { at: string; sha256: string; length: number; content: string; }
+interface AuthEntry { title: string; artist: string; firstSeenAt: string; versions: AuthVersion[]; }
+type AuthStore = Record<string, AuthEntry>;
+
+const sha256Hex = async (text: string): Promise<string> => {
+    const data = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+const authKey = (artist: string, title: string) => `${(artist || '').trim().toLowerCase()}|${(title || '').trim().toLowerCase()}`;
+const validIso = (d?: string) => { const t = d ? new Date(d).getTime() : NaN; return isNaN(t) ? '' : new Date(t).toISOString(); };
+
+const readAuthStore = (): AuthStore => {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || '{}') || {}; } catch { return {}; }
+};
+const writeAuthStore = (store: AuthStore) => {
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(store)); } catch { /* sin espacio: se sigue sin historial */ }
+};
+
+// Fecha en que se escribio por primera vez: nunca se sobrescribe con una mas nueva
+const getFirstDate = (title: string, artist: string, fallback?: string): string => {
+    const entry = readAuthStore()[authKey(artist, title)];
+    const candidates = [entry?.firstSeenAt, validIso(fallback)].filter(Boolean) as string[];
+    if (candidates.length === 0) return new Date().toISOString();
+    return candidates.sort()[0];
+};
+
+const readTrash = (): any[] => {
+    try { return JSON.parse(localStorage.getItem(TRASH_KEY) || '[]') || []; } catch { return []; }
+};
+
 const LyricsManager: React.FC = () => {
     const navigate = useNavigate();
     const [lyrics, setLyrics] = useState<LyricItem[]>([]);
@@ -24,6 +61,7 @@ const LyricsManager: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
     const [sheetsSyncUrl, setSheetsSyncUrl] = useState(localStorage.getItem('lyrics_sheets_sync_url') || "/api/sheet-proxy?script=lyrics");
     const [showSheetsConfig, setShowSheetsConfig] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'editor'>('list'); // Mobile view toggle
@@ -61,6 +99,105 @@ const LyricsManager: React.FC = () => {
             setViewMode('editor');
         }
     }, [selectedLyric]);
+
+    const plainText = (html: string) => {
+        const tmp = document.createElement('DIV');
+        tmp.innerHTML = DOMPurify.sanitize(html || '');
+        return (tmp.textContent || '').replace(/\r\n/g, '\n');
+    };
+
+    // Guarda una version nueva solo si el texto cambio. Nunca borra ni reescribe versiones anteriores.
+    const recordVersions = async (list: { title: string; artist: string; content: string; date?: string }[]) => {
+        try {
+            const store = readAuthStore();
+            let changed = false;
+            for (const l of list) {
+                const text = plainText(l.content);
+                if (!text.trim() || !l.title) continue;
+                const key = authKey(l.artist, l.title);
+                const hash = await sha256Hex(text);
+                const entry = store[key] || { title: l.title, artist: l.artist, firstSeenAt: validIso(l.date) || new Date().toISOString(), versions: [] };
+                const last = entry.versions[entry.versions.length - 1];
+                if (!last || last.sha256 !== hash) {
+                    entry.versions.push({ at: new Date().toISOString(), sha256: hash, length: text.length, content: text });
+                    if (entry.versions.length > MAX_VERSIONS) entry.versions.splice(1, entry.versions.length - MAX_VERSIONS); // conserva siempre la primera
+                    changed = true;
+                }
+                if (!store[key]) changed = true;
+                store[key] = entry;
+            }
+            if (changed) writeAuthStore(store);
+        } catch (e) { console.warn('No se pudo registrar el historial de autoría', e); }
+    };
+
+    const handleAuthorshipBackup = async () => {
+        if (isBackingUp) return;
+        if (!window.crypto?.subtle) { showNotification('❌ El navegador no permite calcular huellas (usa HTTPS)'); return; }
+        setIsBackingUp(true);
+        try {
+            await recordVersions(lyrics);
+            const store = readAuthStore();
+            const { default: JSZip } = await import('jszip');
+            const zip = new JSZip();
+            const safe = (s: string) => (s || 'sin-titulo').replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim().slice(0, 80) || 'sin-titulo';
+            const used = new Set<string>();
+            const uniq = (base: string) => { let n = base, i = 2; while (used.has(n.toLowerCase())) n = `${base} (${i++})`; used.add(n.toLowerCase()); return n; };
+
+            const items: any[] = [];
+            for (const l of lyrics) {
+                const text = plainText(l.content);
+                if (!text.trim()) continue;
+                const entry = store[authKey(l.artist, l.title)];
+                const name = uniq(`${safe(l.artist)} - ${safe(l.title)}`);
+                zip.file(`letras/${name}.txt`, text);
+                const versions = (entry?.versions || []).map((v, i) => ({ version: i + 1, guardadaEn: v.at, sha256: v.sha256, caracteres: v.length }));
+                if (entry && entry.versions.length > 1) {
+                    entry.versions.slice(0, -1).forEach((v, i) => zip.file(`versiones/${name}/v${i + 1}_${v.at.replace(/[:.]/g, '-')}.txt`, v.content));
+                }
+                items.push({
+                    titulo: l.title,
+                    artista: l.artist,
+                    archivo: `letras/${name}.txt`,
+                    fechaPrimeraEscritura: entry?.firstSeenAt || validIso(l.date) || null,
+                    estado: l.status,
+                    caracteres: text.length,
+                    sha256: await sha256Hex(text),
+                    historial: versions
+                });
+            }
+
+            const trash = readTrash();
+            trash.forEach((t, i) => zip.file(`papelera/${uniq(`${safe(t.artist)} - ${safe(t.title)}`)}_${i + 1}.txt`, plainText(t.content || '')));
+
+            const manifest = {
+                proyecto: 'Dios Más Gym - Gestor de Letras',
+                generadoEn: new Date().toISOString(),
+                totalLetras: items.length,
+                nota: 'sha256 = huella SHA-256 del texto plano (UTF-8) de cada archivo .txt. Si el texto cambia una sola letra, la huella cambia.',
+                letras: items,
+                enPapelera: trash.map(t => ({ titulo: t.title, artista: t.artist, eliminadaEn: t.deletedAt }))
+            };
+            const manifestText = JSON.stringify(manifest, null, 2);
+            const manifestHash = await sha256Hex(manifestText);
+            zip.file('manifiesto.json', manifestText);
+            zip.file('manifiesto.sha256.txt', `${manifestHash}  manifiesto.json\n\nSella esta huella en https://opentimestamps.org para tener una fecha verificable.\n`);
+
+            const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `respaldo-autoria-letras_${new Date().toISOString().slice(0, 10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            showNotification(`✅ Respaldo listo: ${items.length} letras · huella ${manifestHash.slice(0, 10)}…`);
+        } catch (e: any) {
+            showNotification('❌ No se pudo crear el respaldo: ' + (e?.message || e));
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
 
     const loadAllLyrics = async () => {
         setLoading(true);
@@ -168,6 +305,7 @@ const LyricsManager: React.FC = () => {
             }
 
             setLyrics(combinedAll);
+            recordVersions(combinedAll);
         } catch (e) {
             console.error("Error loading lyrics", e);
             showNotification("❌ Error al cargar letras");
@@ -257,8 +395,9 @@ const LyricsManager: React.FC = () => {
             artist: selectedLyric.artist,
             content: selectedLyric.content,
             sync: "", // sync data placeholder
-            date: new Date().toISOString()
+            date: getFirstDate(selectedLyric.title, selectedLyric.artist, selectedLyric.date)
         };
+        recordVersions([selectedLyric]);
 
         if (existingIdx >= 0) local[existingIdx] = draftData;
         else local.unshift(draftData);
@@ -294,10 +433,10 @@ const LyricsManager: React.FC = () => {
                 secret: SYNC_SECRET,
                 title: selectedLyric.title,
                 artist: selectedLyric.artist,
-                date: new Date().toISOString()
+                date: getFirstDate(selectedLyric.title, selectedLyric.artist, selectedLyric.date)
                 // Content is not included in query string to avoid length limits
             }).toString();
-            await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+            const saveRes = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -308,10 +447,23 @@ const LyricsManager: React.FC = () => {
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
-                    date: new Date().toISOString()
+                    date: getFirstDate(selectedLyric.title, selectedLyric.artist, selectedLyric.date)
                 })
             });
-            
+
+            // Confirmacion real: la respuesta debe ser correcta y no traer un error del script
+            if (!saveRes.ok) throw new Error(`el servidor respondió ${saveRes.status}`);
+            const rawBody = await saveRes.text();
+            let body: any = null;
+            try { body = JSON.parse(rawBody); } catch { /* respuesta de texto */ }
+            if (body && (body.error || body.success === false || body.status === 'error')) {
+                throw new Error(String(body.error || body.message || 'el script rechazó el guardado'));
+            }
+            if (!body && /error|unauthorized|no autorizado/i.test(rawBody.slice(0, 300))) {
+                throw new Error(rawBody.slice(0, 120));
+            }
+            recordVersions([selectedLyric]);
+
             showNotification("✅ Sincronizado con Google Sheets");
             setSavedSignature(getSignature(selectedLyric));
             
@@ -332,6 +484,13 @@ const LyricsManager: React.FC = () => {
         if (!sheetsSyncUrl) return;
         if (!confirm(`¿Estás seguro de que quieres eliminar "${lyric.title}" de la nube?`)) return;
         
+        // Copia de seguridad antes de borrar: queda en la papelera local y en el ZIP de respaldo
+        try {
+            const trash = readTrash();
+            trash.unshift({ title: lyric.title, artist: lyric.artist, content: lyric.content, date: lyric.date, deletedAt: new Date().toISOString() });
+            localStorage.setItem(TRASH_KEY, JSON.stringify(trash.slice(0, 200)));
+        } catch { /* sin espacio */ }
+
         setIsSaving(true);
         try {
             const queryString = new URLSearchParams({
@@ -353,7 +512,7 @@ const LyricsManager: React.FC = () => {
             });
             
             if (res.ok) {
-                showNotification("✅ Eliminado de la nube");
+                showNotification("✅ Eliminado de la nube (copia guardada en la papelera del respaldo)");
                 setLyrics(prev => prev.filter(l => l.id !== lyric.id));
                 if (selectedLyric?.id === lyric.id) setSelectedLyric(null);
             } else {
@@ -382,12 +541,13 @@ const LyricsManager: React.FC = () => {
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
-                    date: new Date().toISOString(),
+                    date: getFirstDate(selectedLyric.title, selectedLyric.artist, selectedLyric.date),
                     status: 'LIVE'
                 })
             });
 
             if (res.ok) {
+                recordVersions([selectedLyric]);
                 showNotification("✅ Letra guardada en la web e indexable para Google");
                 const newItem: LyricItem = { ...selectedLyric, status: 'LIVE' };
                 setLyrics(prev => [newItem, ...prev.filter(l => l.id !== selectedLyric.id && l.title !== selectedLyric.title)]);
@@ -692,6 +852,16 @@ ${cleanedLyrics}`;
                                 title="Actualizar todo"
                             >
                                 <i className={`fas fa-rotate ${loading ? 'fa-spin' : ''}`}></i>
+                            </button>
+
+                            <button
+                                onClick={handleAuthorshipBackup}
+                                disabled={isBackingUp || loading}
+                                className={`px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-600/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase tracking-widest rounded-full hover:from-emerald-500 hover:to-teal-600 hover:text-black transition-all flex items-center gap-2 ${isBackingUp ? 'opacity-50' : ''}`}
+                                title="Descarga un ZIP con todas tus letras, fecha original y huella SHA-256 como prueba de autoría"
+                            >
+                                <i className={`fas ${isBackingUp ? 'fa-spinner fa-spin' : 'fa-shield-halved'}`}></i>
+                                <span className="hidden md:inline">Respaldo de autoría</span>
                             </button>
 
                             <button 
