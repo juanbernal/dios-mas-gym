@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
-import { generateLyricStyle } from "../../services/geminiService";
 
 const brandingData = {
   none: { name: "", link: "" },
@@ -76,8 +75,6 @@ const LyricStudio: React.FC = () => {
   const [lyricsYPosition, setLyricsYPosition] = useState<"center" | "top" | "bottom">("center");
   const [karaokeMode, setKaraokeMode] = useState(false);
   const [outroImageIndex, setOutroImageIndex] = useState(0); // 0 o 1 para los dos estilos de outro
-  const [isGeneratingStyle, setIsGeneratingStyle] = useState(false);
-  const [imagePromptStatus, setImagePromptStatus] = useState<string>("");
   const [savedDrafts, setSavedDrafts] = useState<{name: string, content: string, sync: string, date: string}[]>([]);
   const [draftName, setDraftName] = useState("");
   const [bloggerDrafts, setBloggerDrafts] = useState<any[]>([]);
@@ -1468,42 +1465,6 @@ const LyricStudio: React.FC = () => {
     setLyricsInput(prev => prev + `${time} | [SILENCIO]\n`);
   };
 
-  const handleMagicDesign = async () => {
-      const lyricsToSend = rawLyrics.trim() || lyricsInput.trim();
-      if (!lyricsToSend) {
-          alert("Por favor pega o escribe la letra primero para que la IA se base en ella.");
-          return;
-      }
-      setIsGeneratingStyle(true);
-      try {
-          const config = await generateLyricStyle(lyricsToSend);
-          if (config) {
-              if (config.visualizerStyle) setVisualizerStyle(config.visualizerStyle);
-              if (config.vibe) setVibe(config.vibe);
-              if (config.emojiPack) setEmojiPack(config.emojiPack);
-              if (config.animationStyle) setAnimationStyle(config.animationStyle);
-              if (config.sensitivity !== undefined) setSensitivity(config.sensitivity);
-              if (config.fontSize) setFontSize(config.fontSize);
-              if (config.textColor) setTextColor(config.textColor);
-              if (config.glowToggle !== undefined) setGlowToggle(config.glowToggle);
-              if (config.leakToggle !== undefined) setLeakToggle(config.leakToggle);
-              if (config.vhsMode !== undefined) setVhsMode(config.vhsMode);
-
-              if (config.imagePrompt) {
-                  setImagePromptStatus("Pintando fondo con IA...");
-                  const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(config.imagePrompt)}?width=720&height=1280&nologo=true`;
-                  imgRef.current.crossOrigin = "anonymous";
-                  imgRef.current.src = imgUrl;
-              }
-          }
-      } catch (error) {
-          console.error("Failed to generate magic design", error);
-          alert("Hubo un error al generar el diseño con IA.");
-      } finally {
-          setIsGeneratingStyle(false);
-      }
-  };
-
   return (
     <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-[#030305] text-white relative overflow-hidden" style={{ fontFamily: "'Poppins', sans-serif" }}>
       {/* Decorative ambient glowing lights */}
@@ -1893,25 +1854,8 @@ const LyricStudio: React.FC = () => {
           <div className="mb-8 p-6 bg-[#12121e]/30 backdrop-blur-md border border-[#c5a059]/10 rounded-3xl relative overflow-hidden group hover:border-[#c5a059]/20 transition-all duration-300">
               <div className="flex items-center justify-between mb-5">
                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c5a059]">3. Estética Pro</span>
-                  <button 
-                      onClick={handleMagicDesign}
-                      disabled={isGeneratingStyle}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white rounded-full text-[8px] font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
-                  >
-                      {isGeneratingStyle ? (
-                          <><i className="fas fa-spinner fa-spin"></i> Magia...</>
-                      ) : (
-                          <><i className="fas fa-wand-magic-sparkles"></i> Diseño IA</>
-                      )}
-                  </button>
               </div>
-              
-              {imagePromptStatus && (
-                  <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center gap-3 animate-pulse text-[8px] font-black uppercase tracking-widest text-purple-400">
-                      <i className="fas fa-palette"></i> {imagePromptStatus}
-                  </div>
-              )}
-              
+
               <div className="mb-4 p-3.5 bg-black/20 rounded-2xl border border-white/5">
                   <label className="text-[8px] text-[#c5a059] uppercase font-black tracking-widest mb-2 block">Estilo del Visualizador</label>
                   <div className="grid grid-cols-2 gap-2">

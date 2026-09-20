@@ -86,22 +86,3 @@ export const generateSocialPost = async (content: string) => {
         throw error;
     }
 };
-
-export const generateLyricStyle = async (lyrics: string) => {
-    try {
-        const response = await fetch('/api/generate-lyric-style', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-admin-password': localStorage.getItem('admin_password') || ''
-            },
-            body: JSON.stringify({ lyrics })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Error generando estilo');
-        return data;
-    } catch (error) {
-        console.error("Error in generateLyricStyle:", error);
-        throw error;
-    }
-};
