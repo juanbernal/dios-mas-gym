@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchVerse } from '../services/bibleService';
 import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
@@ -9,28 +10,35 @@ interface HeroProps {
   onAleatorio: () => void;
 }
 
-const VERSES = [
-  { 
-    t: "MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.", 
-    r: "JOSUÉ 1:9",
-    m: "Cada repetición, cada gota de sudor, es una prueba de tu valentía." 
-  },
-  { 
-    t: "TODO LO PUEDO EN CRISTO QUE ME FORTALECE.", 
-    r: "FILIPENSES 4:13",
-    m: "Cuando tu cuerpo diga 'no puedo más', tu fe dirá 'una más'." 
-  },
-  { 
-    t: "NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.", 
-    r: "ISAÍAS 41:10",
-    m: "Tu fuerza no viene solo del músculo, viene del Espíritu." 
-  },
-  { 
-    t: "JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?", 
-    r: "SALMOS 27:1",
-    m: "Ninguna barrera es indestructible cuando caminas en la luz." 
-  }
+// Versículo del día: uno por fecha, igual para todos. El texto se pide a la API de la Biblia;
+// los 4 primeros llevan respaldo local por si la API no responde.
+interface DailyVerse { book: number; ch: number; v: number; r: string; m: string; t?: string }
+
+const DAILY: DailyVerse[] = [
+  { book: 6, ch: 1, v: 9, r: 'JOSUÉ 1:9', m: 'Cada repetición, cada gota de sudor, es una prueba de tu valentía.', t: 'MIRA QUE TE MANDO QUE TE ESFUERCES Y SEAS VALIENTE; NO TEMAS NI DESMAYES.' },
+  { book: 50, ch: 4, v: 13, r: 'FILIPENSES 4:13', m: "Cuando tu cuerpo diga 'no puedo más', tu fe dirá 'una más'.", t: 'TODO LO PUEDO EN CRISTO QUE ME FORTALECE.' },
+  { book: 23, ch: 41, v: 10, r: 'ISAÍAS 41:10', m: 'Tu fuerza no viene solo del músculo, viene del Espíritu.', t: 'NO TEMAS, PORQUE YO ESTOY CONTIGO; NO DESMAYES, PORQUE YO SOY TU DIOS.' },
+  { book: 19, ch: 27, v: 1, r: 'SALMOS 27:1', m: 'Ninguna barrera es indestructible cuando caminas en la luz.', t: 'JEHOVÁ ES MI LUZ Y MI SALVACIÓN; ¿DE QUIÉN TEMERÉ?' },
+  { book: 23, ch: 40, v: 31, r: 'ISAÍAS 40:31', m: 'El cansancio es temporal; la fuerza que viene de Dios se renueva cada día.' },
+  { book: 55, ch: 1, v: 7, r: '2 TIMOTEO 1:7', m: 'No entrenas desde el miedo: entrenas con poder, amor y dominio propio.' },
+  { book: 20, ch: 3, v: 5, r: 'PROVERBIOS 3:5', m: 'Confía en el plan, aunque hoy el peso se sienta más pesado.' },
+  { book: 45, ch: 8, v: 31, r: 'ROMANOS 8:31', m: 'Si Dios va contigo al frente, ningún día es una batalla perdida.' },
+  { book: 49, ch: 6, v: 10, r: 'EFESIOS 6:10', m: 'Fortalécete por dentro: el gimnasio del alma también se entrena.' },
+  { book: 46, ch: 16, v: 13, r: '1 CORINTIOS 16:13', m: 'Vela, permanece firme, sé valiente. Ese es el entrenamiento de hoy.' },
+  { book: 19, ch: 46, v: 1, r: 'SALMOS 46:1', m: 'Cuando todo tiembla, hay un refugio que no se mueve.' },
+  { book: 43, ch: 16, v: 33, r: 'JUAN 16:33', m: 'Habrá aflicción, pero la victoria ya está ganada.' },
+  { book: 48, ch: 6, v: 9, r: 'GÁLATAS 6:9', m: 'No te rindas a mitad del camino: la cosecha llega a su tiempo.' },
+  { book: 51, ch: 3, v: 23, r: 'COLOSENSES 3:23', m: 'Hazlo todo como para el Señor: en el gym, en casa y en la calle.' },
+  { book: 47, ch: 12, v: 9, r: '2 CORINTIOS 12:9', m: 'Tu debilidad no te descalifica: ahí es donde se nota su poder.' },
+  { book: 5, ch: 31, v: 6, r: 'DEUTERONOMIO 31:6', m: 'Sé fuerte y valiente: no caminas solo.' },
+  { book: 19, ch: 18, v: 32, r: 'SALMOS 18:32', m: 'Dios es quien te arma de fuerza; tú pon el esfuerzo.' },
+  { book: 54, ch: 4, v: 8, r: '1 TIMOTEO 4:8', m: 'El ejercicio del cuerpo es bueno, pero la piedad es para todo.' },
+  { book: 59, ch: 4, v: 7, r: 'SANTIAGO 4:7', m: 'Someteos a Dios y resistid: la disciplina también es espiritual.' },
+  { book: 40, ch: 11, v: 28, r: 'MATEO 11:28', m: 'Descansar en Él también es parte del entrenamiento.' },
 ];
+
+// Índice estable por día (misma fecha local = mismo versículo para todos)
+const dayIndex = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000) % DAILY.length;
 
 const scrollToSection = (sectionId: string) => {
   const el = document.querySelector(sectionId);
@@ -39,24 +47,26 @@ const scrollToSection = (sectionId: string) => {
 
 const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySong, onEntrenar, onAleatorio }) => {
   const navigate = useNavigate();
-  const [verseIndex, setVerseIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const today = DAILY[dayIndex()];
+  const [apiText, setApiText] = useState<string | null>(null);
 
   useEffect(() => {
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          setVerseIndex(i => (i + 1) % VERSES.length);
-          return 0;
-        }
-        return p + 1.25; // 100/8000ms * 100ms interval
-      });
-    }, 100);
-    return () => clearInterval(interval);
-  }, [verseIndex]);
+    let cancelled = false;
+    setApiText(null);
+    if (today.t) return; // ya tiene su texto guardado
+    fetchVerse(today.book, today.ch, today.v)
+      .then(text => { if (!cancelled && text) setApiText(text); })
+      .catch(() => { /* sin API se usa el respaldo local */ });
+    return () => { cancelled = true; };
+  }, [today.book, today.ch, today.v]);
 
-  const verse = VERSES[verseIndex];
+  // Respaldo local si la API falla y este versículo no lo trae guardado
+  const fallback = DAILY.find(d => d.t) as DailyVerse;
+  const verse = {
+    t: (apiText ? apiText.toUpperCase() : (today.t || fallback.t)) as string,
+    r: apiText || today.t ? today.r : fallback.r,
+    m: apiText || today.t ? today.m : fallback.m,
+  };
 
   // Ultimo estreno real del catalogo (el mas reciente con portada y enlace)
   const latest = React.useMemo(() => {
@@ -214,41 +224,14 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                   {verse.m}
                 </p>
 
-                {/* Reference + progress */}
+                {/* Reference */}
                 <div className="flex items-center justify-between">
                   <span className="label-tag px-4 py-2" style={{ background: 'rgba(37,99,168,0.15)', color: '#7eb8f7', borderRadius: '2px', border: '1px solid rgba(37,99,168,0.3)' }}>
                     {verse.r}
                   </span>
-                  {/* Los indicadores median 6x6 px y no tenian nombre accesible:
-                      ahora llevan etiqueta y un area pulsable de 44 px de alto. */}
-                  <div className="flex gap-1">
-                    {VERSES.map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setVerseIndex(i)}
-                        aria-label={`Ver versículo ${i + 1} de ${VERSES.length}`}
-                        aria-current={i === verseIndex}
-                        className="transition-all relative after:content-[''] after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:min-w-[24px]"
-                        style={{
-                          width: i === verseIndex ? '24px' : '6px',
-                          height: '6px',
-                          borderRadius: '3px',
-                          background: i === verseIndex ? '#2563a8' : 'rgba(37,99,168,0.25)',
-                          border: 'none',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="mt-4 h-[2px] w-full" style={{ background: 'rgba(37,99,168,0.15)' }}>
-                  <div
-                    className="h-full transition-none"
-                    style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #2563a8, #4a90d9)' }}
-                  />
+                  <span className="label-tag" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>
+                    Versículo de hoy
+                  </span>
                 </div>
               </div>
 

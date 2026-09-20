@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MusicItem } from '../types';
+import { BOOK_NR, fetchChapter } from '../services/bibleService';
 
 interface TemploGuerreroProps {
   catalog: MusicItem[];
@@ -179,18 +180,17 @@ const TemploGuerrero: React.FC<TemploGuerreroProps> = ({ catalog, onPlaySong }) 
       if (!bookData) continue;
 
       const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
-      const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
+      const bookNr = BOOK_NR[bookData.apiName];
+      if (!bookNr) continue;
 
       try {
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
-          const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
+        const verses = await fetchChapter(bookNr, randomChapter);
+        if (verses.length > 0) {
+          const randomVerseObj = verses[Math.floor(Math.random() * verses.length)];
           const citationCandidate = `${bookData.prettyName.toUpperCase()} ${randomChapter}:${randomVerseObj.number}`;
-          
+
           if (!verseHistory.includes(citationCandidate) || attempts === 5) {
-            selectedVerseText = randomVerseObj.verse;
+            selectedVerseText = randomVerseObj.text;
             selectedCitation = citationCandidate;
             success = true;
           }
