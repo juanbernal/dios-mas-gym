@@ -255,9 +255,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     return hiddenGems[day % hiddenGems.length];
   }, [hiddenGems]);
 
-  // 2. Music Videos
-  const musicVideos = catalog.filter(s => s.url && s.url.includes("youtube")).slice(4, 8);
-
   // 3. Playlists / Curated
   const playlists = [
     {
@@ -282,53 +279,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
   return (
     <div className="home-sections flex flex-col gap-0 mb-0 overflow-hidden">
-      {/* VIDEOCLIPS OFICIALES — corrido tumbado */}
-      {musicVideos.length > 0 && (
-        <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a]">
-          <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-transparent via-red-600/30 to-transparent"></div>
-          <div className="absolute -left-40 bottom-0 w-[500px] h-[500px] bg-red-900/5 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="max-w-[1400px] mx-auto px-8 md:px-16">
-            <div className="flex items-end gap-6 mb-12">
-              <div className="relative">
-                <div className="absolute -inset-2 bg-red-600/10 rounded-lg -skew-x-3"></div>
-                <h2 className="relative font-serif italic text-5xl md:text-7xl text-white leading-none">
-                  Videoclips <span className="text-red-500">Oficiales</span>
-                </h2>
-              </div>
-              <div className="pb-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] text-white/30">
-                <span className="w-8 h-px bg-white/20"></span>
-                <i className="fab fa-youtube text-red-500 text-base"></i>
-              </div>
-            </div>
-
-            <div className="flex md:grid md:grid-cols-2 gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 pb-2 md:pb-0 md:overflow-visible">
-              {musicVideos.map((video, idx) => (
-                <a
-                  key={idx}
-                  href={video.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`group relative rounded-3xl overflow-hidden border border-white/5 hover:border-red-500/30 transition-colors bg-[#0a0c14] shrink-0 w-[82%] snap-center md:w-auto ${idx === 0 ? 'md:row-span-2 aspect-video md:aspect-auto md:min-h-[400px]' : 'aspect-video'}`}
-                >
-                  <img loading="lazy" src={video.cover} alt={video.name} className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-55 group-hover:scale-105 transition-all duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className={`rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_40px_rgba(220,38,38,0.6)] group-hover:scale-110 group-hover:shadow-[0_0_60px_rgba(220,38,38,0.8)] transition-all duration-300 ${idx === 0 ? 'w-20 h-20 text-3xl' : 'w-14 h-14 text-xl'}`}>
-                      <i className="fab fa-youtube"></i>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
-                    <h4 className={`font-serif italic text-white truncate group-hover:text-red-400 transition-colors ${idx === 0 ? 'text-2xl md:text-3xl' : 'text-xl'}`}>{video.name}</h4>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-1">{video.artist}</p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* TOP DE LA SEMANA — estilo ranking con scroll horizontal */}
       <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a]">
         <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-[#4a90d9] via-[#4a90d9]/40 to-transparent"></div>
