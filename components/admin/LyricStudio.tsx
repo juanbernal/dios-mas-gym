@@ -42,7 +42,9 @@ const smoothNoise = (t: number) => {
 
 const LyricStudio: React.FC = () => {
   const navigate = useNavigate();
-  const [apiKey, setApiKey] = useState("");
+  const [audioName, setAudioName] = useState("");
+  const exportCancelRef = useRef(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1211,7 +1213,7 @@ const LyricStudio: React.FC = () => {
       ctx.restore();
     }
 
-    // 4. Capa Dinámica de Grano de Película Real & Vignette (Bypass Anti-IA)
+    // 4. Capa Dinámica de Grano de Película & Vignette (estilo visual)
     drawFilmGrain(ctx, cw, ch);
     drawGlobalVignette(ctx, cw, ch);
   };
@@ -1294,6 +1296,7 @@ const LyricStudio: React.FC = () => {
     const file = e.target.files?.[0];
     if (file && audioRef.current) {
       audioRef.current.src = URL.createObjectURL(file);
+      setAudioName(file.name.replace(/\.[^.]+$/, ''));
     }
   };
 
@@ -1314,76 +1317,47 @@ const LyricStudio: React.FC = () => {
     
     stream.addTrack(audioStreamDest.stream.getAudioTracks()[0]);
 
-    // Anti-AI Spectrogram Microphone Emulation Injection
-    let antiAiNoiseInstance: any = null;
-    try {
-        const bufferSize = 2 * audioCtxRef.current!.sampleRate;
-        const noiseBuffer = audioCtxRef.current!.createBuffer(1, bufferSize, audioCtxRef.current!.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            // White noise (microscopic fluctuation)
-            output[i] = (Math.random() * 2 - 1) * 0.00008; 
-        }
-        
-        const whiteNoiseSource = audioCtxRef.current!.createBufferSource();
-        whiteNoiseSource.buffer = noiseBuffer;
-        whiteNoiseSource.loop = true;
-        
-        const noiseFilter = audioCtxRef.current!.createBiquadFilter();
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.value = 10000;
-        noiseFilter.Q.value = 0.5;
-        
-        const noiseGain = audioCtxRef.current!.createGain();
-        noiseGain.gain.value = 0.001; // sub-audible but spectrally present
-        
-        whiteNoiseSource.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(audioStreamDest);
-        noiseGain.connect(audioCtxRef.current!.destination);
-        whiteNoiseSource.start();
-        
-        antiAiNoiseInstance = { whiteNoiseSource, noiseGain, noiseFilter };
-    } catch(e) { 
-        console.warn("Anti-AI Spectrogram emulation inject skipped/failed:", e); 
-    }
+    // MP4 si el navegador lo permite (lo piden TikTok, Instagram y WhatsApp); si no, WebM
+    const candidates = [
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+    ];
+    const mimeTypeOption = candidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
+    const extension = mimeTypeOption.startsWith('video/mp4') ? 'mp4' : 'webm';
 
-    // Force 80 Mbps for bypassing video compression filters
-    let mimeTypeOption = 'video/webm;codecs=vp9,opus';
-    if (!MediaRecorder.isTypeSupported(mimeTypeOption)) {
-      mimeTypeOption = 'video/webm;codecs=vp8,opus';
-    }
-    if (!MediaRecorder.isTypeSupported(mimeTypeOption)) {
-      mimeTypeOption = 'video/webm';
-    }
-
-    const recorder = new MediaRecorder(stream, { 
-      mimeType: mimeTypeOption, 
-      videoBitsPerSecond: 80000000 
+    // 10 Mbps se ve igual en 720p y pesa ~8 veces menos que los 80 Mbps de antes
+    const recorder = new MediaRecorder(stream, {
+      ...(mimeTypeOption ? { mimeType: mimeTypeOption } : {}),
+      videoBitsPerSecond: 10_000_000,
+      audioBitsPerSecond: 192_000,
     });
+    recorderRef.current = recorder;
+    exportCancelRef.current = false;
 
     const chunksArr: Blob[] = [];
     recorder.ondataavailable = e => chunksArr.push(e.data);
     recorder.onstop = () => {
-      const blob = new Blob(chunksArr, { type: 'video/webm' });
-      const a = document.createElement('a'); 
-      a.href = URL.createObjectURL(blob);
-      a.download = `master-premium-video.webm`; a.click();
-      
-      // Stop and clean up Anti-AI noise nodes
-      try {
-        if (antiAiNoiseInstance) {
-          antiAiNoiseInstance.whiteNoiseSource.stop();
-          antiAiNoiseInstance.whiteNoiseSource.disconnect();
-          antiAiNoiseInstance.noiseFilter.disconnect();
-          antiAiNoiseInstance.noiseGain.disconnect();
-        }
-      } catch(e) { console.warn("Clean Anti-AI noise failed:", e); }
+      const cancelled = exportCancelRef.current;
+      if (!cancelled) {
+        const blob = new Blob(chunksArr, { type: recorder.mimeType || `video/${extension}` });
+        const safeName = (draftName || audioName || 'lyric-video').trim().replace(/[^\w\-áéíóúñÁÉÍÓÚÑ ]+/g, '').replace(/\s+/g, '-') || 'lyric-video';
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `${safeName}.${extension}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
 
       sourceRef.current?.disconnect();
       sourceRef.current?.connect(analyserRef.current!);
       analyserRef.current?.connect(audioCtxRef.current!.destination);
-      
+      audioRef.current?.pause();
+
+      recorderRef.current = null;
       setIsExporting(false);
       setProgress(0);
     };
@@ -1403,6 +1377,10 @@ const LyricStudio: React.FC = () => {
 
     const recordLoop = (now: number) => {
       if (!audioRef.current) return;
+      if (exportCancelRef.current) {
+        if (recorder.state !== 'inactive') recorder.stop();
+        return;
+      }
       
       const dt = Math.min((now - lastRealTime) / 1000, 0.1); 
       lastRealTime = now;
@@ -1435,6 +1413,13 @@ const LyricStudio: React.FC = () => {
       }
     };
     requestAnimationFrame(recordLoop);
+  };
+
+  const handleCancelExport = () => {
+    exportCancelRef.current = true;
+    // Se detiene de inmediato (no espera al siguiente cuadro, por si la pestaña está en segundo plano)
+    const rec = recorderRef.current;
+    if (rec && rec.state !== 'inactive') rec.stop();
   };
 
   const startSync = () => {
@@ -1481,12 +1466,6 @@ const LyricStudio: React.FC = () => {
     if (rawTime < 0 || rawTime > MAX_VIDEO_DURATION) return;
     const time = rawTime.toFixed(2);
     setLyricsInput(prev => prev + `${time} | [SILENCIO]\n`);
-  };
-
-  const aiSync = async () => {
-    if (!rawLyrics.trim()) return;
-    alert("Función IA requiere configuración de API Key.");
-    // In a real scenario, we would call Gemini here
   };
 
   const handleMagicDesign = async () => {
@@ -1641,12 +1620,6 @@ const LyricStudio: React.FC = () => {
                       Lyric Studio <span className="text-[9px] not-italic text-[#c5a059] font-black tracking-widest ml-1 border border-[#c5a059]/20 px-2 py-0.5 rounded bg-[#c5a059]/5">PRO v2.4</span>
                   </h1>
               </div>
-              
-              {/* Pulsing Anti-AI Active Badge */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)] w-fit animate-pulse">
-                  <i className="fas fa-shield-halved text-green-400 text-[10px]"></i>
-                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-green-400">🛡️ Bypass Anti-IA de Grado Militar Activo</span>
-              </div>
           </div>
 
           {/* 1. Media & Branding */}
@@ -1678,7 +1651,7 @@ const LyricStudio: React.FC = () => {
                         className="w-full text-[9px] file:bg-[#00ffcc]/10 file:border file:border-[#00ffcc]/20 file:text-[#00ffcc] file:px-3 file:py-1.5 file:rounded-xl file:font-black file:uppercase file:tracking-widest hover:file:bg-[#00ffcc] hover:file:text-black hover:file:border-[#00ffcc] file:transition-all cursor-pointer bg-white/5 px-2 py-1.5 rounded-xl border border-white/5 text-zinc-400 mb-2" 
                       />
                       <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
-                          <label className="text-[7px] text-zinc-400 uppercase font-black tracking-widest block">🎛️ Punto de Inicio de la Canción (Segundos)</label>
+                          <label className="text-[9px] text-zinc-400 uppercase font-black tracking-widest block">🎛️ Punto de Inicio de la Canción (Segundos)</label>
                           <div className="flex items-center gap-2">
                               <input 
                                   type="range"
@@ -1799,7 +1772,7 @@ const LyricStudio: React.FC = () => {
               {isSyncing ? (
                   <div className="mb-4 p-5 bg-[#00ffcc]/5 rounded-2xl border border-[#00ffcc]/20 space-y-3.5 animate-pulse">
                       <div className="flex flex-col">
-                          <span className="text-[7px] text-[#00ffcc] uppercase font-black tracking-widest">Siguiente frase:</span>
+                          <span className="text-[9px] text-[#00ffcc] uppercase font-black tracking-widest">Siguiente frase:</span>
                           <span className="text-xs text-white font-bold italic truncate">{syncLines[syncIndex]}</span>
                       </div>
                       <button 
@@ -1885,7 +1858,7 @@ const LyricStudio: React.FC = () => {
                                       </div>
                                       <div className="flex-1">
                                           <h4 className="text-[10px] font-black uppercase text-white group-hover:text-[#c5a059] transition-colors line-clamp-1">{draft.title}</h4>
-                                          <p className="text-[7px] text-[#c5a059]/60 uppercase font-black tracking-widest">Nube (Google Sheet)</p>
+                                          <p className="text-[9px] text-[#c5a059]/60 uppercase font-black tracking-widest">Nube (Google Sheet)</p>
                                       </div>
                                   </div>
                               </div>
@@ -1900,7 +1873,7 @@ const LyricStudio: React.FC = () => {
                                       </div>
                                       <div className="flex-1">
                                           <h4 className="text-[10px] font-black uppercase text-white/70 group-hover:text-white transition-colors line-clamp-1">{draft.name}</h4>
-                                          <p className="text-[7px] text-white/20 uppercase font-black tracking-widest">{draft.date}</p>
+                                          <p className="text-[9px] text-white/20 uppercase font-black tracking-widest">{draft.date}</p>
                                       </div>
                                   </div>
                                   <button 
@@ -2089,17 +2062,12 @@ const LyricStudio: React.FC = () => {
                 disabled={isExporting}
                 className="w-full py-4 bg-gradient-to-r from-[#00ffcc] to-[#00b38b] hover:from-[#c5a059] hover:to-[#99793e] text-black hover:text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_8px_30px_rgba(0,255,204,0.15)] disabled:opacity-50 duration-300"
             >
-                {isExporting ? "Procesando Master Espectral..." : "⚡ Exportar Master Final (Anti-IA)"}
+                {isExporting ? "Exportando video..." : "⚡ Exportar Video Final"}
             </button>
             
             {isExporting && (
                 <div className="fixed inset-0 z-[100] bg-[#030305]/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 animate-fade-in">
                     <div className="w-full max-w-md space-y-8 text-center bg-[#0d0d18]/60 p-10 rounded-[32px] border border-[#00ffcc]/20 shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
-                        <div className="absolute top-4 right-6 flex items-center gap-1.5 animate-pulse bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-lg">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                            <span className="text-[6px] font-black uppercase tracking-widest text-green-400">Anti-IA Bypass On</span>
-                        </div>
-
                         <div className="relative w-48 h-48 mx-auto">
                             <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
@@ -2107,23 +2075,24 @@ const LyricStudio: React.FC = () => {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-4xl font-black italic tracking-tighter text-white">{Math.floor(progress)}%</span>
-                                <span className="text-[7px] uppercase font-black tracking-widest text-[#00ffcc] mt-1.5">CODIFICANDO 80 MBPS</span>
+                                <span className="text-[9px] uppercase font-black tracking-widest text-[#00ffcc] mt-1.5">GRABANDO VIDEO</span>
                             </div>
                         </div>
 
                         <div className="space-y-3.5">
-                            <h3 className="text-lg font-black uppercase italic tracking-tighter text-white">Generando Master de Video de Alta Tasa</h3>
+                            <h3 className="text-lg font-black uppercase italic tracking-tighter text-white">Exportando tu video</h3>
                             <p className="text-[9px] text-zinc-400 uppercase tracking-widest leading-relaxed">
-                                Inyectando espectro de sala analógica sub-audible y grano dinámico.<br/>
-                                <span className="text-[#ff4444] font-bold">Mantén esta pestaña activa para evitar desincronización de fotogramas.</span>
+                                El video se graba en tiempo real: dura lo mismo que la canción.<br/>
+                                <span className="text-[#ff4444] font-bold">Mantén esta pestaña visible y activa hasta que termine.</span>
                             </p>
                         </div>
 
-                        <div className="flex justify-center gap-1.5">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="w-1.5 h-1.5 bg-[#00ffcc] rounded-full animate-bounce" style={{ animationDelay: `${i*0.2}s` }}></div>
-                            ))}
-                        </div>
+                        <button
+                            onClick={handleCancelExport}
+                            className="px-6 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 text-white/80 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+                        >
+                            <i className="fas fa-xmark mr-2"></i>Cancelar exportación
+                        </button>
                     </div>
                 </div>
             ) }
@@ -2161,7 +2130,7 @@ const LyricStudio: React.FC = () => {
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <h3 className={`text-xs font-bold ${post.type === 'SHEET' ? 'group-hover:text-[#c5a059]' : 'group-hover:text-blue-400'} transition-colors`}>{post.title}</h3>
-                                                <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${post.type === 'SHEET' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${post.type === 'SHEET' ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-blue-500/20 text-blue-400'}`}>
                                                     {post.type === 'SHEET' ? 'Google Sheet' : 'Sitio Web'}
                                                 </span>
                                             </div>
