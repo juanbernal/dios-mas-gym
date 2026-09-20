@@ -247,6 +247,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const scope = ['main', 'external'].includes(String(req.query.scope)) ? String(req.query.scope) : 'all';
+    // Periodo (en dias) del ranking de canciones: 7 = semana, 30 = mes, 365 = año. Por defecto 30.
+    const topDaysParam = parseInt(String(req.query.topDays ?? '30'), 10);
+    const topDays = Number.isNaN(topDaysParam) ? 30 : Math.min(Math.max(topDaysParam, 1), 400);
     // Consulta solo trafico publico. Si Google rechazara el filtro para alguna combinacion de metricas,
     // se reintenta sin filtro para no romper el panel ni el correo.
     const runPublic = async (request: any): Promise<any[]> => {
@@ -631,7 +634,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 2. Obtener Top Canciones
       runPublic({
         property: `properties/${propertyId}`,
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+        dateRanges: [{ startDate: `${topDays}daysAgo`, endDate: 'today' }],
         dimensions: [{ name: 'customEvent:song_title' }, { name: 'customEvent:song_artist' }],
         metrics: [{ name: 'eventCount' }],
         dimensionFilter: {

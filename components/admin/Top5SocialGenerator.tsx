@@ -18,10 +18,19 @@ const ACCENTS: { key: string; label: string; color: string }[] = [
   { key: 'red', label: 'Rojo', color: '#ef4444' },
   { key: 'white', label: 'Blanco', color: '#e5e7eb' },
 ];
-const SUBTITLE_CHIPS = ['DE LA SEMANA', 'DEL MES', 'DEL AÑO', 'MÁS ESCUCHADAS', 'ESTRENOS'];
+// Cada opción cambia el subtítulo Y trae los datos de ese periodo
+type PeriodKey = 'week' | 'month' | 'year' | 'alltime' | 'new';
+const PERIODS: { key: PeriodKey; label: string; hint: string }[] = [
+  { key: 'week', label: 'DE LA SEMANA', hint: 'Reproducciones en el sitio, últimos 7 días' },
+  { key: 'month', label: 'DEL MES', hint: 'Reproducciones en el sitio, últimos 30 días' },
+  { key: 'year', label: 'DEL AÑO', hint: 'Reproducciones en el sitio, últimos 12 meses' },
+  { key: 'alltime', label: 'MÁS ESCUCHADAS', hint: 'Vistas totales en YouTube' },
+  { key: 'new', label: 'ESTRENOS', hint: 'Los lanzamientos más recientes' },
+];
+const PERIOD_DAYS: Partial<Record<PeriodKey, number>> = { week: 7, month: 30, year: 365 };
 const PREFS_KEY = 'dmg_top5_prefs';
 
-type Source = 'analytics' | 'recent' | 'random';
+type Source = 'analytics' | 'recent' | 'random' | 'youtube';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 const norm = (s: string) =>
@@ -122,6 +131,7 @@ function pickSongs(catalog: MusicItem[], source: Source, count: number, analytic
       .slice(0, count);
   }
   const matched: MusicItem[] = [];
+  // 'analytics' y 'youtube' llegan como lista de títulos ya ordenada por su ranking
   for (const title of analyticsTitles) {
     if (matched.length >= count) break;
     const m = findByTitle(dedup, title);
@@ -134,7 +144,7 @@ function pickSongs(catalog: MusicItem[], source: Source, count: number, analytic
 interface RenderOptions {
   songs: MusicItem[];
   images: Record<string, HTMLImageElement | undefined>;
-  logo: HTMLImageElement | null;
+  logos: { dmg: HTMLImageElement | null; juan: HTMLImageElement | null };
   format: FormatKey;
   count: number;
   subtitle: string;
@@ -299,25 +309,32 @@ function renderTop(canvas: HTMLCanvasElement, o: RenderOptions) {
   ctx.stroke();
 
   const midY = footY + (footerH - 10) / 2 + 8;
-  if (o.logo) {
-    // Logo en blanco (silueta) sin depender de ctx.filter
-    const s = 74;
-    const off = document.createElement('canvas');
-    off.width = s; off.height = s;
-    const octx = off.getContext('2d')!;
-    octx.drawImage(o.logo, 0, 0, s, s);
-    octx.globalCompositeOperation = 'source-in';
-    octx.fillStyle = '#ffffff';
-    octx.fillRect(0, 0, s, s);
-    ctx.globalAlpha = 0.9;
-    ctx.drawImage(off, pad + 4, midY - s / 2, s, s);
-    ctx.globalAlpha = 1;
+  // Logos de los dos artistas, en sus colores originales (los PNG tienen fondo transparente).
+  // Cada logo trae margen vacío, por eso se recorta a la zona con dibujo.
+  const logoH = Math.min(104, footerH - 30);
+  let lx = pad;
+  const drawLogo = (img: HTMLImageElement | null, crop: [number, number, number, number]) => {
+    if (!img) return;
+    const [fx, fy, fw, fh] = crop; // fracciones de la imagen
+    const sw = img.width * fw, sh = img.height * fh;
+    const dh = logoH, dw = dh * (sw / sh);
+    ctx.drawImage(img, img.width * fx, img.height * fy, sw, sh, lx, midY - dh / 2, dw, dh);
+    lx += dw + 18;
+  };
+  drawLogo(o.logos.dmg, [0.24, 0.0, 0.52, 1.0]);
+  if (o.logos.dmg && o.logos.juan) {
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(lx - 9, midY - logoH / 2 + 8, 2, logoH - 16);
+    lx += 9;
   }
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `700 34px ${bodyFont}`;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText('DIOSMASGYM', pad + 96, midY);
+  drawLogo(o.logos.juan, [0.33, 0.24, 0.40, 0.56]);
+  if (!o.logos.dmg && !o.logos.juan) {
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 34px ${bodyFont}`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('DIOSMASGYM × JUAN 614', pad, midY);
+  }
 
   ctx.textAlign = 'right';
   ctx.font = `700 32px ${bodyFont}`;
@@ -342,7 +359,7 @@ const Top5SocialGenerator: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [images, setImages] = useState<Record<string, HTMLImageElement | undefined>>({});
   const [imagesReady, setImagesReady] = useState(false);
-  const [logo, setLogo] = useState<HTMLImageElement | null>(null);
+  const [logos, setLogos] = useState<{ dmg: HTMLImageElement | null; juan: HTMLImageElement | null }>({ dmg: null, juan: null });
   const [fontsReady, setFontsReady] = useState(false);
   const [caption, setCaption] = useState("");
   const [captionEdited, setCaptionEdited] = useState(false);
@@ -355,6 +372,11 @@ const Top5SocialGenerator: React.FC = () => {
   const [accentKey, setAccentKey] = useState<string>(ACCENTS.some(a => a.key === prefs.accent) ? prefs.accent : 'gold');
   const [subtitle, setSubtitle] = useState<string>(typeof prefs.subtitle === 'string' ? prefs.subtitle : 'DE LA SEMANA');
   const [source, setSource] = useState<Source>('analytics');
+  const [period, setPeriod] = useState<PeriodKey | null>('week');
+  const [dataNote, setDataNote] = useState('');
+  const [loadingPeriod, setLoadingPeriod] = useState(false);
+  const titlesCache = useRef<Record<string, string[]>>({});
+  const periodReq = useRef(0);
 
   const accent = ACCENTS.find(a => a.key === accentKey)!.color;
 
@@ -367,7 +389,60 @@ const Top5SocialGenerator: React.FC = () => {
     setTimeout(() => setNotice(n => (n && n.text === text ? null : n)), 5000);
   };
 
-  // Carga inicial: catálogo, analíticas, logo y fuentes de la marca
+  // Títulos ordenados por ranking para un periodo (con caché para no repetir consultas)
+  async function fetchPeriodTitles(key: PeriodKey): Promise<string[]> {
+    const cacheKey = key;
+    if (titlesCache.current[cacheKey]) return titlesCache.current[cacheKey];
+    let titles: string[] = [];
+    try {
+      if (key === 'alltime') {
+        const res = await fetch('/api/common?action=youtube-top');
+        if (res.ok) {
+          const json = await res.json();
+          titles = (json?.top || []).map((v: any) => v.title).filter(Boolean);
+        }
+      } else if (PERIOD_DAYS[key]) {
+        const res = await fetch(`/api/analytics?topDays=${PERIOD_DAYS[key]}`);
+        if (res.ok) {
+          const json = await res.json();
+          titles = (json?.data?.topSongs || []).map((s: any) => s.title).filter(Boolean);
+        }
+      }
+    } catch (err) {
+      console.warn('Error cargando ranking del periodo:', err);
+    }
+    if (titles.length > 0) titlesCache.current[cacheKey] = titles;
+    return titles;
+  }
+
+  // Elegir un periodo cambia el subtítulo y trae las canciones que corresponden
+  const applyPeriod = async (key: PeriodKey, labelOverride?: string) => {
+    const info = PERIODS.find(p => p.key === key)!;
+    setPeriod(key);
+    setSubtitle(labelOverride || info.label);
+    if (catalog.length === 0) return;
+    if (key === 'new') {
+      periodReq.current++;
+      setLoadingPeriod(false);
+      setSource('recent');
+      setTopSongs(pickSongs(catalog, 'recent', count, []));
+      setDataNote(info.hint);
+      return;
+    }
+    const req = ++periodReq.current;
+    setLoadingPeriod(true);
+    const titles = await fetchPeriodTitles(key);
+    if (req !== periodReq.current) return; // llegó una respuesta vieja
+    setLoadingPeriod(false);
+    setSource(key === 'alltime' ? 'youtube' : 'analytics');
+    setAnalyticsTitles(titles);
+    setTopSongs(pickSongs(catalog, 'analytics', count, titles));
+    setDataNote(titles.length > 0
+      ? info.hint
+      : `Aún no hay datos para este periodo (${info.hint.toLowerCase()}): se muestran canciones del catálogo. Ajusta la lista a mano.`);
+  };
+
+  // Carga inicial: catálogo, analíticas, logos y fuentes de la marca
   const loadInitialData = async () => {
     setIsLoading(true);
     try {
@@ -378,17 +453,9 @@ const Top5SocialGenerator: React.FC = () => {
       const full = deduplicateCatalog([...dM, ...j6]);
       setCatalog(full);
 
-      let titles: string[] = [];
-      try {
-        const res = await fetch("/api/analytics");
-        if (res.ok) {
-          const json = await res.json();
-          titles = (json?.data?.topSongs || []).map((s: any) => s.title).filter(Boolean);
-        }
-      } catch (err) {
-        console.warn("Error cargando analíticas semanales:", err);
-      }
+      const titles = await fetchPeriodTitles('week');
       setAnalyticsTitles(titles);
+      setDataNote(titles.length > 0 ? PERIODS[0].hint : 'Aún no hay datos de reproducciones: se muestran canciones del catálogo.');
       if (full.length > 0) setTopSongs(pickSongs(full, 'analytics', count, titles));
     } finally {
       setIsLoading(false);
@@ -397,7 +464,10 @@ const Top5SocialGenerator: React.FC = () => {
 
   useEffect(() => {
     loadInitialData();
-    loadImage('/logo-diosmasgym.png').then(setLogo).catch(() => setLogo(null));
+    Promise.all([
+      loadImage('/logo-diosmasgym-md.webp').catch(() => null),
+      loadImage('/logo-juan614-v2-md.webp').catch(() => null),
+    ]).then(([dmg, juan]) => setLogos({ dmg, juan }));
     (async () => {
       try {
         await Promise.all([
@@ -437,10 +507,10 @@ const Top5SocialGenerator: React.FC = () => {
   useEffect(() => {
     if (!canvasRef.current || !fontsReady) return;
     const t = setTimeout(() => {
-      if (canvasRef.current) renderTop(canvasRef.current, { songs: topSongs, images, logo, format, count, subtitle, accent });
+      if (canvasRef.current) renderTop(canvasRef.current, { songs: topSongs, images, logos, format, count, subtitle, accent });
     }, 120);
     return () => clearTimeout(t);
-  }, [topSongs, images, logo, format, count, subtitle, accent, fontsReady]);
+  }, [topSongs, images, logos, format, count, subtitle, accent, fontsReady]);
 
   // Texto listo para publicar (se regenera solo hasta que lo edites)
   const autoCaption = useMemo(() => {
@@ -452,16 +522,17 @@ const Top5SocialGenerator: React.FC = () => {
 
   const applySource = (src: Source, n = count) => {
     if (catalog.length === 0) return;
+    if (src === 'analytics') { applyPeriod(period && period !== 'new' ? period : 'week', period && period !== 'new' ? subtitle : undefined); return; }
     setSource(src);
-    const songs = pickSongs(catalog, src, n, analyticsTitles);
-    setTopSongs(songs);
-    if (src === 'analytics' && analyticsTitles.length === 0) flash('error', 'Aún no hay datos de analíticas: se usaron las canciones más recientes.');
+    setPeriod(null);
+    setTopSongs(pickSongs(catalog, src, n, analyticsTitles));
+    setDataNote(src === 'recent' ? 'Los lanzamientos más recientes' : 'Selección al azar');
   };
 
   const changeCount = (n: number) => {
     setCount(n);
     setTopSongs(prev => (prev.length > n ? prev.slice(0, n) : prev));
-    if (topSongs.length < n && catalog.length > 0) setTopSongs(pickSongs(catalog, source, n, analyticsTitles));
+    if (topSongs.length < n && catalog.length > 0) setTopSongs(pickSongs(catalog, source === 'youtube' ? 'analytics' : source, n, analyticsTitles));
   };
 
   const filteredCatalog = useMemo(() => {
@@ -491,7 +562,7 @@ const Top5SocialGenerator: React.FC = () => {
     new Promise(resolve => {
       const c = canvasRef.current;
       if (!c) return resolve(null);
-      renderTop(c, { songs: topSongs, images, logo, format, count, subtitle, accent });
+      renderTop(c, { songs: topSongs, images, logos, format, count, subtitle, accent });
       c.toBlob(b => resolve(b), 'image/png');
     });
 
@@ -516,7 +587,7 @@ const Top5SocialGenerator: React.FC = () => {
       setIsGenerating(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topSongs, images, logo, format, count, subtitle, accent, fileName]);
+  }, [topSongs, images, logos, format, count, subtitle, accent, fileName]);
 
   const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare && !!navigator.share;
   const handleShare = async () => {
@@ -623,13 +694,17 @@ const Top5SocialGenerator: React.FC = () => {
               <input id="top5-subtitle" className="w-full bg-black/40 border border-white/10 p-3.5 rounded-xl outline-none focus:border-white/40 text-sm font-bold uppercase transition-all"
                 value={subtitle} maxLength={34} onChange={e => setSubtitle(e.target.value.toUpperCase())} />
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {SUBTITLE_CHIPS.map(c => (
-                  <button key={c} onClick={() => setSubtitle(c)} className={chip(subtitle === c)}>{c}</button>
+                {PERIODS.map(p => (
+                  <button key={p.key} disabled={loadingPeriod || isLoading} onClick={() => applyPeriod(p.key)} className={chip(period === p.key && subtitle === p.label)}>{p.label}</button>
                 ))}
-                <button onClick={() => setSubtitle(weekLabel())} className={chip(false)}>
+                <button disabled={loadingPeriod || isLoading} onClick={() => applyPeriod('week', weekLabel())} className={chip(period === 'week' && subtitle !== 'DE LA SEMANA')}>
                   <i className="fas fa-calendar-day mr-1" />Fechas de esta semana
                 </button>
               </div>
+              <p className="text-[10px] mt-2 flex items-center gap-1.5" style={{ color: loadingPeriod ? accent : 'rgba(255,255,255,0.4)' }}>
+                <i className={`fas ${loadingPeriod ? 'fa-spinner fa-spin' : 'fa-circle-info'}`} />
+                {loadingPeriod ? 'Buscando datos del periodo...' : (dataNote || 'Elige un periodo para traer sus datos.')}
+              </p>
             </div>
 
             {/* Origen de las canciones */}
