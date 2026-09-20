@@ -20,10 +20,10 @@ const ARTIST_CONFIG = {
     primaryColor: '#c5a059',
     accentColor: '#4a90d9',
     socialLinks: {
-      instagram: 'https://instagram.com/juan614',
-      spotify: 'https://open.spotify.com/artist/juan614',
-      youtube: 'https://www.youtube.com/@Juan614',
-      tiktok: 'https://www.tiktok.com/@juan614'
+      instagram: 'https://instagram.com/juan614oficial',
+      spotify: 'https://open.spotify.com/intl-es/artist/0vEKa5AOcBkQVXNfGb2FNh',
+      youtube: 'https://www.youtube.com/@Juan614oficial',
+      tiktok: 'https://www.tiktok.com/@juan614oficial'
     }
   }
 };
@@ -205,9 +205,6 @@ const LinkBioPublic: React.FC = () => {
                             <div className="flex items-center gap-4 relative z-10">
                                 <div className="w-20 h-20 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group-hover:border-opacity-40 transition-colors relative">
                                     <img src={currentSong.cover} alt={currentSong.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <button onClick={() => document.querySelector('[data-play-bio]')?.click?.()} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <i className="fas fa-play text-white text-2xl ml-1"></i>
-                                    </button>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-white text-base leading-tight mb-1 truncate group-hover:transition-colors" style={{color: 'white'}}>{currentSong.name}</h4>
@@ -240,8 +237,7 @@ const LinkBioPublic: React.FC = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => trackEvent('music_catalog_click', {artist: artist || 'diosmasgym'})}
-                                className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:transition-colors border-b border-transparent hover:border-opacity-50 pb-1"
-                                style={{_: `hover:color: ${config.primaryColor}`, _2: `hover:border-color: ${config.primaryColor}`}}
+                                className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors border-b border-transparent hover:border-white/40 pb-1"
                             >
                                 Ver catálogo completo
                             </a>
@@ -302,16 +298,8 @@ const LinkBioPublic: React.FC = () => {
                                     trackEvent('share_click', {artist: artist || 'diosmasgym', method: 'native'});
                                 } catch (err) { /* user cancelled */ }
                             } else {
-                                // Fallback: share options
                                 const whatsapp = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-                                const twitter = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-                                const instagram = `https://instagram.com`;
-
-                                const width = 400, height = 300;
-                                const left = (window.innerWidth - width) / 2;
-                                const top = (window.innerHeight - height) / 2;
-
-                                window.open(whatsapp, '_blank');
+                                window.open(whatsapp, '_blank', 'noopener,noreferrer');
                                 trackEvent('share_click', {artist: artist || 'diosmasgym', method: 'whatsapp'});
                             }
                         }}
