@@ -1,4 +1,3 @@
-import { useDominantColor } from '../hooks/useDominantColor';
 import React, { useState, useEffect, useMemo } from 'react';
 import { MusicItem } from '../types';
 
@@ -26,8 +25,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   if (!catalog || catalog.length === 0) return null;
 
   // 1. Featured Release (Latest)
-  const featured = catalog[0];
-  const featuredColor = useDominantColor(featured?.cover);
 
   const [topAnalytics, setTopAnalytics] = useState<string[]>([]);
   const [topVideos, setTopVideos] = useState<YTVideoItem[]>([]);
@@ -35,7 +32,8 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   const [selectedChannel, setSelectedChannel] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
   const [selectedChannelGems, setSelectedChannelGems] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [visibleLimit, setVisibleLimit] = useState(15);
+  const [visibleLimit, setVisibleLimit] = useState(10);
+  const [gemsLimit, setGemsLimit] = useState(10);
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('dmg_yt_likes');
@@ -250,7 +248,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   }, [hiddenGems, selectedChannelGems]);
 
   // 2. Music Videos
-  const musicVideos = catalog.filter(s => s.url && s.url.includes('youtube')).slice(0, 4);
+  const musicVideos = catalog.filter(s => s.url && s.url.includes("youtube")).slice(4, 8);
 
   // 3. Playlists / Curated
   const playlists = [
@@ -276,56 +274,6 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
   return (
     <div className="home-sections flex flex-col gap-0 mb-0 overflow-hidden">
-      
-      {/* FEATURED RELEASE */}
-      <section className="relative w-full overflow-hidden border-b border-white/5 group mt-0">
-        <div className="absolute inset-0">
-          <img loading="lazy" src={featured.cover} alt="Background" className="w-full h-full object-cover blur-3xl opacity-20 group-hover:scale-105 transition-transform duration-1000" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#05070a] via-[#05070a]/80 to-transparent"></div>
-        </div>
-        
-        <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col md:flex-row items-center gap-10 md:gap-20">
-          <div className="vinyl-wrap w-52 h-52 md:w-80 md:h-80 flex-shrink-0 relative cursor-pointer" style={{ ['--disc-accent' as any]: featuredColor }} onClick={() => onPlaySong(featured)}>
-            <div className="absolute inset-0 blur-[80px] opacity-30 rounded-full group-hover:opacity-50 transition-opacity" style={{ background: featuredColor }}></div>
-            <div className="vinyl-disc hidden md:block" aria-hidden="true"></div>
-            <img 
-              src={featured.cover} 
-              alt={featured.name} 
-              className="w-full h-full object-cover rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform -rotate-2 group-hover:rotate-0 transition-transform duration-500 border border-white/10 relative z-10"
-            />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              <div className="w-16 h-16 bg-[#4a90d9] rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(37,99,168,0.8)]">
-                <i className="fas fa-play text-black text-xl ml-1"></i>
-              </div>
-            </div>
-          </div>
-          
-          <div className="relative z-10 flex-1 text-center md:text-left">
-            <span className="inline-block py-2 px-6 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 text-[9px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-6">
-              Destacado
-            </span>
-            <h2 className="font-serif italic text-5xl md:text-7xl mb-4 text-white drop-shadow-lg">{featured.name}</h2>
-            <p className="text-xl font-black uppercase tracking-[0.3em] text-white/50 mb-10">{featured.artist}</p>
-            
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-              <button 
-                onClick={() => onPlaySong(featured)}
-                className="px-10 py-5 rounded-full bg-[#4a90d9] text-black text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 hover:bg-white hover:scale-105 transition-all shadow-[0_0_30px_rgba(37,99,168,0.3)]"
-              >
-                <i className="fas fa-play"></i> Escuchar Ahora
-              </button>
-              <a 
-                href={`/link/${featured.id}`} 
-                target="_blank" rel="noreferrer"
-                className="px-10 py-5 rounded-full border border-white/20 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:bg-white/10 transition-all"
-              >
-                {(() => { const t = new Date((featured.date || '').includes('T') ? featured.date : (featured.date || '') + 'T00:00:00').getTime(); return !isNaN(t) && t > Date.now() ? 'Guardar / Pre-Save' : 'Todas las plataformas'; })()}
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* VIDEOCLIPS OFICIALES — corrido tumbado */}
       {musicVideos.length > 0 && (
         <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a]">
@@ -672,7 +620,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
             {/* Filas */}
             <div className="flex flex-col divide-y divide-white/[0.04]">
-              {filteredGemsList.slice(0, 15).map((item, idx) => {
+              {filteredGemsList.slice(0, gemsLimit).map((item, idx) => {
                 const isLiked = !!likedMap[item.id];
                 const rankNumber = idx + 1;
 
@@ -759,6 +707,18 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                 );
               })}
             </div>
+
+            {filteredGemsList.length > gemsLimit && (
+              <div className="mt-8 flex items-center justify-center pt-6 border-t border-white/5">
+                <button
+                  onClick={() => setGemsLimit(prev => Math.min(prev + 15, filteredGemsList.length))}
+                  className="px-8 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-2"
+                >
+                  <i className="fas fa-chevron-down text-xs"></i>
+                  Mostrar más ({gemsLimit} de {filteredGemsList.length})
+                </button>
+              </div>
+            )}
 
           </div>
 

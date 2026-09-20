@@ -7,9 +7,11 @@ interface MusicSectionProps {
   catalog: MusicItem[];
   onPlay: (song: MusicItem) => void;
   randomSong?: MusicItem | null;
+  /** Canciones iniciales que se omiten porque ya se muestran en otras secciones */
+  skip?: number;
 }
 
-const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, randomSong }) => {
+const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, randomSong, skip = 0 }) => {
   const isDios = artist === 'diosmasgym';
   const description = isDios
     ? "Urbano cristiano, disciplina y fe en movimiento"
@@ -18,13 +20,14 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
   const artistUrl = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
   const accentBlue = isDios ? '#2563a8' : '#1e3a5f';
 
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(3);
 
-  const displayedSongs = catalog.slice(0, visibleCount);
-  const hasMore = catalog.length > visibleCount;
+  const listed = catalog.slice(skip);
+  const displayedSongs = listed.slice(0, visibleCount);
+  const hasMore = listed.length > visibleCount;
 
   return (
-    <section className="relative overflow-hidden py-24"
+    <section className="relative overflow-hidden py-16 md:py-20"
       style={{ background: isDios ? 'linear-gradient(160deg,#020d1a,#071325)' : 'linear-gradient(160deg,#040a14,#0b1929)' }}>
 
       {/* Top border line */}
@@ -44,7 +47,7 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
       <div className="section-container relative z-10">
 
         {/* === HEADER === */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 mb-16 pb-8"
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 mb-10 pb-8"
           style={{ borderBottom: '1px solid rgba(37,99,168,0.12)' }}>
 
           {/* Artist info */}
@@ -111,19 +114,19 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
         </div>
 
         {/* Load more / explore controls */}
-        {catalog.length > 6 && (
+        {listed.length > 3 && (
           <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
             {hasMore ? (
               <button
-                onClick={() => setVisibleCount(prev => Math.min(prev + 12, catalog.length))}
+                onClick={() => setVisibleCount(prev => Math.min(prev + 12, listed.length))}
                 className="px-8 py-3.5 rounded-full bg-white/10 hover:bg-[#4a90d9] text-white hover:text-black border border-white/15 hover:border-transparent text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-lg"
               >
                 <i className="fas fa-plus text-xs" />
-                Explorar Más Canciones ({catalog.length - visibleCount} restantes)
+                Explorar Más Canciones ({listed.length - visibleCount} restantes)
               </button>
             ) : (
               <button
-                onClick={() => setVisibleCount(6)}
+                onClick={() => setVisibleCount(3)}
                 className="px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white border border-white/10 text-[9px] font-black uppercase tracking-widest transition-all"
               >
                 <i className="fas fa-arrow-up text-xs mr-2" />
