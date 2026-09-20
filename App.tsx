@@ -19,6 +19,7 @@ import { AppState, AppView, MusicItem } from './types';
 import SocialPopup, { InlineSocialBanner, InlineFollowNetworks } from './components/SocialPromo';
 import { HomeMusicSections } from './components/HomeMusicSections';
 import { HomeLyricsSection } from './components/HomeLyricsSection';
+import { HomeTestimonios } from './components/HomeTestimonios';
 import { useAnalytics } from './hooks/useAnalytics';
 import { safeStorage } from './services/safeStorage';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -498,9 +499,13 @@ const App: React.FC = () => {
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
               />
 
+              <HomeTestimonios />
+
               {/* MÚSICA */}
               {state.musicDiosmasgym.length > 0 && <MusicSection artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
               {state.musicJuan614.length > 0 && <MusicSection artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
+
+              <section className="max-w-[1400px] mx-auto px-6 md:px-16 py-12 bg-[#05070a]"><InlineFollowNetworks /></section>
 
               <ArmaduraPromo />
 

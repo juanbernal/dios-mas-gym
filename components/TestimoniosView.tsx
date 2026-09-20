@@ -10,7 +10,7 @@ interface Testimony {
   verseRef: string;
 }
 
-const TESTIMONIES: Testimony[] = [
+export const TESTIMONIES: Testimony[] = [
   {
     id: 1,
     name: 'Carlos M.',
