@@ -302,10 +302,10 @@ export const HomeLyricsSection: React.FC<HomeLyricsSectionProps> = ({ catalog, o
         {/* Lyrics Grid */}
         {!loading && filteredLyrics.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-            {filteredLyrics.slice(0, 9).map((item, idx) => (
+            {filteredLyrics.slice(0, 6).map((item, idx) => (
               <div
                 key={item.id || idx}
-                className="group relative rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden"
+                className={`${idx >= 3 ? 'hidden md:flex' : ''} group relative rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden`}
                 style={{
                   background: 'linear-gradient(145deg, rgba(11,20,38,0.85) 0%, rgba(5,10,20,0.95) 100%)',
                   border: '1px solid rgba(74,144,217,0.18)',

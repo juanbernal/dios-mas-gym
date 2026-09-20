@@ -175,6 +175,7 @@ const DiagnosticConsole: React.FC<DiagnosticConsoleProps> = ({ appError }) => {
 const SPLASH_MIN_MS = 2200;
 
 const App: React.FC = () => {
+  const [catalogArtist, setCatalogArtist] = useState<"diosmasgym" | "juan614">("diosmasgym");
   const [state, setState] = useState<AppState>(() => {
     return {
       currentView: 'inicio',
@@ -501,9 +502,28 @@ const App: React.FC = () => {
 
               <HomeTestimonios />
 
-              {/* MÚSICA */}
-              {state.musicDiosmasgym.length > 0 && <MusicSection skip={6} artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
-              {state.musicJuan614.length > 0 && <MusicSection skip={6} artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
+              {/* CATÁLOGO: un artista a la vez para no alargar la página */}
+              {(state.musicDiosmasgym.length > 0 || state.musicJuan614.length > 0) && (
+                <div id="catalogo" className="bg-[#040a14]">
+                  <div className="pt-10 px-6 flex justify-center">
+                    <div role="tablist" className="inline-flex p-1 rounded-full bg-white/5 border border-white/10">
+                      {([['diosmasgym', 'Diosmasgym'], ['juan614', 'Juan 614']] as const).map(([id, label]) => (
+                        <button
+                          key={id}
+                          role="tab"
+                          aria-selected={catalogArtist === id}
+                          onClick={() => setCatalogArtist(id)}
+                          className={`px-6 md:px-10 py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-colors ${catalogArtist === id ? 'bg-[#4a90d9] text-white' : 'text-white/50 hover:text-white'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {catalogArtist === 'diosmasgym' && state.musicDiosmasgym.length > 0 && <MusicSection key="diosmasgym" skip={6} artist="diosmasgym" catalog={state.musicDiosmasgym.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomMusicSong} />}
+                  {catalogArtist === 'juan614' && state.musicJuan614.length > 0 && <MusicSection key="juan614" skip={6} artist="juan614" catalog={state.musicJuan614.filter(s => s && typeof s === 'object' && s.name && s.url)} onPlay={(song) => setState(p => ({ ...p, activeSong: song }))} randomSong={randomJuan614Song} />}
+                </div>
+              )}
 
               <section className="max-w-[1400px] mx-auto px-6 md:px-16 py-12 bg-[#05070a]"><InlineFollowNetworks /></section>
 

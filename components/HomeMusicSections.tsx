@@ -34,6 +34,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(10);
   const [gemsLimit, setGemsLimit] = useState(10);
+  const [rankTab, setRankTab] = useState<'top' | 'gems'>('top');
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('dmg_yt_likes');
@@ -294,14 +295,14 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="flex md:grid md:grid-cols-2 gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 pb-2 md:pb-0 md:overflow-visible">
               {musicVideos.map((video, idx) => (
                 <a
                   key={idx}
                   href={video.url}
                   target="_blank"
                   rel="noreferrer"
-                  className={`group relative rounded-3xl overflow-hidden border border-white/5 hover:border-red-500/30 transition-colors bg-[#0a0c14] ${idx === 0 ? 'md:row-span-2 aspect-[4/3] md:aspect-auto md:min-h-[400px]' : 'aspect-video'}`}
+                  className={`group relative rounded-3xl overflow-hidden border border-white/5 hover:border-red-500/30 transition-colors bg-[#0a0c14] shrink-0 w-[82%] snap-center md:w-auto ${idx === 0 ? 'md:row-span-2 aspect-video md:aspect-auto md:min-h-[400px]' : 'aspect-video'}`}
                 >
                   <img loading="lazy" src={video.cover} alt={video.name} className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-55 group-hover:scale-105 transition-all duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
@@ -374,6 +375,31 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       {/* ========================================================================= */}
       {/* SECCIÓN 1: 🏆 TOP 50 YOUTUBE (MÁS ESCUCHADAS)                             */}
       {/* ========================================================================= */}
+      {/* PESTAÑAS: Más escuchadas / Joyas ocultas (una sola sección en vez de dos) */}
+      <div className="bg-[#04060a] border-t border-white/5 pt-10 px-6 md:px-16">
+        <div className="max-w-[1400px] mx-auto flex justify-center">
+          <div role="tablist" className="inline-flex p-1 rounded-full bg-white/5 border border-white/10">
+            <button
+              role="tab"
+              aria-selected={rankTab === 'top'}
+              onClick={() => setRankTab('top')}
+              className={`px-5 md:px-8 py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-colors ${rankTab === 'top' ? 'bg-[#4a90d9] text-white' : 'text-white/50 hover:text-white'}`}
+            >
+              <i className="fas fa-fire mr-2"></i>Más escuchadas
+            </button>
+            <button
+              role="tab"
+              aria-selected={rankTab === 'gems'}
+              onClick={() => setRankTab('gems')}
+              className={`px-5 md:px-8 py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-colors ${rankTab === 'gems' ? 'bg-amber-500 text-black' : 'text-white/50 hover:text-white'}`}
+            >
+              <i className="fas fa-gem mr-2"></i>Joyas ocultas
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {rankTab === 'top' && (
       <section className="relative py-16 md:py-24 overflow-hidden bg-[#04060a] border-t border-b border-white/5">
         <div className="absolute left-0 top-0 w-2 h-full bg-gradient-to-b from-[#4a90d9] via-[#4a90d9]/40 to-transparent"></div>
         <div className="absolute -left-60 top-1/3 w-[600px] h-[600px] bg-[#4a90d9]/8 rounded-full blur-3xl pointer-events-none"></div>
@@ -556,9 +582,12 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         </div>
       </section>
 
+      )}
+
       {/* ========================================================================= */}
       {/* SECCIÓN 2: 💎 JOYAS OCULTAS (MENOS ESCUCHADAS / PARA DESCUBRIR)            */}
       {/* ========================================================================= */}
+      {rankTab === 'gems' && (
       <section className="relative py-16 md:py-24 overflow-hidden bg-[#060810] border-b border-white/5">
         <div className="absolute right-0 top-0 w-2 h-full bg-gradient-to-b from-amber-500 via-amber-600/30 to-transparent"></div>
         <div className="absolute -right-60 top-1/3 w-[600px] h-[600px] bg-amber-600/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -751,6 +780,8 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
         </div>
       </section>
 
+      )}
+
       {/* LISTAS DE ENTRENAMIENTO — corrido tumbado: fila horizontal full-bleed con skew en bordes */}
       <section className="relative py-16 md:py-24 overflow-hidden bg-[#070911]">
         <div className="absolute right-0 top-0 w-2 h-full bg-gradient-to-b from-transparent via-[#4a90d9]/30 to-transparent"></div>
@@ -763,7 +794,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 -mx-8 md:-mx-16">
+          <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-0 overflow-x-auto snap-x snap-mandatory -mx-6 px-6 md:-mx-16 md:px-0 pb-2 md:pb-0 md:overflow-visible">
             {playlists.map((pl, i) => (
               <div
                 key={i}
@@ -771,7 +802,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                   const match = catalog.find(s => pl.keywords.some(k => s.name.toLowerCase().includes(k))) || catalog[0];
                   onPlaySong(match);
                 }}
-                className="group relative overflow-hidden aspect-[3/4] md:aspect-[2/3] cursor-pointer"
+                className="group relative overflow-hidden shrink-0 w-[68%] snap-center md:w-auto aspect-[3/4] md:aspect-[2/3] cursor-pointer rounded-2xl md:rounded-none"
                 style={{ clipPath: i === 1 ? 'polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%)' : i === 0 ? 'polygon(0% 0%, 96% 0%, 90% 100%, 0% 100%)' : 'polygon(10% 0%, 100% 0%, 100% 100%, 4% 100%)' }}
               >
                 <img loading="lazy" src={pl.image} alt={pl.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[50%] group-hover:grayscale-0" />

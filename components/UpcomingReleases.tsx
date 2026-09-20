@@ -246,11 +246,11 @@ const UpcomingReleases: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 pb-2 md:pb-0 md:overflow-visible">
                     {releases.map((release, index) => {
                         const released = releaseTime(release.releaseDate) <= currentTime.getTime();
                         return (
-                        <div key={index} className="flex flex-col bg-[#0a0c14] border border-[#4a90d9]/10 rounded-[2rem] overflow-hidden group hover:border-[#4a90d9]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
+                        <div key={index} className="flex flex-col shrink-0 w-[72%] snap-center md:w-auto bg-[#0a0c14] border border-[#4a90d9]/10 rounded-[2rem] overflow-hidden group hover:border-[#4a90d9]/40 transition-all duration-500 opacity-0 animate-fade-in-up" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}>
                             <div className="relative aspect-square w-full overflow-hidden">
                                 <img loading="lazy" 
                                     src={release.coverImageUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop'} 
