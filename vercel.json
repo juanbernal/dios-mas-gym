@@ -75,6 +75,10 @@
       "destination": "/api/common?action=image-proxy"
     },
     {
+      "source": "/api/testimonios",
+      "destination": "/api/common?action=testimonios"
+    },
+    {
       "source": "/api/sheet-proxy",
       "destination": "/api/common?action=sheet-proxy"
     },

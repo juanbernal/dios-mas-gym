@@ -1,79 +1,35 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface Testimony {
-  id: number;
-  name: string;
-  location: string;
-  text: string;
-  verse: string;
-  verseRef: string;
-}
-
-export const TESTIMONIES: Testimony[] = [
-  {
-    id: 1,
-    name: 'Carlos M.',
-    location: 'Culiacán, Sinaloa',
-    text: 'La música de Diosmasgym me cambió la vida. Pasé de estar perdido en las calles a encontrar propósito en el gym y en Cristo. Cada canción es una oración en movimiento.',
-    verse: 'Todo lo puedo en Cristo que me fortalece.',
-    verseRef: 'Filipenses 4:13',
-  },
-  {
-    id: 2,
-    name: 'Rodrigo T.',
-    location: 'Monterrey, N.L.',
-    text: 'Juan 614 me llegó al alma. Sus corridos hablan de fe de una forma que nunca había escuchado. Ahora entreno con sus canciones y cada repetición es una declaración de fe.',
-    verse: 'Mira que te mando que te esfuerces y seas valiente.',
-    verseRef: 'Josué 1:9',
-  },
-  {
-    id: 3,
-    name: 'Eduardo R.',
-    location: 'Phoenix, AZ',
-    text: 'Siendo mexicano en los Estados Unidos, encontrar música que hable del Señor en corrido fue una bendición. Esta música conecta mi cultura con mi fe de una forma única.',
-    verse: 'No temas, porque yo estoy contigo.',
-    verseRef: 'Isaías 41:10',
-  },
-  {
-    id: 4,
-    name: 'Marco A.',
-    location: 'Guadalajara, Jalisco',
-    text: 'Estaba pasando por una depresión fuerte. Un amigo me mandó una canción de Diosmasgym y desde ese día no he parado de escucharlos. El gym se convirtió en mi templo.',
-    verse: 'Él sana a los quebrantados de corazón.',
-    verseRef: 'Salmos 147:3',
-  },
-  {
-    id: 5,
-    name: 'Javier L.',
-    location: 'Tijuana, B.C.',
-    text: 'La combinación de corrido, gym y fe que propone este proyecto es algo que nunca había visto. Es música que motiva el cuerpo y el espíritu al mismo tiempo.',
-    verse: 'Jehová es mi luz y mi salvación; ¿de quién temeré?',
-    verseRef: 'Salmos 27:1',
-  },
-  {
-    id: 6,
-    name: 'Diego F.',
-    location: 'Ciudad de México',
-    text: 'Diosmasgym me demostró que puedes ser de la calle y amar a Cristo. Que puedes ser fuerte físicamente y también tener fe. Eso era exactamente lo que necesitaba ver.',
-    verse: 'Sed fuertes y valientes. No temáis.',
-    verseRef: 'Deuteronomio 31:6',
-  },
-];
+import { Testimony, fetchTestimonios, sendTestimonio } from '../services/testimonioService';
 
 const TestimoniosView: React.FC = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', location: '', text: '' });
+  const [form, setForm] = useState({ name: '', location: '', text: '', website: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [items, setItems] = useState<Testimony[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchTestimonios().then(list => { setItems(list); setLoading(false); });
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would POST to an API
+    setSending(true);
+    setError('');
+    const result = await sendTestimonio(form);
+    setSending(false);
+    if (!result.ok) {
+      setError(result.error || 'No pudimos enviar tu testimonio.');
+      return;
+    }
     setSubmitted(true);
     setShowForm(false);
-    setForm({ name: '', location: '', text: '' });
-    setTimeout(() => setSubmitted(false), 5000);
+    setForm({ name: '', location: '', text: '', website: '' });
+    setTimeout(() => setSubmitted(false), 8000);
   };
 
   return (
@@ -116,7 +72,7 @@ const TestimoniosView: React.FC = () => {
             Testimonios
           </h1>
           <p style={{ color: 'rgba(200,205,212,0.5)', lineHeight: 1.8, fontSize: '0.95rem' }}>
-            Historias reales de personas cuya vida fue tocada por la música. Fe, músculo y propósito en movimiento.
+            Historias de personas cuya vida fue tocada por la música. Fe, músculo y propósito en movimiento.
           </p>
         </div>
 
@@ -136,16 +92,25 @@ const TestimoniosView: React.FC = () => {
               <div>
                 <p className="label-tag" style={{ color: '#4ade80' }}>¡Gracias por compartir!</p>
                 <p style={{ color: 'rgba(200,205,212,0.5)', fontSize: '0.85rem', marginTop: '4px' }}>
-                  Tu testimonio ha sido enviado y será revisado pronto.
+                  Tu testimonio fue enviado. Lo revisaremos y, si todo está bien, lo publicaremos aquí.
                 </p>
               </div>
             </div>
           </div>
         )}
 
+        {!loading && items.length === 0 && (
+          <div className="mb-16 p-8 text-center" style={{ border: '1px dashed rgba(37,99,168,0.3)', borderRadius: '3px' }}>
+            <i className="fas fa-quote-left text-2xl mb-3" style={{ color: 'rgba(37,99,168,0.5)' }} />
+            <p style={{ color: 'rgba(200,205,212,0.55)', fontSize: '0.95rem' }}>
+              Aún no hay testimonios publicados. Sé el primero en compartir cómo la música impactó tu vida.
+            </p>
+          </div>
+        )}
+
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-16">
-          {TESTIMONIES.map((t, idx) => (
+          {items.map((t, idx) => (
             <div
               key={t.id}
               className="animate-fade-in-up"
@@ -171,23 +136,6 @@ const TestimoniosView: React.FC = () => {
                 >
                   {t.text}
                 </p>
-
-                {/* Verse */}
-                <div
-                  className="p-3 mb-5"
-                  style={{
-                    background: 'rgba(37,99,168,0.08)',
-                    border: '1px solid rgba(37,99,168,0.15)',
-                    borderRadius: '2px',
-                  }}
-                >
-                  <p className="italic mb-1" style={{ color: 'rgba(200,205,212,0.6)', fontSize: '0.8rem' }}>
-                    "{t.verse}"
-                  </p>
-                  <span className="label-tag" style={{ color: '#4a90d9', fontSize: '0.45rem' }}>
-                    {t.verseRef}
-                  </span>
-                </div>
 
                 {/* Author */}
                 <div className="flex items-center gap-3">
@@ -266,7 +214,7 @@ const TestimoniosView: React.FC = () => {
                     type="text"
                     value={form.name}
                     onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="Carlos M."
+                    placeholder="Tu nombre o solo tu nombre y inicial"
                     style={{
                       width: '100%', padding: '0.75rem 1rem',
                       background: 'rgba(2,13,26,0.8)', border: '1px solid rgba(37,99,168,0.25)',
@@ -283,7 +231,7 @@ const TestimoniosView: React.FC = () => {
                     type="text"
                     value={form.location}
                     onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
-                    placeholder="Culiacán, Sinaloa"
+                    placeholder="Tu ciudad o estado"
                     style={{
                       width: '100%', padding: '0.75rem 1rem',
                       background: 'rgba(2,13,26,0.8)', border: '1px solid rgba(37,99,168,0.25)',
@@ -296,11 +244,12 @@ const TestimoniosView: React.FC = () => {
 
               <div className="mb-6">
                 <label className="label-tag block mb-2" style={{ color: 'rgba(200,205,212,0.4)', fontSize: '0.45rem' }}>
-                  Tu testimonio * (mínimo 50 caracteres)
+                  Tu testimonio * (mínimo 50 caracteres, sin enlaces)
                 </label>
                 <textarea
                   required
                   minLength={50}
+                  maxLength={800}
                   rows={5}
                   value={form.text}
                   onChange={e => setForm(p => ({ ...p, text: e.target.value }))}
@@ -317,11 +266,26 @@ const TestimoniosView: React.FC = () => {
                 </p>
               </div>
 
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                value={form.website}
+                onChange={e => setForm(p => ({ ...p, website: e.target.value }))}
+                style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+              />
+
+              {error && (
+                <p role="alert" className="mb-4" style={{ color: '#f87171', fontSize: '0.85rem' }}>{error}</p>
+              )}
+
               <div className="flex gap-3">
-                <button type="submit" className="btn-primary flex-1"
+                <button type="submit" disabled={sending} className="btn-primary flex-1"
                   style={{ clipPath: 'none', borderRadius: '2px' }}>
                   <i className="fas fa-paper-plane mr-2" />
-                  Enviar
+                  {sending ? 'Enviando...' : 'Enviar'}
                 </button>
                 <button
                   type="button"

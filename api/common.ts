@@ -22,6 +22,19 @@ function checkRateLimit(ip: string): boolean {
   return true; // OK
 }
 
+// Límite estricto para envíos de testimonios: 3 por hora por IP
+const testimonioMap = new Map<string, { count: number; resetAt: number }>();
+function checkTestimonioLimit(ip: string): boolean {
+  const now = Date.now();
+  const e = testimonioMap.get(ip);
+  if (!e || now > e.resetAt) {
+    testimonioMap.set(ip, { count: 1, resetAt: now + 3600000 });
+    return true;
+  }
+  e.count++;
+  return e.count <= 3;
+}
+
 function getClientIp(req: any): string {
   return (req.headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim()
     || req.headers?.['x-real-ip'] as string
@@ -1136,6 +1149,83 @@ export default async function handler(
       }
 
       return res.status(200).json({ success: true, message: 'Maintenance configuration saved successfully' });
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: TESTIMONIOS (envío público moderado)
+  // Los envíos se guardan en la hoja como CONFIG_TESTIMONIO_PENDIENTE (el prefijo
+  // CONFIG_ hace que los lanzamientos los ignoren). Para publicar uno, cambia esa
+  // celda "Artista" a CONFIG_TESTIMONIO en la hoja.
+  // -------------------------------------------------------------
+  if (action === 'testimonios') {
+    const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+
+    if (req.method === 'GET') {
+      try {
+        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) return res.status(200).json([]);
+        const rows = await response.json();
+        const items = (Array.isArray(rows) ? rows : [])
+          .filter((r: any) => r.Artista === 'CONFIG_TESTIMONIO' && r.name)
+          .map((r: any, i: number) => {
+            const [author, location] = String(r.audioUrl || '').split('||');
+            return {
+              id: i + 1,
+              text: String(r.name).slice(0, 800),
+              name: (author || 'Anónimo').slice(0, 60),
+              location: (location || '').slice(0, 80)
+            };
+          })
+          .reverse();
+        res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
+        return res.status(200).json(items);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    if (req.method === 'POST') {
+      if (!checkTestimonioLimit(getClientIp(req))) {
+        return res.status(429).json({ error: 'Demasiados envíos. Intenta más tarde.' });
+      }
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = {}; }
+      }
+      const clean = (v: any, max: number) => String(v ?? '').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+      // Campo trampa para bots: si viene lleno, fingimos éxito sin guardar
+      if (body?.website) return res.status(200).json({ success: true });
+
+      const name = clean(body?.name, 60);
+      const location = clean(body?.location, 80);
+      const text = clean(body?.text, 800);
+      if (!name || text.length < 50) {
+        return res.status(400).json({ error: 'Escribe tu nombre y un testimonio de al menos 50 caracteres.' });
+      }
+      if (/https?:\/\/|www\./i.test(text + name + location)) {
+        return res.status(400).json({ error: 'Por favor no incluyas enlaces.' });
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.append('Artista', 'CONFIG_TESTIMONIO_PENDIENTE');
+        params.append('name', text);
+        params.append('audioUrl', `${name}||${location}`);
+        params.append('releaseDate', new Date().toISOString().split('T')[0]);
+        const response = await fetch(CLOUD_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        if (!response.ok) throw new Error(`Sheet status ${response.status}`);
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('[api/common/testimonios] save failed:', err);
+        return res.status(500).json({ error: 'No pudimos guardar tu testimonio. Intenta de nuevo.' });
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
