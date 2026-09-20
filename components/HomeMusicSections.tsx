@@ -248,6 +248,13 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     return list;
   }, [hiddenGems, selectedChannelGems]);
 
+  // Joya del día: una canción poco escuchada, igual para todos y distinta cada día
+  const gemOfTheDay = useMemo(() => {
+    if (hiddenGems.length === 0) return null;
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+    return hiddenGems[day % hiddenGems.length];
+  }, [hiddenGems]);
+
   // 2. Music Videos
   const musicVideos = catalog.filter(s => s.url && s.url.includes("youtube")).slice(4, 8);
 
@@ -377,6 +384,33 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       {/* ========================================================================= */}
       {/* PESTAÑAS: Más escuchadas / Joyas ocultas (una sola sección en vez de dos) */}
       <div className="bg-[#04060a] border-t border-white/5 pt-10 px-6 md:px-16">
+        {gemOfTheDay && (
+          <div className="max-w-[1400px] mx-auto mb-8">
+            <div className="relative flex items-center gap-4 md:gap-6 p-4 md:p-5 rounded-3xl border border-amber-400/25 bg-gradient-to-r from-amber-500/10 via-amber-500/[0.04] to-transparent overflow-hidden">
+              <img
+                loading="lazy"
+                src={gemOfTheDay.thumb}
+                alt={gemOfTheDay.title}
+                className="w-20 h-20 md:w-28 md:h-28 rounded-2xl object-cover flex-shrink-0 border border-white/10 shadow-lg"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-amber-400 mb-1.5">
+                  <i className="fas fa-gem"></i>Joya del día
+                </div>
+                <h3 className="font-serif italic text-xl md:text-3xl text-white leading-tight truncate">{gemOfTheDay.title}</h3>
+                <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-white/40 mt-1 truncate">{gemOfTheDay.channel}</p>
+                <p className="hidden sm:block text-xs text-white/50 mt-2">Una canción de nuestro catálogo que merece más oídos. Cambia cada día.</p>
+              </div>
+              <button
+                onClick={() => handlePlayYTTrack(gemOfTheDay)}
+                className="flex-shrink-0 px-5 md:px-8 py-3 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-colors flex items-center gap-2"
+                aria-label={`Escuchar ${gemOfTheDay.title}`}
+              >
+                <i className="fas fa-play"></i><span className="hidden sm:inline">Escuchar</span>
+              </button>
+            </div>
+          </div>
+        )}
         <div className="max-w-[1400px] mx-auto flex justify-center">
           <div role="tablist" className="inline-flex p-1 rounded-full bg-white/5 border border-white/10">
             <button
