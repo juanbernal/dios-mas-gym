@@ -303,20 +303,24 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
             <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
               <Link
                 to={`/letra/${slug}`}
-                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all border border-emerald-500/30"
-                title="Ver Letra Oficial"
+                className="w-10 h-10 md:w-12 md:h-12 lg:w-auto lg:px-5 lg:gap-2 flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all border border-emerald-500/30"
+                title="Ver la letra de esta canción"
+                aria-label="Ver la letra de esta canción"
               >
                 <i className="fas fa-file-lines text-xs md:text-sm"></i>
+                <span className="hidden lg:inline text-[10px] font-black uppercase tracking-[0.15em]">Letra</span>
               </Link>
 
               <Link
                 to={`/link/${slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:flex w-10 h-10 md:w-12 md:h-12 items-center justify-center rounded-full bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] hover:text-[#dfba6f] transition-all border border-[#c5a059]/30"
-                title="SmartLink (Escuchar canción completa en plataformas)"
+                className="hidden sm:flex w-10 h-10 md:w-12 md:h-12 lg:w-auto lg:px-5 lg:gap-2 items-center justify-center rounded-full bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] hover:text-[#dfba6f] transition-all border border-[#c5a059]/30"
+                title="Escuchar la canción completa en Spotify, YouTube y más"
+                aria-label="Escuchar la canción completa en Spotify, YouTube y más"
               >
-                <i className="fas fa-link text-xs md:text-sm"></i>
+                <i className="fas fa-headphones text-xs md:text-sm"></i>
+                <span className="hidden lg:inline text-[10px] font-black uppercase tracking-[0.15em]">Canción completa</span>
               </Link>
 
               {videoId ? (
@@ -343,11 +347,12 @@ const GlobalPlayer: React.FC<GlobalPlayerProps> = ({ activeSong, onClear }) => {
 
               <button
                 onClick={() => setExpanded(true)}
-                className="hidden md:flex w-12 h-12 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/10"
-                title="Pantalla completa"
-                aria-label="Pantalla completa"
+                className="hidden md:flex w-12 lg:w-auto h-12 lg:px-5 lg:gap-2 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                title="Ampliar el reproductor a pantalla completa"
+                aria-label="Ampliar el reproductor a pantalla completa"
               >
                 <i className="fas fa-chevron-up text-sm"></i>
+                <span className="hidden lg:inline text-[10px] font-black uppercase tracking-[0.15em]">Ampliar</span>
               </button>
 
               <button
