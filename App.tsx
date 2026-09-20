@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import Hero from './components/Hero';
@@ -567,6 +567,8 @@ const App: React.FC = () => {
                 <Route path="music-promo-hub" element={<AdminAuthWrapper><MusicPromoHub/></AdminAuthWrapper>} />
                 <Route path="weekly-content" element={<AdminAuthWrapper><WeeklyContentAssistant catalog={combinedCatalog}/></AdminAuthWrapper>} />
                 <Route path="audio-studio" element={<AdminAuthWrapper><AudioStudioPro/></AdminAuthWrapper>} />
+                {/* Cualquier ruta de admin que no exista vuelve al panel en vez de quedar en blanco */}
+                <Route path="*" element={<Navigate to="/admin" replace />} />
               </Routes>
             </React.Suspense>
           } />

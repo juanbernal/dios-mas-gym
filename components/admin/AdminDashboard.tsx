@@ -444,7 +444,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
                     {[
                         { label: 'Nueva Letra', icon: 'fa-file-circle-plus', route: '/admin/lyrics-manager', color: '#00ffcc' },
-                        { label: 'Nuevo Post', icon: 'fa-bullhorn', route: '/admin/social-post', color: '#fbbf24' },
+                        { label: 'Nuevo Post', icon: 'fa-bullhorn', route: '/admin/post-scheduler', color: '#fbbf24' },
                         { label: 'Smart Link', icon: 'fa-link', route: '/admin/smart-links', color: '#3b82f6' },
                         { label: 'Calendario', icon: 'fa-calendar-plus', route: '/admin/content-calendar', color: '#38bdf8' }
                     ].map(action => (

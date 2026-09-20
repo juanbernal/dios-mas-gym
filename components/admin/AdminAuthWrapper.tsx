@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -6,6 +7,8 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
   const [error, setError] = useState(false);
 
   const [isVerifying, setIsVerifying] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
@@ -105,7 +108,25 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
     );
   }
 
-  return <>{children}</>;
+  // Botón fijo para volver al panel desde cualquier sección (algunas no traían el suyo o quedaba oculto)
+  const isDashboard = location.pathname.replace(/\/+$/, '') === '/admin';
+  return (
+    <>
+      {children}
+      {!isDashboard && (
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          aria-label="Volver al panel de administración"
+          title="Volver al panel"
+          className="print:hidden fixed left-3 bottom-3 md:left-5 md:bottom-5 z-[90] flex items-center gap-2 h-11 pl-3.5 pr-4 rounded-full bg-black/80 backdrop-blur-xl border border-[#c5a059]/40 text-[#c5a059] hover:bg-[#c5a059] hover:text-black shadow-lg shadow-black/50 transition-colors text-[10px] font-black uppercase tracking-[0.2em]"
+        >
+          <i className="fas fa-chevron-left text-[10px]"></i>
+          Panel
+        </button>
+      )}
+    </>
+  );
 };
 
 export default AdminAuthWrapper;
