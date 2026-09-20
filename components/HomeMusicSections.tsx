@@ -268,7 +268,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     {
       title: "Combate Espiritual",
       description: "Para cuando la batalla arrecia y necesitas fe.",
-      image: "https://images.unsplash.com/photo-1519671282429-b8a761c37f0e?q=80&w=2070&auto=format&fit=crop",
+      image: "/img/combate-espiritual.jpg",
       keywords: ["batalla", "espada", "guerra", "fuego"]
     }
   ];
