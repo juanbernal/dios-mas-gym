@@ -866,12 +866,15 @@ const SmartLinkView: React.FC = () => {
                             };
                         }).filter(r => r.name && r.date && !r.artist.toLowerCase().startsWith('config'));
                         
+                        // La hoja manda: su fecha reemplaza la que trae el catálogo sincronizado con YouTube
                         extraReleases.forEach(extra => {
-                            const exists = fullCatalog.some(c => 
-                                c.name.toLowerCase() === extra.name.toLowerCase() && 
+                            const match = fullCatalog.find(c =>
+                                c.name.toLowerCase() === extra.name.toLowerCase() &&
                                 c.artist.toLowerCase() === extra.artist.toLowerCase()
                             );
-                            if (!exists) {
+                            if (match) {
+                                match.date = extra.date;
+                            } else {
                                 fullCatalog.push(extra as any);
                             }
                         });

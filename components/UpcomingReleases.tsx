@@ -94,12 +94,17 @@ const UpcomingReleases: React.FC = () => {
                         }).filter(r => r.name && r.date && !r.artist.toLowerCase().startsWith('config')); // Solo los que tengan nombre y fecha válidos y no sean config
                         
                         // Añadimos a la lista si no existen ya en el catálogo principal (por nombre y artista)
+                        // La hoja manda: si la canción ya está en el catálogo (que se sincroniza
+                        // con YouTube y trae la fecha en que se SUBIÓ, no la del estreno),
+                        // se usa la fecha que pusiste en Próximos Lanzamientos.
                         extraReleases.forEach(extra => {
-                            const exists = combinedCatalog.some(c => 
-                                c.name?.toLowerCase() === extra.name.toLowerCase() && 
+                            const match = combinedCatalog.find(c =>
+                                c.name?.toLowerCase() === extra.name.toLowerCase() &&
                                 c.artist?.toLowerCase() === extra.artist.toLowerCase()
                             );
-                            if (!exists) {
+                            if (match) {
+                                match.date = extra.date;
+                            } else {
                                 combinedCatalog.push(extra);
                             }
                         });
