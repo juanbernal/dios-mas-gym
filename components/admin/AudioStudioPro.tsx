@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
 import { fetchMusicCatalog, fetchSavedLyrics, saveLyricToWeb } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import { syncFetch } from '../../services/adminSync';
 
 const generateSlug = (text: string) => {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -1409,7 +1410,7 @@ const AudioStudioPro:React.FC=()=>{
       const rawTitle = selectedCatalogSong?.name || meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Sin título';
       const cleanTitle = rawTitle.replace(/\s+(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/i, '').trim() || rawTitle;
       const songId = selectedCatalogSong?.id || generateSlug(cleanTitle);
-      const adminPass = localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || 'DMG_SYNC_2026';
+      const adminPass = localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || '';
       const finalLyricContent = autoCleanLyrics ? cleanLyricsText(meta.lyrics) : meta.lyrics.trim();
 
       const res = await saveLyricToWeb({
@@ -1463,19 +1464,15 @@ const AudioStudioPro:React.FC=()=>{
         // 2. Sincronización directa con Google Sheets (Nube) para persistencia total
         try {
           const queryString = new URLSearchParams({
-            action: 'save',
-            secret: 'DMG_SYNC_2026',
-            title: cleanTitle,
+            action: 'save',            title: cleanTitle,
             artist: meta.artist || 'Diosmasgym'
           }).toString();
 
-          await fetch(`/api/sheet-proxy?script=lyrics&${queryString}`, {
+          await syncFetch(`/api/sheet-proxy?script=lyrics&${queryString}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'save',
-              secret: 'DMG_SYNC_2026',
-              title: cleanTitle,
+              action: 'save',              title: cleanTitle,
               artist: meta.artist || 'Diosmasgym',
               content: finalLyricContent,
               date: new Date().toISOString()

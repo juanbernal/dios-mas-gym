@@ -357,7 +357,7 @@ export const fetchSavedLyrics = async (): Promise<any[]> => {
 export const saveLyricToWeb = async (lyric: { id?: string; title: string; artist: string; content: string; status?: string }, adminPassword?: string): Promise<{ success: boolean; message: string }> => {
   try {
     const authKey = adminPassword 
-      || (typeof window !== 'undefined' ? (localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || 'DMG_SYNC_2026') : 'DMG_SYNC_2026');
+      || (typeof window !== 'undefined' ? (localStorage.getItem('admin_password') || sessionStorage.getItem('admin_password') || '') : '');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-admin-password': authKey

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
+import { syncFetch } from '../../services/adminSync';
 
 const brandingData = {
   none: { name: "", link: "" },
@@ -25,7 +26,6 @@ const INTRO_DURATION = 4;
 const OUTRO_DURATION = 7;
 const MAX_VIDEO_DURATION = 90; // Límite estricto para TikTok (1:30 minutos)
 const SYNC_CORRECTION = 0.25; // Ajuste automático de sincronización (segundos)
-const SYNC_SECRET = "DMG_SYNC_2026";
 
 // --- ANTI-AI ORGANIC NOISE ENGINE ---
 const noise = (x: number, y: number) => {
@@ -229,20 +229,16 @@ const LyricStudio: React.FC = () => {
     if (sheetsSyncUrl) {
       try {
         const queryString = new URLSearchParams({
-          action: 'save',
-          secret: SYNC_SECRET,
-          title: name,
+          action: 'save',          title: name,
           artist: "Dios Mas Gym", // Default artist for Studio
           date: date
         }).toString();
         
-        await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+        await syncFetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'save',
-            secret: SYNC_SECRET,
-            title: name,
+            action: 'save',            title: name,
             artist: "Dios Mas Gym",
             content: content,
             date: date
@@ -299,7 +295,7 @@ const LyricStudio: React.FC = () => {
       // 2. Fetch from Google Sheets
       if (sheetsSyncUrl) {
         try {
-          const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&secret=${SYNC_SECRET}&t=${Date.now()}`);
+          const res = await syncFetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}action=list&t=${Date.now()}`);
           if (res.ok) {
             const data = await res.json();
             const sheetDrafts = (Array.isArray(data) ? data : (data?.data || [])).map((l: any) => ({

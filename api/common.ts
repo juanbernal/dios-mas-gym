@@ -106,6 +106,12 @@ function timingSafeCompare(a: string, b: string): boolean {
   }
 }
 
+// Secreto del Apps Script de letras: solo en el servidor (variable GS_SYNC_SECRET en Vercel).
+// Mientras la variable no exista se usa el valor anterior para no romper la sincronizacion.
+function GS_SYNC_SECRET(): string {
+  return (process.env.GS_SYNC_SECRET || 'DMG_SYNC_2026').trim();
+}
+
 function verifyAdminPassword(req: any): boolean {
   const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
   const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
@@ -356,7 +362,7 @@ async function getStoredLyrics(): Promise<any[]> {
 
   // 1. Try fetching from Google Sheets (most up-to-date)
   try {
-    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=DMG_SYNC_2026&t=${Date.now()}`);
+    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`);
     if (gsRes.ok) {
       const gsData = await gsRes.json();
       const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -887,7 +893,7 @@ export default async function handler(
         // 2. Try to fetch from Google Sheets Apps Script (GS_LYRICS_URL)
         if (GS_LYRICS_URL) {
           try {
-            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=DMG_SYNC_2026&t=${Date.now()}`);
+            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`);
             if (gsRes.ok) {
               const gsData = await gsRes.json();
               const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -957,7 +963,7 @@ export default async function handler(
             if (saveTitle && saveContent) {
               const queryString = new URLSearchParams({
                 action: 'save',
-                secret: 'DMG_SYNC_2026',
+                secret: GS_SYNC_SECRET(),
                 title: saveTitle,
                 artist: saveArtist
               }).toString();
@@ -967,7 +973,7 @@ export default async function handler(
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   action: 'save',
-                  secret: 'DMG_SYNC_2026',
+                  secret: GS_SYNC_SECRET(),
                   title: saveTitle,
                   artist: saveArtist,
                   content: saveContent,
@@ -1248,6 +1254,10 @@ export default async function handler(
       if (script === 'lyrics') url = GS_LYRICS_URL;
       else if (script === 'analytics') url = GS_ANALYTICS_URL;
 
+      if (script === 'lyrics' && !verifyAdminPassword(req)) {
+        return res.status(401).json({ error: 'No autorizado' });
+      }
+
       if (req.method === 'POST') {
         // Parse body — same pattern as the working maintenance handler
         let bodyData: Record<string, string> = {};
@@ -1263,6 +1273,7 @@ export default async function handler(
         };
 
         if (script === 'lyrics') {
+          bodyData.secret = GS_SYNC_SECRET();
           fetchOptions.headers = { 'Content-Type': 'text/plain' };
           fetchOptions.body = JSON.stringify(bodyData);
           console.log('[sheet-proxy] POSTing JSON payload to Apps Script (text/plain)');
@@ -1291,12 +1302,18 @@ export default async function handler(
         const hasNoCache = !!q.nocache;
         delete q.script;
         delete q.action;
+        if (script === 'lyrics') {
+          q.secret = GS_SYNC_SECRET();
+          res.setHeader('Cache-Control', 'no-store');
+        }
         const qs = new URLSearchParams(q).toString();
         if (qs) url += `?${qs}`;
 
         const resp = await fetch(url, { method: 'GET', redirect: 'follow' });
 
-        if (hasNoCache) {
+        if (script === 'lyrics') {
+          // sin cache: la respuesta es privada del admin
+        } else if (hasNoCache) {
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         } else {
           res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');

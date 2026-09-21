@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
+import { syncFetch } from '../../services/adminSync';
 
 interface LyricItem {
     id: string;
@@ -14,7 +15,6 @@ interface LyricItem {
     date: string;
 }
 
-const SYNC_SECRET = "DMG_SYNC_2026";
 
 // ── Prueba de autoria: fecha original + historial de versiones que solo crece ──
 const AUTH_KEY = 'lyric_authorship_v1';
@@ -249,12 +249,11 @@ const LyricsManager: React.FC = () => {
             let sheetItems: LyricItem[] = [];
             if (sheetsSyncUrl) {
                 try {
-                    const res = await fetch(sheetsSyncUrl, {
+                    const res = await syncFetch(sheetsSyncUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'list',
-                            secret: SYNC_SECRET
                         })
                     });
                     const text = await res.text();
@@ -430,20 +429,18 @@ const LyricsManager: React.FC = () => {
             // El script recibirá el JSON string en e.postData.contents
             const queryString = new URLSearchParams({
                 action: 'save',
-                secret: SYNC_SECRET,
                 title: selectedLyric.title,
                 artist: selectedLyric.artist,
                 date: getFirstDate(selectedLyric.title, selectedLyric.artist, selectedLyric.date)
                 // Content is not included in query string to avoid length limits
             }).toString();
-            const saveRes = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+            const saveRes = await syncFetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     action: 'save',
-                    secret: SYNC_SECRET,
                     title: selectedLyric.title,
                     artist: selectedLyric.artist,
                     content: selectedLyric.content,
@@ -495,17 +492,15 @@ const LyricsManager: React.FC = () => {
         try {
             const queryString = new URLSearchParams({
                 action: 'delete',
-                secret: SYNC_SECRET,
                 title: lyric.title,
                 artist: lyric.artist
             }).toString();
             
-            const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+            const res = await syncFetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'delete',
-                    secret: SYNC_SECRET,
                     title: lyric.title,
                     artist: lyric.artist
                 })
@@ -592,18 +587,16 @@ const LyricsManager: React.FC = () => {
             try {
                 const queryString = new URLSearchParams({
                     action: 'blogger',
-                    secret: SYNC_SECRET,
                     title: lyric.title,
                     artist: lyric.artist,
                     date: lyric.date || new Date().toISOString()
                 }).toString();
                 const autoLabels = [lyric.artist, "Letras", "Música"].filter(Boolean);
-                const res = await fetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
+                const res = await syncFetch(`${sheetsSyncUrl}${sheetsSyncUrl.includes('?') ? '&' : '?'}${queryString}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'blogger',
-                        secret: SYNC_SECRET,
                         title: lyric.title,
                         artist: lyric.artist,
                         content: lyric.content,
@@ -798,12 +791,11 @@ ${cleanedLyrics}`;
         setIsSaving(true);
         try {
             const autoLabels = [selectedLyric.artist, "Reflexiones", "Música"].filter(Boolean);
-            await fetch(sheetsSyncUrl, {
+            await syncFetch(sheetsSyncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'blogger',
-                    secret: SYNC_SECRET,
                     title: storyTitle,
                     artist: selectedLyric.artist,
                     content: storyPostHtml,
