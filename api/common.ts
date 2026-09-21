@@ -35,6 +35,25 @@ function checkTestimonioLimit(ip: string): boolean {
   return e.count <= 3;
 }
 
+// Limite de intentos fallidos de login del panel (por instancia; frena la fuerza bruta basica)
+const loginFailMap = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_MAX_FAILS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function loginBlocked(ip: string): boolean {
+  const e = loginFailMap.get(ip);
+  if (!e) return false;
+  if (Date.now() > e.resetAt) { loginFailMap.delete(ip); return false; }
+  return e.count >= LOGIN_MAX_FAILS;
+}
+
+function registerLoginFail(ip: string): void {
+  const now = Date.now();
+  const e = loginFailMap.get(ip);
+  if (!e || now > e.resetAt) loginFailMap.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+  else e.count++;
+}
+
 function getClientIp(req: any): string {
   return (req.headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim()
     || req.headers?.['x-real-ip'] as string
@@ -1352,6 +1371,12 @@ export default async function handler(
       return res.status(400).json({ error: 'Password is required' });
     }
 
+    const loginIp = getClientIp(req);
+    if (loginBlocked(loginIp)) {
+      res.setHeader('Retry-After', '900');
+      return res.status(429).json({ success: false, message: 'Demasiados intentos. Espera 15 minutos.' });
+    }
+
     const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
     const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
     const INPUT_KEY = String(password).trim();
@@ -1364,6 +1389,7 @@ export default async function handler(
     if (timingSafeCompare(INPUT_KEY, MASTER_KEY)) {
       return res.status(200).json({ success: true, message: 'Authenticated successfully' });
     } else {
+      registerLoginFail(loginIp);
       return res.status(401).json({ success: false, message: 'Invalid password' });
     }
   }
