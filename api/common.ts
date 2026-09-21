@@ -42,6 +42,12 @@ function getClientIp(req: any): string {
     || 'unknown';
 }
 
+// El index.html trae contenido de relleno para la home (rastreable); los handlers SSR
+// necesitan el <div id="root"></div> vacio para inyectar el contenido propio de cada pagina.
+function stripHomeFallback(html: string): string {
+  return html.replace(/<div id="root">\s*<!-- Contenido rastreable[\s\S]*?<\/main>\s*<\/div>/, '<div id="root"></div>');
+}
+
 let cachedIndexHtml = '';
 let cachedIndexHtmlTime = 0;
 
@@ -59,8 +65,9 @@ async function getBaseIndexHtml(): Promise<string> {
   for (const candidate of candidates) {
     try {
       if (fs.existsSync(candidate)) {
-        const html = fs.readFileSync(candidate, 'utf-8');
+        let html = fs.readFileSync(candidate, 'utf-8');
         if (html && html.includes('<div id="root">')) {
+          html = stripHomeFallback(html);
           cachedIndexHtml = html;
           cachedIndexHtmlTime = now;
           return html;
@@ -72,8 +79,9 @@ async function getBaseIndexHtml(): Promise<string> {
   // Strategy 2: Fetch from the production URL (fallback for non-Vercel envs)
   try {
     const htmlRes = await fetch('https://www.diosmasgym.com/index.html');
-    const html = await htmlRes.text();
+    let html = await htmlRes.text();
     if (html && html.includes('<div id="root">')) {
+      html = stripHomeFallback(html);
       cachedIndexHtml = html;
       cachedIndexHtmlTime = now;
       return html;
@@ -2198,7 +2206,7 @@ ${sections}
 
       // Inject full SSR content for SmartLinks — visible to crawlers, hidden from users
       const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
-      html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}"><a href="${shareUrl}">Escuchar ahora en Spotify, YouTube, Apple Music y Deezer</a></article></div>`);
+      html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}"><a href="${shareUrl}">Escuchar ahora en Spotify, YouTube, Apple Music y Deezer</a>${song ? `<nav><a href="/bio/${song.artist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}">Más de ${escapeXml(song.artist)}</a> <a href="/catalogo">Catálogo completo</a>${song.lyrics && song.lyrics.trim().length >= 50 ? ` <a href="/letra/${generateSlug(song.name)}">Letra de ${escapeXml(song.name)}</a>` : ''}</nav>` : ''}</article></div>`);
 
       // HTTP-level robots signal so Google reads it even before parsing HTML
       res.setHeader('X-Robots-Tag', 'index, follow');
