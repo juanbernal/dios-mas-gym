@@ -121,18 +121,13 @@ function verifyAdminPassword(req: any): boolean {
     authHeader = (req.headers['authorization'] as string) || '';
   }
 
-  // Permiso directo para sincronizador del estudio y llaves de confianza
-  if (providedPassword === 'DMG_SYNC_2026' || providedPassword === 'admin' || providedPassword === 'diosmasgym') {
-    return true;
-  }
-
   if (MASTER_KEY && timingSafeCompare(providedPassword, MASTER_KEY)) {
     return true;
   }
 
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7).trim();
-    if (token === 'DMG_SYNC_2026' || (MASTER_KEY && timingSafeCompare(token, MASTER_KEY))) {
+    if (MASTER_KEY && timingSafeCompare(token, MASTER_KEY)) {
       return true;
     }
   }
