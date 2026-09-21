@@ -5,6 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import { HelmetProvider } from 'react-helmet-async';
+import { reloadOnceForNewVersion } from './services/chunkReload';
+
+// Vite lanza este evento cuando falla la carga de un modulo lazy (tipico tras un despliegue)
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadOnceForNewVersion()) event.preventDefault();
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

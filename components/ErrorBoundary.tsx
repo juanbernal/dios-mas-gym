@@ -1,4 +1,5 @@
 import React from 'react';
+import { isChunkLoadError, reloadOnceForNewVersion } from '../services/chunkReload';
 
 interface Props {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ErrorBoundary] Crash capturado:', error, info);
+    if (isChunkLoadError(error?.message)) reloadOnceForNewVersion();
   }
 
   render() {
