@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MusicItem } from '../../types';
+import { adminHeaders } from '../../services/adminSync';
 
 interface ReleaseData {
     name: string;
@@ -100,7 +101,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         // Orden fijo por id y sin filtros locales: asi la eleccion depende solo de la fecha
         // y sale la misma en la PC y en el celular.
-        const pool = [...catalog].filter(s => s.id).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+        const used = new Set(promotedIds);
+        const all = [...catalog].filter(s => s.id);
+        const fresh = all.filter(s => !used.has(s.id));
+        const pool = (fresh.length > 0 ? fresh : all).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
         if (pool.length === 0) return null;
 
@@ -131,7 +135,34 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             whatsappCaption: caps.wa,
             hashtags: finalHashtags
         };
-    }, [catalog, skipCount, dayOfYear]);
+    }, [catalog, promotedIds, skipCount, dayOfYear]);
+
+    // Estado compartido entre dispositivos (saltos del dia y canciones usadas).
+    // Si el servidor no lo tiene configurado, se sigue usando solo el guardado local.
+    const pushState = (skips: number, promoted: string[]) => {
+        fetch('/api/common?action=daily-post', {
+            method: 'POST',
+            headers: adminHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ day: dayKey(), skips, promoted })
+        }).catch(() => { /* sin conexion: queda el guardado local */ });
+    };
+
+    useEffect(() => {
+        const pull = async () => {
+            try {
+                const res = await fetch('/api/common?action=daily-post', { headers: adminHeaders() });
+                if (!res.ok) return;
+                const remote = await res.json();
+                const promoted: string[] = Array.isArray(remote.promoted) ? remote.promoted : [];
+                setPromotedIds(prev => (JSON.stringify(prev) === JSON.stringify(promoted) ? prev : promoted));
+                setSkipCount(remote.day === dayKey() ? Number(remote.skips) || 0 : 0);
+            } catch { /* se queda con lo local */ }
+        };
+        pull();
+        const onVisible = () => { if (document.visibilityState === 'visible') pull(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, []);
 
     // Clear custom AI text when song changes
     useEffect(() => {
@@ -142,6 +173,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const next = skipCount + 1;
         setSkipCount(next);
         localStorage.setItem(SKIPS_KEY, JSON.stringify({ day: dayKey(), count: next }));
+        pushState(next, promotedIds);
     };
 
     const handleMarkUsed = () => {
@@ -149,7 +181,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const nextPromoted = [...promotedIds, suggestion.song.id];
         setPromotedIds(nextPromoted);
         localStorage.setItem(PROMOTED_KEY, JSON.stringify(nextPromoted));
-        handleNextSong();
+        // Al salir del catalogo disponible la cancion usada, la sugerencia cambia sola
+        pushState(skipCount, nextPromoted);
         setCopiedStatus('✅ Canción marcada como publicada');
         setTimeout(() => setCopiedStatus(''), 2500);
     };
@@ -159,6 +192,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setSkipCount(0);
         localStorage.removeItem(PROMOTED_KEY);
         localStorage.removeItem(SKIPS_KEY);
+        pushState(0, []);
         setCopiedStatus('🔄 Historial reiniciado');
         setTimeout(() => setCopiedStatus(''), 2000);
     };

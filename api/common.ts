@@ -4,6 +4,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
+import { get as blobGet, put as blobPut } from '@vercel/blob';
 
 // ── In-memory rate limiter (per IP, resets per serverless instance lifecycle) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -1676,6 +1677,57 @@ export default async function handler(
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).send(sitemapIndex);
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: DAILY-POST (estado compartido de "Publicacion Rapida del Dia": saltos y usadas)
+  // Se guarda en Vercel Blob para que la PC y el celular vean la misma cancion.
+  // -------------------------------------------------------------
+  if (action === 'daily-post') {
+    if (!verifyAdminPassword(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return res.status(501).json({ error: 'Almacenamiento no configurado (falta BLOB_READ_WRITE_TOKEN)' });
+    }
+    const STATE_PATH = 'state/daily-post.json';
+    const empty = { day: '', skips: 0, promoted: [] as string[] };
+    // La tienda de Blob puede ser publica o privada: probamos ambas.
+    const accessModes: Array<'private' | 'public'> = ['private', 'public'];
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (req.method === 'GET') {
+      for (const access of accessModes) {
+        try {
+          const r: any = await blobGet(STATE_PATH, { access, useCache: false });
+          if (r && r.statusCode === 200 && r.stream) {
+            const text = await new Response(r.stream).text();
+            return res.status(200).json({ ...empty, ...JSON.parse(text) });
+          }
+          if (r === null) return res.status(200).json(empty);
+        } catch (_) { /* probar el otro modo */ }
+      }
+      return res.status(200).json(empty);
+    }
+
+    if (req.method === 'POST') {
+      let body: any = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      const state = {
+        day: String(body?.day || '').slice(0, 40),
+        skips: Math.max(0, Math.min(100000, Number(body?.skips) || 0)),
+        promoted: Array.isArray(body?.promoted) ? body.promoted.map((x: any) => String(x).slice(0, 80)).slice(-3000) : []
+      };
+      let lastErr: any = null;
+      for (const access of accessModes) {
+        try {
+          await blobPut(STATE_PATH, JSON.stringify(state), {
+            access, contentType: 'application/json', allowOverwrite: true, addRandomSuffix: false
+          });
+          return res.status(200).json({ ok: true });
+        } catch (e) { lastErr = e; }
+      }
+      return res.status(500).json({ error: 'No se pudo guardar', details: lastErr?.message });
+    }
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   // -------------------------------------------------------------
