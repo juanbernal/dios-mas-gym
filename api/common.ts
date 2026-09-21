@@ -1487,6 +1487,7 @@ export default async function handler(
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/testimonios`, today, 'monthly', '0.7');
+      xml += urlBlock(`${BASE}/catalogo`, today, 'daily', '0.9');
       xml += urlBlock(`${BASE}/buscar`, today, 'weekly', '0.6');
 
       songs.forEach(song => {
@@ -1629,6 +1630,70 @@ export default async function handler(
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).send(sitemapIndex);
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: CATALOGO (pagina HTML rastreable con enlaces a TODAS las canciones y letras)
+  // -------------------------------------------------------------
+  if (action === 'catalogo') {
+    const BASE = 'https://www.diosmasgym.com';
+    const esc = (t: string) => escapeXml(String(t || ''));
+    try {
+      const [songs, storedLyrics] = await Promise.all([fetchAllMusic(), getStoredLyrics()]);
+      const hasText = (t: any) => typeof t === 'string' && t.trim().length >= 50;
+      const lyricSlugs = new Set<string>();
+      storedLyrics.forEach((l: any) => {
+        if (!l || !hasText(l.content)) return;
+        if (l.id) lyricSlugs.add(generateSlug(String(l.id)));
+        if (l.title) lyricSlugs.add(generateSlug(String(l.title)));
+      });
+
+      const byArtist = new Map<string, MusicItem[]>();
+      songs.forEach(s => {
+        if (!s.id || !s.name) return;
+        const a = s.artist || 'Dios Mas Gym';
+        if (!byArtist.has(a)) byArtist.set(a, []);
+        byArtist.get(a)!.push(s);
+      });
+
+      let sections = '';
+      Array.from(byArtist.entries())
+        .sort((a, b) => b[1].length - a[1].length)
+        .forEach(([artist, list]) => {
+          sections += `<section><h2>${esc(artist)} <small>(${list.length})</small></h2><ul>`;
+          list.forEach(s => {
+            const slug = generateSlug(s.name);
+            const letra = slug && (hasText(s.lyrics) || lyricSlugs.has(slug) || lyricSlugs.has(generateSlug(s.id)))
+              ? ` &middot; <a href="/letra/${esc(slug)}">letra</a>` : '';
+            sections += `<li><a href="/link/${esc(s.id)}">${esc(s.name)}</a>${letra}</li>`;
+          });
+          sections += '</ul></section>';
+        });
+
+      const title = 'Catálogo completo de canciones y letras | Dios Mas Gym';
+      const desc = `Todas las canciones de Diosmasgym y Juan 614: ${songs.length} temas de música cristiana, rap cristiano y corridos de fe, con enlaces para escucharlos y leer sus letras.`;
+      const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="${BASE}/catalogo">
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${BASE}/catalogo"><meta property="og:type" content="website"><meta property="og:image" content="${BASE}/api/og-image">
+<style>body{background:#05070a;color:#e5e7eb;font:16px/1.6 system-ui,sans-serif;padding:24px;max-width:900px;margin:auto}a{color:#facc15;text-decoration:none}a:hover{text-decoration:underline}h1{font-size:1.8rem}h2{margin-top:2rem;border-bottom:1px solid #222;padding-bottom:.3rem}small{color:#888}ul{columns:2 280px;padding-left:1.2rem}li{margin:.2rem 0;break-inside:avoid}</style>
+</head><body>
+<p><a href="/">&larr; Dios Mas Gym</a> &middot; <a href="/buscar">Buscar</a> &middot; <a href="/bio">Bio</a></p>
+<h1>Catálogo completo de Dios Mas Gym</h1>
+<p>${esc(desc)}</p>
+${sections}
+</body></html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+      return res.status(200).send(html);
+    } catch (e) {
+      console.error('catalogo error', e);
+      return res.status(500).send('Error');
+    }
   }
 
   // -------------------------------------------------------------

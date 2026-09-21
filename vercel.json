@@ -95,6 +95,10 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/catalogo",
+      "destination": "/api/common?action=catalogo"
+    },
+    {
       "source": "/bio",
       "destination": "/api/common?action=bio-ssr&artist=diosmasgym"
     },

@@ -120,7 +120,8 @@ const Footer: React.FC = () => {
             <div className="flex flex-col gap-3">
               {[
                 { label: 'Diosmasgym', href: '/bio/diosmasgym' },
-                { label: 'Juan 614', href: '/bio/juan614' }
+                { label: 'Juan 614', href: '/bio/juan614' },
+                { label: 'Catálogo completo', href: '/catalogo' }
               ].map(link => (
                 <a key={link.href} href={link.href}
                   className="label-tag flex items-center gap-2 transition-all"

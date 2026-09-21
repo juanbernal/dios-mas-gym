@@ -6,6 +6,7 @@ Allow: /lyrics/
 Allow: /bio/
 Allow: /testimonios
 Allow: /buscar
+Allow: /catalogo
 
 # Bloquear panel admin y rutas internas de API
 Disallow: /admin/

@@ -239,7 +239,19 @@
         window.history.replaceState(null, '', newPath);
       }
     </script>
-    <div id="root"></div>
+    <div id="root"><!-- Contenido rastreable mientras carga la app; React lo reemplaza al montar -->
+      <main style="font-family:system-ui,sans-serif;background:#05070a;color:#e5e7eb;padding:24px;min-height:100vh">
+        <h1>Dios Mas Gym | Música Cristiana, Rap y Corridos de Fe</h1>
+        <p>El Arsenal de Fe: música cristiana, rap cristiano y corridos de motivación de Diosmasgym y Juan 614. Disciplina, valentía y fe para tu vida diaria.</p>
+        <nav>
+          <a href="/catalogo" style="color:#facc15">Catálogo completo de canciones y letras</a> ·
+          <a href="/buscar" style="color:#facc15">Buscar canciones</a> ·
+          <a href="/bio/diosmasgym" style="color:#facc15">Diosmasgym</a> ·
+          <a href="/bio/juan614" style="color:#facc15">Juan 614</a> ·
+          <a href="/testimonios" style="color:#facc15">Testimonios</a>
+        </nav>
+      </main>
+    </div>
     <script type="module" src="/index.tsx"></script>
     <script>
         window.deferredPWAEvent = null;
