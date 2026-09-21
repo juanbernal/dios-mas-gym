@@ -98,7 +98,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         if (pool.length === 0) return null;
 
-        const idx = ((dayOfYear * 19) + skipCount) % pool.length;
+        // Aleatorio (no recorre el catalogo por orden de fecha): semilla fija por dia + saltos,
+        // asi la sugerencia no cambia al recargar pero cada 'Cambiar cancion' da otra distinta.
+        const seed = today.getFullYear() * 1000 + dayOfYear + skipCount * 7919;
+        let h = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b);
+        h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+        h ^= h >>> 16;
+        const idx = (h >>> 0) % pool.length;
         const song = pool[idx];
 
         const smartLink = song.id ? `${window.location.origin}/link/${song.id}` : 'https://diosmasgym.com';
