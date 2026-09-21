@@ -20,6 +20,8 @@ interface Suggestion {
 }
 
 const PROMOTED_KEY = 'content_assistant_promoted_ids';
+const SKIPS_KEY = 'content_assistant_skips_by_day';
+const dayKey = () => new Date().toDateString();
 
 const HASHTAG_SETS = {
     new_release: "#estreno #musicanueva #estrenomusical #diosmasgym #juan614 #vivaelrey",
@@ -67,8 +69,11 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     });
 
     const [skipCount, setSkipCount] = useState<number>(() => {
+        // Los saltos valen solo para el dia en que se hicieron: cada dia arranca en 0
+        // y todos los dispositivos muestran la misma cancion hasta que se pulsa "Cambiar".
         try {
-            return parseInt(localStorage.getItem('content_assistant_single_skips') || '0', 10);
+            const saved = JSON.parse(localStorage.getItem(SKIPS_KEY) || 'null');
+            return saved && saved.day === dayKey() ? Number(saved.count) || 0 : 0;
         } catch { return 0; }
     });
 
@@ -93,8 +98,9 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const suggestion = useMemo<Suggestion | null>(() => {
         if (!catalog || catalog.length === 0) return null;
 
-        const freshCatalog = catalog.filter(s => !promotedIds.includes(s.id));
-        const pool = freshCatalog.length > 0 ? freshCatalog : catalog;
+        // Orden fijo por id y sin filtros locales: asi la eleccion depende solo de la fecha
+        // y sale la misma en la PC y en el celular.
+        const pool = [...catalog].filter(s => s.id).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
         if (pool.length === 0) return null;
 
@@ -125,7 +131,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             whatsappCaption: caps.wa,
             hashtags: finalHashtags
         };
-    }, [catalog, promotedIds, skipCount, dayOfYear]);
+    }, [catalog, skipCount, dayOfYear]);
 
     // Clear custom AI text when song changes
     useEffect(() => {
@@ -135,7 +141,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const handleNextSong = () => {
         const next = skipCount + 1;
         setSkipCount(next);
-        localStorage.setItem('content_assistant_single_skips', next.toString());
+        localStorage.setItem(SKIPS_KEY, JSON.stringify({ day: dayKey(), count: next }));
     };
 
     const handleMarkUsed = () => {
@@ -152,7 +158,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setPromotedIds([]);
         setSkipCount(0);
         localStorage.removeItem(PROMOTED_KEY);
-        localStorage.removeItem('content_assistant_single_skips');
+        localStorage.removeItem(SKIPS_KEY);
         setCopiedStatus('🔄 Historial reiniciado');
         setTimeout(() => setCopiedStatus(''), 2000);
     };
