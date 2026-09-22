@@ -100,8 +100,8 @@ const toRows = (res: any): GaRow[] =>
 
 // Consulta de smart links (vistas, clics por plataforma y origen). La usan el panel y el correo diario.
 // startDate: 'today' | 'NdaysAgo'
-export async function querySmartLinkStats(client: any, propertyId: string, startDate: string) {
-  const dateRanges = [{ startDate, endDate: 'today' }];
+export async function querySmartLinkStats(client: any, propertyId: string, startDate: string, endDate: string = 'today') {
+  const dateRanges = [{ startDate, endDate }];
   const property = `properties/${propertyId}`;
   const linkFilter = (fieldName: string) => ({ filter: { fieldName, stringFilter: { matchType: 'BEGINS_WITH' as const, value: '/link/' } } });
 
@@ -197,11 +197,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Estadisticas de Smart Links (panel de admin) ──
     if (req.query.action === 'smartlinks') {
-      const daysParam = parseInt(String(req.query.days ?? '30'), 10);
-      const days = Number.isNaN(daysParam) ? 30 : Math.min(Math.max(daysParam, 0), 90); // 0 = solo hoy
-      const stats = await querySmartLinkStats(analyticsDataClient, propertyId, days === 0 ? 'today' : `${days}daysAgo`);
+      const daysRaw = String(req.query.days ?? '30');
+      let startDate: string;
+      let endDate = 'today';
+      if (daysRaw === 'yesterday') {
+        startDate = 'yesterday';
+        endDate = 'yesterday';
+      } else {
+        const daysParam = parseInt(daysRaw, 10);
+        const days = Number.isNaN(daysParam) ? 30 : Math.min(Math.max(daysParam, 0), 90); // 0 = solo hoy
+        startDate = days === 0 ? 'today' : `${days}daysAgo`;
+      }
+      const stats = await querySmartLinkStats(analyticsDataClient, propertyId, startDate, endDate);
       res.setHeader('Cache-Control', 'private, max-age=120');
-      return res.status(200).json({ status: 'ok', days, ...stats });
+      return res.status(200).json({ status: 'ok', days: daysRaw, ...stats });
     }
 
     // ── Visitantes activos ahora (tiempo real, ultimos 30 minutos) ──

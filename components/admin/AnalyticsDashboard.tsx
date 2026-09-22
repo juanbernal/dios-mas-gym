@@ -14,7 +14,7 @@ const AnalyticsDashboard: React.FC = () => {
         return localStorage.getItem('pwa_admin_user') === 'true';
     });
     const [samplingFilter, setSamplingFilter] = useState<'all' | 'main' | 'external'>('all');
-    const [timeframeFilter, setTimeframeFilter] = useState<'day' | 'week' | 'month'>('week');
+    const [timeframeFilter, setTimeframeFilter] = useState<'day' | 'yesterday' | 'week' | 'month'>('week');
     const [sendingEmail, setSendingEmail] = useState(false);
     const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
 
@@ -114,6 +114,21 @@ const AnalyticsDashboard: React.FC = () => {
                 filteredHistory = [{ date: todayFormatted, views: 0 }];
                 currentTotal = 0;
             }
+        } else if (timeframeFilter === 'yesterday') {
+            const yesterdayFormatted = new Intl.DateTimeFormat('es-MX', {
+                timeZone: tz,
+                day: '2-digit',
+                month: '2-digit'
+            }).format(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+            const yesterdayEntry = filteredHistory.find((h: any) => h.date === yesterdayFormatted);
+            if (yesterdayEntry) {
+                filteredHistory = [yesterdayEntry];
+                currentTotal = yesterdayEntry.views;
+            } else {
+                filteredHistory = [{ date: yesterdayFormatted, views: 0 }];
+                currentTotal = 0;
+            }
         }
 
         return {
@@ -164,7 +179,7 @@ const AnalyticsDashboard: React.FC = () => {
     // Smart links: clics por plataforma y origen, segun el periodo elegido
     useEffect(() => {
         let stop = false;
-        const days = timeframeFilter === 'day' ? 0 : timeframeFilter === 'week' ? 7 : 30;
+        const days = timeframeFilter === 'day' ? 0 : timeframeFilter === 'yesterday' ? 'yesterday' : timeframeFilter === 'week' ? 7 : 30;
         setSlError('');
         (async () => {
             try {
@@ -415,6 +430,7 @@ const AnalyticsDashboard: React.FC = () => {
                     <div className="flex bg-[#0f111a] border border-white/5 rounded-2xl p-1 gap-1">
                         {[
                             { id: 'day', label: 'Hoy', icon: 'fa-sun' },
+                            { id: 'yesterday', label: 'Ayer', icon: 'fa-moon' },
                             { id: 'week', label: 'Últimos 7 días', icon: 'fa-calendar-week' },
                             { id: 'month', label: 'Últimos 30 días', icon: 'fa-calendar-alt' }
                         ].map(period => (
@@ -438,7 +454,7 @@ const AnalyticsDashboard: React.FC = () => {
                     {/* Tarjeta de Visitas Totales */}
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-8 relative overflow-hidden flex flex-col justify-center lg:col-span-1">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-[50px] pointer-events-none"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-chart-line mr-2"></i> Tráfico Total ({timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'month' ? 'Mes' : 'Semana'})</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-2"><i className="fas fa-chart-line mr-2"></i> Tráfico Total ({timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'yesterday' ? 'Ayer' : timeframeFilter === 'month' ? 'Mes' : 'Semana'})</p>
                         <h3 className="text-5xl font-bold text-white">{data?.totalViews?.toLocaleString() || '0'}</h3>
                     </div>
 
@@ -535,7 +551,7 @@ const AnalyticsDashboard: React.FC = () => {
                     <div className="bg-[#0f111a] border border-white/5 rounded-3xl p-6 relative lg:col-span-2 h-48">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-[50px] pointer-events-none"></div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-4 relative z-10">
-                            <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Páginas vistas de hoy' : timeframeFilter === 'month' ? 'Páginas vistas de los últimos 30 días (por día)' : 'Páginas vistas de los últimos 7 días (por día)'}
+                            <i className="fas fa-calendar-alt mr-2"></i> {timeframeFilter === 'day' ? 'Páginas vistas de hoy' : timeframeFilter === 'yesterday' ? 'Páginas vistas de ayer' : timeframeFilter === 'month' ? 'Páginas vistas de los últimos 30 días (por día)' : 'Páginas vistas de los últimos 7 días (por día)'}
                         </p>
                         <div className="w-full h-32 relative z-10" style={{ minHeight: 0 }}>
                             {data?.history && data.history.length > 0 ? (
@@ -627,7 +643,7 @@ const AnalyticsDashboard: React.FC = () => {
 
                 {/* Smart Links: clics a plataformas y origen de las visitas */}
                 {(() => {
-                    const periodLabel = timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'week' ? 'Últimos 7 días' : 'Últimos 30 días';
+                    const periodLabel = timeframeFilter === 'day' ? 'Hoy' : timeframeFilter === 'yesterday' ? 'Ayer' : timeframeFilter === 'week' ? 'Últimos 7 días' : 'Últimos 30 días';
                     const PLATFORM_NAMES: Record<string, string> = {
                         spotify: 'Spotify', apple_music: 'Apple Music', youtube: 'YouTube', amazon_music: 'Amazon Music',
                         tidal: 'Tidal', deezer: 'Deezer', audiomack: 'Audiomack', sitio_oficial: 'Sitio Oficial', sitio_web_oficial: 'Sitio Web Oficial',
