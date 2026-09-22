@@ -47,7 +47,7 @@ export const SocialPopup: React.FC = () => {
                 {/* Header con Logo */}
                 <div className="relative w-20 h-20 mx-auto mb-5">
                     <div className="absolute inset-0 bg-[#4a90d9]/30 rounded-[1.8rem] blur-xl animate-pulse"></div>
-                    <img src="/logo-diosmasgym.png" alt="Logo" className="w-full h-full object-cover rounded-[1.8rem] border border-[#4a90d9]/60 shadow-2xl relative z-10" />
+                    <img src="/logo-diosmasgym-sm.webp" alt="Logo" className="w-full h-full object-cover rounded-[1.8rem] border border-[#4a90d9]/60 shadow-2xl relative z-10" />
                 </div>
 
                 <h3 className="font-serif italic text-3xl md:text-4xl text-white mb-2 leading-tight">

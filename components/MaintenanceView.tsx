@@ -26,7 +26,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
       <div className="relative z-10 w-full max-w-7xl mx-auto flex justify-center items-center pt-4 animate-fade-in">
         <div className="flex items-center gap-4">
           <img 
-            src="/logo-diosmasgym.png" 
+            src="/logo-diosmasgym-sm.webp"
             className="w-12 h-12 grayscale opacity-70 drop-shadow-[0_0_15px_rgba(37,99,168,0.3)] animate-pulse" 
             alt="Logo Dios Más Gym" 
           />

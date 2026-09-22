@@ -81,7 +81,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
         id: matchedSaved.id || slug,
         name: matchedSaved.title,
         artist: matchedSaved.artist || 'Dios Mas Gym',
-        cover: '/logo-diosmasgym.png',
+        cover: '/logo-diosmasgym-sm.webp',
         url: '',
         type: 'Single',
         lyrics: matchedSaved.content,

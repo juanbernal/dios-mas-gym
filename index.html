@@ -202,7 +202,9 @@
         // MASTER RESET SCRIPT (v5.0.7)
         const APP_VERSION = '5.0.7';
         try {
-            if (localStorage.getItem('app_version') !== APP_VERSION || window.location.search.includes('reset')) {
+            const previousVersion = localStorage.getItem('app_version');
+            const isFirstVisit = previousVersion === null;
+            if ((!isFirstVisit && previousVersion !== APP_VERSION) || window.location.search.includes('reset')) {
                 console.log('🧹 Versión antigua detectada o Reset manual. Limpiando caché...');
                 localStorage.setItem('app_version', APP_VERSION);
                 if ('serviceWorker' in navigator) {
@@ -229,6 +231,10 @@
                 if (localStorage.getItem('app_version') === APP_VERSION) {
                     setTimeout(() => { window.location.reload(true); }, 500);
                 }
+            } else if (isFirstVisit) {
+                // Primera visita real: no hay cache/SW viejo que limpiar, asi que
+                // solo sembramos la version sin forzar un reload innecesario.
+                localStorage.setItem('app_version', APP_VERSION);
             }
         } catch(e) { /* localStorage blocked, skip reset */ }
     </script>

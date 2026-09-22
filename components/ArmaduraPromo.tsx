@@ -114,7 +114,7 @@ const ArmaduraPromo: React.FC = () => {
                 {/* Content */}
                 <div className="flex flex-col items-center gap-4 z-10">
                   <i className="fas fa-tshirt text-6xl" style={{ color: 'rgba(74,144,217,0.3)' }}></i>
-                  <img src="/logo-diosmasgym.png" alt="Logo" className="w-16 h-16 object-contain absolute" style={{ opacity: 0.25, filter: 'brightness(0) invert(1)' }} />
+                  <img src="/logo-diosmasgym-sm.webp" alt="Logo" className="w-16 h-16 object-contain absolute" style={{ opacity: 0.25, filter: 'brightness(0) invert(1)' }} />
                   <span className="label-tag mt-16" style={{ color: 'rgba(74,144,217,0.6)', letterSpacing: '0.4em' }}>TOP SECRET</span>
                 </div>
 
