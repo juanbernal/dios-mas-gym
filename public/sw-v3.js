@@ -1,27 +1,56 @@
-// SW V13 - Push Notifications + Release Checker + Force Cache Purge
+// SW V14 - Cache real de assets estaticos (stale-while-revalidate) + Push Notifications + Release Checker
+const CACHE_VERSION = 'dmg-static-v14';
+
 self.addEventListener('install', (e) => self.skipWaiting());
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          console.log('[SW] Deleting cache key:', key);
-          return caches.delete(key);
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
+const isStaticAsset = (url) =>
+  /\.(js|css|webp|png|jpe?g|svg|gif|woff2?|ttf|ico)$/.test(url.pathname);
+
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/api/')) {
-    return event.respondWith(fetch(event.request));
-  }
-  if (event.request.mode === 'navigate' || event.request.url.includes('manifest') || event.request.url.includes('.json')) {
-    event.respondWith(fetch(event.request));
-  } else {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // API: siempre a la red, nunca cache (datos dinamicos)
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Solo cacheamos recursos del mismo origen
+  if (url.origin !== self.location.origin) return;
+
+  // Navegacion (HTML): red primero; si no hay conexion, cae al cache o al shell
+  if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request).then((response) => response || fetch(event.request))
+      fetch(request).catch(() => caches.match(request).then((r) => r || caches.match('/')))
+    );
+    return;
+  }
+
+  // Assets estaticos: stale-while-revalidate (responde del cache al instante si existe,
+  // y en paralelo pide la red para refrescar el cache; si no hay red usa lo que haya en cache).
+  if (isStaticAsset(url)) {
+    event.respondWith(
+      caches.open(CACHE_VERSION).then((cache) =>
+        cache.match(request).then((cached) => {
+          const network = fetch(request)
+            .then((response) => {
+              if (response.ok) cache.put(request, response.clone());
+              return response;
+            })
+            .catch(() => cached);
+          return cached || network;
+        })
+      )
     );
   }
 });
@@ -72,4 +101,3 @@ self.addEventListener('message', (event) => {
     });
   }
 });
-

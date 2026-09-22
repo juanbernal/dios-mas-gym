@@ -44,22 +44,10 @@ const AdminDashboard: React.FC = () => {
     };
 
     useEffect(() => {
-        // LIMPIEZA AGRESIVA DE CACHÉ Y SW VIEJOS
+        // El SW (sw-v3.js) ya se registra para todo el sitio desde index.tsx con scope '/',
+        // que cubre /admin. Aqui solo forzamos un chequeo de actualizacion al entrar al panel.
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for (let registration of registrations) {
-                    if (!registration.active?.scriptURL.includes('sw-v3.js')) {
-                        registration.unregister();
-                        console.log('🧹 SW viejo eliminado');
-                    }
-                }
-            });
-            
-            navigator.serviceWorker.register('/sw-v3.js', { scope: '/admin' })
-                .then(reg => {
-                    console.log('🚀 Nuevo SW-V3 registrado para /admin');
-                    reg.update();
-                });
+            navigator.serviceWorker.getRegistration('/').then(reg => reg?.update());
         }
 
         // El manifiesto ahora se carga de forma estática en index.html para mayor fiabilidad
