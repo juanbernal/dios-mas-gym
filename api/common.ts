@@ -458,7 +458,7 @@ export default async function handler(
   const action = (req.query.action as string) || req.url?.split('?')[0].split('/').pop();
 
   // ── Rate limiting for expensive endpoints ──────────────────────────────────
-  const costlyActions = ['youtube-top', 'sheet-proxy', 'image-proxy', 'smartlink-ssr', 'smartlink', 'post-ssr', 'post'];
+  const costlyActions = ['youtube-top', 'youtube-descriptions', 'sheet-proxy', 'image-proxy', 'smartlink-ssr', 'smartlink', 'post-ssr', 'post'];
   if (costlyActions.includes(action || '')) {
     const ip = getClientIp(req);
     if (!checkRateLimit(ip)) {
@@ -520,6 +520,48 @@ export default async function handler(
   }
 
   // debug-ssr endpoint removed from production for security
+
+  // -------------------------------------------------------------
+  // ACTION: YOUTUBE DESCRIPTIONS (para traer letras que el artista ya pego en la
+  // descripcion de sus videos al subirlos, y no tener que copiarlas una por una)
+  // -------------------------------------------------------------
+  if (action === 'youtube-descriptions') {
+    if (!verifyAdminPassword(req)) {
+      return res.status(401).json({ success: false, message: 'No autorizado', descriptions: {} });
+    }
+    const apiKey = (process.env.BLOGGER_API_KEY || '').trim().replace(/^[\"']|[\"']$/g, '');
+    if (!apiKey) {
+      return res.status(200).json({ success: false, message: 'Falta configurar la API key de YouTube en el servidor', descriptions: {} });
+    }
+    const idsParam = String(req.query.ids || '');
+    const ids = [...new Set(idsParam.split(',').map(s => s.trim()).filter(s => /^[\w-]{11}$/.test(s)))].slice(0, 200);
+    if (ids.length === 0) {
+      return res.status(200).json({ success: false, message: 'No se recibieron IDs de video validos', descriptions: {} });
+    }
+    try {
+      const YT_HEADERS = {
+        'Referer': 'https://www.diosmasgym.com/',
+        'Origin': 'https://www.diosmasgym.com',
+        'Accept': 'application/json',
+      };
+      const descriptions: Record<string, { title: string; description: string }> = {};
+      const chunkSize = 50;
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize).join(',');
+        const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${chunk}&key=${apiKey}`;
+        const vResp = await fetch(vUrl, { headers: YT_HEADERS });
+        if (!vResp.ok) continue;
+        const vData = await vResp.json();
+        (vData.items || []).forEach((v: any) => {
+          if (v.id) descriptions[v.id] = { title: v.snippet?.title || '', description: v.snippet?.description || '' };
+        });
+      }
+      return res.status(200).json({ success: true, descriptions });
+    } catch (err: any) {
+      console.error('[youtube-descriptions] Error:', err);
+      return res.status(200).json({ success: false, message: err.message, descriptions: {} });
+    }
+  }
 
   // -------------------------------------------------------------
   // ACTION: YOUTUBE TOP VIDEOS (server-side — bypasses API key referrer restriction)
