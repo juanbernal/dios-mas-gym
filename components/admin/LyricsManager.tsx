@@ -670,21 +670,27 @@ const LyricsManager: React.FC = () => {
                 })
             });
 
-            if (res.ok) {
+            const body = await res.json().catch(() => ({}));
+
+            if (res.ok && body.syncedToSheets === false) {
+                // El servidor responde 200 pero avisa que Sheets (el almacen persistente real)
+                // rechazo la sincronizacion: sin esto se mostraria "guardado" y la letra
+                // desaparece despues sin explicacion.
+                showNotification(`⚠️ ${body.message || 'Se guardó temporalmente pero Google Sheets rechazó la sincronización'}${body.sheetsError ? ` (${body.sheetsError})` : ''}`);
+            } else if (res.ok) {
                 recordVersions([selectedLyric]);
                 showNotification("✅ Letra guardada en la web e indexable para Google");
                 const newItem: LyricItem = { ...selectedLyric, status: 'LIVE' };
                 setLyrics(prev => [newItem, ...prev.filter(l => l.id !== selectedLyric.id && l.title !== selectedLyric.title)]);
                 setSelectedLyric(newItem);
                 setSavedSignature(getSignature(newItem));
-                
+
                 // If sheetsSync is configured, also push
                 if (sheetsSyncUrl) {
                     handleSaveToSheets();
                 }
             } else {
-                const err = await res.json().catch(() => ({}));
-                showNotification("❌ " + (err.error || 'No se pudo guardar en la web'));
+                showNotification("❌ " + (body.error || 'No se pudo guardar en la web'));
             }
         } catch (e: any) {
             showNotification("❌ Error: " + e.message);

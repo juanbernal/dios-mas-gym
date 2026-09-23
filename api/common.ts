@@ -1015,7 +1015,10 @@ export default async function handler(
         // Save to /tmp (fast, for this instance)
         writeLyricsToDisk(currentLyrics);
 
-        // Sync to Google Sheets (primary persistent store — AWAIT to ensure it saves)
+        // Sync to Google Sheets (primary persistent store — AWAIT to ensure it saves).
+        // /tmp es solo cache por instancia de Vercel: si esta sincronizacion falla en silencio,
+        // la letra "se guarda" un momento pero desaparece en la siguiente peticion (otra instancia
+        // sin ese /tmp) porque nunca quedo en el almacen persistente real.
         if (GS_LYRICS_URL) {
           try {
             const saveTitle = (bodyData && (bodyData.title || bodyData.name)) || '';
@@ -1030,7 +1033,7 @@ export default async function handler(
                 artist: saveArtist
               }).toString();
 
-              await fetch(`${GS_LYRICS_URL}${GS_LYRICS_URL.includes('?') ? '&' : '?'}${queryString}`, {
+              const gsSaveRes = await fetch(`${GS_LYRICS_URL}${GS_LYRICS_URL.includes('?') ? '&' : '?'}${queryString}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1042,14 +1045,35 @@ export default async function handler(
                   date: new Date().toISOString()
                 })
               });
+              const gsRawBody = await gsSaveRes.text();
+              let gsBody: any = null;
+              try { gsBody = JSON.parse(gsRawBody); } catch { /* respuesta de texto plano */ }
+              const gsRejected = !gsSaveRes.ok || (gsBody && (gsBody.error || gsBody.success === false || gsBody.status === 'error'));
+
+              if (gsRejected) {
+                console.error('[lyrics POST] Google Sheets rechazo la sincronizacion:', gsSaveRes.status, gsRawBody.slice(0, 300));
+                return res.status(200).json({
+                  success: true,
+                  syncedToSheets: false,
+                  message: 'Se guardó solo en la caché temporal del servidor: Google Sheets rechazó la sincronización, así que puede no quedar guardada de verdad. Reintenta o revisa el Apps Script de letras.',
+                  sheetsError: gsBody?.error || gsBody?.message || `Google Sheets respondió ${gsSaveRes.status}`,
+                  lyrics: currentLyrics
+                });
+              }
             }
-          } catch (gsErr) {
+          } catch (gsErr: any) {
             console.error('[lyrics POST] Google Sheets sync error:', gsErr);
-            // Non-fatal — data is already in /tmp
+            return res.status(200).json({
+              success: true,
+              syncedToSheets: false,
+              message: 'Se guardó solo en la caché temporal del servidor: no se pudo contactar Google Sheets, así que puede no quedar guardada de verdad. Reintenta en unos segundos.',
+              sheetsError: gsErr?.message || String(gsErr),
+              lyrics: currentLyrics
+            });
           }
         }
 
-        return res.status(200).json({ success: true, message: 'Letra guardada correctamente en el sitio web', lyrics: currentLyrics });
+        return res.status(200).json({ success: true, syncedToSheets: true, message: 'Letra guardada correctamente en el sitio web', lyrics: currentLyrics });
       } catch (error: any) {
         return res.status(500).json({ error: 'Error saving lyrics', details: error.message });
       }
