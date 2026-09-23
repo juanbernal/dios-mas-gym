@@ -995,6 +995,24 @@ const AudioStudioPro:React.FC=()=>{
       fr2.set(d2, 10);
       return fr2;
     };
+    // TXXX: frame de texto personalizado (descripcion + valor) para dejar una declaracion explicita de autoria
+    const mktxxxM = (desc: string, val: string): Uint8Array => {
+      if (!val) return new Uint8Array(0);
+      const db2 = enc2.encode(desc);
+      const vb2 = enc2.encode(val);
+      const d2 = new Uint8Array(1 + db2.length + 1 + vb2.length);
+      d2[0] = 3;
+      d2.set(db2, 1);
+      d2[1 + db2.length] = 0;
+      d2.set(vb2, 1 + db2.length + 1);
+      const fr2 = new Uint8Array(10 + d2.length);
+      ['T', 'X', 'X', 'X'].forEach((c, i) => { fr2[i] = c.charCodeAt(0); });
+      const sz2 = d2.length;
+      fr2[4] = (sz2 >> 24) & 0xff; fr2[5] = (sz2 >> 16) & 0xff;
+      fr2[6] = (sz2 >> 8) & 0xff; fr2[7] = sz2 & 0xff;
+      fr2.set(d2, 10);
+      return fr2;
+    };
     const songTitleM = meta.title || fi.name.replace(/\.[^.]+$/, '') || 'Audio';
     masterFrames.push(mktfM('TIT2', songTitleM));
     if (meta.artist) masterFrames.push(mktfM('TPE1', meta.artist));
@@ -1002,13 +1020,20 @@ const AudioStudioPro:React.FC=()=>{
     if (meta.year)   masterFrames.push(mktfM('TYER', meta.year));
     if (meta.genre)  masterFrames.push(mktfM('TCON', meta.genre));
     if (meta.composer) masterFrames.push(mktfM('TCOM', meta.composer));
+    // TEXT = letrista/autor de letra (separado del compositor musical TCOM, aunque aqui sea la misma persona)
+    masterFrames.push(mktfM('TEXT', meta.composer || 'Juan Bernal'));
     if (meta.bpm)    masterFrames.push(mktfM('TBPM', meta.bpm));
     if (meta.isrc)   masterFrames.push(mktfM('TSRC', meta.isrc));
     if (meta.trackNumber) masterFrames.push(mktfM('TRCK', meta.trackNumber));
     masterFrames.push(mktfM('TPUB', meta.label || 'Diosmasgym records'));
     if (!standard) masterFrames.push(mktfM('TSSE', 'LAME 3.100.1 64-bit (Studio Master Edition)'));
     masterFrames.push(mktfM('TENC', standard ? 'Diosmasgym Audio Studio (Web Audio)' : 'Diosmasgym Records Studio HD Engine'));
+    // TOPE/TOWN: el master (archivo final para distribucion) no llevaba estos frames de autoria/propiedad
+    // que si tenian el export rapido y los stems, dejando el archivo mas importante sin ese respaldo.
+    masterFrames.push(mktfM('TOPE', meta.composer || 'Juan Bernal'));
     masterFrames.push(mktfM('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
+    masterFrames.push(mktfM('TOWN', 'Diosmasgym Records & Juan 614'));
+    masterFrames.push(mktxxxM('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
     // Comment COMM
     const commText = meta.comment || (standard ? 'Master procesado en Diosmasgym Records Studio.' : 'Master Oficial grabado y procesado en Diosmasgym Records Studio HD. 100% Producción de Estudio.');
     const lbM = enc2.encode('spa'); const tbM = enc2.encode(commText);
@@ -1724,12 +1749,19 @@ const AudioStudioPro:React.FC=()=>{
         const fr=new Uint8Array(10+d.length);for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);
         const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);return fr;
       };
+      const mktxxx=(desc:string,val:string):Uint8Array=>{
+        if(!val)return new Uint8Array(0);const db=enc.encode(desc);const vb=enc.encode(val);
+        const d=new Uint8Array(1+db.length+1+vb.length);d[0]=3;d.set(db,1);d[1+db.length]=0;d.set(vb,1+db.length+1);
+        const fr=new Uint8Array(10+d.length);['T','X','X','X'].forEach((c,i)=>{fr[i]=c.charCodeAt(0);});
+        const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);return fr;
+      };
       if(meta.title)frames.push(mktf('TIT2',meta.title));
       if(meta.artist)frames.push(mktf('TPE1',meta.artist));
       if(meta.album)frames.push(mktf('TALB',meta.album));
       if(meta.year)frames.push(mktf('TYER',meta.year));
       if(meta.genre)frames.push(mktf('TCON',meta.genre));
       if(meta.composer)frames.push(mktf('TCOM',meta.composer));
+      frames.push(mktf('TEXT', meta.composer || 'Juan Bernal')); // letrista/autor de letra
       if(meta.bpm)frames.push(mktf('TBPM',meta.bpm));
       if(meta.isrc)frames.push(mktf('TSRC',meta.isrc));
       frames.push(mktf('TPUB',meta.label || 'Diosmasgym records'));
@@ -1740,6 +1772,7 @@ const AudioStudioPro:React.FC=()=>{
       frames.push(mktf('TOPE', meta.composer || 'Juan Bernal'));
       frames.push(mktf('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
       frames.push(mktf('TOWN', 'Diosmasgym Records & Juan 614'));
+      frames.push(mktxxx('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
       if(meta.comment){const lb=enc.encode('spa');const tb=enc.encode(meta.comment);const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='COMM';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       if(meta.lyrics&&meta.lyrics.trim()){const lb=enc.encode('spa');const tb=enc.encode(meta.lyrics.trim());const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='USLT';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       setExportPct(55);
@@ -1878,6 +1911,23 @@ const AudioStudioPro:React.FC=()=>{
       fr.set(d, 10);
       return fr;
     };
+    const mktxxx = (desc: string, val: string): Uint8Array => {
+      if (!val) return new Uint8Array(0);
+      const db = enc.encode(desc);
+      const vb = enc.encode(val);
+      const d = new Uint8Array(1 + db.length + 1 + vb.length);
+      d[0] = 3;
+      d.set(db, 1);
+      d[1 + db.length] = 0;
+      d.set(vb, 1 + db.length + 1);
+      const fr = new Uint8Array(10 + d.length);
+      ['T', 'X', 'X', 'X'].forEach((c, i) => { fr[i] = c.charCodeAt(0); });
+      const sz = d.length;
+      fr[4] = (sz >> 24) & 0xff; fr[5] = (sz >> 16) & 0xff;
+      fr[6] = (sz >> 8) & 0xff; fr[7] = sz & 0xff;
+      fr.set(d, 10);
+      return fr;
+    };
 
     const songTitle = meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'Audio';
     const fullTitle = `${songTitle} (${stemTitle})`;
@@ -1888,6 +1938,7 @@ const AudioStudioPro:React.FC=()=>{
     if (meta.year) frames.push(mktf('TYER', meta.year));
     if (meta.genre) frames.push(mktf('TCON', meta.genre));
     if (meta.composer) frames.push(mktf('TCOM', meta.composer));
+    frames.push(mktf('TEXT', meta.composer || 'Juan Bernal')); // letrista/autor de letra
     if (meta.bpm) frames.push(mktf('TBPM', meta.bpm));
     if (meta.isrc) frames.push(mktf('TSRC', meta.isrc));
     frames.push(mktf('TPUB', meta.label || 'Diosmasgym records'));
@@ -1898,6 +1949,7 @@ const AudioStudioPro:React.FC=()=>{
     frames.push(mktf('TOPE', meta.composer || 'Juan Bernal'));
     frames.push(mktf('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
     frames.push(mktf('TOWN', 'Diosmasgym Records & Juan 614'));
+    frames.push(mktxxx('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
 
     const commentText = meta.comment
       ? `${meta.comment} | Pista ${stemTitle}`
