@@ -122,13 +122,18 @@ function findByTitle(dedup: MusicItem[], title: string): MusicItem | undefined {
   });
 }
 
-function pickSongs(catalog: MusicItem[], source: Source, count: number, analyticsTitles: string[]): MusicItem[] {
+interface PickResult { songs: MusicItem[]; realIds: Set<string> }
+
+// realIds marca cuáles canciones vienen de datos reales (Analytics/YouTube) para que la UI pueda
+// distinguirlas de los rellenos cuando no hay suficientes datos para completar la cantidad pedida.
+function pickSongs(catalog: MusicItem[], source: Source, count: number, analyticsTitles: string[]): PickResult {
   const dedup = deduplicateCatalog(catalog);
-  if (source === 'random') return [...dedup].sort(() => Math.random() - 0.5).slice(0, count);
+  if (source === 'random') return { songs: [...dedup].sort(() => Math.random() - 0.5).slice(0, count), realIds: new Set() };
   if (source === 'recent') {
-    return [...dedup]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, count);
+    return {
+      songs: [...dedup].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, count),
+      realIds: new Set(),
+    };
   }
   const matched: MusicItem[] = [];
   // 'analytics' y 'youtube' llegan como lista de títulos ya ordenada por su ranking
@@ -137,8 +142,15 @@ function pickSongs(catalog: MusicItem[], source: Source, count: number, analytic
     const m = findByTitle(dedup, title);
     if (m && !matched.some(x => x.id === m.id)) matched.push(m);
   }
-  if (matched.length >= count) return matched;
-  return [...matched, ...dedup.filter(c => !matched.some(m => m.id === c.id))].slice(0, count);
+  const realIds = new Set(matched.map(m => m.id));
+  if (matched.length >= count) return { songs: matched, realIds };
+  // No hay suficientes canciones con datos reales para llenar el Top N: se completa con los
+  // lanzamientos mas recientes (no con el orden crudo del catalogo, que no tiene ningun criterio).
+  // La UI debe avisar que estas de relleno NO tienen datos reales de reproduccion en el periodo.
+  const filler = dedup
+    .filter(c => !realIds.has(c.id))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return { songs: [...matched, ...filler].slice(0, count), realIds };
 }
 
 interface RenderOptions {
@@ -374,6 +386,9 @@ const Top5SocialGenerator: React.FC = () => {
   const [source, setSource] = useState<Source>('analytics');
   const [period, setPeriod] = useState<PeriodKey | null>('week');
   const [dataNote, setDataNote] = useState('');
+  // IDs de canciones que sí tienen datos reales de Analytics/YouTube en el periodo actual.
+  // Las que están en topSongs pero NO aquí son relleno (sin datos reales) y se marcan en la UI.
+  const [realSongIds, setRealSongIds] = useState<Set<string>>(new Set());
   const [loadingPeriod, setLoadingPeriod] = useState(false);
   const titlesCache = useRef<Record<string, string[]>>({});
   const periodReq = useRef(0);
@@ -425,7 +440,9 @@ const Top5SocialGenerator: React.FC = () => {
       periodReq.current++;
       setLoadingPeriod(false);
       setSource('recent');
-      setTopSongs(pickSongs(catalog, 'recent', count, []));
+      const { songs } = pickSongs(catalog, 'recent', count, []);
+      setTopSongs(songs);
+      setRealSongIds(new Set());
       setDataNote(info.hint);
       return;
     }
@@ -436,10 +453,16 @@ const Top5SocialGenerator: React.FC = () => {
     setLoadingPeriod(false);
     setSource(key === 'alltime' ? 'youtube' : 'analytics');
     setAnalyticsTitles(titles);
-    setTopSongs(pickSongs(catalog, 'analytics', count, titles));
-    setDataNote(titles.length > 0
-      ? info.hint
-      : `Aún no hay datos para este periodo (${info.hint.toLowerCase()}): se muestran canciones del catálogo. Ajusta la lista a mano.`);
+    const { songs, realIds } = pickSongs(catalog, 'analytics', count, titles);
+    setTopSongs(songs);
+    setRealSongIds(realIds);
+    if (titles.length === 0) {
+      setDataNote(`Aún no hay datos para este periodo (${info.hint.toLowerCase()}): se muestran canciones del catálogo (las más recientes). Ajusta la lista a mano.`);
+    } else if (realIds.size < count) {
+      setDataNote(`Ojo: solo ${realIds.size} de ${count} tienen datos reales de reproducción en este periodo (${info.hint.toLowerCase()}). Las marcadas "SIN DATOS" abajo son relleno con lanzamientos recientes, no del ranking real.`);
+    } else {
+      setDataNote(info.hint);
+    }
   };
 
   // Carga inicial: catálogo, analíticas, logos y fuentes de la marca
@@ -455,8 +478,18 @@ const Top5SocialGenerator: React.FC = () => {
 
       const titles = await fetchPeriodTitles('week');
       setAnalyticsTitles(titles);
-      setDataNote(titles.length > 0 ? PERIODS[0].hint : 'Aún no hay datos de reproducciones: se muestran canciones del catálogo.');
-      if (full.length > 0) setTopSongs(pickSongs(full, 'analytics', count, titles));
+      if (full.length > 0) {
+        const { songs, realIds } = pickSongs(full, 'analytics', count, titles);
+        setTopSongs(songs);
+        setRealSongIds(realIds);
+        if (titles.length === 0) {
+          setDataNote('Aún no hay datos de reproducciones: se muestran canciones del catálogo (las más recientes).');
+        } else if (realIds.size < count) {
+          setDataNote(`Ojo: solo ${realIds.size} de ${count} tienen datos reales de reproducción esta semana. Las marcadas "SIN DATOS" abajo son relleno con lanzamientos recientes.`);
+        } else {
+          setDataNote(PERIODS[0].hint);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -525,14 +558,25 @@ const Top5SocialGenerator: React.FC = () => {
     if (src === 'analytics') { applyPeriod(period && period !== 'new' ? period : 'week', period && period !== 'new' ? subtitle : undefined); return; }
     setSource(src);
     setPeriod(null);
-    setTopSongs(pickSongs(catalog, src, n, analyticsTitles));
-    setDataNote(src === 'recent' ? 'Los lanzamientos más recientes' : 'Selección al azar');
+    setRealSongIds(new Set());
+    setTopSongs(pickSongs(catalog, src, n, analyticsTitles).songs);
+    setDataNote(src === 'recent' ? 'Los lanzamientos más recientes' : 'Selección al azar (no son datos de Analytics)');
   };
 
   const changeCount = (n: number) => {
     setCount(n);
     setTopSongs(prev => (prev.length > n ? prev.slice(0, n) : prev));
-    if (topSongs.length < n && catalog.length > 0) setTopSongs(pickSongs(catalog, source === 'youtube' ? 'analytics' : source, n, analyticsTitles));
+    if (topSongs.length < n && catalog.length > 0) {
+      const effectiveSource = source === 'youtube' ? 'analytics' : source;
+      const { songs, realIds } = pickSongs(catalog, effectiveSource, n, analyticsTitles);
+      setTopSongs(songs);
+      if (effectiveSource === 'analytics') {
+        setRealSongIds(realIds);
+        if (realIds.size < n) {
+          setDataNote(`Ojo: solo ${realIds.size} de ${n} tienen datos reales de reproducción en este periodo. Las marcadas "SIN DATOS" abajo son relleno con lanzamientos recientes.`);
+        }
+      }
+    }
   };
 
   const filteredCatalog = useMemo(() => {
@@ -762,7 +806,14 @@ const Top5SocialGenerator: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold text-white truncate">{song.name}</p>
-                    <p className="text-[9px] text-white/50 truncate uppercase">{song.artist}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[9px] text-white/50 truncate uppercase">{song.artist}</p>
+                      {(source === 'analytics' || source === 'youtube') && !realSongIds.has(song.id) && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500/15 border border-red-500/30 text-red-300 text-[7px] font-black uppercase tracking-wider" title="No tiene datos reales de reproducción en este periodo; se agregó como relleno.">
+                          Sin datos
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col">
                     <button onClick={() => moveSong(i, "up")} disabled={i === 0} aria-label={`Subir ${song.name}`} className="w-7 h-5 text-white/40 hover:text-white disabled:opacity-20"><i className="fas fa-chevron-up text-[10px]" /></button>
