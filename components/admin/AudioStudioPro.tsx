@@ -22,6 +22,7 @@ interface AudioMetadata {
   label: string;
   trackNumber: string;
   lyrics?: string;
+  contactUrl?: string;
 }
 interface AudioFileInfo { name:string; size:number; type:string; duration:number; sampleRate:number; channels:number; bitDepth:string; arrayBuffer:ArrayBuffer; objectUrl:string; coverArtUrl:string|null; coverArtBytes:Uint8Array|null; }
 type TabId = 'loader'|'metadata'|'artwork'|'mastering'|'waveform'|'stems'|'export';
@@ -84,6 +85,90 @@ function audioBufferToWav(buffer: AudioBuffer, applyDither = true): ArrayBuffer 
   }
 
   return arrayBuffer;
+}
+
+// Huella SHA-256 del audio final: permite probar despues que una copia distribuida
+// salio de este master exacto, incluso si le cambian titulo/artista en otro lado.
+export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function id3FrameHeader(id: string, dataLength: number): Uint8Array {
+  const fr = new Uint8Array(10);
+  for (let i = 0; i < 4; i++) fr[i] = id.charCodeAt(i);
+  fr[4] = (dataLength >> 24) & 0xff; fr[5] = (dataLength >> 16) & 0xff;
+  fr[6] = (dataLength >> 8) & 0xff; fr[7] = dataLength & 0xff;
+  return fr;
+}
+
+// UFID: identificador unico del archivo. Se guarda el hash SHA-256 en hexadecimal como
+// identificador binario, con un "owner" que identifica quien lo emitio.
+export function makeId3UfidFrame(ownerId: string, hashHex: string): Uint8Array {
+  if (!hashHex) return new Uint8Array(0);
+  const enc = new TextEncoder();
+  const ownerBytes = enc.encode(ownerId);
+  const idBytes = enc.encode(hashHex);
+  const d = new Uint8Array(ownerBytes.length + 1 + idBytes.length);
+  d.set(ownerBytes, 0);
+  d[ownerBytes.length] = 0;
+  d.set(idBytes, ownerBytes.length + 1);
+  const hdr = id3FrameHeader('UFID', d.length);
+  const fr = new Uint8Array(hdr.length + d.length);
+  fr.set(hdr, 0); fr.set(d, hdr.length);
+  return fr;
+}
+
+// WXXX: link de contacto/derechos definido por el usuario (URL siempre en ISO-8859-1, sin encoding propio de texto)
+export function makeId3WxxxFrame(desc: string, url: string): Uint8Array {
+  if (!url) return new Uint8Array(0);
+  const enc = new TextEncoder();
+  const db = enc.encode(desc);
+  const urlBytes = new Uint8Array(Array.from(url).map(c => c.charCodeAt(0) & 0xff));
+  const d = new Uint8Array(1 + db.length + 1 + urlBytes.length);
+  d[0] = 3;
+  d.set(db, 1);
+  d[1 + db.length] = 0;
+  d.set(urlBytes, 1 + db.length + 1);
+  const hdr = id3FrameHeader('WXXX', d.length);
+  const fr = new Uint8Array(hdr.length + d.length);
+  fr.set(hdr, 0); fr.set(d, hdr.length);
+  return fr;
+}
+
+// TDAT/TIME (ID3v2.3) con fecha y hora exacta de exportacion, mas un TXXX legible para quien
+// abra el archivo con un editor de tags (TDAT/TIME casi nunca se muestran en players).
+export function makeId3DateTimeFrames(date: Date): Uint8Array[] {
+  const enc = new TextEncoder();
+  const mktf = (id: string, val: string): Uint8Array => {
+    const tb = enc.encode(val);
+    const d = new Uint8Array(1 + tb.length);
+    d[0] = 3; d.set(tb, 1);
+    const hdr = id3FrameHeader(id, d.length);
+    const fr = new Uint8Array(hdr.length + d.length);
+    fr.set(hdr, 0); fr.set(d, hdr.length);
+    return fr;
+  };
+  const mktxxx = (desc: string, val: string): Uint8Array => {
+    const db = enc.encode(desc); const vb = enc.encode(val);
+    const d = new Uint8Array(1 + db.length + 1 + vb.length);
+    d[0] = 3; d.set(db, 1); d[1 + db.length] = 0; d.set(vb, 1 + db.length + 1);
+    const hdr = id3FrameHeader('TXXX', d.length);
+    const fr = new Uint8Array(hdr.length + d.length);
+    fr.set(hdr, 0); fr.set(d, hdr.length);
+    return fr;
+  };
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  const iso = `${date.getFullYear()}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+  return [
+    mktf('TDAT', `${dd}${mm}`),
+    mktf('TIME', `${hh}${mi}`),
+    mktxxx('Fecha-Creacion', iso)
+  ];
 }
 
 export function makeTapeSaturationCurve(amount = 25): Float32Array {
@@ -353,6 +438,14 @@ function readID3v2(buffer:ArrayBuffer):{tags:Partial<AudioMetadata>;coverBytes:U
       case 'TSRC':tags.isrc=tv();break;
       case 'TPUB':tags.label=tv();break;
       case 'TRCK':tags.trackNumber=tv();break;
+      case 'WXXX':{
+        // El URL en WXXX siempre va en ISO-8859-1 y ocupa el resto del frame tras la descripcion
+        let isW=ds+1;
+        if(enc===1||enc===2){while(isW+1<ds+fsz&&!(bytes[isW]===0x00&&bytes[isW+1]===0x00))isW+=2;isW+=2;}
+        else{while(isW<ds+fsz&&bytes[isW]!==0x00)isW++;isW++;}
+        if(isW<ds+fsz)tags.contactUrl=readStr(isW,ds+fsz-isW,0);
+        break;
+      }
       case 'USLT':{
         let is=ds+1;
         is+=3; // skip language code (3 bytes)
@@ -470,7 +563,8 @@ const AudioStudioPro:React.FC=()=>{
     isrc:'',
     label:'Diosmasgym records',
     trackNumber:'1',
-    lyrics:''
+    lyrics:'',
+    contactUrl:''
   });
   const [drag,setDrag]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
@@ -977,6 +1071,8 @@ const AudioStudioPro:React.FC=()=>{
 
     const wavBuf = audioBufferToWav(rendered, true);
     const covBytes = await getCoverBytes();
+    const masterHashHex = await sha256Hex(wavBuf);
+    const exportDate = new Date();
 
     // Inyectar metadatos ID3 correctos para el master (NO usar injectId3ToWav que es para stems)
     const enc2 = new TextEncoder();
@@ -1034,6 +1130,10 @@ const AudioStudioPro:React.FC=()=>{
     masterFrames.push(mktfM('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
     masterFrames.push(mktfM('TOWN', 'Diosmasgym Records & Juan 614'));
     masterFrames.push(mktxxxM('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
+    masterFrames.push(makeId3UfidFrame('https://diosmasgym.com', masterHashHex));
+    masterFrames.push(mktxxxM('Hash-SHA256', masterHashHex));
+    if (meta.contactUrl) masterFrames.push(makeId3WxxxFrame('Contacto-Derechos', meta.contactUrl));
+    makeId3DateTimeFrames(exportDate).forEach(f => masterFrames.push(f));
     // Comment COMM
     const commText = meta.comment || (standard ? 'Master procesado en Diosmasgym Records Studio.' : 'Master Oficial grabado y procesado en Diosmasgym Records Studio HD. 100% Producción de Estudio.');
     const lbM = enc2.encode('spa'); const tbM = enc2.encode(commText);
@@ -1545,7 +1645,8 @@ const AudioStudioPro:React.FC=()=>{
         isrc:tags.isrc||'',
         label:'Diosmasgym records',
         trackNumber:tags.trackNumber||'1',
-        lyrics:tags.lyrics||''
+        lyrics:tags.lyrics||'',
+        contactUrl:tags.contactUrl||''
       });
       setDirty(false);setArtPrev(coverUrl);setArtFile(null);
       if(ab.duration>0){
@@ -1743,6 +1844,8 @@ const AudioStudioPro:React.FC=()=>{
       let cov:Uint8Array|null=fi.coverArtBytes;
       if(artFile)cov=new Uint8Array(await artFile.arrayBuffer());
       setExportPct(30);
+      const fileHashHex = await sha256Hex(fi.arrayBuffer.slice(0));
+      const exportDate = new Date();
       const enc=new TextEncoder();const frames:Uint8Array[]=[];
       const mktf=(id:string,val:string):Uint8Array=>{
         if(!val)return new Uint8Array(0);const tb=enc.encode(val);const d=new Uint8Array(1+tb.length);d[0]=3;d.set(tb,1);
@@ -1773,6 +1876,10 @@ const AudioStudioPro:React.FC=()=>{
       frames.push(mktf('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
       frames.push(mktf('TOWN', 'Diosmasgym Records & Juan 614'));
       frames.push(mktxxx('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
+      frames.push(makeId3UfidFrame('https://diosmasgym.com', fileHashHex));
+      frames.push(mktxxx('Hash-SHA256', fileHashHex));
+      if(meta.contactUrl) frames.push(makeId3WxxxFrame('Contacto-Derechos', meta.contactUrl));
+      makeId3DateTimeFrames(exportDate).forEach(f => frames.push(f));
       if(meta.comment){const lb=enc.encode('spa');const tb=enc.encode(meta.comment);const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='COMM';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       if(meta.lyrics&&meta.lyrics.trim()){const lb=enc.encode('spa');const tb=enc.encode(meta.lyrics.trim());const d=new Uint8Array(1+3+1+tb.length);d[0]=3;d.set(lb,1);d[4]=0;d.set(tb,5);const fr=new Uint8Array(10+d.length);const id='USLT';for(let i=0;i<4;i++)fr[i]=id.charCodeAt(i);const sz=d.length;fr[4]=(sz>>24)&0xff;fr[5]=(sz>>16)&0xff;fr[6]=(sz>>8)&0xff;fr[7]=sz&0xff;fr.set(d,10);frames.push(fr);}
       setExportPct(55);
@@ -1886,12 +1993,14 @@ const AudioStudioPro:React.FC=()=>{
     return null;
   };
 
-  const injectId3ToWav = (
+  const injectId3ToWav = async (
     wavBuffer: ArrayBuffer,
     stemTitle: string,
     stemName: string,
     covBytes: Uint8Array | null
-  ): Uint8Array => {
+  ): Promise<Uint8Array> => {
+    const stemHashHex = await sha256Hex(wavBuffer.slice(0));
+    const exportDate = new Date();
     const enc = new TextEncoder();
     const frames: Uint8Array[] = [];
 
@@ -1950,6 +2059,10 @@ const AudioStudioPro:React.FC=()=>{
     frames.push(mktf('TCOP', `© ${meta.year || '2026'} Diosmasgym Records. Todos los derechos reservados.`));
     frames.push(mktf('TOWN', 'Diosmasgym Records & Juan 614'));
     frames.push(mktxxx('Autoria', `Obra original de ${meta.composer || 'Juan Bernal'} (Diosmasgym Records / Juan 614). Composicion, letra y produccion registradas. Prohibida su reproduccion, distribucion o explotacion sin autorizacion del autor.`));
+    frames.push(makeId3UfidFrame('https://diosmasgym.com', stemHashHex));
+    frames.push(mktxxx('Hash-SHA256', stemHashHex));
+    if (meta.contactUrl) frames.push(makeId3WxxxFrame('Contacto-Derechos', meta.contactUrl));
+    makeId3DateTimeFrames(exportDate).forEach(f => frames.push(f));
 
     const commentText = meta.comment
       ? `${meta.comment} | Pista ${stemTitle}`
@@ -2068,7 +2181,7 @@ const AudioStudioPro:React.FC=()=>{
 
       // Inyectar metadatos ID3 oficiales en la pista WAV
       const covBytes = await getCoverBytes();
-      const taggedBytes = injectId3ToWav(arrayBuf, info.title, stemName, covBytes);
+      const taggedBytes = await injectId3ToWav(arrayBuf, info.title, stemName, covBytes);
 
       const blob = new Blob([taggedBytes], { type: 'audio/wav' });
       const blobUrl = URL.createObjectURL(blob);
@@ -2133,7 +2246,7 @@ const AudioStudioPro:React.FC=()=>{
       ac.close();
       const wav = audioBufferToWav(mix, true);
       const covBytes = await getCoverBytes();
-      const tagged = injectId3ToWav(wav, 'Instrumental', 'instrumental', covBytes);
+      const tagged = await injectId3ToWav(wav, 'Instrumental', 'instrumental', covBytes);
       const baseName = (meta.title || fi.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
       const blob = new Blob([tagged], { type: 'audio/wav' });
       const u = URL.createObjectURL(blob);
@@ -2199,7 +2312,7 @@ const AudioStudioPro:React.FC=()=>{
 
         const info = getStemInfo(name);
         // Inyectar metadatos ID3 completos en cada WAV dentro del archivo ZIP
-        const tagged = injectId3ToWav(rawBuf, info.title, name, covBytes);
+        const tagged = await injectId3ToWav(rawBuf, info.title, name, covBytes);
         folder.file(`${baseName}_${name}.wav`, tagged);
         successCount++;
       }
@@ -2893,6 +3006,7 @@ const AudioStudioPro:React.FC=()=>{
               <FLD k="composer" label="Compositor" icon="fa-pen-nib" ph="Nombre del compositor" ro/>
               <FLD k="label" label="Sello / Label" icon="fa-building" ph="Diosmasgym records" ro/>
               <FLD k="isrc" label="ISRC" icon="fa-barcode" ph="US-XXX-26-00001" ml={12}/>
+              <FLD k="contactUrl" label="Link de contacto / derechos" icon="fa-link" ph="https://tu-canal-o-pagina-oficial.com" full/>
               <FLD k="comment" label="Comentario" icon="fa-comment" ph="Notas adicionales..."/>
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -2994,7 +3108,7 @@ const AudioStudioPro:React.FC=()=>{
                 ))}
                 <button
                   onClick={()=>{
-                    setMeta({title:'',artist:'Diosmasgym',album:'',year:String(new Date().getFullYear()),genre:'Rap',composer:'Juan Bernal',bpm:'',comment:'',isrc:'',label:'Diosmasgym records',trackNumber:'1',lyrics:''});
+                    setMeta({title:'',artist:'Diosmasgym',album:'',year:String(new Date().getFullYear()),genre:'Rap',composer:'Juan Bernal',bpm:'',comment:'',isrc:'',label:'Diosmasgym records',trackNumber:'1',lyrics:'',contactUrl:''});
                     setDirty(true);
                     notify('Metadatos limpiados');
                   }}
