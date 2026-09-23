@@ -389,6 +389,16 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
                   </p>
                 </div>
               )}
+
+              {/* Aviso de autoria: deja constancia visible de quien escribio/compuso la obra */}
+              {hasLyrics && (
+                <div className="mt-10 pt-5 border-t border-white/5 relative z-10 flex items-start gap-2.5">
+                  <i className="fas fa-copyright text-white/25 text-xs mt-0.5 flex-shrink-0" />
+                  <p className="text-[10.5px] text-white/35 leading-relaxed">
+                    Autor: <span className="text-white/60 font-bold">Juan Bernal</span> · Sello: <span className="text-white/60 font-bold">Diosmasgym Records</span>. Letra y composición registradas — prohibida su copia, distribución o uso comercial sin autorización del autor.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* === RELATED SONGS === */}
