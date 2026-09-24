@@ -165,6 +165,19 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
 
   const hasLyrics = song.lyrics && song.lyrics.trim().length > 0;
   const lyricsLines = hasLyrics ? song.lyrics!.split('\n') : [];
+
+  const isJuanArtist = (song.artist || '').toLowerCase().includes('juan') || (song.artist || '').includes('614');
+  const officialSite = isJuanArtist ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/';
+  // Busqueda por titulo + artista en cada plataforma (el catalogo solo guarda el link de YouTube)
+  const streamQuery = encodeURIComponent(`${song.name} ${song.artist}`);
+  const streamingLinks = [
+    { name: 'Spotify', icon: 'fab fa-spotify', color: '#1DB954', url: `https://open.spotify.com/search/${streamQuery}` },
+    { name: 'Apple Music', icon: 'fab fa-apple', color: '#FA243C', url: `https://music.apple.com/us/search?term=${streamQuery}` },
+    { name: 'YouTube Music', icon: 'fab fa-youtube', color: '#FF0000', url: `https://music.youtube.com/search?q=${streamQuery}` },
+    { name: 'Amazon Music', icon: 'fab fa-amazon', color: '#00A8E1', url: `https://music.amazon.com/search/${streamQuery}` },
+    { name: 'Deezer', icon: 'fab fa-deezer', color: '#FEAA2D', url: `https://www.deezer.com/search/${streamQuery}` },
+    { name: 'Tidal', icon: 'fas fa-water', color: '#ffffff', url: `https://tidal.com/search?q=${streamQuery}` },
+  ];
   const isJuan = song.artist.toLowerCase().includes('juan');
 
   // Update page title for SEO
@@ -293,6 +306,42 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
                   >
                     <i className="fab fa-youtube text-sm" style={{ color: '#ef4444' }} />
                     Ver en YouTube
+                  </a>
+                )}
+              </div>
+
+              {/* Donde escucharla completa: sitio oficial + plataformas de streaming */}
+              <div className="mt-5 pt-5 border-t border-white/5">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Escúchala completa en</p>
+                <a
+                  href={officialSite}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full mb-2 py-3 px-4 rounded-xl bg-[#4a90d9]/10 hover:bg-[#4a90d9]/20 border border-[#4a90d9]/30 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all no-underline"
+                >
+                  <i className="fas fa-globe text-xs text-[#4a90d9]" />
+                  {isJuanArtist ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
+                </a>
+                <div className="grid grid-cols-2 gap-2">
+                  {streamingLinks.map(p => (
+                    <a
+                      key={p.name}
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/25 text-white/80 hover:text-white text-[9px] font-bold uppercase tracking-wider flex items-center gap-2 transition-all no-underline"
+                    >
+                      <i className={`${p.icon} text-sm`} style={{ color: p.color }} />
+                      <span className="truncate">{p.name}</span>
+                    </a>
+                  ))}
+                </div>
+                {song.url && (
+                  <a
+                    href={`/link/${song.id}`}
+                    className="mt-2 block text-center text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-[#4a90d9] transition-colors no-underline"
+                  >
+                    Ver todas las plataformas →
                   </a>
                 )}
               </div>
