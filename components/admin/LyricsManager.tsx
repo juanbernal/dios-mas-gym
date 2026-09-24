@@ -1785,7 +1785,13 @@ ${cleanedLyrics}`;
                                         <button
                                             key={song.id + song.name}
                                             onClick={() => {
-                                                const newLyric = { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                                const existing = lyrics.find(l => 
+                                                    (l.id && l.id === song.id) || 
+                                                    (l.title.toLowerCase().trim() === song.name.toLowerCase().trim() && (l.artist || '').toLowerCase().trim() === (song.artist || 'Dios Mas Gym').toLowerCase().trim())
+                                                );
+                                                const newLyric = existing 
+                                                    ? existing 
+                                                    : { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
                                                 setSelectedLyric(newLyric);
                                                 setSavedSignature(getSignature(newLyric));
                                                 setPreviewMode(false);

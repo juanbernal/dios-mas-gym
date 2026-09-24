@@ -1480,7 +1480,7 @@ const AudioStudioPro:React.FC=()=>{
       genre: isJuan ? 'Corrido Tumbado' : (prev.genre || defaultGenre),
       composer: 'Juan Bernal',
       label: 'Diosmasgym records',
-      lyrics: existingLyric || prev.lyrics || ''
+      lyrics: existingLyric || ''
     }));
 
     if (song.cover) {
@@ -1572,6 +1572,7 @@ const AudioStudioPro:React.FC=()=>{
           return [updatedItem, ...prev];
         });
 
+        setMeta(prev => ({ ...prev, lyrics: finalLyricContent }));
         if (selectedCatalogSong) {
           setSelectedCatalogSong(prev => prev ? { ...prev, lyrics: finalLyricContent } : null);
         }

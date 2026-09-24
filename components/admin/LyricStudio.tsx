@@ -268,8 +268,12 @@ const LyricStudio: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setRawLyrics(ev.target?.result as string);
+    reader.onload = (ev) => {
+      const content = (ev.target?.result as string) || '';
+      setRawLyrics(content);
+    };
     reader.readAsText(file);
+    e.target.value = '';
   };
 
   const fetchBloggerDrafts = async (silent = false) => {
