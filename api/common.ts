@@ -446,6 +446,82 @@ function escapeXml(unsafe: string): string {
   });
 }
 
+// ── Metadatos de pagina para SSR ─────────────────────────────────────────────
+// Sustituye la etiqueta si ya existe (en cualquier orden de atributos) y la anade
+// si no. Antes cada ruta hacia sus propios replace y quedaban duplicados (og:type
+// y twitter:* del index.html seguian apareciendo antes que los de la cancion).
+function upsertMeta(src: string, attr: 'name' | 'property', key: string, value: string): string {
+  const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = new RegExp(`<meta[^>]*\\s${attr}=["']${esc}["'][^>]*>`, 'i');
+  const tag = `<meta ${attr}="${key}" content="${escapeXml(value)}">`;
+  return rx.test(src) ? src.replace(rx, tag) : src.replace('</head>', `${tag}\n</head>`);
+}
+
+interface PageMeta {
+  title: string;
+  description: string;
+  canonical: string | null;   // null = sin canonical (paginas noindex)
+  image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  imageAlt?: string;
+  ogType?: string;
+  robots?: string;
+}
+
+function applyPageMeta(html: string, m: PageMeta): string {
+  const image = m.image || 'https://www.diosmasgym.com/api/og-image';
+  const isGenerated = image.includes('/api/og-image');
+  const imageType = isGenerated || /\.jpe?g(\?|$)/i.test(image) ? 'image/jpeg'
+    : /\.webp(\?|$)/i.test(image) ? 'image/webp' : 'image/png';
+  const width = m.imageWidth ?? (isGenerated ? 1200 : undefined);
+  const height = m.imageHeight ?? (isGenerated ? 630 : undefined);
+
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeXml(m.title)}</title>`);
+  html = upsertMeta(html, 'name', 'description', m.description);
+  html = upsertMeta(html, 'name', 'robots', m.robots || 'index, follow');
+
+  html = html.replace(/<link[^>]*rel=["']canonical["'][^>]*>\s*/gi, '');
+  if (m.canonical) {
+    html = html.replace('</head>', `<link rel="canonical" href="${escapeXml(m.canonical)}" />\n</head>`);
+    html = upsertMeta(html, 'property', 'og:url', m.canonical);
+  } else {
+    html = html.replace(/<meta[^>]*property=["']og:url["'][^>]*>\s*/gi, '');
+  }
+
+  html = upsertMeta(html, 'property', 'og:title', m.title);
+  html = upsertMeta(html, 'property', 'og:description', m.description);
+  html = upsertMeta(html, 'property', 'og:type', m.ogType || 'website');
+  html = upsertMeta(html, 'property', 'og:image', image);
+  html = upsertMeta(html, 'property', 'og:image:secure_url', image);
+  html = upsertMeta(html, 'property', 'og:image:type', imageType);
+  if (width && height) {
+    html = upsertMeta(html, 'property', 'og:image:width', String(width));
+    html = upsertMeta(html, 'property', 'og:image:height', String(height));
+  } else {
+    // Sin medidas conocidas es mejor no anunciar las 1200x630 heredadas del index
+    html = html.replace(/<meta[^>]*property=["']og:image:(width|height)["'][^>]*>\s*/gi, '');
+  }
+  html = upsertMeta(html, 'property', 'og:image:alt', m.imageAlt || m.title);
+
+  // Imagen cuadrada -> tarjeta pequena; si no, se recortaria en la grande
+  html = upsertMeta(html, 'name', 'twitter:card', width && width === height ? 'summary' : 'summary_large_image');
+  html = upsertMeta(html, 'name', 'twitter:title', m.title);
+  html = upsertMeta(html, 'name', 'twitter:description', m.description);
+  html = upsertMeta(html, 'name', 'twitter:image', image);
+  return html;
+}
+
+// Descripcion limpia para meta description: sin saltos ni espacios dobles y
+// cortada en una palabra completa.
+function toMetaDescription(text: string, max = 158): string {
+  const clean = (text || '').replace(/\s+/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.\s]+$/, '')}…`;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -1597,8 +1673,8 @@ export default async function handler(
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
       
       // Static pages in the songs sitemap
+      // /bio no va: su canonical es /bio/diosmasgym
       xml += urlBlock(`${BASE}/`, today, 'daily', '1.0');
-      xml += urlBlock(`${BASE}/bio`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/testimonios`, today, 'monthly', '0.7');
@@ -1736,11 +1812,9 @@ export default async function handler(
     <loc>${BASE}/sitemap.xml?sub=lyrics</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
-  <sitemap>
-    <loc>${BASE}/sitemap.xml?sub=posts</loc>
-    <lastmod>${today}</lastmod>
-  </sitemap>
 </sitemapindex>`;
+    // sub=posts ya no se anuncia: sin BLOGGER_API_KEY solo repetia las paginas
+    // fijas, y con ella listaria /post/... que el sitio ya no sirve.
 
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
@@ -1876,7 +1950,8 @@ ${sections}
     const image = isJuan
       ? 'https://www.diosmasgym.com/logo-juan614-v2.png'
       : 'https://www.diosmasgym.com/icon-512.png';
-    const canonicalUrl = `https://www.diosmasgym.com/bio/${artist.toLowerCase()}`;
+    // Solo existen dos bios; cualquier otro /bio/xxx apunta a la de Diosmasgym
+    const canonicalUrl = `https://www.diosmasgym.com/bio/${isJuan ? 'juan614' : 'diosmasgym'}`;
     const title = `${name} | Bio — El Arsenal de Fe`;
     const description = bio;
 
@@ -1903,16 +1978,18 @@ ${sections}
       let html = await getBaseIndexHtml();
       const safeTitle = escapeXml(title);
       const safeDesc = escapeXml(description);
-      const safeImg = escapeXml(image);
 
-      html = html.replace(/\u003ctitle\u003e[\s\S]*?\u003c\/title\u003e/i, `\u003ctitle\u003e${safeTitle}\u003c/title\u003e`);
-      html = html.replace(/\u003cmeta\s+name=["']description["'][\s\S]*?\/?>/i, `\u003cmeta name="description" content="${safeDesc}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:title["'][\s\S]*?\/?>/i, `\u003cmeta property="og:title" content="${safeTitle}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:description["'][\s\S]*?\/?>/i, `\u003cmeta property="og:description" content="${safeDesc}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:image["'][\s\S]*?\/?>/i, `\u003cmeta property="og:image" content="${safeImg}"\u003e`);
-      html = html.replace(/\u003cmeta\s+property=["']og:url["'][\s\S]*?\/?>/i, `\u003cmeta property="og:url" content="${canonicalUrl}"\u003e`);
-      html = html.replace(/\u003clink[\s\S]*?rel=["']canonical["'][\s\S]*?\u003e/i, `\u003clink rel="canonical" href="${canonicalUrl}" /\u003e`);
-      html = html.replace(/\u003cmeta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i, `\u003cmeta name="robots" content="index, follow"\u003e`);
+      // Las medidas deben ser las reales: antes se heredaba 1200x630 del index
+      // y la imagen es cuadrada.
+      html = applyPageMeta(html, {
+        title,
+        description,
+        canonical: canonicalUrl,
+        image,
+        imageWidth: isJuan ? 1024 : 512,
+        imageHeight: isJuan ? 1024 : 512,
+        ogType: 'profile',
+      });
       html = html.replace('\u003c/head\u003e', `${jsonLdBlock}\n\u003c/head\u003e`);
 
       // Hidden SSR content for crawlers
@@ -1933,6 +2010,72 @@ ${sections}
         return res.status(500).send('Error loading app');
       }
     }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: PAGE SSR (resto de rutas de la SPA)
+  // Antes todas se servian con el index.html tal cual: /buscar y /testimonios
+  // decian ser la portada (canonical "/") y cualquier URL inventada devolvia 200
+  // con el contenido de la portada (soft 404).
+  // -------------------------------------------------------------
+  if (action === 'page-ssr') {
+    const BASE = 'https://www.diosmasgym.com';
+    const rawPath = String(req.query.path || '/');
+    const pathname = ('/' + rawPath.split('?')[0].replace(/^\/+/, '')).replace(/\/+$/, '') || '/';
+    const first = pathname.split('/')[1]?.toLowerCase() || '';
+
+    let html: string;
+    try {
+      html = await getBaseIndexHtml();
+    } catch {
+      return res.status(500).send('Error loading app');
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+    const pageBody = (h1: string, text: string) => `<div id="root"><main style="font-family:system-ui,sans-serif;background:#05070a;color:#e5e7eb;padding:24px;min-height:100vh"><h1>${escapeXml(h1)}</h1><p>${escapeXml(text)}</p><nav><a href="/" style="color:#facc15">Inicio</a> · <a href="/catalogo" style="color:#facc15">Catálogo de canciones y letras</a> · <a href="/buscar" style="color:#facc15">Buscar</a> · <a href="/bio/diosmasgym" style="color:#facc15">Diosmasgym</a> · <a href="/bio/juan614" style="color:#facc15">Juan 614</a></nav></main></div>`;
+
+    // Panel admin: la app funciona igual, pero nunca se indexa
+    if (first === 'admin') {
+      html = applyPageMeta(html, { title: 'Panel | Dios Mas Gym', description: 'Panel de administración.', canonical: null, robots: 'noindex, nofollow' });
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).send(html);
+    }
+
+    const pages: Record<string, { title: string; description: string; canonical: string }> = {
+      '/buscar': {
+        title: 'Buscar canciones y letras | Dios Mas Gym',
+        description: 'Busca entre todas las canciones y letras de Diosmasgym y Juan 614: música cristiana, rap cristiano y corridos de fe.',
+        canonical: `${BASE}/buscar`,
+      },
+      '/testimonios': {
+        title: 'Testimonios | Dios Mas Gym',
+        description: 'Testimonios reales de personas a las que la música de Dios Mas Gym ha ayudado en su fe, su disciplina y su vida diaria.',
+        canonical: `${BASE}/testimonios`,
+      },
+    };
+    // /letras, /letra y /lyrics muestran el mismo buscador
+    ['/letras', '/letra', '/lyrics'].forEach(p => { pages[p] = pages['/buscar']; });
+
+    const page = pages[pathname.toLowerCase()];
+    if (page) {
+      html = applyPageMeta(html, { ...page, canonical: page.canonical });
+      html = html.replace('<div id="root"></div>', pageBody(page.title.split(' | ')[0], page.description));
+      res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+      return res.status(200).send(html);
+    }
+
+    // Cualquier otra ruta: 404 real (la app sigue mostrando su pantalla de "no encontrado")
+    html = applyPageMeta(html, {
+      title: 'Página no encontrada | Dios Mas Gym',
+      description: 'Esta página no existe. Explora el catálogo de canciones y letras de Dios Mas Gym.',
+      canonical: null,
+      robots: 'noindex, follow',
+    });
+    html = html.replace('<div id="root"></div>', pageBody('Página no encontrada', 'La página que buscas no existe o cambió de dirección.'));
+    res.setHeader('X-Robots-Tag', 'noindex, follow');
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    return res.status(404).send(html);
   }
 
   // -------------------------------------------------------------
@@ -2320,54 +2463,29 @@ ${sections}
       const safeTitle = escapeXml(title);
       const safeDesc = escapeXml(description);
       const safeImage = escapeXml(image);
+      const absoluteImage = image.startsWith('http') ? image : `https://www.diosmasgym.com${image.startsWith('/') ? '' : '/'}${image}`;
 
-      // Perform meta tag injections using robust regexes
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
-      
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:title["']\s*\/?>/i, `<meta property="og:title" content="${safeTitle}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:description["']\s*\/?>/i, `<meta property="og:description" content="${safeDesc}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:image["']\s*\/?>/i, `<meta property="og:image" content="${safeImage}">`);
-      
-      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
-      html = html.replace(/<meta\s+content=["'][^"']*["']\s+property=["']og:url["']\s*\/?>/i, `<meta property="og:url" content="${shareUrl}">`);
-      
-      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i, `<link rel="canonical" href="${shareUrl}" />`);
-      
-      // Override robots: allow indexing for this specific smart link page
-      html = html.replace(
-        /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
-        `<meta name="robots" content="index, follow">`
-      );
-      
-      if (/<meta\s+name=["']description["']/i.test(html)) {
-          html = html.replace(/<meta\s+name=["']description["'][\s\S]*?\/?>/i, `<meta name="description" content="${safeDesc}">`);
-      } else {
-          html = html.replace('</head>', `<meta name="description" content="${safeDesc}">\n</head>`);
-      }
-      
+      // Los smartlinks "custom" admiten cualquier titulo por query string: se
+      // pueden compartir, pero no deben indexarse (serian URLs infinitas).
+      const isCustom = !song;
+      html = applyPageMeta(html, {
+        title,
+        description,
+        canonical: isCustom ? null : shareUrl,
+        image: absoluteImage,
+        ogType: 'music.song',
+        robots: isCustom ? 'noindex, follow' : 'index, follow',
+      });
+      if (isCustom) html = upsertMeta(html, 'property', 'og:url', shareUrl);
+
       html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
-
-      // Add og:type = music.song and Twitter Card tags (not present in base index.html)
-      const extraMeta = [
-        `<meta property="og:type" content="music.song">`,
-        `<meta name="twitter:card" content="summary_large_image">`,
-        `<meta name="twitter:title" content="${safeTitle}">`,
-        `<meta name="twitter:description" content="${safeDesc}">`,
-        `<meta name="twitter:image" content="${safeImage}">`,
-      ].join('\n');
-      html = html.replace('</head>', `${extraMeta}\n</head>`);
 
       // Inject full SSR content for SmartLinks — visible to crawlers, hidden from users
       const hiddenStyle = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;';
       html = html.replace('<div id="root"></div>', `<div id="root"><article style="${hiddenStyle}"><h1>${safeTitle}</h1><p>${safeDesc}</p><img src="${safeImage}" alt="${safeTitle}"><a href="${shareUrl}">Escuchar ahora en Spotify, YouTube, Apple Music y Deezer</a>${song ? `<nav><a href="/bio/${song.artist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}">Más de ${escapeXml(song.artist)}</a> <a href="/catalogo">Catálogo completo</a>${song.lyrics && song.lyrics.trim().length >= 50 ? ` <a href="/letra/${generateSlug(song.name)}">Letra de ${escapeXml(song.name)}</a>` : ''}</nav>` : ''}</article></div>`);
 
       // HTTP-level robots signal so Google reads it even before parsing HTML
-      res.setHeader('X-Robots-Tag', 'index, follow');
+      res.setHeader('X-Robots-Tag', isCustom ? 'noindex, follow' : 'index, follow');
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/html');
       return res.status(200).send(html);
@@ -2488,11 +2606,15 @@ ${sections}
         return res.status(200).send(fallbackHtml);
       }
       const songCover = song?.cover || '/logo-diosmasgym.png';
-      const canonicalUrl = `https://www.diosmasgym.com/letra/${normSlug}`;
+      // Canonical = el mismo slug que publica el sitemap. Antes se usaba el slug
+      // pedido, asi /letra/<id> y /letra/<artista-titulo> eran paginas "distintas".
+      const canonicalSlug = song
+        ? (generateSlug(song.name) || normSlug)
+        : (matchedStored ? (generateSlug(String(matchedStored.id || matchedStored.title || '')) || normSlug) : normSlug);
+      const canonicalUrl = `https://www.diosmasgym.com/letra/${canonicalSlug}`;
 
       const pageTitle = `${songTitle} - Letra Oficial | ${songArtist} | Dios Más Gym`;
-      const descriptionSnippet = lyricText ? lyricText.substring(0, 160).replace(/\n+/g, ' ') : `Lee la letra oficial de "${songTitle}" interpretada por ${songArtist}.`;
-      const pageDescription = `Letra oficial de "${songTitle}" por ${songArtist}. ${descriptionSnippet}`;
+      const pageDescription = toMetaDescription(`Letra oficial de "${songTitle}" por ${songArtist}. ${lyricText}`);
 
       // Calculate absolute cover URL first (needed for ogImageUrl)
       const absoluteSongCover = songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover.startsWith('/') ? '' : '/'}${songCover}`;
@@ -2533,7 +2655,7 @@ ${sections}
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.diosmasgym.com/" },
-          { "@type": "ListItem", "position": 2, "name": "Letras", "item": "https://www.diosmasgym.com/letras" },
+          { "@type": "ListItem", "position": 2, "name": "Letras", "item": "https://www.diosmasgym.com/catalogo" },
           { "@type": "ListItem", "position": 3, "name": songTitle, "item": canonicalUrl }
         ]
       };
@@ -2548,41 +2670,14 @@ ${JSON.stringify(breadcrumbJsonLd, null, 2)}
 
       let html = await getBaseIndexHtml();
 
-      const safeTitle = escapeXml(pageTitle);
-      const safeDesc = escapeXml(pageDescription);
-      // Use branded OG image for social sharing meta tags
-      const safeImage = escapeXml(ogImageUrl);
-
-      // Sustituye la etiqueta si ya existe (en cualquier orden de atributos) y
-      // la anade si no. Antes se anadian duplicados: og:type salia dos veces
-      // (website heredado de index.html + music.song) y la description generica
-      // del sitio se quedaba sin sustituir en todas las paginas de letra.
-      const upsertMeta = (src: string, attr: 'name' | 'property', key: string, value: string) => {
-        const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const rx = new RegExp(`<meta[^>]*\\s${attr}=["']${esc}["'][^>]*>`, 'i');
-        const tag = `<meta ${attr}="${key}" content="${value}">`;
-        return rx.test(src) ? src.replace(rx, tag) : src.replace('</head>', `${tag}\n</head>`);
-      };
-
-      html = html.replace(/<title>[^<]*<\/title>/i, `<title>${safeTitle}</title>`);
-
-      html = upsertMeta(html, 'name', 'description', safeDesc);
-      html = upsertMeta(html, 'property', 'og:title', safeTitle);
-      html = upsertMeta(html, 'property', 'og:description', safeDesc);
-      html = upsertMeta(html, 'property', 'og:image', safeImage);
-      // /api/og-image entrega 1200x630; antes se anunciaba 512x512
-      html = upsertMeta(html, 'property', 'og:image:width', '1200');
-      html = upsertMeta(html, 'property', 'og:image:height', '630');
-      html = upsertMeta(html, 'property', 'og:image:alt', `${safeTitle} - Letra oficial`);
-      html = upsertMeta(html, 'property', 'og:url', canonicalUrl);
-      html = upsertMeta(html, 'property', 'og:type', 'music.song');
-      html = upsertMeta(html, 'name', 'twitter:card', 'summary_large_image');
-      html = upsertMeta(html, 'name', 'twitter:title', safeTitle);
-      html = upsertMeta(html, 'name', 'twitter:description', safeDesc);
-      html = upsertMeta(html, 'name', 'twitter:image', safeImage);
-      html = upsertMeta(html, 'name', 'robots', 'index, follow');
-
-      html = html.replace(/<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${canonicalUrl}" />`);
+      html = applyPageMeta(html, {
+        title: pageTitle,
+        description: pageDescription,
+        canonical: canonicalUrl,
+        image: ogImageUrl,
+        imageAlt: `Letra de ${songTitle} - ${songArtist}`,
+        ogType: 'music.song',
+      });
 
       html = html.replace('</head>', `${jsonLdBlock}\n</head>`);
 
@@ -2604,7 +2699,10 @@ ${JSON.stringify(breadcrumbJsonLd, null, 2)}
         ${versesHtml}
       </article>
       <footer style="margin-top: 2rem;">
-        <a href="https://www.diosmasgym.com" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; background: #2563a8; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">← Volver al Inicio</a>
+        ${song?.id ? `<a href="/link/${escapeXml(song.id)}" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; background: #2563a8; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">Escuchar ${escapeXml(songTitle)}</a>` : ''}
+        <a href="/bio/${songArtist.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym'}" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; border: 1px solid rgba(148,163,184,0.4); color: #e2e8f0; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">Más de ${escapeXml(songArtist)}</a>
+        <a href="/catalogo" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; border: 1px solid rgba(148,163,184,0.4); color: #e2e8f0; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">Todas las letras</a>
+        <a href="/" style="display: inline-block; margin: 0.5rem; padding: 0.6rem 1.2rem; border: 1px solid rgba(148,163,184,0.4); color: #e2e8f0; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">Inicio</a>
       </footer>
     </main>
   </div>

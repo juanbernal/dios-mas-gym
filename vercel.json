@@ -71,6 +71,10 @@
       "destination": "/api/common?action=letra-ssr&slug=:slug"
     },
     {
+      "source": "/letras/:slug",
+      "destination": "/api/common?action=letra-ssr&slug=:slug"
+    },
+    {
       "source": "/api/image-proxy",
       "destination": "/api/common?action=image-proxy"
     },
@@ -108,7 +112,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/common?action=page-ssr&path=/$1"
     }
   ],
   "crons": [

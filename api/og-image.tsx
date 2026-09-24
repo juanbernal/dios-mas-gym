@@ -1,25 +1,47 @@
 import React from 'react';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ImageResponse } from '@vercel/og';
+import sharp from 'sharp';
 
-export const config = {
-  runtime: 'edge',
-};
+// Runtime Node (no edge) para poder convertir el PNG a JPEG con sharp.
+// El PNG pesaba 400-500 KB y WhatsApp no muestra la vista previa si la imagen
+// pasa de ~300 KB; en JPEG queda alrededor de 50 KB.
 
 const BASE = 'https://www.diosmasgym.com';
+const FALLBACK_COVER = `${BASE}/icon-512.png`;
 
-export default async function handler(req: Request) {
+// Descarga la portada y la deja en 360x360 como data URL. Si maxresdefault de
+// YouTube no existe (pasa en videos viejos) prueba hqdefault; si todo falla usa el icono.
+async function loadCover(raw: string): Promise<string> {
+  const candidates: string[] = [];
+  if (/^https?:\/\//.test(raw)) {
+    candidates.push(raw);
+    if (raw.includes('maxresdefault')) candidates.push(raw.replace('maxresdefault', 'hqdefault'));
+  }
+  candidates.push(FALLBACK_COVER);
+  for (const url of candidates) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) continue;
+      const input = Buffer.from(await r.arrayBuffer());
+      const out = await sharp(input).resize(360, 360, { fit: 'cover' }).jpeg({ quality: 90 }).toBuffer();
+      return `data:image/jpeg;base64,${out.toString('base64')}`;
+    } catch { /* probar la siguiente */ }
+  }
+  return FALLBACK_COVER;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const { searchParams } = new URL(req.url);
-    const title = searchParams.get('title') || 'Dios Mas Gym';
-    const artist = searchParams.get('artist') || 'El Arsenal de Fe';
-    const coverRaw = searchParams.get('cover') || '';
-    const type = searchParams.get('type') || 'song';
+    const q = (k: string) => { const v = req.query[k]; return (Array.isArray(v) ? v[0] : v) || ''; };
+    const title = (q('title') || 'Dios Mas Gym').slice(0, 80);
+    const artist = (q('artist') || 'El Arsenal de Fe').slice(0, 60);
+    const type = q('type') || 'song';
 
-    // Only allow absolute http/https cover URLs to avoid SSRF with relative paths
-    const cover = coverRaw.startsWith('http') ? coverRaw : `${BASE}/icon-512.png`;
+    const cover = await loadCover(q('cover'));
     const logoUrl = `${BASE}/logo-diosmasgym.png`;
 
-    return new ImageResponse(
+    const png = new ImageResponse(
       React.createElement(
         'div',
         {
@@ -105,16 +127,21 @@ export default async function handler(req: Request) {
           )
         )
       ),
-      {
-        width: 1200,
-        height: 630,
-        headers: {
-          'Cache-Control': 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400',
-        },
-      }
+      { width: 1200, height: 630 }
     );
+
+    const jpeg = await sharp(Buffer.from(await png.arrayBuffer()))
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer();
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Length', String(jpeg.length));
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400');
+    return res.status(200).send(jpeg);
   } catch (err: any) {
     console.error('[og-image] Error:', err);
-    return new Response('Error generating image', { status: 500 });
+    // Mejor una imagen generica que un 500: asi WhatsApp/Facebook siguen mostrando algo
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.redirect(302, `${BASE}/icon-512.png`);
   }
 }

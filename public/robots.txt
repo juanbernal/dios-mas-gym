@@ -11,6 +11,8 @@ Allow: /catalogo
 # Bloquear panel admin y rutas internas de API
 Disallow: /admin/
 Disallow: /api/
+# La imagen de vista previa si debe poder leerse (X/Twitter respeta robots.txt)
+Allow: /api/og-image
 
 # Bloquear parámetros de caché/debug que generan contenido duplicado
 Disallow: /*?m=1
