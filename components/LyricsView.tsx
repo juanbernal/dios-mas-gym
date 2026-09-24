@@ -70,7 +70,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
     });
 
     if (matched) {
-      if (matchedSaved?.content && (!matched.lyrics || matched.lyrics.trim().length === 0 || matched.lyrics.length < matchedSaved.content.length)) {
+      if (matchedSaved?.content && matchedSaved.content.trim().length > 0) {
         return { ...matched, lyrics: matchedSaved.content };
       }
       return matched;

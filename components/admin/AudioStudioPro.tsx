@@ -1441,7 +1441,6 @@ const AudioStudioPro:React.FC=()=>{
   }, [loadCatalogData]);
 
   const getSongLyricContent = useCallback((song: MusicItem): string => {
-    if (song.lyrics && song.lyrics.trim()) return song.lyrics;
     const songSlug = generateSlug(song.name || '');
     const normalizeSlug = (str: string) => generateSlug(str || '').replace(/-(rap|pop|trap|corrido|remix|version|live|master|snippet|edit|tumbado|belico|worship)$/g, '');
     const cleanSongSlug = normalizeSlug(song.name || '');
@@ -1455,7 +1454,10 @@ const AudioStudioPro:React.FC=()=>{
       if (l.artist && generateSlug(`${l.artist}-${l.title}`) === generateSlug(`${song.artist}-${song.name}`)) return true;
       return false;
     });
-    return saved?.content || '';
+
+    if (saved?.content && saved.content.trim().length > 0) return saved.content;
+    if (song.lyrics && song.lyrics.trim()) return song.lyrics;
+    return '';
   }, [savedLyrics]);
 
   const handleLinkSong = useCallback((song: MusicItem) => {

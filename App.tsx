@@ -337,7 +337,6 @@ const App: React.FC = () => {
             (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
 
           return items.map(item => {
-            if (item.lyrics && item.lyrics.trim().length > 30) return item;
             const itemNorm = cleanTitle(item.name);
             const itemIdNorm = cleanTitle(item.id);
             const match = lyrics.find((l: any) => {
@@ -347,7 +346,7 @@ const App: React.FC = () => {
               const lTitleNorm = cleanTitle(l.title || '');
               return lTitleNorm && itemNorm && lTitleNorm === itemNorm;
             });
-            if (match?.content) {
+            if (match?.content && match.content.trim().length > 0) {
               return { ...item, lyrics: match.content };
             }
             return item;
