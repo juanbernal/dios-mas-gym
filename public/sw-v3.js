@@ -1,5 +1,5 @@
 // SW V14 - Cache real de assets estaticos (stale-while-revalidate) + Push Notifications + Release Checker
-const CACHE_VERSION = 'dmg-static-v14';
+const CACHE_VERSION = 'dmg-static-v15';
 
 self.addEventListener('install', (e) => self.skipWaiting());
 
@@ -44,7 +44,11 @@ self.addEventListener('fetch', (event) => {
         cache.match(request).then((cached) => {
           const network = fetch(request)
             .then((response) => {
-              if (response.ok) cache.put(request, response.clone());
+              // Nunca guardar HTML bajo una URL de asset: antes, un chunk viejo que ya
+              // no existia respondia con index.html (200) y la seccion quedaba rota
+              // hasta borrar la cache.
+              const type = response.headers.get('content-type') || '';
+              if (response.ok && !type.includes('text/html')) cache.put(request, response.clone());
               return response;
             })
             .catch(() => cached);

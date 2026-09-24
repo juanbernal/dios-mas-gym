@@ -1,44 +1,67 @@
 import React from 'react';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ImageResponse } from '@vercel/og';
-import sharp from 'sharp';
+import { Buffer } from 'node:buffer';
+import { decode as decodePng } from 'fast-png';
+// @ts-ignore - jpeg-js no trae tipos
+import encodeJpeg from 'jpeg-js/lib/encoder.js';
 
-// Runtime Node (no edge) para poder convertir el PNG a JPEG con sharp.
+export const config = {
+  runtime: 'edge',
+};
+
 // El PNG pesaba 400-500 KB y WhatsApp no muestra la vista previa si la imagen
-// pasa de ~300 KB; en JPEG queda alrededor de 50 KB.
+// pasa de ~300 KB; en JPEG queda alrededor de 50 KB. Se convierte con librerias
+// de JavaScript puro porque sharp (nativo) hacia fallar la funcion en Vercel.
+(globalThis as any).Buffer ??= Buffer;
 
 const BASE = 'https://www.diosmasgym.com';
 const FALLBACK_COVER = `${BASE}/icon-512.png`;
 
-// Descarga la portada y la deja en 360x360 como data URL. Si maxresdefault de
-// YouTube no existe (pasa en videos viejos) prueba hqdefault; si todo falla usa el icono.
-async function loadCover(raw: string): Promise<string> {
+// Si maxresdefault de YouTube no existe (pasa en videos viejos) prueba
+// hqdefault; si todo falla usa el icono.
+async function pickCover(raw: string): Promise<string> {
   const candidates: string[] = [];
   if (/^https?:\/\//.test(raw)) {
     candidates.push(raw);
     if (raw.includes('maxresdefault')) candidates.push(raw.replace('maxresdefault', 'hqdefault'));
   }
-  candidates.push(FALLBACK_COVER);
   for (const url of candidates) {
     try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      if (!r.ok) continue;
-      const input = Buffer.from(await r.arrayBuffer());
-      const out = await sharp(input).resize(360, 360, { fit: 'cover' }).jpeg({ quality: 90 }).toBuffer();
-      return `data:image/jpeg;base64,${out.toString('base64')}`;
+      const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+      if (r.ok) return url;
     } catch { /* probar la siguiente */ }
   }
   return FALLBACK_COVER;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    const q = (k: string) => { const v = req.query[k]; return (Array.isArray(v) ? v[0] : v) || ''; };
-    const title = (q('title') || 'Dios Mas Gym').slice(0, 80);
-    const artist = (q('artist') || 'El Arsenal de Fe').slice(0, 60);
-    const type = q('type') || 'song';
+async function pngToJpeg(png: ArrayBuffer, quality = 85): Promise<Uint8Array> {
+  const img = decodePng(new Uint8Array(png));
+  const { width, height, channels } = img;
+  const src = img.data as Uint8Array;
+  // jpeg-js espera RGBA de 8 bits
+  let rgba: Uint8Array;
+  if (channels === 4) rgba = src;
+  else {
+    rgba = new Uint8Array(width * height * 4);
+    for (let i = 0, j = 0; i < width * height; i++, j += channels) {
+      rgba[i * 4] = src[j];
+      rgba[i * 4 + 1] = src[j + (channels >= 3 ? 1 : 0)];
+      rgba[i * 4 + 2] = src[j + (channels >= 3 ? 2 : 0)];
+      rgba[i * 4 + 3] = 255;
+    }
+  }
+  const out = encodeJpeg({ data: rgba, width, height }, quality);
+  return new Uint8Array(out.data);
+}
 
-    const cover = await loadCover(q('cover'));
+export default async function handler(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const title = (searchParams.get('title') || 'Dios Mas Gym').slice(0, 80);
+    const artist = (searchParams.get('artist') || 'El Arsenal de Fe').slice(0, 60);
+    const type = searchParams.get('type') || 'song';
+
+    const cover = await pickCover(searchParams.get('cover') || '');
     const logoUrl = `${BASE}/logo-diosmasgym.png`;
 
     const png = new ImageResponse(
@@ -130,18 +153,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { width: 1200, height: 630 }
     );
 
-    const jpeg = await sharp(Buffer.from(await png.arrayBuffer()))
-      .jpeg({ quality: 85, mozjpeg: true })
-      .toBuffer();
+    const jpeg = await pngToJpeg(await png.arrayBuffer());
 
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Content-Length', String(jpeg.length));
-    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400');
-    return res.status(200).send(jpeg);
+    return new Response(jpeg, {
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400',
+      },
+    });
   } catch (err: any) {
     console.error('[og-image] Error:', err);
     // Mejor una imagen generica que un 500: asi WhatsApp/Facebook siguen mostrando algo
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    return res.redirect(302, `${BASE}/icon-512.png`);
+    return Response.redirect(`${BASE}/icon-512.png`, 302);
   }
 }

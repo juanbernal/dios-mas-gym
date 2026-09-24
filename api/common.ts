@@ -98,7 +98,7 @@ async function getBaseIndexHtml(): Promise<string> {
 
   // Strategy 2: Fetch from the production URL (fallback for non-Vercel envs)
   try {
-    const htmlRes = await fetch('https://www.diosmasgym.com/index.html');
+    const htmlRes = await fetch('https://www.diosmasgym.com/index.html', { signal: AbortSignal.timeout(8000) });
     let html = await htmlRes.text();
     if (html && html.includes('<div id="root">')) {
       html = stripHomeFallback(html);
@@ -170,7 +170,7 @@ async function robustFetchText(urlStr: string): Promise<string> {
   // 1. Try global fetch first if available
   if (typeof fetch === 'function') {
     try {
-      const response = await fetch(urlStr);
+      const response = await fetch(urlStr, { signal: AbortSignal.timeout(10000) });
       if (response.ok) {
         return await response.text();
       }
@@ -382,7 +382,8 @@ async function getStoredLyrics(): Promise<any[]> {
 
   // 1. Try fetching from Google Sheets (most up-to-date)
   try {
-    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`);
+    // Apps Script a veces tarda mas de un minuto: si no responde rapido usamos la copia local
+    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
     if (gsRes.ok) {
       const gsData = await gsRes.json();
       const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -888,7 +889,8 @@ export default async function handler(
         // 1. Try fetching from Google Sheets (most up-to-date)
         if (GS_LINKS_URL) {
           try {
-            const gsRes = await fetch(`${GS_LINKS_URL}?action=list-links&artist=${isJuan ? 'juan614' : 'diosmasgym'}&t=${Date.now()}`);
+            // Sin limite, Apps Script llego a tardar 71 s y la bio se quedaba cargando
+            const gsRes = await fetch(`${GS_LINKS_URL}?action=list-links&artist=${isJuan ? 'juan614' : 'diosmasgym'}&t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
             if (gsRes.ok) {
               const gsData = await gsRes.json();
               if (gsData && gsData.links) {
@@ -1033,7 +1035,7 @@ export default async function handler(
         // 2. Try to fetch from Google Sheets Apps Script (GS_LYRICS_URL)
         if (GS_LYRICS_URL) {
           try {
-            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`);
+            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`, { signal: AbortSignal.timeout(8000) });
             if (gsRes.ok) {
               const gsData = await gsRes.json();
               const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
@@ -1235,12 +1237,15 @@ export default async function handler(
 
     if (req.method === 'GET') {
       try {
-        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store' });
+        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
         if (response.ok) {
           const rows = await response.json();
           const configRows = rows.filter((r: any) => r.Artista === 'CONFIG_MAINTENANCE');
           if (configRows.length > 0) {
             const lastConfig = configRows[configRows.length - 1];
+            // Cache corta en el CDN: la portada consulta esto en cada visita y
+            // Apps Script tarda segundos; un cambio tarda como mucho ~30 s en verse
+            res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
             return res.status(200).json({
               enabled: lastConfig.name === 'true' || lastConfig.name === true,
               videoUrl: lastConfig.audioUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
@@ -1338,7 +1343,7 @@ export default async function handler(
 
     if (req.method === 'GET') {
       try {
-        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store' });
+        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
         if (!response.ok) return res.status(200).json([]);
         const rows = await response.json();
         const items = (Array.isArray(rows) ? rows : [])

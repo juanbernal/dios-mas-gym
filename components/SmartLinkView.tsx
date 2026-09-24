@@ -60,8 +60,15 @@ const HUDCorners = ({ color }: { color: string }) => (
     </>
 );
 
+// Igual que en el reproductor de la portada: arranca en una parte al azar
+// (entre el 15% y el 55% de la cancion) para no empezar siempre por la intro
+const randomStart = (total: number) => Math.floor(total * (0.15 + Math.random() * 0.4));
+
 const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: boolean, key?: any }) => {
     const [isPlaying, setIsPlaying] = useState(false);
+    const [startedRandom, setStartedRandom] = useState(false);
+    // true hasta la primera reproduccion; si la persona adelanta antes, se respeta su eleccion
+    const pendingRandomRef = React.useRef(true);
     const [progress, setProgress] = useState(0);
     const [startTime, setStartTime] = useState(0);
     const [elapsedSec, setElapsedSec] = useState(0);
@@ -75,6 +82,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         setIsPlaying(false);
         setProgress(0);
         setStartTime(0);
+        setStartedRandom(false);
+        pendingRandomRef.current = true;
         initedRef.current = false;
         playerRef.current = null;
 
@@ -108,6 +117,14 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             setIsPlaying(true);
+                            if (pendingRandomRef.current) {
+                                pendingRandomRef.current = false;
+                                const total = event.target.getDuration ? event.target.getDuration() || 0 : 0;
+                                if (total > 30) {
+                                    event.target.seekTo(randomStart(total), true);
+                                    setStartedRandom(true);
+                                }
+                            }
                         } else if (
                             event.data === window.YT.PlayerState.PAUSED ||
                             event.data === window.YT.PlayerState.ENDED
@@ -183,12 +200,23 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
 
         if (!durationSec) return;
         const newTime = percentage * durationSec;
-        playerRef.current.seekTo(newTime);
+        pendingRandomRef.current = false;
+        playerRef.current.seekTo(newTime, true);
         setProgress(percentage * 100);
 
         if (!isPlaying) {
             playerRef.current.playVideo();
         }
+    };
+
+    const restartFromBeginning = () => {
+        if (!playerRef.current || !playerRef.current.seekTo) return;
+        pendingRandomRef.current = false;
+        playerRef.current.seekTo(0, true);
+        setElapsedSec(0);
+        setProgress(0);
+        setStartedRandom(false);
+        if (!isPlaying) playerRef.current.playVideo();
     };
 
     const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
@@ -265,6 +293,14 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                     })}
                 </div>
             </div>
+
+            <button
+                onClick={restartFromBeginning}
+                className={`relative z-10 self-center text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 hover:underline ${isJuan ? 'text-[#f1f5f9]/60' : 'text-white/60'}`}
+            >
+                <i className="fas fa-backward-step"></i>
+                {startedRandom ? 'Empezó en una parte al azar · Escuchar desde el inicio' : 'Escuchar desde el inicio'}
+            </button>
         </div>
     );
 };
@@ -837,10 +873,12 @@ const SmartLinkView: React.FC = () => {
         const loadSong = async () => {
             try {
                 // Buscamos en ambos catálogos para enlaces normales y letras guardadas
-                const [dM, j6, savedLyrics] = await Promise.all([
+                // Las letras guardadas (Google Sheets) pueden tardar mucho: no se
+                // esperan para mostrar la cancion, se anaden cuando llegan.
+                const lyricsPromise: Promise<any[]> = fetchSavedLyrics().catch(() => []);
+                const [dM, j6] = await Promise.all([
                     fetchMusicCatalog('diosmasgym'),
-                    fetchMusicCatalog('juan614'),
-                    fetchSavedLyrics().catch(() => [])
+                    fetchMusicCatalog('juan614')
                 ]);
                 let fullCatalog = [...dM, ...j6];
 
@@ -939,7 +977,8 @@ const SmartLinkView: React.FC = () => {
                 }
 
                 if (found) {
-                    let songWithLyrics = { ...found };
+                    setSong({ ...found });
+                    lyricsPromise.then(savedLyrics => {
                     if (Array.isArray(savedLyrics) && savedLyrics.length > 0) {
                         const normText = (text: string) => (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
                         const fNameNorm = normText(found.name);
@@ -954,11 +993,11 @@ const SmartLinkView: React.FC = () => {
                             );
                         });
 
-                        if (matchedSaved?.content && (!songWithLyrics.lyrics || songWithLyrics.lyrics.trim().length === 0 || songWithLyrics.lyrics.length < matchedSaved.content.length)) {
-                            songWithLyrics.lyrics = matchedSaved.content;
+                        if (matchedSaved?.content && (!found.lyrics || found.lyrics.trim().length === 0 || found.lyrics.length < matchedSaved.content.length)) {
+                            setSong(prev => (prev && prev.id === found!.id ? { ...prev, lyrics: matchedSaved.content } : prev));
                         }
                     }
-                    setSong(songWithLyrics);
+                    });
                     // === SEO: Dynamic meta tags for Google / Social ===
                     const songTitle = `${found.name} - ${found.artist}`;
                     const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Dios Más Gym`;
@@ -1030,7 +1069,12 @@ const SmartLinkView: React.FC = () => {
                     );
                     const randomOthers = others.sort(() => 0.5 - Math.random()).slice(0, 5);
                     setOtherReleases(randomOthers);
-                } else if (Array.isArray(savedLyrics) && savedLyrics.length > 0) {
+                } else {
+                    const savedLyrics = await lyricsPromise;
+                    if (!Array.isArray(savedLyrics) || savedLyrics.length === 0) {
+                        setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
+                        return;
+                    }
                     const normText = (text: string) => (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
                     const slugNorm = normText(id || '');
                     const matchedSaved = savedLyrics.find((l: any) => {
@@ -1057,8 +1101,6 @@ const SmartLinkView: React.FC = () => {
                         setLoading(false);
                         return;
                     }
-                    setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
-                } else {
                     setErrorMsg(`No se encontró el enlace con el ID: ${id}`);
                 }
             } catch (err: any) {

@@ -308,7 +308,14 @@ const App: React.FC = () => {
       };
 
       try {
-        const [musicD, musicJ, maintStatus, savedLyricsList] = await Promise.all([
+        // Las letras vienen de Google Sheets y a veces tardan mucho: ya no se
+        // esperan para mostrar el sitio, se anaden al catalogo cuando llegan.
+        const savedLyricsPromise = fetchSavedLyrics().catch(err => {
+          console.error("Saved lyrics fetch failed:", err);
+          return [] as any[];
+        });
+
+        const [musicD, musicJ, maintStatus] = await Promise.all([
           fetchMusicCatalog('diosmasgym').catch(err => {
             console.error("Music Diosmasgym fetch failed:", err);
             return [];
@@ -320,10 +327,6 @@ const App: React.FC = () => {
           fetchMaintenanceStatus().catch(err => {
             console.error("Maintenance fetch failed:", err);
             return { enabled: false, videoUrl: '/outros/Robot_performing_dumbbell_curls_202605312331.mp4' };
-          }),
-          fetchSavedLyrics().catch(err => {
-            console.error("Saved lyrics fetch failed:", err);
-            return [];
           })
         ]);
 
@@ -353,21 +356,29 @@ const App: React.FC = () => {
           });
         };
 
-        const enrichedD = enrichWithLyrics(musicD, savedLyricsList);
-        const enrichedJ = enrichWithLyrics(musicJ, savedLyricsList);
-
         setState(prev => ({ 
           ...prev, 
-          musicDiosmasgym: enrichedD,
-          musicJuan614: enrichedJ,
+          musicDiosmasgym: musicD,
+          musicJuan614: musicJ,
           loading: false,
           error: null
         }));
 
-        if (enrichedD.length > 0) setRandomMusicSong(enrichedD[Math.floor(Math.random() * enrichedD.length)]);
-        if (enrichedJ.length > 0) setRandomJuan614Song(enrichedJ[Math.floor(Math.random() * enrichedJ.length)]);
+        if (musicD.length > 0) setRandomMusicSong(musicD[Math.floor(Math.random() * musicD.length)]);
+        if (musicJ.length > 0) setRandomJuan614Song(musicJ[Math.floor(Math.random() * musicJ.length)]);
         setVerse(VERSES[Math.floor(Math.random() * VERSES.length)]);
         hideSplash();
+
+        savedLyricsPromise.then(savedLyricsList => {
+          if (!savedLyricsList || savedLyricsList.length === 0) return;
+          const enrichedD = enrichWithLyrics(musicD, savedLyricsList);
+          const enrichedJ = enrichWithLyrics(musicJ, savedLyricsList);
+          setState(prev => ({ ...prev, musicDiosmasgym: enrichedD, musicJuan614: enrichedJ }));
+          // Las canciones destacadas ya elegidas reciben tambien su letra
+          const withLyrics = (s: MusicItem | null, list: MusicItem[]) => (s ? list.find(x => x.id === s.id) || s : s);
+          setRandomMusicSong(prev => withLyrics(prev, enrichedD));
+          setRandomJuan614Song(prev => withLyrics(prev, enrichedJ));
+        });
       } catch (err: any) {
         console.error("Critical error during app initialization:", err);
         setState(prev => ({ 
