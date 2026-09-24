@@ -1422,7 +1422,7 @@ const AudioStudioPro:React.FC=()=>{
       const [dios, juan, saved] = await Promise.all([
         fetchMusicCatalog('diosmasgym', force),
         fetchMusicCatalog('juan614', force),
-        fetchSavedLyrics()
+        fetchSavedLyrics(true)
       ]);
       const combined = [...(dios || []), ...(juan || [])];
       setCatalog(combined);
@@ -1590,7 +1590,8 @@ const AudioStudioPro:React.FC=()=>{
         // 2. Sincronización directa con Google Sheets (Nube) para persistencia total
         try {
           const queryString = new URLSearchParams({
-            action: 'save',            title: cleanTitle,
+            action: 'save',
+            title: cleanTitle,
             artist: meta.artist || 'Diosmasgym'
           }).toString();
 
@@ -1598,7 +1599,8 @@ const AudioStudioPro:React.FC=()=>{
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'save',              title: cleanTitle,
+              action: 'save',
+              title: cleanTitle,
               artist: meta.artist || 'Diosmasgym',
               content: finalLyricContent,
               date: new Date().toISOString()

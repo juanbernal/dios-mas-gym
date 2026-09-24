@@ -321,20 +321,32 @@ const LYRICS_TTL_MS = 5 * 60 * 1000;
 let lyricsCache: { at: number; data: any[] } | null = null;
 let lyricsInFlight: Promise<any[]> | null = null;
 
+// El CDN de Vercel cachea /api/lyrics: tras guardar una letra, este navegador pide la lista
+// sin cache un rato para no recibir la copia vieja (donde la letra nueva aun no existe).
+const LYRICS_BUST_KEY = 'lyrics_bust_until';
+const LYRICS_BUST_MS = 15 * 60 * 1000;
+
+const shouldBypassLyricsCdn = (): boolean => {
+  try { return Number(localStorage.getItem(LYRICS_BUST_KEY) || 0) > Date.now(); } catch { return false; }
+};
+
 export const invalidateSavedLyricsCache = () => {
   lyricsCache = null;
   lyricsInFlight = null;
+  try { localStorage.setItem(LYRICS_BUST_KEY, String(Date.now() + LYRICS_BUST_MS)); } catch { /* sin storage */ }
 };
 
-export const fetchSavedLyrics = async (): Promise<any[]> => {
-  if (lyricsCache && Date.now() - lyricsCache.at < LYRICS_TTL_MS) {
+// force = true (herramientas admin): siempre la lista fresca desde Google Sheets, sin cache del CDN.
+export const fetchSavedLyrics = async (force = false): Promise<any[]> => {
+  if (!force && lyricsCache && Date.now() - lyricsCache.at < LYRICS_TTL_MS) {
     return lyricsCache.data;
   }
-  if (lyricsInFlight) return lyricsInFlight;
+  if (!force && lyricsInFlight) return lyricsInFlight;
 
+  const bypass = force || shouldBypassLyricsCdn();
   lyricsInFlight = (async () => {
     try {
-      const res = await fetch('/api/lyrics');
+      const res = await fetch(bypass ? `/api/lyrics?refresh=1&t=${Date.now()}` : '/api/lyrics', bypass ? { cache: 'no-store' } : undefined);
       if (!res.ok) return [];
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data?.lyrics || []);

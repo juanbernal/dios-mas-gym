@@ -922,7 +922,9 @@ export default async function handler(
 
     if (req.method === 'GET') {
       const isRefresh = req.query.refresh === 'true' || req.query.refresh === '1';
-      const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=3600, stale-while-revalidate=86400';
+      // Cache corta: con 1h (+24h stale) una letra recien guardada no aparecia en /letra/:id
+      // hasta horas despues (el HTML del servidor la mostraba y al hidratar desaparecia).
+      const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=60, stale-while-revalidate=300';
       try {
         // 1. Try to fetch from CSV_URL_LYRICS (separate published tab)
         const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
