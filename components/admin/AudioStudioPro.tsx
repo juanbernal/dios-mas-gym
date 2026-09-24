@@ -1452,8 +1452,6 @@ const AudioStudioPro:React.FC=()=>{
       const lSlug = generateSlug(l.title || '');
       const cleanLSlug = normalizeSlug(l.title || '');
       if (lSlug === songSlug || cleanLSlug === cleanSongSlug) return true;
-      if (cleanSongSlug.length >= 4 && cleanLSlug.includes(cleanSongSlug)) return true;
-      if (cleanLSlug.length >= 4 && cleanSongSlug.includes(cleanLSlug)) return true;
       if (l.artist && generateSlug(`${l.artist}-${l.title}`) === generateSlug(`${song.artist}-${song.name}`)) return true;
       return false;
     });
@@ -1669,7 +1667,7 @@ const AudioStudioPro:React.FC=()=>{
       if (searchTitle && catalog.length > 0) {
         const found = catalog.find(s => {
           const sKey = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-          return sKey === searchTitle || (sKey.length > 4 && (searchTitle.includes(sKey) || sKey.includes(searchTitle)));
+          return sKey === searchTitle;
         });
         if (found) {
           setSelectedCatalogSong(found);
@@ -3285,8 +3283,6 @@ const AudioStudioPro:React.FC=()=>{
                               const sSlug = generateSlug(s.name || '');
                               const cleanSSlug = normalizeSlug(s.name || '');
                               if (sSlug === lSlug || cleanSSlug === cleanLSlug) return true;
-                              if (cleanLSlug.length >= 4 && cleanSSlug.includes(cleanLSlug)) return true;
-                              if (cleanSSlug.length >= 4 && cleanLSlug.includes(cleanSSlug)) return true;
                               return false;
                             });
 

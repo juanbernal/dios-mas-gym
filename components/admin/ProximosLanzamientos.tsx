@@ -199,7 +199,7 @@ const ProximosLanzamientos: React.FC = () => {
                 
                 const foundItem = existing.find(ex => {
                     const normExName = normalize(ex.name || '').replace(/[^a-z0-9]/g, '');
-                    return normExName === normCatName || normExName.includes(normCatName) || normCatName.includes(normExName);
+                    return normExName === normCatName;
                 });
                 
                 const isFound = !!foundItem;
