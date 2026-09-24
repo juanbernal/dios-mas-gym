@@ -69,6 +69,8 @@ function stripHomeFallback(html: string): string {
 }
 
 let cachedIndexHtml = '';
+// Ultima lista buena de testimonios (por instancia) para cuando Apps Script falla
+let lastTestimonios: any[] | null = null;
 let cachedIndexHtmlTime = 0;
 
 async function getBaseIndexHtml(): Promise<string> {
@@ -1343,9 +1345,15 @@ export default async function handler(
     const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
     if (req.method === 'GET') {
+      // Si Apps Script falla o tarda, se sirve lo ultimo bueno (o vacio) con cache
+      // corta, para no hacer esperar ~6 s a cada visitante.
+      const serveFallback = () => {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+        return res.status(200).json(lastTestimonios || []);
+      };
       try {
         const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
-        if (!response.ok) return res.status(200).json([]);
+        if (!response.ok) return serveFallback();
         const rows = await response.json();
         const items = (Array.isArray(rows) ? rows : [])
           .filter((r: any) => r.Artista === 'CONFIG_TESTIMONIO' && r.name)
@@ -1359,10 +1367,11 @@ export default async function handler(
             };
           })
           .reverse();
+        lastTestimonios = items;
         res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=600');
         return res.status(200).json(items);
       } catch {
-        return res.status(200).json([]);
+        return serveFallback();
       }
     }
 
