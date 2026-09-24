@@ -1264,7 +1264,8 @@ export default async function handler(
           });
         }
         const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-        res.setHeader('Cache-Control', 'no-store, max-age=0');
+        // Tambien en el respaldo: si Apps Script esta lento, no repetir la espera en cada visita
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
         return res.status(200).json(JSON.parse(data));
       } catch (error) {
         return res.status(500).json({ error: 'Error reading maintenance configuration' });
