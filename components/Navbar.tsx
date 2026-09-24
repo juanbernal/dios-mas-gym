@@ -86,9 +86,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
         </form>
 
         <a
-          href="https://musica.diosmasgym.com/"
-          target="_blank"
-          rel="noreferrer"
+          href="/#catalogo"
+          onClick={(e) => {
+            // La musica ahora vive en este mismo sitio: lleva al catalogo de la pagina de inicio
+            e.preventDefault();
+            const goToCatalog = () => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' });
+            if (location.pathname === '/') goToCatalog();
+            else { navigate('/'); setTimeout(goToCatalog, 600); }
+          }}
           className="hidden lg:flex px-5 py-2.5 border border-[#4a90d9]/25 bg-[#4a90d9]/10 text-[#4a90d9] font-extrabold uppercase text-[9px] tracking-[0.2em] rounded-full hover:bg-[#4a90d9] hover:text-black transition-all shrink-0"
         >
           Música

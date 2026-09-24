@@ -379,7 +379,7 @@ const PromoImageApp: React.FC = () => {
   // El QR se descarga una vez como data-URL: exportar no depende de un servicio externo en ese momento
   const smartLinkForQr = songId
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/link/${songId}`
-    : (artist.toLowerCase().includes('juan') ? 'https://juan614.diosmasgym.com' : 'https://musica.diosmasgym.com');
+    : (artist.toLowerCase().includes('juan') ? 'https://juan614.diosmasgym.com' : 'https://diosmasgym.com');
   useEffect(() => {
     let cancelled = false;
     setQrDataUrl(null);
@@ -740,7 +740,7 @@ const PromoImageApp: React.FC = () => {
     // Fallback si no hay id (selección manual de imagen)
     return artist.toLowerCase().includes('juan')
       ? 'https://juan614.diosmasgym.com'
-      : 'https://musica.diosmasgym.com';
+      : 'https://diosmasgym.com';
   }, [songId, artist]);
 
   // OPEN SOCIAL SHARE PANEL
@@ -1380,7 +1380,7 @@ const PromoImageApp: React.FC = () => {
                 <input
                   type="text"
                   className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-mono text-[#c5a059] tracking-wide transition-all"
-                  placeholder="diosmasgym.com / musica.diosmasgym.com"
+                  placeholder="diosmasgym.com / juan614.diosmasgym.com"
                   value={customFooterUrl}
                   onChange={(e) => setCustomFooterUrl(e.target.value)}
                 />
@@ -2626,7 +2626,7 @@ const PromoTemplate: React.FC<any> = ({
 
     const displayUrl = customFooterUrl && customFooterUrl.trim()
       ? customFooterUrl.trim().replace(/^https?:\/\//i, '')
-      : artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com';
+      : artist.toUpperCase().includes('JUAN 614') ? 'juan614.diosmasgym.com' : 'diosmasgym.com';
 
     return (
         <div style={{ width: "100%", height: "100%", position: 'relative', overflow: 'hidden', backgroundColor: '#000' }}>

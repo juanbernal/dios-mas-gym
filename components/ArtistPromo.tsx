@@ -126,7 +126,7 @@ const ArtistPromo: React.FC<ArtistPromoProps> = ({
 
           <div className="flex flex-col sm:flex-row gap-6">
             <a 
-              href={isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/'} 
+              href={isDios ? 'https://diosmasgym.com/' : 'https://juan614.diosmasgym.com/'} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-block px-12 py-5 bg-[#4a90d9] text-black font-black uppercase text-[10px] tracking-[0.4em] hover:bg-white transition-all transform hover:scale-105 shadow-[0_20px_40px_rgba(37,99,168,0.2)] rounded-full text-center"

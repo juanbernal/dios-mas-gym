@@ -167,7 +167,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
   const lyricsLines = hasLyrics ? song.lyrics!.split('\n') : [];
 
   const isJuanArtist = (song.artist || '').toLowerCase().includes('juan') || (song.artist || '').includes('614');
-  const officialSite = isJuanArtist ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/';
+  const officialSite = isJuanArtist ? 'https://juan614.diosmasgym.com/' : null;
   // Busqueda por titulo + artista en cada plataforma (el catalogo solo guarda el link de YouTube)
   const streamQuery = encodeURIComponent(`${song.name} ${song.artist}`);
   const streamingLinks = [
@@ -313,15 +313,18 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
               {/* Donde escucharla completa: sitio oficial + plataformas de streaming */}
               <div className="mt-5 pt-5 border-t border-white/5">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Escúchala completa en</p>
-                <a
-                  href={officialSite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full mb-2 py-3 px-4 rounded-xl bg-[#4a90d9]/10 hover:bg-[#4a90d9]/20 border border-[#4a90d9]/30 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all no-underline"
-                >
-                  <i className="fas fa-globe text-xs text-[#4a90d9]" />
-                  {isJuanArtist ? 'juan614.diosmasgym.com' : 'musica.diosmasgym.com'}
-                </a>
+                {/* Diosmasgym se escucha completa aqui mismo; solo Juan 614 conserva su sitio aparte */}
+                {officialSite && (
+                  <a
+                    href={officialSite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full mb-2 py-3 px-4 rounded-xl bg-[#4a90d9]/10 hover:bg-[#4a90d9]/20 border border-[#4a90d9]/30 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all no-underline"
+                  >
+                    <i className="fas fa-globe text-xs text-[#4a90d9]" />
+                    juan614.diosmasgym.com
+                  </a>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   {streamingLinks.map(p => (
                     <a

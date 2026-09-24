@@ -64,6 +64,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [startTime, setStartTime] = useState(0);
+    const [elapsedSec, setElapsedSec] = useState(0);
+    const [durationSec, setDurationSec] = useState(0);
     const playerRef = React.useRef<any>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const initedRef = React.useRef(false);
@@ -148,16 +150,13 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         let interval: any;
         if (isPlaying) {
             interval = setInterval(() => {
+                // Cancion completa: el progreso se mide contra la duracion real del video
                 if (playerRef.current && playerRef.current.getCurrentTime) {
-                    const time = playerRef.current.getCurrentTime();
-                    const elapsed = time - startTime;
-                    setProgress((elapsed / 60) * 100);
-                    if (elapsed >= 60) {
-                        playerRef.current.pauseVideo();
-                        playerRef.current.seekTo(startTime);
-                        setIsPlaying(false);
-                        setProgress(0);
-                    }
+                    const time = playerRef.current.getCurrentTime() || 0;
+                    const total = playerRef.current.getDuration ? playerRef.current.getDuration() || 0 : 0;
+                    setElapsedSec(time);
+                    if (total > 0) setDurationSec(total);
+                    setProgress(total > 0 ? (time / total) * 100 : 0);
                 }
             }, 1000);
         }
@@ -182,7 +181,8 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
         if (percentage < 0) percentage = 0;
         if (percentage > 1) percentage = 1;
 
-        const newTime = startTime + (percentage * 60);
+        if (!durationSec) return;
+        const newTime = percentage * durationSec;
         playerRef.current.seekTo(newTime);
         setProgress(percentage * 100);
 
@@ -192,6 +192,7 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
     };
 
     const accentColor = isJuan ? '#4a90d9' : '#4a90d9';
+    const fmtSec = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
     const waveBarCount = 16;
     const delays = [0.1, 0.4, 0.2, 0.6, 0.3, 0.8, 0.5, 0.2, 0.7, 0.4, 0.9, 0.3, 0.6, 0.1, 0.5, 0.8];
 
@@ -205,10 +206,10 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
             <div className="flex justify-between items-center relative z-10 px-1">
                 <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: accentColor }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
-                    VISTA PREVIA DE AUDIO (60s)
+                    ESCUCHA LA CANCIÓN COMPLETA
                 </span>
                 <span className={`text-[8px] font-mono tracking-widest ${isJuan ? 'text-[#f1f5f9]/40' : 'text-white/40'}`}>
-                    {Math.floor(progress * 0.6)}s / 60s
+                    {fmtSec(elapsedSec)} / {durationSec > 0 ? fmtSec(durationSec) : '--:--'}
                 </span>
             </div>
 
@@ -234,13 +235,13 @@ const YouTubeAudioPlayer = ({ videoId, isJuan }: { videoId: string, isJuan: bool
                 </button>
                 <div className="flex-1 pr-1 text-left">
                     <div className={`flex justify-between text-[8px] font-black uppercase tracking-widest mb-1 ${isJuan ? 'text-[#f1f5f9]/60' : 'text-white/60'}`}>
-                        <span>{isPlaying ? 'REPRODUCIENDO PREVIA' : 'LISTO PARA REPRODUCIR'}</span>
+                        <span>{isPlaying ? 'REPRODUCIENDO' : 'LISTO PARA REPRODUCIR'}</span>
                         <span className="font-mono">{isPlaying ? 'AVANCE ACTIVO' : 'STANDBY'}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-1 cursor-pointer hover:opacity-95 group/timeline" onClick={handleTimelineClick} title="Haz clic en las barras para navegar la previa">
+            <div className="mt-1 cursor-pointer hover:opacity-95 group/timeline" onClick={handleTimelineClick} title="Haz clic en las barras para adelantar o regresar">
                 <div className="flex items-end justify-between h-9 w-full relative z-10 px-1">
                     {Array.from({ length: waveBarCount }).map((_, idx) => {
                         const delay = delays[idx % delays.length];
@@ -610,7 +611,7 @@ const BANNERS = [
         title: 'MERCH OFICIAL',
         text: 'Vístete con propósito. Descubre la nueva colección de gorras y playeras oficiales (Próximamente).',
         buttonText: 'Ver Tienda',
-        url: 'https://musica.diosmasgym.com/', 
+        url: 'https://diosmasgym.com/', 
     },
     {
         id: 'social',
@@ -1173,7 +1174,7 @@ const SmartLinkView: React.FC = () => {
         card: 'bg-white/[0.05] border-white/10',
         chip: 'bg-white/[0.05] border-white/10 hover:border-white/30',
         round: 'bg-white/5 border-white/10 hover:bg-[#4a90d9] hover:text-black',
-        logo: '/logo-diosmasgym-sm.webp', brand: 'Dios Mas Gym', home: 'https://musica.diosmasgym.com/', siteLabel: 'Sitio Oficial',
+        logo: '/logo-diosmasgym-sm.webp', brand: 'Dios Mas Gym', home: 'https://diosmasgym.com/', siteLabel: 'Sitio Oficial',
         verseTitle: 'Escudo de fe / aliento diario', verseIcon: 'fa-shield-halved', verseRef: 'text-white/40',
         shareTitle: 'Compartir con el mundo', shareText: `¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: `,
         showX: true, dedicate: true, temple: true,

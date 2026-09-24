@@ -38,7 +38,7 @@ const FALLBACK_DATA: LinkBioData = {
         { id: "1", title: "Escuchar en Spotify", url: "https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do", icon: "fab fa-spotify", enabled: true, type: "special" },
         { id: "2", title: "Suscríbete en YouTube", url: "https://www.youtube.com/@Diosmasgym", icon: "fab fa-youtube", enabled: true, type: "primary" },
         { id: "3", title: "Sígueme en Instagram", url: "https://instagram.com/diosmasgym", icon: "fab fa-instagram", enabled: true, type: "primary" },
-        { id: "6", title: "Catálogo de Música", url: "https://musica.diosmasgym.com", icon: "fas fa-globe", enabled: true, type: "secondary" }
+        { id: "6", title: "Catálogo de Música", url: "https://diosmasgym.com", icon: "fas fa-globe", enabled: true, type: "secondary" }
     ]
 };
 
@@ -233,7 +233,7 @@ const LinkBioPublic: React.FC = () => {
 
                         <div className="mt-6 text-center">
                             <a
-                                href={artist === 'juan614' ? 'https://juan614.diosmasgym.com/' : 'https://musica.diosmasgym.com/'}
+                                href={artist === 'juan614' ? 'https://juan614.diosmasgym.com/' : 'https://diosmasgym.com/'}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => trackEvent('music_catalog_click', {artist: artist || 'diosmasgym'})}

@@ -474,8 +474,11 @@ const App: React.FC = () => {
           <Route path="/" element={
             <>
               <Hero verse={verse} catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} onEntrenar={() => { document.getElementById('arsenal-content')?.scrollIntoView({behavior: 'smooth'}) }} onAleatorio={() => {
-                if (combinedCatalog.length === 0) return;
-                const song = combinedCatalog[Math.floor(Math.random() * combinedCatalog.length)];
+                // Aleatorio empieza por Diosmasgym; el reproductor sigue con canciones del mismo artista
+                const pool = state.musicDiosmasgym.filter(s => s && s.name && s.url);
+                const source = pool.length > 0 ? pool : combinedCatalog;
+                if (source.length === 0) return;
+                const song = source[Math.floor(Math.random() * source.length)];
                 setState(p => ({ ...p, activeSong: song }));
               }} />
 

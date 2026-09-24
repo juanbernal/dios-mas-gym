@@ -17,7 +17,8 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
     ? "Urbano cristiano, disciplina y fe en movimiento"
     : "Corridos, banda sinaloense y calle con propósito";
   const artistLogo = isDios ? '/logo-diosmasgym-md.webp' : '/logo-juan614-v2-md.webp';
-  const artistUrl = isDios ? 'https://musica.diosmasgym.com/' : 'https://juan614.diosmasgym.com/';
+  // Diosmasgym ya no tiene sitio aparte: su boton lleva al perfil de Spotify para ganar seguidores
+  const artistUrl = isDios ? 'https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do' : 'https://juan614.diosmasgym.com/';
   const accentBlue = isDios ? '#2563a8' : '#1e3a5f';
 
   const [visibleCount, setVisibleCount] = useState(3);
@@ -99,7 +100,7 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
             <a href={artistUrl} target="_blank" rel="noreferrer"
               className="btn-secondary text-center"
               style={{ clipPath: 'none', borderRadius: '2px', textDecoration: 'none', display: 'block', padding: '0.7rem 1.5rem', fontSize: '0.6rem' }}>
-              Ver Página del Artista →
+              {isDios ? 'Seguir en Spotify →' : 'Ver Página del Artista →'}
             </a>
           </div>
         </div>

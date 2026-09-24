@@ -96,7 +96,7 @@ const Footer: React.FC = () => {
             </div>
             <div className="flex flex-col gap-3">
               {[
-                { label: 'Diosmasgym', href: 'https://musica.diosmasgym.com' },
+                { label: 'Diosmasgym', href: 'https://diosmasgym.com' },
                 { label: 'Juan 614', href: 'https://juan614.diosmasgym.com' }
               ].map(link => (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer"

@@ -6,7 +6,7 @@ import { syncFetch } from '../../services/adminSync';
 const brandingData = {
   none: { name: "", link: "" },
   juan614: { name: "Juan 614", link: "juan614.diosmasgym.com" },
-  diosmasgym: { name: "Diosmasgym", link: "musica.diosmasgym.com" }
+  diosmasgym: { name: "Diosmasgym", link: "diosmasgym.com" }
 };
 
 const emojiMap = {
@@ -855,7 +855,7 @@ const LyricStudio: React.FC = () => {
       ctx.font = '400 18px Inter';
       ctx.letterSpacing = '3px';
       ctx.fillStyle = '#c5a059';
-      ctx.fillText('musica.diosmasgym.com', cw / 2, ch * 0.965);
+      ctx.fillText('diosmasgym.com', cw / 2, ch * 0.965);
       ctx.restore();
     }
 
@@ -1648,7 +1648,7 @@ const LyricStudio: React.FC = () => {
                       >
                           <option value="none">Sin Marca de Agua</option>
                           <option value="juan614">Juan 614 - juan614.diosmasgym.com</option>
-                          <option value="diosmasgym">Diosmasgym - musica.diosmasgym.com</option>
+                          <option value="diosmasgym">Diosmasgym - diosmasgym.com</option>
                       </select>
                   </div>
               </div>

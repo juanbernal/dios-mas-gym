@@ -170,14 +170,13 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                   <i className="fas fa-search text-[#4a90d9]"></i>
                   Buscar Música / Letras
                 </button>
-                <a
-                  href="https://musica.diosmasgym.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-secondary hidden sm:inline-flex"
+                <button
+                  onClick={onAleatorio}
+                  className="btn-secondary flex items-center gap-2"
                 >
+                  <i className="fas fa-shuffle text-[#4a90d9]"></i>
                   Escuchar Música
-                </a>
+                </button>
               </div>
 
               {/* Artist logos row */}

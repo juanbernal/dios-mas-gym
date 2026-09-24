@@ -48,7 +48,7 @@
     {
       "id": "6",
       "title": "Catálogo de Música",
-      "url": "https://musica.diosmasgym.com",
+      "url": "https://diosmasgym.com",
       "icon": "fas fa-globe",
       "enabled": true,
       "type": "secondary"
