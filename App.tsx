@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, useLocation, useNavigationType, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import Hero from './components/Hero';
@@ -261,6 +261,14 @@ const App: React.FC = () => {
   // Una pagina vista por cada cambio de ruta dentro del sitio. La primera carga la envia gtag por su cuenta.
   // La ruta de entrada ya la cuenta gtag; despues se cuenta solo cuando la ruta cambia de verdad
   // (comparar con la ultima ruta contada evita duplicar la de entrada en redirecciones o en modo estricto).
+  // Al entrar a otra pagina (una letra, buscar, etc.) se empieza desde arriba; si no, se conservaba
+  // la posicion de la pagina anterior y la nueva aparecia abajo. Con "atras" el navegador restaura su posicion.
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    if (navigationType === 'POP' || location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [location.pathname]);
+
   const lastTrackedPathRef = useRef(location.pathname);
   useEffect(() => {
     if (location.pathname === lastTrackedPathRef.current) return;
