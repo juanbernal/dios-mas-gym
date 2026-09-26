@@ -5,6 +5,7 @@ import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
 import { get as blobGet, put as blobPut } from '@vercel/blob';
+import { waitUntil } from '@vercel/functions';
 
 // ── In-memory rate limiter (per IP, resets per serverless instance lifecycle) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -377,58 +378,196 @@ function parseCSV(csvText: string): MusicItem[] {
   return music;
 }
 
-async function getStoredLyrics(): Promise<any[]> {
-  const TMP_LYRICS_FILE = '/tmp/lyrics.json';
-  const SEED_LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
-  const GS_LYRICS_URL = process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+// ── Copia rapida de Google Sheets ──────────────────────────────────────────
+// Google Sheets sigue siendo la fuente de verdad (ahi se edita todo), pero leerlo es lento:
+// el Apps Script de letras tarda 3-4 s por peticion. Guardamos la ultima copia buena en
+// Vercel Blob (y en memoria de la instancia) y la servimos al instante; si tiene mas de
+// SNAPSHOT_FRESH_MS se vuelve a leer Sheets EN SEGUNDO PLANO y se actualiza la copia.
+// Solo se escribe en Blob cuando el contenido cambia (el plan gratis limita las escrituras).
+type Snapshot = { savedAt: number; body: string };
+const SNAPSHOT_FRESH_MS = 5 * 60 * 1000;
+const memSnapshots = new Map<string, Snapshot>();
+const snapshotRefreshes = new Map<string, Promise<string>>();
+let snapshotBlobAccess: 'private' | 'public' | null = null;
 
-  // 1. Try fetching from Google Sheets (most up-to-date)
-  try {
-    // Apps Script a veces tarda mas de un minuto: si no responde rapido usamos la copia local
-    const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
-    if (gsRes.ok) {
-      const gsData = await gsRes.json();
-      const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
-      if (gsList.length > 0) {
-        try { fs.writeFileSync(TMP_LYRICS_FILE, JSON.stringify({ lyrics: gsList })); } catch {}
-        return gsList;
+const snapshotPath = (name: string) => `snapshots/${name}.json`;
+
+async function readBlobSnapshot(name: string): Promise<Snapshot | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  // La tienda de Blob puede ser publica o privada: probamos ambas y recordamos la que sirvio.
+  const modes: Array<'private' | 'public'> = snapshotBlobAccess ? [snapshotBlobAccess] : ['private', 'public'];
+  for (const access of modes) {
+    try {
+      const r: any = await blobGet(snapshotPath(name), { access, useCache: false });
+      if (r === null) return null;
+      if (r && r.statusCode === 200 && r.stream) {
+        snapshotBlobAccess = access;
+        const snap = JSON.parse(await new Response(r.stream).text());
+        return typeof snap?.body === 'string' ? snap : null;
       }
-    }
-  } catch (e) {
-    console.error("[getStoredLyrics] Google Sheets fetch error:", e);
+    } catch (_) { /* probar el otro modo */ }
   }
+  return null;
+}
 
-  // 2. Try /tmp
-  try {
-    if (fs.existsSync(TMP_LYRICS_FILE)) {
-      const content = fs.readFileSync(TMP_LYRICS_FILE, 'utf-8');
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data : (data.lyrics || []);
-    }
-  } catch (e) {}
+async function writeBlobSnapshot(name: string, snap: Snapshot): Promise<void> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  const modes: Array<'private' | 'public'> = snapshotBlobAccess ? [snapshotBlobAccess] : ['private', 'public'];
+  for (const access of modes) {
+    try {
+      await blobPut(snapshotPath(name), JSON.stringify(snap), {
+        access, contentType: 'application/json', allowOverwrite: true, addRandomSuffix: false
+      });
+      snapshotBlobAccess = access;
+      return;
+    } catch (e) { console.error(`[snapshot] no se pudo guardar ${name} (${access}):`, (e as any)?.message); }
+  }
+}
 
-  // 3. Try repo seed
-  try {
-    if (fs.existsSync(SEED_LYRICS_FILE)) {
-      const content = fs.readFileSync(SEED_LYRICS_FILE, 'utf-8');
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data : (data.lyrics || []);
+// Guarda una copia nueva (p. ej. justo despues de que el admin guarda una letra).
+async function saveSnapshot(name: string, body: string): Promise<void> {
+  const prev = memSnapshots.get(name);
+  const snap = { savedAt: Date.now(), body };
+  memSnapshots.set(name, snap);
+  if (!prev || prev.body !== body) await writeBlobSnapshot(name, snap);
+}
+
+// Lee Google Sheets y actualiza la copia. Varias peticiones a la vez comparten la misma lectura.
+function refreshSnapshot(name: string, fetchFresh: () => Promise<string>, isValid: (body: string) => boolean): Promise<string> {
+  const inFlight = snapshotRefreshes.get(name);
+  if (inFlight) return inFlight;
+  const p = (async () => {
+    const body = await fetchFresh();
+    // Nunca pisar una copia buena con una respuesta vacia o rota de Sheets
+    if (!isValid(body)) throw new Error(`Google Sheets devolvio datos invalidos para ${name}`);
+    await saveSnapshot(name, body);
+    return body;
+  })().finally(() => snapshotRefreshes.delete(name));
+  snapshotRefreshes.set(name, p);
+  return p;
+}
+
+async function getSnapshotted(
+  name: string,
+  fetchFresh: () => Promise<string>,
+  isValid: (body: string) => boolean,
+  force = false
+): Promise<string> {
+  let snap = memSnapshots.get(name) || null;
+  if (!force) {
+    if (!snap) {
+      snap = await readBlobSnapshot(name);
+      if (snap) memSnapshots.set(name, snap);
     }
+    if (snap) {
+      if (Date.now() - snap.savedAt > SNAPSHOT_FRESH_MS) {
+        // Se responde ya con la copia y Sheets se consulta despues de responder
+        waitUntil(refreshSnapshot(name, fetchFresh, isValid).catch(e => console.error(`[snapshot] refresh ${name}:`, e?.message)));
+      }
+      return snap.body;
+    }
+  }
+  try {
+    return await refreshSnapshot(name, fetchFresh, isValid);
   } catch (e) {
-    console.error("Error reading stored lyrics:", e);
+    // Sheets fallo: mejor la ultima copia buena (aunque sea vieja) que nada
+    const fallback = snap || memSnapshots.get(name) || await readBlobSnapshot(name);
+    if (fallback) return fallback.body;
+    throw e;
+  }
+}
+
+const DEFAULT_CSV_URLS: Record<'diosmasgym' | 'juan614', string> = {
+  diosmasgym: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv',
+  juan614: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv'
+};
+
+async function fetchMusicCsvFromSheets(artist: 'diosmasgym' | 'juan614'): Promise<string> {
+  const defaultUrl = DEFAULT_CSV_URLS[artist];
+  const rawUrl = artist === 'diosmasgym' ? process.env.CSV_URL_DIOSMASGYM : process.env.CSV_URL_JUAN614;
+  let csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultUrl;
+  if (!csvUrl || !csvUrl.startsWith('http')) csvUrl = defaultUrl;
+  const bust = (u: string) => `${u}${u.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  try {
+    return await robustFetchText(bust(csvUrl));
+  } catch (e) {
+    if (csvUrl === defaultUrl) throw e;
+    console.warn(`[music] fallo la hoja configurada de ${artist}, probando la hoja por defecto`);
+    return robustFetchText(bust(defaultUrl));
+  }
+}
+
+function getMusicCsv(artist: 'diosmasgym' | 'juan614', force = false): Promise<string> {
+  return getSnapshotted(`music-${artist}`, () => fetchMusicCsvFromSheets(artist), csv => parseCSV(csv).length > 0, force);
+}
+
+async function fetchLyricsFromSheets(): Promise<any[]> {
+  // 1. Pestana publicada como CSV (si esta configurada)
+  const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
+  if (CSV_URL_LYRICS) {
+    try {
+      const csvData = await robustFetchText(`${CSV_URL_LYRICS}${CSV_URL_LYRICS.includes('?') ? '&' : '?'}t=${Date.now()}`);
+      const lyricsFromCsv = parseCSV(csvData)
+        .filter(item => item.lyrics && item.lyrics.trim().length > 0)
+        .map(item => ({
+          id: item.id,
+          title: item.name,
+          artist: item.artist,
+          content: item.lyrics,
+          date: item.date || new Date().toISOString(),
+          status: 'LIVE'
+        }));
+      if (lyricsFromCsv.length > 0) return lyricsFromCsv;
+    } catch (csvErr) {
+      console.error('[lyrics] CSV fetch error:', csvErr);
+    }
+  }
+  // 2. Apps Script de letras
+  const gsRes = await fetch(`${GS_LYRICS_URL_VALUE()}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`, { signal: AbortSignal.timeout(15000) });
+  if (!gsRes.ok) throw new Error(`Apps Script de letras respondio ${gsRes.status}`);
+  const gsData = await gsRes.json();
+  return Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
+}
+
+const GS_LYRICS_URL_VALUE = () => process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
+const TMP_LYRICS_FILE = '/tmp/lyrics.json';
+const SEED_LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
+
+function readLyricsFromDisk(): any[] {
+  // /tmp (cache de esta instancia) y luego la semilla del repo (data/lyrics.json)
+  for (const file of [TMP_LYRICS_FILE, SEED_LYRICS_FILE]) {
+    try {
+      if (fs.existsSync(file)) {
+        const raw = JSON.parse(fs.readFileSync(file, 'utf-8'));
+        return Array.isArray(raw) ? raw : (raw.lyrics || []);
+      }
+    } catch {}
   }
   return [];
 }
 
-async function fetchAllMusic(): Promise<MusicItem[]> {
-  const dUrl = process.env.CSV_URL_DIOSMASGYM || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv';
-  const jUrl = process.env.CSV_URL_JUAN614 || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv';
-
+async function getLyricsList(force = false): Promise<any[]> {
   try {
-    const [dCsv, jCsv] = await Promise.all([
-      robustFetchText(dUrl),
-      robustFetchText(jUrl)
-    ]);
+    const body = await getSnapshotted(
+      'lyrics',
+      async () => JSON.stringify(await fetchLyricsFromSheets()),
+      b => { try { return JSON.parse(b).length > 0; } catch { return false; } },
+      force
+    );
+    return JSON.parse(body);
+  } catch (e) {
+    console.error('[lyrics] sin Sheets ni copia rapida, usando copia local:', (e as any)?.message);
+    return readLyricsFromDisk();
+  }
+}
+
+async function getStoredLyrics(): Promise<any[]> {
+  return getLyricsList();
+}
+
+async function fetchAllMusic(): Promise<MusicItem[]> {
+  try {
+    const [dCsv, jCsv] = await Promise.all([getMusicCsv('diosmasgym'), getMusicCsv('juan614')]);
     return [...parseCSV(dCsv), ...parseCSV(jCsv)];
   } catch (e) {
     console.error("Error fetching/parsing CSVs in SSR:", e);
@@ -661,9 +800,6 @@ export default async function handler(
       { id: 'UC3PCx5tqomYtP_5Hrf7cXDQ', uploads: 'UU3PCx5tqomYtP_5Hrf7cXDQ', name: 'Juan 614', handle: '@juan614oficial' },
     ];
 
-    const defaultDiosmasgymUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv';
-    const defaultJuan614Url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv';
-
     const formatViewsEs = (views: number): string => {
       if (views >= 1_000_000) {
         return `${(views / 1_000_000).toFixed(1).replace('.', ',')} M reproducciones`;
@@ -725,8 +861,8 @@ export default async function handler(
     try {
       // 1. Fetch official music catalogs of Dios Mas Gym and Juan 614
       const [csvDios, csvJuan] = await Promise.allSettled([
-        robustFetchText(process.env.CSV_URL_DIOSMASGYM || defaultDiosmasgymUrl),
-        robustFetchText(process.env.CSV_URL_JUAN614 || defaultJuan614Url),
+        getMusicCsv('diosmasgym'),
+        getMusicCsv('juan614'),
       ]);
 
       const musicDios = csvDios.status === 'fulfilled' ? parseCSV(csvDios.value) : [];
@@ -960,29 +1096,9 @@ export default async function handler(
   // ACTION: LYRICS (Gestión nativa y almacenamiento directo de letras)
   // -------------------------------------------------------------
   if (action === 'lyrics') {
-    // On Vercel, process.cwd() is read-only. Use /tmp for writable storage.
-    // Google Sheets acts as the persistent store; /tmp is the per-instance cache.
-    const TMP_LYRICS_FILE = '/tmp/lyrics.json';
-    const SEED_LYRICS_FILE = path.join(process.cwd(), 'data', 'lyrics.json');
-    const GS_LYRICS_URL = process.env.GS_LYRICS_URL || 'https://script.google.com/macros/s/AKfycbz6lGyxzBH1rW_1E48LUf35EAKobx5mQ7mY-CgbwHAqVxYUt3J2X6B1drql4MamRhMqkw/exec';
-
-    const readLyricsFromDisk = (): any[] => {
-      // 1. Try /tmp (fast cache for this instance)
-      try {
-        if (fs.existsSync(TMP_LYRICS_FILE)) {
-          const raw = JSON.parse(fs.readFileSync(TMP_LYRICS_FILE, 'utf-8'));
-          return Array.isArray(raw) ? raw : (raw.lyrics || []);
-        }
-      } catch {}
-      // 2. Fall back to seed file committed in repo (read-only, but readable)
-      try {
-        if (fs.existsSync(SEED_LYRICS_FILE)) {
-          const raw = JSON.parse(fs.readFileSync(SEED_LYRICS_FILE, 'utf-8'));
-          return Array.isArray(raw) ? raw : (raw.lyrics || []);
-        }
-      } catch {}
-      return [];
-    };
+    // Google Sheets es el almacen persistente; la copia rapida (Blob) es lo que se sirve.
+    // On Vercel, process.cwd() is read-only. /tmp is only a per-instance cache.
+    const GS_LYRICS_URL = GS_LYRICS_URL_VALUE();
 
     const writeLyricsToDisk = (lyrics: any[]) => {
       try {
@@ -1006,54 +1122,8 @@ export default async function handler(
       // hasta horas despues (el HTML del servidor la mostraba y al hidratar desaparecia).
       const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=60, stale-while-revalidate=300';
       try {
-        // 1. Try to fetch from CSV_URL_LYRICS (separate published tab)
-        const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
-        if (CSV_URL_LYRICS) {
-          try {
-            const fetchUrl = `${CSV_URL_LYRICS}${CSV_URL_LYRICS.includes('?') ? '&' : '?'}t=${Date.now()}`;
-            const csvData = await robustFetchText(fetchUrl);
-            const parsedItems = parseCSV(csvData);
-            const lyricsFromCsv = parsedItems
-              .filter(item => item.lyrics && item.lyrics.trim().length > 0)
-              .map(item => ({
-                id: item.id,
-                title: item.name,
-                artist: item.artist,
-                content: item.lyrics,
-                date: item.date || new Date().toISOString(),
-                status: 'LIVE'
-              }));
-              
-            if (lyricsFromCsv.length > 0) {
-              writeLyricsToDisk(lyricsFromCsv);
-              res.setHeader('Cache-Control', cacheHeader);
-              return res.status(200).json({ lyrics: lyricsFromCsv });
-            }
-          } catch (csvErr) {
-            console.error('[lyrics GET] CSV fetch error:', csvErr);
-          }
-        }
-
-        // 2. Try to fetch from Google Sheets Apps Script (GS_LYRICS_URL)
-        if (GS_LYRICS_URL) {
-          try {
-            const gsRes = await fetch(`${GS_LYRICS_URL}?action=list&secret=${GS_SYNC_SECRET()}&t=${Date.now()}`, { signal: AbortSignal.timeout(8000) });
-            if (gsRes.ok) {
-              const gsData = await gsRes.json();
-              const gsList = Array.isArray(gsData) ? gsData : (gsData?.lyrics || gsData?.data || []);
-              if (gsList.length > 0) {
-                // Cache in /tmp for subsequent calls in this instance
-                writeLyricsToDisk(gsList);
-                res.setHeader('Cache-Control', cacheHeader);
-                return res.status(200).json({ lyrics: gsList });
-              }
-            }
-          } catch (gsErr) {
-            console.error('[lyrics GET] Google Sheets fetch error:', gsErr);
-          }
-        }
-        // Fallback to /tmp or seed file
-        const lyricsList = readLyricsFromDisk();
+        // Copia rapida al instante; refresh=1 (admin) fuerza leer Google Sheets en el momento
+        const lyricsList = await getLyricsList(isRefresh);
         res.setHeader('Cache-Control', cacheHeader);
         return res.status(200).json({ lyrics: lyricsList });
       } catch (error: any) {
@@ -1071,7 +1141,9 @@ export default async function handler(
           try { bodyData = JSON.parse(bodyData); } catch {}
         }
 
-        let currentLyrics = readLyricsFromDisk();
+        // Base: la lista completa (copia rapida). /tmp puede ser de otra instancia y estar incompleto.
+        let currentLyrics = await getLyricsList();
+        const isSingleLyric = !Array.isArray(bodyData) && !Array.isArray(bodyData?.lyrics);
 
         if (Array.isArray(bodyData)) {
           currentLyrics = bodyData;
@@ -1155,6 +1227,11 @@ export default async function handler(
           }
         }
 
+        // Ya quedo en Sheets: actualizar la copia rapida para que la letra se vea de inmediato en todo el sitio
+        if (isSingleLyric) {
+          try { await saveSnapshot('lyrics', JSON.stringify(currentLyrics)); } catch (e) { console.error('[lyrics POST] copia rapida:', e); }
+        }
+
         return res.status(200).json({ success: true, syncedToSheets: true, message: 'Letra guardada correctamente en el sitio web', lyrics: currentLyrics });
       } catch (error: any) {
         return res.status(500).json({ error: 'Error saving lyrics', details: error.message });
@@ -1173,59 +1250,26 @@ export default async function handler(
       return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const artist = req.query.artist as string;
-    const refresh = req.query.refresh;
+    const artist = String(req.query.artist || '').toLowerCase();
+    const refresh = !!req.query.refresh;
 
     if (!artist) {
       return res.status(400).json({ error: 'Artist parameter is required' });
     }
-
-    let csvUrl = '';
-    const defaultDiosmasgymUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMXE3y3pJ4CSxpzSC-BGZBfy2tQQ8aY2wNetwNRxqOJc262rXjOIXcRkh3ZnAkJod0WRccUmxm59iv/pub?output=csv';
-    const defaultJuan614Url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5kDxneZsHJTMUhcSkKeZM842GrmN1LJLfoqxMC-NY_fcVrB3MokMvy6E385Hemt2KM5evC6_gCAQL/pub?output=csv';
-
-    if (artist.toLowerCase() === 'diosmasgym') {
-      const rawUrl = process.env.CSV_URL_DIOSMASGYM;
-      csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultDiosmasgymUrl;
-      if (!csvUrl || !csvUrl.startsWith('http')) csvUrl = defaultDiosmasgymUrl;
-    } else if (artist.toLowerCase() === 'juan614') {
-      const rawUrl = process.env.CSV_URL_JUAN614;
-      csvUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : defaultJuan614Url;
-      if (!csvUrl || !csvUrl.startsWith('http')) csvUrl = defaultJuan614Url;
-    } else {
+    if (artist !== 'diosmasgym' && artist !== 'juan614') {
       return res.status(404).json({ error: 'Artist not found' });
     }
 
     try {
-      const fetchUrl = refresh 
-        ? `${csvUrl}${csvUrl.includes('?') ? '&' : '?'}t=${Date.now()}` 
-        : csvUrl;
-      console.log(`[api/common/music] Fetching music for ${artist} from: ${fetchUrl}`);
-      const csvData = await robustFetchText(fetchUrl);
-      
-      if (refresh) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      } else {
-        res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
-      }
-      
+      // Copia rapida al instante; refresh fuerza leer la hoja de Google en el momento
+      const csvData = await getMusicCsv(artist, refresh);
+      res.setHeader('Cache-Control', refresh
+        ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        : 'public, s-maxage=300, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/csv');
       return res.status(200).send(csvData);
     } catch (error: any) {
       console.error(`Error fetching music for ${artist}:`, error);
-      
-      // FALLBACK GRACIOSO: Si falla la descarga personalizada, intentamos servir el CSV por defecto
-      try {
-        console.warn(`[api/common/music] Attempting fallback fetch for ${artist} using default public sheet...`);
-        const fallbackUrl = artist.toLowerCase() === 'diosmasgym' ? defaultDiosmasgymUrl : defaultJuan614Url;
-        const csvData = await robustFetchText(fallbackUrl);
-        res.setHeader('Cache-Control', 'no-store');
-        res.setHeader('Content-Type', 'text/csv');
-        return res.status(200).send(csvData);
-      } catch (fallbackErr: any) {
-        console.error(`[api/common/music] Fallback fetch also failed:`, fallbackErr);
-      }
-
       return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   }

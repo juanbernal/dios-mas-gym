@@ -4,16 +4,18 @@ const generateSlug = (text: string) => {
     return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// La copia del catalogo vive en localStorage: en la siguiente visita se muestra al instante
+// y se actualiza por detras (stale-while-revalidate). Tras CACHE_TTL_MS se descarta.
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
 const getCacheKey = (artist: string) => `music_cache_${artist}`;
 const getTimestampKey = (artist: string) => `music_cache_ts_${artist}`;
 
 const readCache = (artist: string): MusicItem[] | null => {
   try {
-    const ts = parseInt(sessionStorage.getItem(getTimestampKey(artist)) || '0', 10);
+    const ts = parseInt(localStorage.getItem(getTimestampKey(artist)) || '0', 10);
     if (Date.now() - ts > CACHE_TTL_MS) return null;
-    const raw = sessionStorage.getItem(getCacheKey(artist));
+    const raw = localStorage.getItem(getCacheKey(artist));
     if (!raw) return null;
     return JSON.parse(raw) as MusicItem[];
   } catch { return null; }
@@ -21,21 +23,21 @@ const readCache = (artist: string): MusicItem[] | null => {
 
 const writeCache = (artist: string, data: MusicItem[]) => {
   try {
-    sessionStorage.setItem(getCacheKey(artist), JSON.stringify(data));
-    sessionStorage.setItem(getTimestampKey(artist), String(Date.now()));
+    localStorage.setItem(getCacheKey(artist), JSON.stringify(data));
+    localStorage.setItem(getTimestampKey(artist), String(Date.now()));
   } catch { /* storage full, ignore */ }
 };
 
 const clearCache = (artist: string) => {
   try {
-    sessionStorage.removeItem(getCacheKey(artist));
-    sessionStorage.removeItem(getTimestampKey(artist));
+    localStorage.removeItem(getCacheKey(artist));
+    localStorage.removeItem(getTimestampKey(artist));
   } catch { }
 };
 
 /**
  * Fetches music catalog for a specific artist via the backend proxy.
- * Uses sessionStorage cache (5 min TTL) to avoid redundant network calls.
+ * Uses a localStorage copy (shown instantly, revalidated in background).
  */
 const catalogInFlight: Record<string, Promise<MusicItem[]> | null> = {};
 const revalidating: Record<string, boolean> = {};
@@ -330,10 +332,30 @@ const shouldBypassLyricsCdn = (): boolean => {
   try { return Number(localStorage.getItem(LYRICS_BUST_KEY) || 0) > Date.now(); } catch { return false; }
 };
 
+// Copia de las letras en localStorage para mostrarlas al instante en la siguiente visita
+const LYRICS_STORE_KEY = 'lyrics_cache_v1';
+const LYRICS_STORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const readStoredLyrics = (): any[] | null => {
+  try {
+    const raw = localStorage.getItem(LYRICS_STORE_KEY);
+    if (!raw) return null;
+    const { at, data } = JSON.parse(raw);
+    return Array.isArray(data) && data.length > 0 && Date.now() - at < LYRICS_STORE_TTL_MS ? data : null;
+  } catch { return null; }
+};
+
+const writeStoredLyrics = (data: any[]) => {
+  try { localStorage.setItem(LYRICS_STORE_KEY, JSON.stringify({ at: Date.now(), data })); } catch { /* storage lleno */ }
+};
+
 export const invalidateSavedLyricsCache = () => {
   lyricsCache = null;
   lyricsInFlight = null;
-  try { localStorage.setItem(LYRICS_BUST_KEY, String(Date.now() + LYRICS_BUST_MS)); } catch { /* sin storage */ }
+  try {
+    localStorage.removeItem(LYRICS_STORE_KEY);
+    localStorage.setItem(LYRICS_BUST_KEY, String(Date.now() + LYRICS_BUST_MS));
+  } catch { /* sin storage */ }
 };
 
 // force = true (herramientas admin): siempre la lista fresca desde Google Sheets, sin cache del CDN.
@@ -344,22 +366,33 @@ export const fetchSavedLyrics = async (force = false): Promise<any[]> => {
   if (!force && lyricsInFlight) return lyricsInFlight;
 
   const bypass = force || shouldBypassLyricsCdn();
-  lyricsInFlight = (async () => {
+  const stored = !bypass && !lyricsCache ? readStoredLyrics() : null;
+  // Si la peticion falla, mejor la copia guardada que una lista vacia
+  const fallback = stored || readStoredLyrics() || lyricsCache?.data || [];
+  const request = (async () => {
     try {
       const res = await fetch(bypass ? `/api/lyrics?refresh=1&t=${Date.now()}` : '/api/lyrics', bypass ? { cache: 'no-store' } : undefined);
-      if (!res.ok) return [];
+      if (!res.ok) return fallback;
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data?.lyrics || []);
       lyricsCache = { at: Date.now(), data: list };
+      if (list.length > 0) writeStoredLyrics(list);
       return list;
     } catch (err) {
       console.error("Error fetching saved lyrics:", err);
-      return [];
+      return fallback;
     } finally {
       lyricsInFlight = null;
     }
   })();
 
+  if (stored) {
+    // Mostrar ya la copia guardada; la peticion la actualiza por detras para la proxima vez
+    lyricsCache = { at: Date.now(), data: stored };
+    request.catch(() => {});
+    return stored;
+  }
+  lyricsInFlight = request;
   return lyricsInFlight;
 };
 
