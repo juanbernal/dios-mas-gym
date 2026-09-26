@@ -565,6 +565,27 @@ async function getStoredLyrics(): Promise<any[]> {
   return getLyricsList();
 }
 
+// Hoja principal (proximos lanzamientos + filas CONFIG_ de mantenimiento y testimonios).
+// La leen la portada, el mantenimiento y los testimonios: una sola copia rapida para las tres.
+const GS_MAIN_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
+
+async function getMainSheetRows(force = false): Promise<any[]> {
+  const body = await getSnapshotted(
+    'main-sheet',
+    async () => {
+      const r = await fetch(`${GS_MAIN_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error(`Apps Script principal respondio ${r.status}`);
+      return r.text();
+    },
+    b => { try { return Array.isArray(JSON.parse(b)); } catch { return false; } },
+    force
+  );
+  return JSON.parse(body);
+}
+
+// Tras escribir en la hoja principal, releerla para que el cambio se vea sin esperar
+const refreshMainSheetSoon = () => waitUntil(getMainSheetRows(true).catch(e => console.error('[main-sheet] refresh:', e?.message)));
+
 async function fetchAllMusic(): Promise<MusicItem[]> {
   try {
     const [dCsv, jCsv] = await Promise.all([getMusicCsv('diosmasgym'), getMusicCsv('juan614')]);
@@ -1283,9 +1304,8 @@ export default async function handler(
 
     if (req.method === 'GET') {
       try {
-        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
-        if (response.ok) {
-          const rows = await response.json();
+        {
+          const rows = await getMainSheetRows();
           const configRows = rows.filter((r: any) => r.Artista === 'CONFIG_MAINTENANCE');
           if (configRows.length > 0) {
             const lastConfig = configRows[configRows.length - 1];
@@ -1352,6 +1372,7 @@ export default async function handler(
         });
         if (response.ok) {
           cloudSuccess = true;
+          refreshMainSheetSoon();
         } else {
           cloudErrorMsg = `Google Sheet response status ${response.status}`;
         }
@@ -1396,9 +1417,7 @@ export default async function handler(
         return res.status(200).json(lastTestimonios || []);
       };
       try {
-        const response = await fetch(`${CLOUD_URL}?read=true&t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
-        if (!response.ok) return serveFallback();
-        const rows = await response.json();
+        const rows = await getMainSheetRows();
         const items = (Array.isArray(rows) ? rows : [])
           .filter((r: any) => r.Artista === 'CONFIG_TESTIMONIO' && r.name)
           .map((r: any, i: number) => {
@@ -1477,7 +1496,11 @@ export default async function handler(
       if (script === 'lyrics') url = GS_LYRICS_URL;
       else if (script === 'analytics') url = GS_ANALYTICS_URL;
 
-      if (script === 'lyrics' && !verifyAdminPassword(req)) {
+      // Letras: siempre admin. Hoja principal: escribir solo admin (si no, cualquiera podia
+      // meter lanzamientos, publicar testimonios o activar el modo mantenimiento).
+      // Analytics queda abierto: lo usa el seguimiento de visitas publico.
+      const needsAdmin = script === 'lyrics' || (req.method === 'POST' && script !== 'analytics');
+      if (needsAdmin && !verifyAdminPassword(req)) {
         return res.status(401).json({ error: 'No autorizado' });
       }
 
@@ -1509,6 +1532,7 @@ export default async function handler(
         }
 
         const resp = await fetch(url, fetchOptions);
+        if (script === 'main' && resp.ok) refreshMainSheetSoon();
 
         console.log('[sheet-proxy] Apps Script response status:', resp.status);
         const respText = await resp.text();
@@ -1529,6 +1553,13 @@ export default async function handler(
           q.secret = GS_SYNC_SECRET();
           res.setHeader('Cache-Control', 'no-store');
         }
+        // Lectura publica de la hoja principal: copia rapida (nocache=admin, lee la hoja al momento)
+        if (script === 'main' && q.read === 'true' && Object.keys(q).every(k => ['read', 'nocache', 't'].includes(k))) {
+          const rows = await getMainSheetRows(hasNoCache);
+          res.setHeader('Cache-Control', hasNoCache ? 'no-store, no-cache, must-revalidate' : 's-maxage=60, stale-while-revalidate=300');
+          return res.status(200).json(rows);
+        }
+
         const qs = new URLSearchParams(q).toString();
         if (qs) url += `?${qs}`;
 

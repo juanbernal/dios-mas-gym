@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { useOneSignal } from '../../services/useOneSignal';
+import { syncFetch } from '../../services/adminSync';
 
 interface ReleaseData {
     Artista: string;
@@ -80,8 +81,6 @@ const ProximosLanzamientos: React.FC = () => {
         imagen: ''
     });
 
-    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
-
     const handleAutoSync = async (itemsToSync?: ReleaseData[]) => {
         const originalItems = itemsToSync || pendingSync;
         if (originalItems.length === 0) return;
@@ -104,7 +103,7 @@ const ProximosLanzamientos: React.FC = () => {
                     coverImageUrl: release.coverImageUrl || ''
                 };
                 // Send data ONLY in the JSON body — the sheet-proxy forwards this to Google Apps Script
-                const res = await fetch(`/api/sheet-proxy`, {
+                const res = await syncFetch(`/api/sheet-proxy`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -358,7 +357,7 @@ const ProximosLanzamientos: React.FC = () => {
                 coverImageUrl: formData.imagen
             };
             // Send data ONLY in the JSON body
-            await fetch(`/api/sheet-proxy`, {
+            await syncFetch(`/api/sheet-proxy`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
