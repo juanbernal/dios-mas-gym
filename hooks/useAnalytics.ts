@@ -30,6 +30,7 @@ export const useAnalytics = () => {
             // The Apps Script must be updated to handle action=trackEvent
             fetch(`${apiBase}/api/sheet-proxy?script=analytics&action=trackEvent`, {
                 method: 'POST',
+                keepalive: true,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'trackEvent',

@@ -243,7 +243,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                   style={{ borderRadius: '2px' }}
                   aria-label={`Escuchar ${latest.name}`}
                 >
-                  <img src={latest.cover} alt="" className="w-16 h-16 object-cover rounded-md flex-shrink-0" style={{ border: '1px solid rgba(37,99,168,0.4)' }} />
+                  <img src={latest.cover} alt={`Portada de ${latest.name}`} className="w-16 h-16 object-cover rounded-md flex-shrink-0" style={{ border: '1px solid rgba(37,99,168,0.4)' }} />
                   <div className="min-w-0 flex-1">
                     <p className="label-tag mb-1" style={{ color: '#4a90d9' }}>Último estreno</p>
                     <p className="text-white font-bold text-sm truncate">{latest.name}</p>

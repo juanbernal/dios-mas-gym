@@ -8,12 +8,32 @@ export const SocialPopup: React.FC = () => {
     useEffect(() => {
         const popupDismissed = safeStorage.getItem('dg_popup_dismissed');
         if (!popupDismissed || Date.now() > parseInt(popupDismissed)) {
-            const timer = setTimeout(() => {
+            // No tapar la pagina al entrar: aparece cuando la persona ya exploro un poco
+            // (bajo en la pagina) o tras 25 s, lo que pase primero.
+            let shown = false;
+            const show = () => {
+                if (shown) return;
+                shown = true;
                 setShowPopup(true);
-            }, 4000); // Aparece a los 4 segundos
-            return () => clearTimeout(timer);
+                cleanup();
+            };
+            const onScroll = () => { if (window.scrollY > window.innerHeight * 0.8) show(); };
+            const timer = setTimeout(show, 25000);
+            const cleanup = () => {
+                clearTimeout(timer);
+                window.removeEventListener('scroll', onScroll);
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            return cleanup;
         }
     }, []);
+
+    useEffect(() => {
+        if (!showPopup) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismissPopup(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [showPopup]);
 
     const dismissPopup = () => {
         setShowPopup(false);
@@ -32,15 +52,15 @@ export const SocialPopup: React.FC = () => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
-            <div className="bg-gradient-to-br from-[#121624] via-[#090b14] to-[#05070a] border border-[#4a90d9]/40 rounded-[2.5rem] max-w-md w-full p-6 md:p-8 shadow-[0_30px_100px_rgba(37,99,168,0.3)] relative overflow-hidden text-center group">
+        <div onClick={dismissPopup} role="dialog" aria-modal="true" aria-label="Únete a la Tropa" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
+            <div onClick={e => e.stopPropagation()} className="bg-gradient-to-br from-[#121624] via-[#090b14] to-[#05070a] border border-[#4a90d9]/40 rounded-[2.5rem] max-w-md w-full p-6 md:p-8 shadow-[0_30px_100px_rgba(37,99,168,0.3)] relative overflow-hidden text-center group">
                 {/* Glow decorativo */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent opacity-80"></div>
                 <div className="absolute top-0 right-0 w-72 h-72 bg-[#4a90d9]/15 rounded-full blur-[90px] -mr-24 -mt-24 pointer-events-none group-hover:bg-[#4a90d9]/25 transition-all duration-700"></div>
                 <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-600/10 rounded-full blur-[90px] -ml-24 -mb-24 pointer-events-none"></div>
                 
                 {/* Botón Cerrar */}
-                <button onClick={dismissPopup} className="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 transition-all w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 z-20">
+                <button onClick={dismissPopup} aria-label="Cerrar" className="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 transition-all w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 z-20">
                     <i className="fas fa-times text-xs"></i>
                 </button>
 
