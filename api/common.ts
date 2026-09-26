@@ -460,7 +460,8 @@ async function getSnapshotted(
   name: string,
   fetchFresh: () => Promise<string>,
   isValid: (body: string) => boolean,
-  force = false
+  force = false,
+  freshMs = SNAPSHOT_FRESH_MS
 ): Promise<string> {
   let snap = memSnapshots.get(name) || null;
   if (!force) {
@@ -469,7 +470,7 @@ async function getSnapshotted(
       if (snap) memSnapshots.set(name, snap);
     }
     if (snap) {
-      if (Date.now() - snap.savedAt > SNAPSHOT_FRESH_MS) {
+      if (Date.now() - snap.savedAt > freshMs) {
         // Se responde ya con la copia y Sheets se consulta despues de responder
         waitUntil(refreshSnapshot(name, fetchFresh, isValid).catch(e => console.error(`[snapshot] refresh ${name}:`, e?.message)));
       }
@@ -576,6 +577,8 @@ async function getStoredLyrics(): Promise<any[]> {
 
 // Hoja principal (proximos lanzamientos + filas CONFIG_ de mantenimiento y testimonios).
 // La leen la portada, el mantenimiento y los testimonios: una sola copia rapida para las tres.
+// Se relee cada 30 s (no 5 min): el modo mantenimiento debe aplicarse casi al momento
+const MAIN_SHEET_FRESH_MS = 30 * 1000;
 const GS_MAIN_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
 async function getMainSheetRows(force = false): Promise<any[]> {
@@ -587,7 +590,8 @@ async function getMainSheetRows(force = false): Promise<any[]> {
       return r.text();
     },
     b => { try { return Array.isArray(JSON.parse(b)); } catch { return false; } },
-    force
+    force,
+    MAIN_SHEET_FRESH_MS
   );
   return JSON.parse(body);
 }
@@ -1308,6 +1312,8 @@ export default async function handler(
   // ACTION: MAINTENANCE
   // -------------------------------------------------------------
   if (action === 'maintenance') {
+    // CDN corto: cada region de Vercel guardaba el estado viejo hasta ~5 min mas
+    const MAINT_CACHE = 'public, s-maxage=10, stale-while-revalidate=20';
     const CONFIG_FILE = path.join(process.cwd(), 'data', 'maintenance.json');
     const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
@@ -1320,7 +1326,7 @@ export default async function handler(
             const lastConfig = configRows[configRows.length - 1];
             // Cache corta en el CDN: la portada consulta esto en cada visita y
             // Apps Script tarda segundos; un cambio tarda como mucho ~30 s en verse
-            res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+            res.setHeader('Cache-Control', MAINT_CACHE);
             return res.status(200).json({
               enabled: lastConfig.name === 'true' || lastConfig.name === true,
               videoUrl: lastConfig.audioUrl || '/outros/Robot_performing_dumbbell_curls_202605312331.mp4'
@@ -1340,7 +1346,7 @@ export default async function handler(
         }
         const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
         // Tambien en el respaldo: si Apps Script esta lento, no repetir la espera en cada visita
-        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+        res.setHeader('Cache-Control', MAINT_CACHE);
         return res.status(200).json(JSON.parse(data));
       } catch (error) {
         return res.status(500).json({ error: 'Error reading maintenance configuration' });
