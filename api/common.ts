@@ -135,6 +135,15 @@ function GS_SYNC_SECRET(): string {
   return (process.env.GS_SYNC_SECRET || 'DMG_SYNC_2026').trim();
 }
 
+// Clave que exige el Apps Script de la hoja principal para escribir (Propiedad del script SECRET).
+// Sin valor por defecto: el repo es publico, asi que solo puede vivir en las variables de Vercel.
+function addMainSheetSecret(params: URLSearchParams): URLSearchParams {
+  params.delete('secret');
+  const secret = (process.env.GS_MAIN_SECRET || '').trim();
+  if (secret) params.append('secret', secret);
+  return params;
+}
+
 function verifyAdminPassword(req: any): boolean {
   const ENV_KEY_NAME = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN')) || 'ADMIN_PASSWORD');
   const MASTER_KEY = (process.env[ENV_KEY_NAME] || "").trim().replace(/^["']|["']$/g, '');
@@ -1368,7 +1377,7 @@ export default async function handler(
         const response = await fetch(CLOUD_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
+          body: addMainSheetSecret(params).toString()
         });
         if (response.ok) {
           cloudSuccess = true;
@@ -1469,7 +1478,7 @@ export default async function handler(
         const response = await fetch(CLOUD_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
+          body: addMainSheetSecret(params).toString()
         });
         if (!response.ok) throw new Error(`Sheet status ${response.status}`);
         return res.status(200).json({ success: true });
@@ -1526,9 +1535,10 @@ export default async function handler(
         } else {
           const params = new URLSearchParams();
           Object.entries(bodyData).forEach(([k, v]) => params.append(k, String(v ?? '')));
+          if (script === 'main') addMainSheetSecret(params);
           fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
           fetchOptions.body = params.toString();
-          console.log('[sheet-proxy] POSTing to Apps Script with params:', params.toString());
+          console.log('[sheet-proxy] POSTing to Apps Script, campos:', [...params.keys()].filter(k => k !== 'secret').join(','));
         }
 
         const resp = await fetch(url, fetchOptions);
