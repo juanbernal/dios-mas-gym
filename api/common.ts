@@ -1571,7 +1571,9 @@ export default async function handler(
         }
         // Lectura publica de la hoja principal: copia rapida (nocache=admin, lee la hoja al momento)
         if (script === 'main' && q.read === 'true' && Object.keys(q).every(k => ['read', 'nocache', 't'].includes(k))) {
-          const rows = await getMainSheetRows(hasNoCache);
+          // Las filas CONFIG_ (mantenimiento, testimonios) viven en la misma hoja pero no son lanzamientos
+          const rows = (await getMainSheetRows(hasNoCache))
+            .filter((r: any) => !String(r?.Artista || '').trim().toUpperCase().startsWith('CONFIG_'));
           res.setHeader('Cache-Control', hasNoCache ? 'no-store, no-cache, must-revalidate' : 's-maxage=60, stale-while-revalidate=300');
           return res.status(200).json(rows);
         }
