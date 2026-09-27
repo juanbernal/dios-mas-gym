@@ -12,6 +12,26 @@ window.addEventListener('vite:preloadError', (event) => {
   if (reloadOnceForNewVersion()) event.preventDefault();
 });
 
+// Avisar al admin (por correo) cuando un visitante tiene un error de JavaScript.
+// Cada error distinto se reporta una sola vez por pagina cargada.
+// @ts-ignore - import.meta.env es de Vite
+if (import.meta.env.PROD) {
+  const reported = new Set<string>();
+  const report = (kind: string, err: any, fallbackMsg?: string) => {
+    const message = String(err?.message || fallbackMsg || err || '').slice(0, 300);
+    if (!message || reported.has(message) || reported.size >= 5) return;
+    reported.add(message);
+    const payload = JSON.stringify({ kind, message, stack: String(err?.stack || '').slice(0, 2000), page: location.href });
+    try {
+      if (!navigator.sendBeacon?.('/api/analytics?action=client-error', payload)) {
+        fetch('/api/analytics?action=client-error', { method: 'POST', body: payload, keepalive: true }).catch(() => {});
+      }
+    } catch {}
+  };
+  window.addEventListener('error', (e) => report('error', e.error, e.message));
+  window.addEventListener('unhandledrejection', (e) => report('promesa', e.reason));
+}
+
 // Service worker de assets estaticos (cache real) para todo el sitio.
 // Solo en produccion: en dev interferiria con el HMR de Vite.
 // @ts-ignore - import.meta.env es de Vite, no esta en los tipos de TS por defecto

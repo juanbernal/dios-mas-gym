@@ -299,7 +299,9 @@ const LyricsManager: React.FC = () => {
             const seen = new Set<string>();
             const combinedAll: LyricItem[] = [];
             
-            for (const item of [...webItems, ...catalogItems, ...sheetItems, ...localItems]) {
+            for (const raw of [...webItems, ...catalogItems, ...sheetItems, ...localItems]) {
+                // Sheets manda como numero los titulos tipo "614"
+                const item = { ...raw, title: String(raw.title ?? ''), artist: String(raw.artist ?? ''), content: String(raw.content ?? '') };
                 const key = `${item.artist.toLowerCase()}_${item.title.toLowerCase()}`;
                 if (!seen.has(key)) {
                     seen.add(key);

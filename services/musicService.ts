@@ -359,6 +359,18 @@ export const invalidateSavedLyricsCache = () => {
 };
 
 // force = true (herramientas admin): siempre la lista fresca desde Google Sheets, sin cache del CDN.
+// Una letra titulada "614" llega de Sheets como numero; todo lo demas espera texto
+const normalizeLyricList = (list: any[]): any[] =>
+  (Array.isArray(list) ? list : [])
+    .filter(l => l && typeof l === 'object')
+    .map(l => {
+      const out: any = { ...l };
+      for (const k of ['id', 'title', 'artist', 'content', 'status']) {
+        if (out[k] != null && typeof out[k] !== 'string') out[k] = String(out[k]);
+      }
+      return out;
+    });
+
 export const fetchSavedLyrics = async (force = false): Promise<any[]> => {
   if (!force && lyricsCache && Date.now() - lyricsCache.at < LYRICS_TTL_MS) {
     return lyricsCache.data;
@@ -366,15 +378,16 @@ export const fetchSavedLyrics = async (force = false): Promise<any[]> => {
   if (!force && lyricsInFlight) return lyricsInFlight;
 
   const bypass = force || shouldBypassLyricsCdn();
-  const stored = !bypass && !lyricsCache ? readStoredLyrics() : null;
+  const storedRaw = !bypass && !lyricsCache ? readStoredLyrics() : null;
+  const stored = storedRaw ? normalizeLyricList(storedRaw) : null;
   // Si la peticion falla, mejor la copia guardada que una lista vacia
-  const fallback = stored || readStoredLyrics() || lyricsCache?.data || [];
+  const fallback = stored || normalizeLyricList(readStoredLyrics() || lyricsCache?.data || []);
   const request = (async () => {
     try {
       const res = await fetch(bypass ? `/api/lyrics?refresh=1&t=${Date.now()}` : '/api/lyrics', bypass ? { cache: 'no-store' } : undefined);
       if (!res.ok) return fallback;
       const data = await res.json();
-      const list = Array.isArray(data) ? data : (data?.lyrics || []);
+      const list = normalizeLyricList(Array.isArray(data) ? data : (data?.lyrics || []));
       lyricsCache = { at: Date.now(), data: list };
       if (list.length > 0) writeStoredLyrics(list);
       return list;

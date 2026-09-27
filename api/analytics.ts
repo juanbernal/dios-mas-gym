@@ -150,6 +150,86 @@ export function isAdminRequest(req: any): boolean {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// ── Alertas de errores del sitio ──
+// El navegador de los visitantes reporta aqui los errores de JavaScript y se manda un correo
+// al admin. Limites para no llenar el buzon: el mismo error se avisa una vez cada 6 h por
+// instancia y como mucho 6 correos por hora en total.
+const GS_EMAIL_URL = 'https://script.google.com/macros/s/AKfycbwNX-T5wawLrYaTnJ0PcN_xA8sp0LIXThDA3jqkDhR3IdjSlnqRif8rUEx_e9e1xSsd3Q/exec';
+const ALERT_SAME_ERROR_MS = 6 * 60 * 60 * 1000;
+const ALERT_MAX_PER_HOUR = 6;
+const alertLastSent = new Map<string, number>();
+let alertWindow = { start: 0, count: 0 };
+
+// Errores que no son del sitio (extensiones, navegadores viejos, scripts de terceros)
+const IGNORED_ERRORS = [
+  /ResizeObserver loop/i,
+  /^Script error\.?$/i,
+  /extension:\/\//i,
+  /Non-Error promise rejection/i,
+  /AbortError|The user aborted|signal is aborted/i,
+  /Failed to fetch|NetworkError|Load failed/i,
+];
+
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+async function handleClientError(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ status: 'error' });
+
+  let body: any = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+  const str = (v: unknown, max: number) => String(v ?? '').slice(0, max);
+  const message = str(body?.message, 300).trim();
+  const stack = str(body?.stack, 2000);
+  const page = str(body?.page, 300);
+  const kind = str(body?.kind, 40);
+  const ua = str(req.headers['user-agent'], 300);
+
+  if (!message || IGNORED_ERRORS.some(r => r.test(message) || r.test(stack))) {
+    return res.status(204).end();
+  }
+  // Solo errores que vienen de nuestro propio codigo
+  if (stack && !/diosmasgym\.com|localhost/.test(stack)) return res.status(204).end();
+
+  console.error('[client-error]', kind, message, page);
+
+  const now = Date.now();
+  const key = message.replace(/\d+/g, '#');
+  if (now - (alertLastSent.get(key) || 0) < ALERT_SAME_ERROR_MS) return res.status(204).end();
+  if (now - alertWindow.start > 60 * 60 * 1000) alertWindow = { start: now, count: 0 };
+  if (alertWindow.count >= ALERT_MAX_PER_HOUR) return res.status(204).end();
+  alertLastSent.set(key, now);
+  alertWindow.count++;
+
+  const when = new Date().toLocaleString('es-MX', { timeZone: 'America/Chihuahua' });
+  const htmlBody = `<div style="font-family:Arial,sans-serif;max-width:640px">
+  <h2 style="color:#c0392b">⚠️ Error en diosmasgym.com</h2>
+  <p>Un visitante tuvo un error en el sitio. Si la pagina no carga, puedes activar el modo mantenimiento mientras se revisa.</p>
+  <p><b>Error:</b> ${escapeHtml(message)}</p>
+  <p><b>Pagina:</b> ${escapeHtml(page)}<br><b>Tipo:</b> ${escapeHtml(kind)}<br><b>Hora:</b> ${escapeHtml(when)}</p>
+  <p><b>Navegador:</b> ${escapeHtml(ua)}</p>
+  <pre style="background:#f4f4f4;padding:12px;font-size:12px;white-space:pre-wrap">${escapeHtml(stack)}</pre>
+  <p style="color:#888;font-size:12px">El mismo error no se vuelve a avisar en 6 horas.</p>
+</div>`;
+
+  try {
+    await fetch(GS_EMAIL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'sendEmailReport',
+        to: process.env.ADMIN_REPORT_EMAIL || 'administrador@diosmasgym.com',
+        subject: `⚠️ Error en el sitio: ${message.slice(0, 80)}`,
+        htmlBody
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+  } catch (e) {
+    console.error('[client-error] no se pudo enviar el correo:', e);
+  }
+  return res.status(204).end();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configuración de CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -163,6 +243,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  if (req.query.action === 'client-error') {
+    return handleClientError(req, res);
   }
 
   if (['smartlinks', 'realtime'].includes(String(req.query.action)) && !isAdminRequest(req)) {

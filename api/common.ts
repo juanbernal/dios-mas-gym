@@ -556,7 +556,23 @@ function readLyricsFromDisk(): any[] {
   return [];
 }
 
+// Google Sheets devuelve como numero las celdas tipo "614": el sitio espera texto
+function normalizeLyrics(list: any[]): any[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter(l => l && typeof l === 'object').map(l => {
+    const out: any = { ...l };
+    for (const k of ['id', 'title', 'artist', 'content', 'status', 'date']) {
+      if (out[k] != null && typeof out[k] !== 'string') out[k] = String(out[k]);
+    }
+    return out;
+  });
+}
+
 async function getLyricsList(force = false): Promise<any[]> {
+  return normalizeLyrics(await getLyricsListRaw(force));
+}
+
+async function getLyricsListRaw(force = false): Promise<any[]> {
   try {
     const body = await getSnapshotted(
       'lyrics',

@@ -344,8 +344,8 @@ const App: React.FC = () => {
 
         const enrichWithLyrics = (items: MusicItem[], lyrics: any[]) => {
           if (!lyrics || lyrics.length === 0) return items;
-          const cleanTitle = (str: string) => 
-            (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
+          const cleanTitle = (str: unknown) =>
+            String(str ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').trim();
 
           return items.map(item => {
             const itemNorm = cleanTitle(item.name);

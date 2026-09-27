@@ -248,7 +248,7 @@ const ProximosLanzamientos: React.FC = () => {
                 const normalized = (data as any[]).map(r => {
                     const findKey = (keys: string[]) => {
                         const k = Object.keys(r).find(key => keys.includes(key.replace(/\s+/g, '').trim().toLowerCase()));
-                        return k ? r[k] : '';
+                        return k && r[k] != null ? String(r[k]) : '';
                     };
                     
                     let rawDate = findKey(['releasedate', 'fecha']);
