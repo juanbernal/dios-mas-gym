@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 
-import { fetchMusicCatalog } from '../../services/musicService';
+import { fetchMusicCatalog, invalidateSavedLyricsCache } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import { syncFetch } from '../../services/adminSync';
 
@@ -49,6 +49,11 @@ const getFirstDate = (title: string, artist: string, fallback?: string): string 
     return candidates.sort()[0];
 };
 
+// Igual que generateSlug de api/common.ts: la letra queda en /letra/<slug>
+const toSlug = (text: string) => (text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+interface BulkResult { title: string; slug: string; ok: boolean; error?: string; }
+
 const readTrash = (): any[] => {
     try { return JSON.parse(localStorage.getItem(TRASH_KEY) || '[]') || []; } catch { return []; }
 };
@@ -91,6 +96,8 @@ const LyricsManager: React.FC = () => {
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
     const [bulkImportText, setBulkImportText] = useState('');
     const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+    const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
     const [isFetchingYoutubeDescriptions, setIsFetchingYoutubeDescriptions] = useState(false);
 
     const showNotification = (msg: string) => {
@@ -431,9 +438,34 @@ const LyricsManager: React.FC = () => {
     // Formato esperado por bloque, separados por una linea con solo guiones (---):
     //   Titulo - Artista        (la linea de artista es opcional, default "Dios Mas Gym")
     //   ...resto de la letra...
+    // Tambien acepta el formato exportado de DistroKid: "--- Titulo ---" arriba de cada letra
+    // (las lineas "ÁLBUM: ..." y "=====" se ignoran).
     const parseBulkLyrics = (raw: string): { title: string; artist: string; content: string }[] => {
-        const blocks = raw.split(/\n[ \t]*-{3,}[ \t]*\n/g);
+        raw = raw.replace(/\r/g, '');
         const results: { title: string; artist: string; content: string }[] = [];
+        if (/^---[ \t]+\S.*[ \t]+---[ \t]*$/m.test(raw)) {
+            const seen = new Set<string>();
+            let current: { title: string; lines: string[] } | null = null;
+            const flush = () => {
+                if (!current) return;
+                const content = current.lines.join('\n').trim();
+                const key = current.title.toLowerCase();
+                if (current.title && content && !seen.has(key)) {
+                    seen.add(key);
+                    const artist = /feat\.?\s*juan\s*614/i.test(current.title) ? 'Juan 614' : 'Dios Mas Gym';
+                    results.push({ title: current.title, artist, content });
+                }
+            };
+            for (const line of raw.split('\n')) {
+                const header = line.match(/^---[ \t]+(.+?)[ \t]+---[ \t]*$/);
+                if (header) { flush(); current = { title: header[1].trim(), lines: [] }; continue; }
+                if (/^ÁLBUM:/i.test(line.trim()) || /^={5,}$/.test(line.trim())) { flush(); current = null; continue; }
+                if (current) current.lines.push(line);
+            }
+            flush();
+            return results;
+        }
+        const blocks = raw.split(/\n[ \t]*-{3,}[ \t]*\n/g);
         for (const block of blocks) {
             const trimmed = block.trim();
             if (!trimmed) continue;
@@ -453,6 +485,67 @@ const LyricsManager: React.FC = () => {
     };
 
     const bulkImportPreview = parseBulkLyrics(bulkImportText);
+    const liveSlugs = new Set(lyrics.filter(l => l.status === 'LIVE').map(l => toSlug(l.title)));
+    const bulkAlreadyLive = bulkImportPreview.filter(p => liveSlugs.has(toSlug(p.title)));
+
+    const handleBulkFile = async (file?: File) => {
+        if (!file) return;
+        setBulkImportText(await file.text());
+        setBulkResults([]);
+    };
+
+    // Publica en la web (/api/lyrics) una por una: el servidor reescribe la lista completa
+    // en cada guardado, asi que en paralelo se pisarian entre si.
+    const handleBulkPublish = async () => {
+        const pending = bulkImportPreview.filter(p => !liveSlugs.has(toSlug(p.title)));
+        if (pending.length === 0) { showNotification('Todas esas letras ya están en la web'); return; }
+        const adminPass = localStorage.getItem('admin_password') || '';
+        setIsBulkImporting(true);
+        setBulkResults([]);
+        const results: BulkResult[] = [];
+        let consecutiveErrors = 0;
+        try {
+            for (let i = 0; i < pending.length; i++) {
+                const p = pending[i];
+                setBulkProgress({ done: i, total: pending.length, current: p.title });
+                const slug = toSlug(p.title);
+                let result: BulkResult;
+                try {
+                    const res = await fetch('/api/lyrics', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPass },
+                        body: JSON.stringify({ id: slug, title: p.title, artist: p.artist, content: p.content, date: getFirstDate(p.title, p.artist), status: 'LIVE' })
+                    });
+                    const body = await res.json().catch(() => ({}));
+                    if (res.status === 401) {
+                        results.push({ title: p.title, slug, ok: false, error: 'Clave de admin inválida: vuelve a iniciar sesión en el panel' });
+                        break;
+                    }
+                    result = res.ok && body.syncedToSheets !== false
+                        ? { title: p.title, slug, ok: true }
+                        : { title: p.title, slug, ok: false, error: body.sheetsError || body.error || body.message || `Error ${res.status}` };
+                } catch (e: any) {
+                    result = { title: p.title, slug, ok: false, error: e?.message || String(e) };
+                }
+                results.push(result);
+                setBulkResults([...results]);
+                consecutiveErrors = result.ok ? 0 : consecutiveErrors + 1;
+                if (consecutiveErrors >= 3) break; // algo anda mal (Sheets caido, etc.): no seguir a ciegas
+                await new Promise(r => setTimeout(r, 800));
+            }
+        } finally {
+            setBulkResults([...results]);
+            setBulkProgress(null);
+            setIsBulkImporting(false);
+            const ok = results.filter(r => r.ok);
+            if (ok.length > 0) {
+                await recordVersions(pending.filter(p => ok.some(r => r.title === p.title)).map(p => ({ ...p, date: new Date().toISOString() })));
+                invalidateSavedLyricsCache();
+                await loadAllLyrics();
+            }
+            showNotification(`${ok.length === results.length ? '✅' : '⚠️'} Publicadas ${ok.length} de ${pending.length} letras en la web`);
+        }
+    };
 
     const handleBulkImport = async () => {
         const parsed = bulkImportPreview;
@@ -1068,7 +1161,7 @@ ${cleanedLyrics}`;
                                 <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">{isFetchingYoutubeDescriptions ? 'Buscando...' : 'Traer de YouTube'}</span>
                             </button>
                             <button
-                                onClick={() => { setBulkImportText(''); setShowBulkImportModal(true); }}
+                                onClick={() => { setBulkImportText(''); setBulkResults([]); setShowBulkImportModal(true); }}
                                 className="p-2.5 md:px-4 md:py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-full transition-all flex items-center gap-2"
                                 title="Pegar muchas letras juntas y crearlas todas de un jalón"
                             >
@@ -1702,6 +1795,11 @@ ${cleanedLyrics}`;
                             Escribe o pega el título en la primera línea de cada canción (puedes poner <code className="text-indigo-300">Título - Artista</code>, si no pones artista se usa Dios Mas Gym), luego la letra, y entre canción y canción una línea que diga solo <code className="text-indigo-300">---</code>. Ejemplo:
                             <pre className="mt-2 bg-black/40 rounded-xl p-3 text-[10px] text-white/50 whitespace-pre-wrap font-mono">{`Un Saludo de Despedida - Diosmasgym\nIntro\nEeeeh, vámonos con el alma en la mano\n...\n\n---\n\nOtra Canción - Juan 614\nletra letra letra...`}</pre>
                         </div>
+                        <label className="flex items-center justify-center gap-2 w-full border border-dashed border-indigo-400/30 rounded-2xl p-3 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:bg-indigo-500/10 cursor-pointer transition-all">
+                            <i className="fas fa-file-arrow-up"></i>
+                            Cargar archivo .txt (sirve el de DistroKid tal cual)
+                            <input type="file" accept=".txt,text/plain" className="hidden" disabled={isBulkImporting} onChange={e => { handleBulkFile(e.target.files?.[0]); e.target.value = ''; }} />
+                        </label>
                         <textarea
                             autoFocus
                             value={bulkImportText}
@@ -1713,7 +1811,7 @@ ${cleanedLyrics}`;
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
                             {bulkImportText.trim() ? (
                                 bulkImportPreview.length > 0 ? (
-                                    <span className="text-emerald-400 flex items-center gap-2"><i className="fas fa-circle-check"></i> Se detectaron {bulkImportPreview.length} canción{bulkImportPreview.length === 1 ? '' : 'es'}: {bulkImportPreview.slice(0, 5).map(p => p.title).join(', ')}{bulkImportPreview.length > 5 ? '…' : ''}</span>
+                                    <span className="text-emerald-400 flex items-center gap-2"><i className="fas fa-circle-check"></i> Se detectaron {bulkImportPreview.length} {bulkImportPreview.length === 1 ? 'canción' : 'canciones'}{bulkAlreadyLive.length > 0 ? ` (${bulkAlreadyLive.length} ya están en la web, se saltan)` : ''}: {bulkImportPreview.slice(0, 5).map(p => p.title).join(', ')}{bulkImportPreview.length > 5 ? '…' : ''}</span>
                                 ) : (
                                     <span className="text-amber-400 flex items-center gap-2"><i className="fas fa-triangle-exclamation"></i> No se detectó ninguna canción completa (falta título o letra)</span>
                                 )
@@ -1721,21 +1819,56 @@ ${cleanedLyrics}`;
                                 <span className="text-white/25">Esperando texto…</span>
                             )}
                         </div>
+                        {bulkProgress && (
+                            <div className="space-y-2">
+                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }} />
+                                </div>
+                                <p className="text-[10px] text-white/50">Subiendo {bulkProgress.done + 1} de {bulkProgress.total}: {bulkProgress.current}</p>
+                            </div>
+                        )}
+                        {bulkResults.length > 0 && (
+                            <div className="bg-black/40 border border-white/5 rounded-2xl p-3 max-h-60 overflow-y-auto space-y-1 text-[11px]">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">
+                                    Publicadas: {bulkResults.filter(r => r.ok).length} · Con error: {bulkResults.filter(r => !r.ok).length}
+                                </p>
+                                {bulkResults.map(r => (
+                                    <div key={r.slug} className="flex items-start gap-2">
+                                        <i className={`fas ${r.ok ? 'fa-check text-emerald-400' : 'fa-xmark text-red-400'} mt-0.5`}></i>
+                                        {r.ok ? (
+                                            <a href={`/letra/${r.slug}`} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-[#00ffcc] underline decoration-white/20">{r.title}</a>
+                                        ) : (
+                                            <span className="text-white/60">{r.title} <span className="text-red-300/80">— {r.error}</span></span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3 shrink-0">
                         <button
                             onClick={() => setShowBulkImportModal(false)}
-                            className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                            disabled={isBulkImporting}
+                            className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-all disabled:opacity-40"
                         >
-                            Cancelar
+                            {bulkResults.length > 0 && !isBulkImporting ? 'Cerrar' : 'Cancelar'}
                         </button>
                         <button
                             onClick={handleBulkImport}
                             disabled={bulkImportPreview.length === 0 || isBulkImporting}
+                            className="px-6 py-3 bg-white/5 border border-white/10 text-white/70 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-40 flex items-center gap-2"
+                            title="Solo las guarda como borradores en este navegador"
+                        >
+                            <i className="fas fa-download"></i>
+                            Como borradores
+                        </button>
+                        <button
+                            onClick={handleBulkPublish}
+                            disabled={bulkImportPreview.length === bulkAlreadyLive.length || isBulkImporting}
                             className="px-8 py-3 bg-indigo-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-indigo-400 hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.25)] flex items-center gap-2"
                         >
-                            <i className={`fas ${isBulkImporting ? 'fa-spinner fa-spin' : 'fa-download'}`}></i>
-                            {isBulkImporting ? 'Importando...' : `Importar ${bulkImportPreview.length || ''} letras`}
+                            <i className={`fas ${isBulkImporting ? 'fa-spinner fa-spin' : 'fa-globe'}`}></i>
+                            {isBulkImporting ? 'Publicando...' : `Publicar ${bulkImportPreview.length - bulkAlreadyLive.length || ''} en la web`}
                         </button>
                     </div>
                 </div>
