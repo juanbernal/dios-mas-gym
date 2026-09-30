@@ -56,10 +56,23 @@ const LyricCleaner: React.FC = () => {
                 // Reemplazar múltiples espacios por uno solo
                 t = t.replace(/\s+/g, ' ');
 
-                // Reglas Musixmatch: NO puntuación al final de las líneas
+                // Espacio faltante antes de comillas que abren: susurró"Hay → susurró "Hay
+                t = t.replace(/([A-Za-zÁÉÍÓÚÑáéíóúñü!?.,])"(?=[¡¿A-Za-zÁÉÍÓÚÑáéíóúñ])/g, '$1 "');
+
+                // Reglas Musixmatch: sin coma/punto al final de las líneas. Los ! ? " ) se
+                // conservan: quitarlos deja "¡Oh sí" o "¿Por qué" abiertos, que en español
+                // es un error y DistroKid/Apple lo marcan.
                 if (removePunctuation) {
-                    t = t.replace(/^[.,;:\-!?"'()[\]]+/, ""); // inicio
-                    t = t.replace(/[.,;:\-!?"'()[\]]+$/, ""); // final
+                    t = t.replace(/^[.,;:\-]+\s*/, ""); // inicio
+                    if (!/\.\.\.$|…$/.test(t)) t = t.replace(/[,;:\-]+$|(?<!\.)\.$/, ""); // final
+                }
+
+                // Cerrar ¡ y ¿ que quedaron abiertos (letras ya limpiadas con la regla anterior)
+                const count = (re: RegExp) => (t.match(re) || []).length;
+                const closeQ = count(/¿/g) > count(/\?/g);
+                const closeE = count(/¡/g) > count(/!/g);
+                if (closeQ || closeE) {
+                    t = t.replace(/[\s,;:]+$/, '') + (closeQ ? '?' : '') + (closeE ? '!' : '');
                 }
 
                 // Transformar gritos en mayúsculas a minúsculas
