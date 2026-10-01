@@ -704,6 +704,24 @@ function applyPageMeta(html: string, m: PageMeta): string {
   return html;
 }
 
+// Algunas "letras" se guardaron como el HTML de un post del blog (<div style=...>).
+// Sin convertirlas, la pagina y la descripcion de Google mostraban el codigo tal cual.
+function lyricHtmlToText(text: string): string {
+  if (!/<\/?(div|p|br|h[1-6]|span|img|a|li|ul|ol|strong|em|b|i)\b/i.test(text || '')) return text || '';
+  return text
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol)>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ').replace(/&copy;/gi, '©').replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/gi, '&')
+    .split('\n').map(l => l.trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // Descripcion limpia para meta description: sin saltos ni espacios dobles y
 // cortada en una palabra completa.
 function toMetaDescription(text: string, max = 158): string {
@@ -2675,7 +2693,7 @@ ${sections}
 
       const songTitle = song?.name || matchedStored?.title || slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
       const songArtist = song?.artist || matchedStored?.artist || 'Dios Mas Gym';
-      const lyricText = (matchedStored?.content || song?.lyrics || '').trim();
+      const lyricText = lyricHtmlToText((matchedStored?.content || song?.lyrics || '').trim());
 
       // ---------------------------------------------------------------
       // Sin letra disponible -> 404 real + noindex.

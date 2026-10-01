@@ -11,6 +11,20 @@ interface LyricsViewProps {
 const generateSlug = (text: string) =>
   text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
+// Algunas letras se guardaron como el HTML de un post del blog: se muestran como texto
+const lyricHtmlToText = (text: string) => {
+  if (!/<\/?(div|p|br|h[1-6]|span|img|a|li|ul|ol|strong|em|b|i)\b/i.test(text || '')) return text || '';
+  const doc = new DOMParser().parseFromString(
+    text.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h[1-6]|li|ul|ol)>/gi, '\n\n$&'),
+    'text/html'
+  );
+  doc.querySelectorAll('script,style').forEach(el => el.remove());
+  return (doc.body.textContent || '')
+    .split('\n').map(l => l.trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -71,7 +85,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
 
     if (matched) {
       if (matchedSaved?.content && matchedSaved.content.trim().length > 0) {
-        return { ...matched, lyrics: matchedSaved.content };
+        return { ...matched, lyrics: lyricHtmlToText(matchedSaved.content) };
       }
       return matched;
     }
@@ -84,7 +98,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
         cover: '/logo-diosmasgym-sm.webp',
         url: '',
         type: 'Single',
-        lyrics: matchedSaved.content,
+        lyrics: lyricHtmlToText(matchedSaved.content),
         date: matchedSaved.date || new Date().toISOString()
       } as MusicItem;
     }
