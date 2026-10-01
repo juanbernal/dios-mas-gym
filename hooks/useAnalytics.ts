@@ -76,7 +76,7 @@ CÓDIGO DE RASTREO PARA PÁGINAS EXTERNAS (Blogger, Sitios Web de terceros)
 Copia y pega este código antes de la etiqueta </head> o al final del <body>
 en páginas externas para registrar visitas en el Analytics Dashboard.
 =============================================================================
-<!-- CÓDIGO DE RASTREO PARA DIOS MAS GYM -->
+<!-- CÓDIGO DE RASTREO PARA DIOSMASGYM -->
 <script>
   (function() {
     // Si la URL contiene ?admin=true, activar exclusión permanente en este navegador

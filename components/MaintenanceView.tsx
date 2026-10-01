@@ -28,10 +28,10 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
           <img 
             src="/logo-diosmasgym-sm.webp"
             className="w-12 h-12 grayscale opacity-70 drop-shadow-[0_0_15px_rgba(37,99,168,0.3)] animate-pulse" 
-            alt="Logo Dios Más Gym" 
+            alt="Logo Diosmasgym" 
           />
           <div>
-            <p className="text-white text-xs font-black uppercase tracking-[0.2em]">Dios Más Gym</p>
+            <p className="text-white text-xs font-black uppercase tracking-[0.2em]">Diosmasgym</p>
             <p className="text-[#4a90d9] text-[8px] font-black uppercase tracking-widest">El Arsenal de Fe</p>
           </div>
         </div>
@@ -57,7 +57,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
 
         {/* Narrative Description */}
         <p className="text-white/60 text-xs md:text-sm leading-relaxed max-w-xl mb-10 font-light">
-          Estamos afinando la maquinaria y puliendo el arsenal digital. En Dios Más Gym creemos que la disciplina mental y espiritual requiere renovación constante. Volvemos muy pronto con más poder, reflexiones y motivación.
+          Estamos afinando la maquinaria y puliendo el arsenal digital. En Diosmasgym creemos que la disciplina mental y espiritual requiere renovación constante. Volvemos muy pronto con más poder, reflexiones y motivación.
         </p>
 
         {/* Glowing Loading Pulse indicator */}
@@ -116,7 +116,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
           "Todo lo puedo en Cristo que me fortalece."
         </p>
         <p className="text-[8px] font-black uppercase tracking-widest text-[#4a90d9]">
-          Filipenses 4:13 • © {new Date().getFullYear()} Dios Más Gym
+          Filipenses 4:13 • © {new Date().getFullYear()} Diosmasgym
         </p>
       </div>
     </div>

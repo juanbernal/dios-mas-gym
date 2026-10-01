@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
       {/* BG watermark text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none">
         <span className="text-[18vw] font-bold text-white/[0.015] leading-none" style={{ fontFamily: 'var(--font-gothic)', whiteSpace: 'nowrap' }}>
-          DIOS MAS GYM
+          DIOSMASGYM
         </span>
       </div>
 
@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col items-center text-center mb-16">
           <img src="/logo-diosmasgym-sm.webp" alt="Diosmasgym" loading="lazy" className="w-20 h-20 object-cover mb-6" style={{ borderRadius: '4px', border: '1px solid rgba(37,99,168,0.3)' }} />
           <h2 className="text-white mb-4" style={{ fontFamily: 'var(--font-gothic)', fontSize: 'clamp(3rem, 8vw, 6rem)', lineHeight: 0.9 }}>
-            Dios Más Gym
+            Diosmasgym
           </h2>
           <div className="flex items-center gap-4 mt-4">
             <div className="w-10 h-px" style={{ background: 'rgba(37,99,168,0.4)' }}></div>
@@ -139,7 +139,7 @@ const Footer: React.FC = () => {
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="label-tag" style={{ color: 'rgba(200,205,212,0.2)', fontSize: '0.5rem' }}>
-            © {new Date().getFullYear()} Dios Más Gym — Todos los derechos reservados
+            © {new Date().getFullYear()} Diosmasgym — Todos los derechos reservados
           </p>
           <p className="label-tag" style={{ color: 'rgba(37,99,168,0.4)', fontSize: '0.5rem', letterSpacing: '0.3em' }}>
             Puro Señor Jesucristo compa

@@ -30,7 +30,7 @@ const SplitSheetGenerator: React.FC = () => {
     const [artistName, setArtistName] = useState('');
     const [releaseDate, setReleaseDate] = useState(new Date().toISOString().split('T')[0]);
     const [genre, setGenre] = useState('Urbano Cristiano / Bélico');
-    const [distributor, setDistributor] = useState('Dios Mas Gym Records');
+    const [distributor, setDistributor] = useState('Diosmasgym Records');
 
     // Collaborators list state (starts with one default entry)
     const [collaborators, setCollaborators] = useState<Collaborator[]>([

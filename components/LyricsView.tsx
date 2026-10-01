@@ -94,7 +94,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
       return {
         id: matchedSaved.id || slug,
         name: matchedSaved.title,
-        artist: matchedSaved.artist || 'Dios Mas Gym',
+        artist: matchedSaved.artist || 'Diosmasgym',
         cover: '/logo-diosmasgym-sm.webp',
         url: '',
         type: 'Single',
@@ -116,8 +116,8 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
 
   const handleShare = async () => {
     const shareData = {
-      title: song ? `${song.name} - ${song.artist}` : 'Dios Más Gym',
-      text: song ? `Letra de "${song.name}" por ${song.artist}` : 'Dios Más Gym',
+      title: song ? `${song.name} - ${song.artist}` : 'Diosmasgym',
+      text: song ? `Letra de "${song.name}" por ${song.artist}` : 'Diosmasgym',
       url: window.location.href,
     };
     try {
@@ -196,7 +196,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({ catalog, onPlaySong }) => {
 
   // Update page title for SEO
   if (typeof document !== 'undefined') {
-    document.title = `${song.name} - Letra | ${song.artist} | Dios Más Gym`;
+    document.title = `${song.name} - Letra | ${song.artist} | Diosmasgym`;
   }
 
   return (

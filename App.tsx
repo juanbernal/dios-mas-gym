@@ -441,7 +441,7 @@ const App: React.FC = () => {
             <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-3xl overflow-hidden bg-black/60 shadow-[0_0_60px_rgba(74,144,217,0.25)] ring-1 ring-[#4a90d9]/40 flex items-center justify-center p-2">
               <img src="/logo-diosmasgym-md.webp" alt="Diosmasgym" className="w-full h-full object-contain rounded-2xl" />
             </div>
-            <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Dios Mas Gym</span>
+            <span className="mt-3 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Diosmasgym</span>
           </div>
 
           {/* Union Connector */}

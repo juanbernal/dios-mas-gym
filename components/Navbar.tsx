@@ -33,7 +33,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
         <img 
           src={LOGO_URL} 
           className="h-7 md:h-8 cursor-pointer hover:scale-105 transition-transform drop-shadow-[0_0_25px_rgba(37,99,168,0.25)] shrink-0" 
-          alt="Dios Mas Gym Logo"
+          alt="Diosmasgym Logo"
           width="32"
           height="32"
           fetchPriority="high"

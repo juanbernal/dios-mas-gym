@@ -152,7 +152,7 @@ const VideoSnippetCreator: React.FC = () => {
             if (incomingSong) {
                 setSelectedSong(incomingSong);
                 setCustomTitle(incomingSong.name);
-                setCustomArtist(incomingSong.artist || "Dios Mas Gym");
+                setCustomArtist(incomingSong.artist || "Diosmasgym");
                 setStartTime(0);
             }
         });
@@ -171,7 +171,7 @@ const VideoSnippetCreator: React.FC = () => {
             if (matched) {
                 setSelectedSong(matched);
                 setCustomTitle(matched.name);
-                setCustomArtist(matched.artist || "Dios Mas Gym");
+                setCustomArtist(matched.artist || "Diosmasgym");
                 // Auto-load removed per user request
             }
         }
@@ -185,14 +185,14 @@ const VideoSnippetCreator: React.FC = () => {
             setSelectedSong({
                 id: 'local',
                 name: customTitle || file.name.split('.')[0],
-                artist: customArtist || 'Dios Mas Gym',
+                artist: customArtist || 'Diosmasgym',
                 cover: promoImageUrl || localCoverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1080',
                 url: url,
                 type: 'Local',
                 date: new Date().toISOString()
             });
             if (!customTitle) setCustomTitle(file.name.split('.')[0]);
-            if (!customArtist) setCustomArtist('Dios Mas Gym');
+            if (!customArtist) setCustomArtist('Diosmasgym');
             setStartTime(0);
         }
     };
@@ -385,7 +385,7 @@ const VideoSnippetCreator: React.FC = () => {
         ctx.fillStyle = '#c5a059'; 
         ctx.font = '700 45px Poppins, sans-serif';
         ctx.shadowBlur = 10;
-        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), 540, 1610, 960);
+        ctx.fillText((artistRef.current || selectedSong.artist || 'DIOSMASGYM').toUpperCase(), 540, 1610, 960);
         ctx.shadowBlur = 0;
         
         ctx.restore();
@@ -730,7 +730,7 @@ const VideoSnippetCreator: React.FC = () => {
                                     onClick={() => {
                                         setSelectedSong(song);
                                         setCustomTitle(song.name);
-                                        setCustomArtist(song.artist || "Dios Mas Gym");
+                                        setCustomArtist(song.artist || "Diosmasgym");
                                         setStartTime(0);
                                     }}
                                     className={`w-full p-3 rounded-xl flex items-center gap-4 transition-all ${selectedSong?.id === song.id ? 'bg-[#c5a059] text-black' : 'bg-white/5 hover:bg-white/10'}`}
@@ -768,7 +768,7 @@ const VideoSnippetCreator: React.FC = () => {
                                         value={customArtist} 
                                         onChange={e => setCustomArtist(e.target.value)}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all"
-                                        placeholder="Ej: DIOS MAS GYM"
+                                        placeholder="Ej: DIOSMASGYM"
                                     />
                                 </div>
                             </div>
@@ -832,7 +832,7 @@ const VideoSnippetCreator: React.FC = () => {
                                                     value={selectedSong.artist}
                                                     onChange={e => setSelectedSong({...selectedSong, artist: e.target.value})}
                                                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-[#c5a059] outline-none"
-                                                    placeholder="Ej: Juan 614 ft Dios Mas Gym"
+                                                    placeholder="Ej: Juan 614 ft Diosmasgym"
                                                 />
                                             </div>
                                         </div>

@@ -1000,7 +1000,7 @@ const SmartLinkView: React.FC = () => {
                     });
                     // === SEO: Dynamic meta tags for Google / Social ===
                     const songTitle = `${found.name} - ${found.artist}`;
-                    const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Dios Más Gym`;
+                    const songDesc = `Escucha "${found.name}" de ${found.artist} en Spotify, YouTube, Apple Music y más. Fe · Música · Corridos · Diosmasgym`;
                     const songImg  = found.cover || 'https://www.diosmasgym.com/logo-diosmasgym.png';
                     const songUrl  = `https://www.diosmasgym.com/link/${found.id}`;
 
@@ -1089,7 +1089,7 @@ const SmartLinkView: React.FC = () => {
                         const lyricSong: MusicItem = {
                             id: matchedSaved.id || id || 'song',
                             name: matchedSaved.title,
-                            artist: matchedSaved.artist || 'Dios Mas Gym',
+                            artist: matchedSaved.artist || 'Diosmasgym',
                             cover: matchedSaved.cover || '/logo-diosmasgym.png',
                             url: matchedSaved.url || '',
                             type: 'Single',
@@ -1216,7 +1216,7 @@ const SmartLinkView: React.FC = () => {
         card: 'bg-white/[0.05] border-white/10',
         chip: 'bg-white/[0.05] border-white/10 hover:border-white/30',
         round: 'bg-white/5 border-white/10 hover:bg-[#4a90d9] hover:text-black',
-        logo: '/logo-diosmasgym-sm.webp', brand: 'Dios Mas Gym', home: 'https://diosmasgym.com/', siteLabel: 'Sitio Oficial',
+        logo: '/logo-diosmasgym-sm.webp', brand: 'Diosmasgym', home: 'https://diosmasgym.com/', siteLabel: 'Sitio Oficial',
         verseTitle: 'Escudo de fe / aliento diario', verseIcon: 'fa-shield-halved', verseRef: 'text-white/40',
         shareTitle: 'Compartir con el mundo', shareText: `¡Tienes que escuchar esto! 🔥 "${song.name}" de ${song.artist}: `,
         showX: true, dedicate: true, temple: true,

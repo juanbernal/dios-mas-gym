@@ -30,7 +30,7 @@ const ARTIST_CONFIG = {
 
 const FALLBACK_DATA: LinkBioData = {
     profile: {
-        name: "Dios Mas Gym",
+        name: "Diosmasgym",
         bio: "El Arsenal de Fe | Música, Disciplina y Transformación",
         avatar: "/logo-diosmasgym.png"
     },
@@ -147,7 +147,7 @@ const LinkBioPublic: React.FC = () => {
 
             trackEvent('post_view', {
                 title: `${data.profile.name} (Bio Link)`,
-                artist: artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'
+                artist: artist === 'juan614' ? 'Juan 614' : 'Diosmasgym'
             });
         }
     }, [data, artist]);
@@ -257,7 +257,7 @@ const LinkBioPublic: React.FC = () => {
                                 trackEvent('link_click', {
                                     title: link.title,
                                     url: link.url,
-                                    artist: artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym',
+                                    artist: artist === 'juan614' ? 'Juan 614' : 'Diosmasgym',
                                     type: link.type
                                 });
                             }}
@@ -355,7 +355,7 @@ const LinkBioPublic: React.FC = () => {
                 </div>
 
                 <div className="text-[9px] font-black uppercase tracking-[0.6em] text-white/10 italic">
-                    {artist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'} Records v2.0
+                    {artist === 'juan614' ? 'Juan 614' : 'Diosmasgym'} Records v2.0
                 </div>
             </div>
         </div>

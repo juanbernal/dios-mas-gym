@@ -324,7 +324,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const list = (r: any, clean = false) => (r?.rows || [])
         .map((row: any) => {
           let name: string = row.dimensionValues?.[0]?.value || '';
-          if (clean) name = name.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
+          if (clean) name = name.replace(' | El Arsenal', '').replace(/ \| Dios ?M[aá]s ?Gym/gi, '');
           return { name, users: parseInt(row.metricValues?.[0]?.value || '0', 10) };
         })
         .filter((x: any) => x.name && x.name !== '(not set)');
@@ -464,12 +464,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const topSongsList = (todaySongsRes.rows || []).map(r => ({
         title: r.dimensionValues?.[0]?.value || 'Desconocida',
-        artist: r.dimensionValues?.[1]?.value || 'Dios Mas Gym',
+        artist: r.dimensionValues?.[1]?.value || 'Diosmasgym',
         plays: parseInt(r.metricValues?.[0]?.value || '0', 10)
       })).filter(s => s.title !== '(not set)');
 
       const topPagesList = (todayPagesRes.rows || []).map(r => ({
-        title: (r.dimensionValues?.[0]?.value || 'Pagina').replace(' | El Arsenal', '').replace(' | Dios Mas Gym', ''),
+        title: (r.dimensionValues?.[0]?.value || 'Pagina').replace(' | El Arsenal', '').replace(/ \| Dios ?M[aá]s ?Gym/gi, ''),
         views: parseInt(r.metricValues?.[0]?.value || '0', 10)
       })).filter(p => p.title !== '(not set)');
 
@@ -552,7 +552,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Dios Mas Gym</h1>
+      <h1>Diosmasgym</h1>
       <p>Reporte Diario &bull; ${todayDateFormatted}</p>
     </div>
     <div class="content">
@@ -652,7 +652,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       </div>
     </div>
     <div class="footer">
-      Dios Mas Gym &bull; Reporte automatizado diario 11:00 PM<br>
+      Diosmasgym &bull; Reporte automatizado diario 11:00 PM<br>
       Solo tráfico público (sin tu panel /admin) &bull; Fuente: Google Analytics &bull; Zona horaria: ${(todayViewsRes as any)?.metadata?.timeZone || 'America/Mexico_City'}<br>
       Enviado a ${recipientEmail}
     </div>
@@ -670,7 +670,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           body: JSON.stringify({
             action: 'sendEmailReport',
             to: recipientEmail,
-            subject: `📊 Reporte Dios Mas Gym — ${todayViews} visitas hoy | ${totalMonth30.toLocaleString('es-MX')} en 30 dias (${todayDateFormatted})`,
+            subject: `📊 Reporte Diosmasgym — ${todayViews} visitas hoy | ${totalMonth30.toLocaleString('es-MX')} en 30 dias (${todayDateFormatted})`,
             htmlBody: htmlEmail
           })
         });
@@ -832,7 +832,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Reflexiones
     const topPosts = (postsResponse.rows || []).map(row => {
       let rawTitle = row.dimensionValues?.[0].value || 'Desconocido';
-      rawTitle = rawTitle.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
+      rawTitle = rawTitle.replace(' | El Arsenal', '').replace(/ \| Dios ?M[aá]s ?Gym/gi, '');
       return {
         title: rawTitle,
         views: parseInt(row.metricValues?.[0].value || '0', 10),
@@ -842,7 +842,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Páginas
     const topPages = (pagesResponse.rows || []).map(row => {
       let rawTitle = row.dimensionValues?.[0].value || 'Desconocida';
-      rawTitle = rawTitle.replace(' | El Arsenal', '').replace(' | Dios Mas Gym', '');
+      rawTitle = rawTitle.replace(' | El Arsenal', '').replace(/ \| Dios ?M[aá]s ?Gym/gi, '');
       return {
         title: rawTitle,
         views: parseInt(row.metricValues?.[0].value || '0', 10),

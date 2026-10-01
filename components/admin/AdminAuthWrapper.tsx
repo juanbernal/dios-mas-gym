@@ -101,7 +101,7 @@ const AdminAuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
             </form>
           </div>
           <p className="mt-8 text-center text-[10px] text-white/20 uppercase font-black tracking-[0.3em]">
-            Dios Mas Gym Records © 2024
+            Diosmasgym Records © 2024
           </p>
         </div>
       </div>

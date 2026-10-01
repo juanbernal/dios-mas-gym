@@ -1,8 +1,8 @@
 {
   "id": "diosmasgym-pwa-v1",
-  "short_name": "Dios Mas Gym",
-  "name": "Dios Mas Gym | El Arsenal de Fe",
-  "description": "El Arsenal de Fe — Música cristiana, rap cristiano y corridos de motivación de Dios Mas Gym y Juan 614.",
+  "short_name": "Diosmasgym",
+  "name": "Diosmasgym | El Arsenal de Fe",
+  "description": "El Arsenal de Fe — Música cristiana, rap cristiano y corridos de motivación de Diosmasgym y Juan 614.",
   "lang": "es",
   "dir": "ltr",
   "icons": [
@@ -45,7 +45,7 @@
     {
       "name": "Mi Bio — Diosmasgym",
       "short_name": "Bio",
-      "description": "Perfil de Dios Mas Gym con todos los links",
+      "description": "Perfil de Diosmasgym con todos los links",
       "url": "/bio/diosmasgym",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
@@ -63,7 +63,7 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Dios Mas Gym — El Arsenal de Fe"
+      "label": "Diosmasgym — El Arsenal de Fe"
     }
   ]
 }

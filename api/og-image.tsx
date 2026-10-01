@@ -57,7 +57,7 @@ async function pngToJpeg(png: ArrayBuffer, quality = 85): Promise<Uint8Array> {
 export default async function handler(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const title = (searchParams.get('title') || 'Dios Mas Gym').slice(0, 80);
+    const title = (searchParams.get('title') || 'Diosmasgym').slice(0, 80);
     const artist = (searchParams.get('artist') || 'El Arsenal de Fe').slice(0, 60);
     const type = searchParams.get('type') || 'song';
 
@@ -127,7 +127,7 @@ export default async function handler(req: Request) {
           // Logo + brand
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '24px' } },
             React.createElement('img', { src: logoUrl, width: 44, height: 44, style: { borderRadius: '8px', marginRight: '12px' } }),
-            React.createElement('span', { style: { color: '#60a5fa', fontSize: '18px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' } }, 'DIOS MAS GYM')
+            React.createElement('span', { style: { color: '#60a5fa', fontSize: '18px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' } }, 'DIOSMASGYM')
           ),
           // Badge
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '20px' } },

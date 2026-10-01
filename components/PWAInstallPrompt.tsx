@@ -78,7 +78,7 @@ const PWAInstallPrompt: React.FC = () => {
           <div className="flex items-center gap-3">
             <img
               src="/logo-diosmasgym-sm.webp"
-              alt="Dios Más Gym"
+              alt="Diosmasgym"
               className="w-9 h-9 object-cover"
               style={{ borderRadius: '6px', border: '1px solid rgba(37,99,168,0.3)' }}
             />
@@ -87,7 +87,7 @@ const PWAInstallPrompt: React.FC = () => {
                 Instalar App
               </p>
               <p className="text-white font-bold" style={{ fontFamily: 'var(--font-gothic)', fontSize: '0.95rem' }}>
-                Dios Más Gym
+                Diosmasgym
               </p>
             </div>
           </div>

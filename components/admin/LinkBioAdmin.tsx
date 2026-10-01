@@ -7,7 +7,7 @@ const LinkBioAdmin: React.FC = () => {
     const [selectedArtist, setSelectedArtist] = useState<'diosmasgym' | 'juan614'>('diosmasgym');
     const [data, setData] = useState<LinkBioData>({
         profile: {
-            name: "Dios Mas Gym",
+            name: "Diosmasgym",
             bio: "El Arsenal de Fe | Música, Disciplina y Transformación",
             avatar: "/logo-diosmasgym.png"
         },
@@ -110,7 +110,7 @@ const LinkBioAdmin: React.FC = () => {
                             onClick={() => setSelectedArtist('diosmasgym')}
                             className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${selectedArtist === 'diosmasgym' ? 'bg-[#c5a059] text-black' : 'text-white/40 hover:text-white'}`}
                         >
-                            Dios Mas Gym
+                            Diosmasgym
                         </button>
                         <button 
                             onClick={() => setSelectedArtist('juan614')}
@@ -307,7 +307,7 @@ const LinkBioAdmin: React.FC = () => {
                                 </div>
 
                                 <div className="mt-12 mb-4">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/10 italic">{selectedArtist === 'juan614' ? 'Juan 614' : 'Dios Mas Gym'} Records v1.6</p>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/10 italic">{selectedArtist === 'juan614' ? 'Juan 614' : 'Diosmasgym'} Records v1.6</p>
                                 </div>
                             </div>
                         </div>

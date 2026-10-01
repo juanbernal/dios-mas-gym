@@ -80,7 +80,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
     try {
       await navigator.share({
         title: document.title,
-        text: 'Mira esta reflexión en El Arsenal de Dios Más Gym:',
+        text: 'Mira esta reflexión en El Arsenal de Diosmasgym:',
         url: displayUrl,
       });
     } catch (err) {
@@ -91,7 +91,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
   };
 
   const handleManualShare = (platform: string) => {
-    const text = encodeURIComponent("Mira esta reflexión en El Arsenal de Dios Más Gym:");
+    const text = encodeURIComponent("Mira esta reflexión en El Arsenal de Diosmasgym:");
     const encodedUrl = encodeURIComponent(displayUrl);
     
     let shareUrl = "";
@@ -168,7 +168,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ url }) => {
 
       <div className="mt-16 text-center border-t border-white/5 pt-12">
          <p className="text-[10px] text-white/10 font-black uppercase tracking-[0.5em]">
-           El Arsenal de Fe | Dios Mas Gym &copy; 2026
+           El Arsenal de Fe | Diosmasgym &copy; 2026
          </p>
       </div>
     </div>

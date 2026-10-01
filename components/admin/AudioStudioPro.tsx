@@ -3384,7 +3384,7 @@ const AudioStudioPro:React.FC=()=>{
                     setDirty(true);
                   }}
                   rows={10}
-                  placeholder={`Arrastra aquí tu archivo .txt, .lrc o .srt, o escribe/pega la letra completa de la canción...\n\nEjemplo:\n[Verso 1]\nCon la fe puesta en alto y la mirada al cielo...\n\n[Coro]\nDios más gym, fuerza y devoción...`}
+                  placeholder={`Arrastra aquí tu archivo .txt, .lrc o .srt, o escribe/pega la letra completa de la canción...\n\nEjemplo:\n[Verso 1]\nCon la fe puesta en alto y la mirada al cielo...\n\n[Coro]\nDiosmasgym, fuerza y devoción...`}
                   className="w-full bg-transparent p-5 text-sm text-white placeholder-white/20 outline-none resize-y font-sans leading-relaxed"
                 />
 
@@ -3462,7 +3462,7 @@ const AudioStudioPro:React.FC=()=>{
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[
                       { id: 'text', label: '✍️ Texto' },
-                      { id: 'logo_dios', label: '⚜️ Dios Mas Gym' },
+                      { id: 'logo_dios', label: '⚜️ Diosmasgym' },
                       { id: 'logo_juan', label: '🤠 Juan 614' },
                       { id: 'logo_dual', label: '⚔️ Logo Dual' },
                       { id: 'logo_mando', label: '🛡️ Mando Ejecutivo' },

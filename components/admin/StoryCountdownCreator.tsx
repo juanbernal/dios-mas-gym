@@ -73,7 +73,7 @@ export default function StoryCountdownCreator() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [songName, setSongName] = useState('NUEVA CANCIÓN');
-  const [artist, setArtist] = useState<'Dios Mas Gym' | 'Juan 614'>('Dios Mas Gym');
+  const [artist, setArtist] = useState<'Diosmasgym' | 'Juan 614'>('Diosmasgym');
   const [releaseDate, setReleaseDate] = useState('');
   const [coverUrlInput, setCoverUrlInput] = useState('');
   const [coverDataUrl, setCoverDataUrl] = useState(''); // always a dataURL or ''
@@ -177,7 +177,7 @@ export default function StoryCountdownCreator() {
       ctx.fillStyle = '#c5a059';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOS MAS GYM';
+      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOSMASGYM';
       ctx.fillText(brandHeader, W / 2, 95);
 
       // 5. Song title (wrapped, up to 2 lines)
@@ -348,7 +348,7 @@ export default function StoryCountdownCreator() {
       ctx.fillStyle = '#c5a059';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOS MAS GYM';
+      const brandHeader = artist.toLowerCase().includes('juan') ? 'EL ARSENAL  ·  JUAN 614' : 'EL ARSENAL  ·  DIOSMASGYM';
       ctx.fillText(brandHeader, W / 2, 95);
 
       // 5. Song title
@@ -528,7 +528,7 @@ export default function StoryCountdownCreator() {
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">Artista</label>
               <div className="flex gap-4">
-                {(['Dios Mas Gym', 'Juan 614'] as const).map(a => (
+                {(['Diosmasgym', 'Juan 614'] as const).map(a => (
                   <label key={a} className={`flex items-center gap-3 cursor-pointer px-5 py-3 rounded-xl border transition-all ${artist === a ? 'border-[#c5a059] bg-[#c5a059]/10' : 'border-white/10 text-white/50 hover:border-white/30'}`}>
                     <input type="radio" name="artist" value={a} checked={artist === a} onChange={() => setArtist(a)} className="accent-[#c5a059]" />
                     <span className="text-sm font-bold">{a}</span>
@@ -623,7 +623,7 @@ export default function StoryCountdownCreator() {
                 {coverDataUrl && <img src={coverDataUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />}
                 <div style={{ position:'absolute', inset:0, background: getOverlay() }} />
                 <div style={{ position:'relative', width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'100px 60px 80px' }}>
-                  <div style={{ color:'#c5a059', fontSize:'26px', fontWeight:900, letterSpacing:'10px', textTransform:'uppercase', textAlign:'center' }}>EL ARSENAL · DIOS MAS GYM</div>
+                  <div style={{ color:'#c5a059', fontSize:'26px', fontWeight:900, letterSpacing:'10px', textTransform:'uppercase', textAlign:'center' }}>EL ARSENAL · DIOSMASGYM</div>
                   <div style={{ fontFamily:'Georgia,serif', fontStyle:'italic', fontSize:'108px', color:'white', textAlign:'center', lineHeight:1.1, textShadow:'0 10px 40px rgba(0,0,0,0.9)' }}>{songName || 'NUEVA CANCIÓN'}</div>
                   <div>
                     {timeLeft.isReady ? (

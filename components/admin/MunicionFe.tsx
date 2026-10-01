@@ -116,9 +116,9 @@ const getAPIBookName = (book: string): string => {
 
 const FONDO_ESTILOS = [
   { id: 'carbon', name: '🖤 Negro Carbón', bgClass: 'bg-[#05070a]' },
-  { id: 'diosmasgym', name: '⚜️ Cruz Dios Mas Gym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
+  { id: 'diosmasgym', name: '⚜️ Cruz Diosmasgym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
   { id: 'juan614', name: '🤠 Juan 614', bgClass: 'bg-[#05070a]', watermark: '/logo-juan614-v2.png' },
-  { id: 'dual', name: '⚔️ Dios Mas Gym × Juan 614', bgClass: 'bg-[#05070a]', isDual: true },
+  { id: 'dual', name: '⚔️ Diosmasgym × Juan 614', bgClass: 'bg-[#05070a]', isDual: true },
   { id: 'mando', name: '🛡️ Mando Ejecutivo', bgClass: 'bg-[#05070a]', watermark: '/logo-mando-ejecutivo.png' },
   { id: 'metal', name: '⚡ Grano de Acero', bgClass: 'bg-gradient-to-b from-[#080b11] to-[#030406]', grain: true },
   { id: 'sangre', name: '🩸 Sangre Real', bgClass: 'bg-gradient-to-br from-[#1a0505] to-[#050000]', grain: true },
@@ -387,7 +387,7 @@ const MunicionFe: React.FC = () => {
                   value={cita}
                   onChange={e => setCita(e.target.value)}
                   className="flex-1 bg-[#05070a] border border-white/10 rounded-2xl px-5 py-4 text-xs text-white outline-none focus:border-[#c5a059]/40 transition-colors"
-                  placeholder="Ej: JOSUÉ 1:9 o DIOS MAS GYM"
+                  placeholder="Ej: JOSUÉ 1:9 o DIOSMASGYM"
                 />
                 <button
                   type="button"
@@ -667,7 +667,7 @@ const MunicionFe: React.FC = () => {
                 <div className="w-full flex justify-center pt-2 shrink-0 relative z-10">
                   {(styleFondo as any).isDual ? (
                     <div className="flex items-center gap-3">
-                      <img src="/logo-diosmasgym.png" alt="Dios Mas Gym" style={{ width: `${Math.round(logoSize * 0.75)}px`, height: 'auto' }} className="object-contain rounded-lg" />
+                      <img src="/logo-diosmasgym.png" alt="Diosmasgym" style={{ width: `${Math.round(logoSize * 0.75)}px`, height: 'auto' }} className="object-contain rounded-lg" />
                       <span className="text-white/30 text-xs font-black">×</span>
                       <img src="/logo-juan614-v2.png" alt="Juan 614" style={{ width: `${Math.round(logoSize * 0.75)}px`, height: 'auto' }} className="object-contain rounded-lg" />
                     </div>

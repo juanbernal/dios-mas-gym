@@ -81,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ${lyrics || 'Letra no proporcionada.'}
     """
 
-    Debes analizar a fondo el significado de la letra y su mensaje espiritual o motivacional (Dios Mas Gym), diseñando una metáfora visual coherente e impactante.
+    Debes analizar a fondo el significado de la letra y su mensaje espiritual o motivacional (Diosmasgym), diseñando una metáfora visual coherente e impactante.
     Debes devolver ÚNICAMENTE un objeto JSON válido con las siguientes claves y estructura, sin envolverlo en bloques de código markdown (\`\`\`json ... \`\`\`):
 
     {

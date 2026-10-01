@@ -35,7 +35,7 @@ const RecommendedSongs: React.FC<RecommendedSongsProps> = ({ songs, onPlay }) =>
 
       <div className="mt-16 text-center border-t border-white/5 pt-12">
         <p className="text-[10px] text-white/10 font-black uppercase tracking-[0.5em]">
-          El Arsenal de Fe | Dios Mas Gym &copy; 2026
+          El Arsenal de Fe | Diosmasgym &copy; 2026
         </p>
       </div>
     </section>

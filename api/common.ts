@@ -564,6 +564,8 @@ function normalizeLyrics(list: any[]): any[] {
     for (const k of ['id', 'title', 'artist', 'content', 'status', 'date']) {
       if (out[k] != null && typeof out[k] !== 'string') out[k] = String(out[k]);
     }
+    // El artista se escribe "Diosmasgym"; muchas letras viejas dicen "Dios Mas Gym"
+    if (typeof out.artist === 'string' && /^\s*dios ?m[aá]s ?gym\s*$/i.test(out.artist)) out.artist = 'Diosmasgym';
     return out;
   });
 }
@@ -927,7 +929,7 @@ export default async function handler(
     };
 
     try {
-      // 1. Fetch official music catalogs of Dios Mas Gym and Juan 614
+      // 1. Fetch official music catalogs of Diosmasgym and Juan 614
       const [csvDios, csvJuan] = await Promise.allSettled([
         getMusicCsv('diosmasgym'),
         getMusicCsv('juan614'),
@@ -1069,7 +1071,7 @@ export default async function handler(
       bio: "Corridos, banda sinaloense y calle con propósito",
       avatar: "/logo-juan614-v2.png"
     } : { 
-      name: "Dios Mas Gym", 
+      name: "Diosmasgym", 
       bio: "El Arsenal de Fe | Música, Disciplina y Transformación", 
       avatar: "/logo-diosmasgym.png" 
     };
@@ -1219,9 +1221,9 @@ export default async function handler(
           currentLyrics = bodyData.lyrics;
         } else if (bodyData && (bodyData.title || bodyData.id)) {
           const lyricItem = {
-            id: bodyData.id || generateSlug(`${bodyData.artist || 'Dios Mas Gym'}-${bodyData.title}`),
+            id: bodyData.id || generateSlug(`${bodyData.artist || 'Diosmasgym'}-${bodyData.title}`),
             title: bodyData.title || 'Sin título',
-            artist: bodyData.artist || 'Dios Mas Gym',
+            artist: bodyData.artist || 'Diosmasgym',
             content: bodyData.content || bodyData.lyrics || '',
             date: bodyData.date || new Date().toISOString(),
             status: bodyData.status || 'LIVE'
@@ -1772,7 +1774,7 @@ export default async function handler(
     if (!apiKey) return res.status(500).json({ error: 'Falta la API Key.' });
 
     const modelName = 'gemini-2.5-flash';
-    const promptText = `Busca en internet la letra exacta y oficial de la canción "${name}" del artista "${artist || 'Dios Mas Gym'}". Devuelve ÚNICAMENTE la letra de la canción organizada en estrofas.`;
+    const promptText = `Busca en internet la letra exacta y oficial de la canción "${name}" del artista "${artist || 'Diosmasgym'}". Devuelve ÚNICAMENTE la letra de la canción organizada en estrofas.`;
 
     try {
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
@@ -2033,7 +2035,7 @@ export default async function handler(
       const byArtist = new Map<string, MusicItem[]>();
       songs.forEach(s => {
         if (!s.id || !s.name) return;
-        const a = s.artist || 'Dios Mas Gym';
+        const a = s.artist || 'Diosmasgym';
         if (!byArtist.has(a)) byArtist.set(a, []);
         byArtist.get(a)!.push(s);
       });
@@ -2052,7 +2054,7 @@ export default async function handler(
           sections += '</ul></section>';
         });
 
-      const title = 'Catálogo completo de canciones y letras | Dios Mas Gym';
+      const title = 'Catálogo completo de canciones y letras | Diosmasgym';
       const desc = `Todas las canciones de Diosmasgym y Juan 614: ${songs.length} temas de música cristiana, rap cristiano y corridos de fe, con enlaces para escucharlos y leer sus letras.`;
       const html = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2064,8 +2066,8 @@ export default async function handler(
 <meta property="og:url" content="${BASE}/catalogo"><meta property="og:type" content="website"><meta property="og:image" content="${BASE}/api/og-image">
 <style>body{background:#05070a;color:#e5e7eb;font:16px/1.6 system-ui,sans-serif;padding:24px;max-width:900px;margin:auto}a{color:#facc15;text-decoration:none}a:hover{text-decoration:underline}h1{font-size:1.8rem}h2{margin-top:2rem;border-bottom:1px solid #222;padding-bottom:.3rem}small{color:#888}ul{columns:2 280px;padding-left:1.2rem}li{margin:.2rem 0;break-inside:avoid}</style>
 </head><body>
-<p><a href="/">&larr; Dios Mas Gym</a> &middot; <a href="/buscar">Buscar</a> &middot; <a href="/bio">Bio</a></p>
-<h1>Catálogo completo de Dios Mas Gym</h1>
+<p><a href="/">&larr; Diosmasgym</a> &middot; <a href="/buscar">Buscar</a> &middot; <a href="/bio">Bio</a></p>
+<h1>Catálogo completo de Diosmasgym</h1>
 <p>${esc(desc)}</p>
 ${sections}
 </body></html>`;
@@ -2085,7 +2087,7 @@ ${sections}
     const artist = (req.query.artist as string) || 'diosmasgym';
     const isJuan = artist.toLowerCase() === 'juan614';
 
-    const name = isJuan ? 'Juan 614' : 'Dios Mas Gym';
+    const name = isJuan ? 'Juan 614' : 'Diosmasgym';
     const bio = isJuan
       ? 'Corridos tumbados, banda sinaloense y calle con propósito. Música cristiana con identidad.'
       : 'El Arsenal de Fe — Música cristiana, rap y corridos de motivación. Reflexiones de disciplina, valentía y fe.';
@@ -2178,7 +2180,7 @@ ${sections}
 
     // Panel admin: la app funciona igual, pero nunca se indexa
     if (first === 'admin') {
-      html = applyPageMeta(html, { title: 'Panel | Dios Mas Gym', description: 'Panel de administración.', canonical: null, robots: 'noindex, nofollow' });
+      html = applyPageMeta(html, { title: 'Panel | Diosmasgym', description: 'Panel de administración.', canonical: null, robots: 'noindex, nofollow' });
       res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).send(html);
@@ -2186,13 +2188,13 @@ ${sections}
 
     const pages: Record<string, { title: string; description: string; canonical: string }> = {
       '/buscar': {
-        title: 'Buscar canciones y letras | Dios Mas Gym',
+        title: 'Buscar canciones y letras | Diosmasgym',
         description: 'Busca entre todas las canciones y letras de Diosmasgym y Juan 614: música cristiana, rap cristiano y corridos de fe.',
         canonical: `${BASE}/buscar`,
       },
       '/testimonios': {
-        title: 'Testimonios | Dios Mas Gym',
-        description: 'Testimonios reales de personas a las que la música de Dios Mas Gym ha ayudado en su fe, su disciplina y su vida diaria.',
+        title: 'Testimonios | Diosmasgym',
+        description: 'Testimonios reales de personas a las que la música de Diosmasgym ha ayudado en su fe, su disciplina y su vida diaria.',
         canonical: `${BASE}/testimonios`,
       },
     };
@@ -2209,8 +2211,8 @@ ${sections}
 
     // Cualquier otra ruta: 404 real (la app sigue mostrando su pantalla de "no encontrado")
     html = applyPageMeta(html, {
-      title: 'Página no encontrada | Dios Mas Gym',
-      description: 'Esta página no existe. Explora el catálogo de canciones y letras de Dios Mas Gym.',
+      title: 'Página no encontrada | Diosmasgym',
+      description: 'Esta página no existe. Explora el catálogo de canciones y letras de Diosmasgym.',
       canonical: null,
       robots: 'noindex, follow',
     });
@@ -2330,7 +2332,7 @@ ${sections}
         }
       }
 
-      let title = "Dios Mas Gym - El Arsenal de Fe";
+      let title = "Diosmasgym - El Arsenal de Fe";
       let description = "Reflexiones de fe, valentía y disciplina en El Arsenal.";
       let image = "/logo-diosmasgym.png";
 
@@ -2373,7 +2375,7 @@ ${sections}
   },
   "publisher": {
     "@type": "Organization",
-    "name": "Dios Mas Gym",
+    "name": "Diosmasgym",
     "logo": {
       "@type": "ImageObject",
       "url": "https://www.diosmasgym.com/logo-diosmasgym.png"
@@ -2484,7 +2486,7 @@ ${sections}
         return false;
       });
 
-      let title = "Dios Mas Gym - Smart Link";
+      let title = "Diosmasgym - Smart Link";
       let description = "Escucha los últimos lanzamientos de música cristiana y de motivación.";
       let image = "/logo-diosmasgym.png";
       let jsonLdBlock = '';
@@ -2585,7 +2587,7 @@ ${sections}
           /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
           `<meta name="robots" content="noindex, nofollow">`
         );
-        html = html.replace(/<title>[^<]*<\/title>/i, `<title>Canción no encontrada - Dios Mas Gym</title>`);
+        html = html.replace(/<title>[^<]*<\/title>/i, `<title>Canción no encontrada - Diosmasgym</title>`);
         html = html.replace('</head>', `<link rel="canonical" href="https://www.diosmasgym.com/" />\n</head>`);
         res.setHeader('Cache-Control', 'no-store, no-cache');
         res.setHeader('Content-Type', 'text/html');
@@ -2692,7 +2694,8 @@ ${sections}
       );
 
       const songTitle = song?.name || matchedStored?.title || slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-      const songArtist = song?.artist || matchedStored?.artist || 'Dios Mas Gym';
+      const rawArtist = song?.artist || matchedStored?.artist || 'Diosmasgym';
+      const songArtist = /^\s*dios ?m[aá]s ?gym\s*$/i.test(rawArtist) ? 'Diosmasgym' : rawArtist;
       const lyricText = lyricHtmlToText((matchedStored?.content || song?.lyrics || '').trim());
 
       // ---------------------------------------------------------------
@@ -2755,7 +2758,9 @@ ${sections}
         : (matchedStored ? (generateSlug(String(matchedStored.id || matchedStored.title || '')) || normSlug) : normSlug);
       const canonicalUrl = `https://www.diosmasgym.com/letra/${canonicalSlug}`;
 
-      const pageTitle = `${songTitle} - Letra Oficial | ${songArtist} | Dios Más Gym`;
+      const pageTitle = songArtist === 'Diosmasgym'
+        ? `${songTitle} - Letra Oficial | Diosmasgym`
+        : `${songTitle} - Letra Oficial | ${songArtist} | Diosmasgym`;
       const pageDescription = toMetaDescription(`Letra oficial de "${songTitle}" por ${songArtist}. ${lyricText}`);
 
       // Calculate absolute cover URL first (needed for ogImageUrl)
@@ -2875,14 +2880,14 @@ ${JSON.stringify(breadcrumbJsonLd, null, 2)}
     let xml = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
     xml += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n`;
     xml += `<channel>\n`;
-    xml += `  <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
+    xml += `  <title>Diosmasgym - El Arsenal de Fe</title>\n`;
     xml += `  <link>https://www.diosmasgym.com</link>\n`;
     xml += `  <description>Reflexiones de fe, valentía, disciplina y lanzamientos de música cristiana y de motivación.</description>\n`;
     xml += `  <language>es-mx</language>\n`;
     xml += `  <atom:link href="https://www.diosmasgym.com/feed.xml" rel="self" type="application/rss+xml" />\n`;
     xml += `  <image>\n`;
     xml += `    <url>https://www.diosmasgym.com/icon-512.png</url>\n`;
-    xml += `    <title>Dios Mas Gym - El Arsenal de Fe</title>\n`;
+    xml += `    <title>Diosmasgym - El Arsenal de Fe</title>\n`;
     xml += `    <link>https://www.diosmasgym.com</link>\n`;
     xml += `    <width>512</width>\n`;
     xml += `    <height>512</height>\n`;

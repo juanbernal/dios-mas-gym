@@ -162,7 +162,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
             if (incomingSong) {
                 setSelectedSong(incomingSong);
                 setCustomTitle(incomingSong.name);
-                setCustomArtist(incomingSong.artist || "Dios Mas Gym");
+                setCustomArtist(incomingSong.artist || "Diosmasgym");
             }
         });
     }, [location.state?.song]);
@@ -260,7 +260,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const h = 1080;
         const time = timeOverride ?? Date.now() / 1000;
         
-        // Auto-detect theme (Juan style northern acoustic or Dios Mas Gym urban dark gold)
+        // Auto-detect theme (Juan style northern acoustic or Diosmasgym urban dark gold)
         const isJuan = (artistRef.current || selectedSong.artist || '').toLowerCase().includes('juan');
         const accentColor = isJuan ? '#c89d53' : '#c5a059';
 
@@ -390,7 +390,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
         const coverRadius = 20;
 
         if (isImgReady) {
-            // Draw Dios Mas Gym golden pulsing blur halo behind cover
+            // Draw Diosmasgym golden pulsing blur halo behind cover
             if (!isJuan) {
                 ctx.save();
                 ctx.shadowBlur = isStatic ? 65 : (60 + smoothNoise(time) * 20);
@@ -493,7 +493,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
         ctx.font = '700 16px Poppins, sans-serif';
         if ('letterSpacing' in ctx) (ctx as any).letterSpacing = '6px';
         ctx.shadowBlur = 8;
-        ctx.fillText((customArtist || selectedSong.artist || 'DIOS MAS GYM').toUpperCase(), colCenterX, 655);
+        ctx.fillText((customArtist || selectedSong.artist || 'DIOSMASGYM').toUpperCase(), colCenterX, 655);
         ctx.restore();
 
         // Left Player Card (Beautifully centered, width = 460px to match cover cleanly)
@@ -773,7 +773,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
             ctx.textBaseline = 'middle';
             ctx.fillStyle = accentColor;
             
-            // compact disc icon (\uf51f) for Juan, list icon (\uf0ca) for Dios Mas Gym
+            // compact disc icon (\uf51f) for Juan, list icon (\uf0ca) for Diosmasgym
             ctx.font = '900 14px "Font Awesome 6 Free"';
             ctx.fillText(isJuan ? '\uf51f' : '\uf0ca', cardX + 35, tracklistStartY);
             
@@ -1109,7 +1109,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
                                     onClick={() => {
                                         setSelectedSong(song);
                                         setCustomTitle(song.name);
-                                        setCustomArtist(song.artist || "Dios Mas Gym");
+                                        setCustomArtist(song.artist || "Diosmasgym");
                                     }}
                                     className={`w-full p-3 rounded-xl flex items-center gap-4 transition-all ${selectedSong?.id === song.id ? 'bg-[#c5a059] text-black' : 'bg-white/5 hover:bg-white/10'}`}
                                 >
@@ -1146,7 +1146,7 @@ const SmartLinkVideoGenerator: React.FC = () => {
                                         value={customArtist} 
                                         onChange={e => setCustomArtist(e.target.value)}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-[#c5a059]/40 transition-all"
-                                        placeholder="Ej: DIOS MAS GYM"
+                                        placeholder="Ej: DIOSMASGYM"
                                     />
                                 </div>
                             </div>

@@ -230,7 +230,7 @@ const LyricStudio: React.FC = () => {
       try {
         const queryString = new URLSearchParams({
           action: 'save',          title: name,
-          artist: "Dios Mas Gym", // Default artist for Studio
+          artist: "Diosmasgym", // Default artist for Studio
           date: date
         }).toString();
         
@@ -239,7 +239,7 @@ const LyricStudio: React.FC = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'save',            title: name,
-            artist: "Dios Mas Gym",
+            artist: "Diosmasgym",
             content: content,
             date: date
           })

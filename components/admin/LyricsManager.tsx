@@ -181,7 +181,7 @@ const LyricsManager: React.FC = () => {
             trash.forEach((t, i) => zip.file(`papelera/${uniq(`${safe(t.artist)} - ${safe(t.title)}`)}_${i + 1}.txt`, plainText(t.content || '')));
 
             const manifest = {
-                proyecto: 'Dios Más Gym - Gestor de Letras',
+                proyecto: 'Diosmasgym - Gestor de Letras',
                 generadoEn: new Date().toISOString(),
                 totalLetras: items.length,
                 nota: 'sha256 = huella SHA-256 del texto plano (UTF-8) de cada archivo .txt. Si el texto cambia una sola letra, la huella cambia.',
@@ -223,7 +223,7 @@ const LyricsManager: React.FC = () => {
                     webItems = list.map((l: any, i: number) => ({
                         id: l.id || `web-${i}`,
                         title: l.title || 'Sin título',
-                        artist: l.artist || 'Dios Mas Gym',
+                        artist: l.artist || 'Diosmasgym',
                         content: l.content || l.lyrics || '',
                         status: 'LIVE' as const,
                         date: l.date || new Date().toISOString()
@@ -276,7 +276,7 @@ const LyricsManager: React.FC = () => {
                             sheetItems = items.map((l: any, i: number) => ({
                                 id: `sheet-${i}-${Date.now()}`,
                                 title: l.title || l.name || 'Sin título',
-                                artist: l.artist || 'Dios Mas Gym',
+                                artist: l.artist || 'Diosmasgym',
                                 content: l.content || l.lyrics || '',
                                 status: 'CLOUD' as const,
                                 date: l.date || new Date().toISOString()
@@ -296,7 +296,7 @@ const LyricsManager: React.FC = () => {
             const localItems: LyricItem[] = local.map((l: any, i: number) => ({
                 id: `local-${i}`,
                 title: l.name || l.title || 'Borrador',
-                artist: l.artist || 'Dios Mas Gym',
+                artist: l.artist || 'Diosmasgym',
                 content: l.content || '',
                 status: 'LOCAL' as const,
                 date: l.date || new Date().toISOString()
@@ -436,7 +436,7 @@ const LyricsManager: React.FC = () => {
 
     // Importacion masiva: separa un texto pegado con muchas letras juntas en canciones individuales.
     // Formato esperado por bloque, separados por una linea con solo guiones (---):
-    //   Titulo - Artista        (la linea de artista es opcional, default "Dios Mas Gym")
+    //   Titulo - Artista        (la linea de artista es opcional, default "Diosmasgym")
     //   ...resto de la letra...
     // Tambien acepta el formato exportado de DistroKid: "--- Titulo ---" arriba de cada letra
     // (las lineas "ÁLBUM: ..." y "=====" se ignoran).
@@ -452,7 +452,7 @@ const LyricsManager: React.FC = () => {
                 const key = current.title.toLowerCase();
                 if (current.title && content && !seen.has(key)) {
                     seen.add(key);
-                    const artist = /feat\.?\s*juan\s*614/i.test(current.title) ? 'Juan 614' : 'Dios Mas Gym';
+                    const artist = /feat\.?\s*juan\s*614/i.test(current.title) ? 'Juan 614' : 'Diosmasgym';
                     results.push({ title: current.title, artist, content });
                 }
             };
@@ -472,11 +472,11 @@ const LyricsManager: React.FC = () => {
             const lines = trimmed.split('\n');
             const headerLine = lines[0].trim();
             let title = headerLine;
-            let artist = 'Dios Mas Gym';
+            let artist = 'Diosmasgym';
             const m = headerLine.match(/^(.+?)\s*[-|–]\s*(diosmasgym|dios\s*mas\s*gym|juan\s*614)\s*$/i);
             if (m) {
                 title = m[1].trim();
-                artist = /juan/i.test(m[2]) ? 'Juan 614' : 'Dios Mas Gym';
+                artist = /juan/i.test(m[2]) ? 'Juan 614' : 'Diosmasgym';
             }
             const content = lines.slice(1).join('\n').trim();
             if (title && content) results.push({ title, artist, content });
@@ -981,7 +981,7 @@ ${cleanedLyrics}`;
     </div>
     
     <div style="margin-top:40px; text-align:center; font-size:12px; color:#aaa; text-transform:uppercase; letter-spacing:3px;">
-        &copy; ${new Date().getFullYear()} Dios Mas Gym Records
+        &copy; ${new Date().getFullYear()} Diosmasgym Records
     </div>
 </div>`;
             };
@@ -1304,10 +1304,10 @@ ${cleanedLyrics}`;
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-white/40 mr-2">ARTISTA:</span>
                                         <button 
-                                            onClick={() => setSelectedLyric({...selectedLyric, artist: 'Dios Mas Gym'})}
-                                            className={`text-[7px] md:text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${selectedLyric.artist === 'Dios Mas Gym' ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
+                                            onClick={() => setSelectedLyric({...selectedLyric, artist: 'Diosmasgym'})}
+                                            className={`text-[7px] md:text-[8px] font-black uppercase px-3 py-1 rounded-full border transition-all ${/^dios ?m[aá]s ?gym$/i.test((selectedLyric.artist || '').trim()) ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/40 border-white/10'}`}
                                         >
-                                            Dios Mas Gym
+                                            Diosmasgym
                                         </button>
                                         <button 
                                             onClick={() => setSelectedLyric({...selectedLyric, artist: 'Juan 614'})}
@@ -1792,7 +1792,7 @@ ${cleanedLyrics}`;
                     <div className="p-6 overflow-y-auto space-y-4">
                         <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-[11px] text-white/60 leading-relaxed">
                             <p className="font-black uppercase text-[9px] tracking-widest text-indigo-300 mb-2">Cómo separarlas</p>
-                            Escribe o pega el título en la primera línea de cada canción (puedes poner <code className="text-indigo-300">Título - Artista</code>, si no pones artista se usa Dios Mas Gym), luego la letra, y entre canción y canción una línea que diga solo <code className="text-indigo-300">---</code>. Ejemplo:
+                            Escribe o pega el título en la primera línea de cada canción (puedes poner <code className="text-indigo-300">Título - Artista</code>, si no pones artista se usa Diosmasgym), luego la letra, y entre canción y canción una línea que diga solo <code className="text-indigo-300">---</code>. Ejemplo:
                             <pre className="mt-2 bg-black/40 rounded-xl p-3 text-[10px] text-white/50 whitespace-pre-wrap font-mono">{`Un Saludo de Despedida - Diosmasgym\nIntro\nEeeeh, vámonos con el alma en la mano\n...\n\n---\n\nOtra Canción - Juan 614\nletra letra letra...`}</pre>
                         </div>
                         <label className="flex items-center justify-center gap-2 w-full border border-dashed border-indigo-400/30 rounded-2xl p-3 text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:bg-indigo-500/10 cursor-pointer transition-all">
@@ -1902,7 +1902,7 @@ ${cleanedLyrics}`;
                                 onChange={(e) => setNewLyricTitle(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && newLyricTitle.trim()) {
-                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Diosmasgym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
                                         setSelectedLyric(newLyric);
                                         setSavedSignature(getSignature(newLyric));
                                         setPreviewMode(false);
@@ -1922,11 +1922,11 @@ ${cleanedLyrics}`;
                                             onClick={() => {
                                                 const existing = lyrics.find(l => 
                                                     (l.id && l.id === song.id) || 
-                                                    (l.title.toLowerCase().trim() === song.name.toLowerCase().trim() && (l.artist || '').toLowerCase().trim() === (song.artist || 'Dios Mas Gym').toLowerCase().trim())
+                                                    (l.title.toLowerCase().trim() === song.name.toLowerCase().trim() && (l.artist || '').toLowerCase().replace(/\s+/g, '').replace('á', 'a') === (song.artist || 'Diosmasgym').toLowerCase().replace(/\s+/g, '').replace('á', 'a'))
                                                 );
                                                 const newLyric = existing 
                                                     ? existing 
-                                                    : { id: song.id, title: song.name, artist: song.artist || 'Dios Mas Gym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                                    : { id: song.id, title: song.name, artist: song.artist || 'Diosmasgym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
                                                 setSelectedLyric(newLyric);
                                                 setSavedSignature(getSignature(newLyric));
                                                 setPreviewMode(false);
@@ -1953,7 +1953,7 @@ ${cleanedLyrics}`;
                         <button
                             onClick={() => {
                                 if (newLyricTitle.trim()) {
-                                    const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Dios Mas Gym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
+                                    const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Diosmasgym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
                                     setSelectedLyric(newLyric);
                                     setSavedSignature(getSignature(newLyric));
                                     setPreviewMode(false);

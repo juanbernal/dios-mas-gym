@@ -8,7 +8,7 @@ app.get("/api/test", (req, res) => {
 });
 
 app.get("*", (req, res) => {
-  res.send("<h1>Dios Mas Gym - Debug Server</h1>");
+  res.send("<h1>Diosmasgym - Debug Server</h1>");
 });
 
 app.listen(PORT, () => {

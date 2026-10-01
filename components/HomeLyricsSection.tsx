@@ -95,7 +95,7 @@ export const HomeLyricsSection: React.FC<HomeLyricsSectionProps> = ({ catalog, o
       if (!title || seenTitles.has(normTitle)) return;
       seenTitles.add(normTitle);
 
-      const artist = (l.artist || 'Dios Mas Gym').trim();
+      const artist = (l.artist || 'Diosmasgym').trim();
       const slug = l.slug || l.id || generateSlug(title);
       const isReflection = title.toLowerCase().includes('reflexi') || l.content?.length > 4000;
 
@@ -258,7 +258,7 @@ export const HomeLyricsSection: React.FC<HomeLyricsSectionProps> = ({ catalog, o
             }`}
           >
             <i className="fas fa-dumbbell" />
-            Dios Mas Gym
+            Diosmasgym
           </button>
 
           <button

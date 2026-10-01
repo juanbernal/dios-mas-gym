@@ -1639,7 +1639,7 @@ const AntiAIWatermark: React.FC = () => {
                     ctx.stroke();
 
                     // Circular text
-                    const txt = " DIOS MAS GYM • DIOS MAS GYM •";
+                    const txt = " DIOSMASGYM • DIOSMASGYM •";
                     ctx.font = `800 ${fontSize * 0.7}px Montserrat, Inter, sans-serif`;
                     ctx.fillStyle = '#ffffff';
                     ctx.textAlign = 'center';

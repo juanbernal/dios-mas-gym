@@ -349,7 +349,7 @@ const MusicVideoPromptGenerator: React.FC = () => {
                                     type="text"
                                     value={formData.artist}
                                     onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
-                                    placeholder="Ej: Dios Mas Gym"
+                                    placeholder="Ej: Diosmasgym"
                                     className="w-full bg-[#05070a] border border-white/10 rounded-xl p-4 text-xs text-white focus:border-[#c5a059]/50 outline-none transition-all"
                                 />
                             </div>

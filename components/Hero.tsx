@@ -126,7 +126,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
               {/* Top label */}
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-8 h-[2px]" style={{ background: '#2563a8' }}></div>
-                <span className="label-tag" style={{ color: '#4a90d9', letterSpacing: '0.4em' }}>✝ Dios Más Gym · 614 ✝</span>
+                <span className="label-tag" style={{ color: '#4a90d9', letterSpacing: '0.4em' }}>✝ Diosmasgym · 614 ✝</span>
                 <div className="w-8 h-[2px]" style={{ background: '#2563a8' }}></div>
               </div>
 

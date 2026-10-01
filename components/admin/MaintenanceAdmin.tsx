@@ -243,7 +243,7 @@ const MaintenanceAdmin: React.FC = () => {
                 </div>
                 
                 <div className="absolute inset-x-4 bottom-4 z-10 p-4 rounded-2xl bg-black/75 border border-white/5 backdrop-blur-md text-center">
-                  <p className="font-serif italic text-xs text-white">Dios Más Gym</p>
+                  <p className="font-serif italic text-xs text-white">Diosmasgym</p>
                   <p className="text-[7px] font-black uppercase tracking-wider text-[#c5a059] mt-0.5">Volvemos pronto</p>
                 </div>
               </div>
