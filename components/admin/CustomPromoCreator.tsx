@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchMusicCatalog } from "../../services/musicService";
 import { MusicItem } from "../../types";
+import { BOOK_NR, fetchChapter } from "../../services/bibleService";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type StyleId = "dark-cinematic" | "gold-luxury" | "neon-noir" | "minimal-type" | "grunge-press" | "film-grain" | "editorial-white" | "deep-purple" | "chrome-metal" | "blood-red";
@@ -684,19 +685,17 @@ const CustomPromoCreator: React.FC = () => {
         ? ["salmos", "proverbios", "filipenses", "efesios", "juan", "romanos"]
         : ["josue", "salmos", "proverbios", "romanos", "1-corintios", "filipenses", "isaias"];
       const b = books[Math.floor(Math.random() * books.length)];
-      const maxCh = b === "salmos" ? 150 : b === "proverbios" ? 31 : b === "isaias" ? 66 : 6;
+      const CHAPTERS: Record<string, number> = { salmos: 150, proverbios: 31, isaias: 66, josue: 24, juan: 21, romanos: 16, "1-corintios": 16, efesios: 6, filipenses: 4 };
+      const maxCh = CHAPTERS[b] ?? 4;
       const ch = Math.floor(Math.random() * maxCh) + 1;
-      const res = await fetch(`https://bible-api.deno.dev/api/read/rv1960/${b}/${ch}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.vers && data.vers.length > 0) {
-          const v = data.vers[Math.floor(Math.random() * data.vers.length)];
-          setQuoteText(v.verse.trim());
-          setQuoteRef(`${b.charAt(0).toUpperCase() + b.slice(1)} ${ch}:${v.number}`);
-          setShowQuote(true);
-          showToast("✝️ Versículo cargado de la Biblia");
-          return;
-        }
+      const verses = await fetchChapter(BOOK_NR[b], ch);
+      if (verses.length > 0) {
+        const v = verses[Math.floor(Math.random() * verses.length)];
+        setQuoteText(v.text);
+        setQuoteRef(`${b.charAt(0).toUpperCase() + b.slice(1)} ${ch}:${v.number}`);
+        setShowQuote(true);
+        showToast("✝️ Versículo cargado de la Biblia");
+        return;
       }
     } catch {}
     // Fallback

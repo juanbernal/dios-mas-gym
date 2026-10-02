@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
+import { bookNumber, fetchVerse } from '../../services/bibleService';
 
 interface VersiculoPredefinido {
   versiculo: string;
@@ -106,14 +107,6 @@ const parseReference = (ref: string): ParsedReference | null => {
   };
 };
 
-const getAPIBookName = (book: string): string => {
-  return book
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .toLowerCase();
-};
-
 const FONDO_ESTILOS = [
   { id: 'carbon', name: '🖤 Negro Carbón', bgClass: 'bg-[#05070a]' },
   { id: 'diosmasgym', name: '⚜️ Cruz Diosmasgym', bgClass: 'bg-[#05070a]', watermark: '/logo-diosmasgym.png' },
@@ -166,25 +159,22 @@ const MunicionFe: React.FC = () => {
         throw new Error("Formato de cita no reconocido. Usa el formato 'Libro Capítulo:Versículo' (ej: Josue 1:9 o 1 Corintios 9:27).");
       }
 
-      const apiBook = getAPIBookName(parsed.book);
-      const url = `https://bible-api.deno.dev/api/read/rv1960/${apiBook}/${parsed.chapter}`;
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error("No se pudo conectar con la API de la Biblia o el libro/capítulo es inválido.");
+      const bookNr = bookNumber(parsed.book);
+      if (!bookNr) {
+        throw new Error(`No reconozco el libro "${parsed.book}".`);
       }
 
-      const data = await res.json();
-      if (!data.vers || !Array.isArray(data.vers)) {
-        throw new Error("Respuesta de la API inválida.");
+      let verseText: string | null;
+      try {
+        verseText = await fetchVerse(bookNr, parsed.chapter, parsed.verse);
+      } catch {
+        throw new Error("No se pudo conectar con la API de la Biblia o el capítulo es inválido.");
       }
-
-      const verseObj = data.vers.find((v: any) => v.number === parsed.verse);
-      if (!verseObj) {
+      if (!verseText) {
         throw new Error(`No se encontró el versículo ${parsed.verse} en el capítulo ${parsed.chapter}.`);
       }
 
-      setTexto(verseObj.verse);
+      setTexto(verseText);
       setCita(cita.toUpperCase().trim());
     } catch (err: any) {
       console.error(err);

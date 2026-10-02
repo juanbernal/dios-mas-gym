@@ -6,6 +6,7 @@ import { fetchMusicCatalog } from "../../services/musicService";
 import { generateSocialCaption, SocialCaptionResult } from "../../services/geminiService";
 import { MusicItem } from "../../types";
 import { getCorsFriendlyUrl } from "../../services/imageHelpers";
+import { BOOK_NR, fetchChapter } from "../../services/bibleService";
 
 const sizes = {
   instagram: { w: 500, h: 650, title: 32 },
@@ -415,13 +416,10 @@ const PromoImageApp: React.FC = () => {
         const bookData = BIBLE_BOOKS[randomBookKey];
         if (!bookData) continue;
         const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
-        const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
-          const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
-          const cleanText = randomVerseObj.verse.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+        const verses = await fetchChapter(BOOK_NR[bookData.apiName], randomChapter);
+        if (verses.length > 0) {
+          const randomVerseObj = verses[Math.floor(Math.random() * verses.length)];
+          const cleanText = randomVerseObj.text.replace(/^["'\s]+|["'\s]+$/g, '').trim();
           const citation = `${bookData.prettyName} ${randomChapter}:${randomVerseObj.number}`;
           setSlogan(`"${cleanText}" · ${citation}`);
           success = true;
