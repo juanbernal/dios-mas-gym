@@ -2582,7 +2582,10 @@ ${sections}
       let html = await getBaseIndexHtml();
 
       // If song not found, return real 404 to avoid Soft 404 in GSC
-      if (!song && id !== 'custom' && !(req.query.title && req.query.artist)) {
+      // Los proximos lanzamientos (prx-*) vienen del sheet y no estan en el catalogo:
+      // la pagina existe (cuenta regresiva), asi que no es 404, solo noindex.
+      const isUpcoming = id.startsWith('prx-');
+      if (!song && !isUpcoming && id !== 'custom' && !(req.query.title && req.query.artist)) {
         html = html.replace(
           /<meta\s+name=["']robots["']\s+content=["'][^"']*["']\s*\/?>/i,
           `<meta name="robots" content="noindex, nofollow">`

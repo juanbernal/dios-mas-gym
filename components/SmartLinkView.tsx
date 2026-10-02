@@ -5,6 +5,7 @@ import { fetchMusicCatalog, fetchSavedLyrics } from '../services/musicService';
 import { MusicItem } from '../types';
 import { useOneSignal } from '../services/useOneSignal';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { BOOK_NR, fetchChapter } from '../services/bibleService';
 
 const generateSlug = (text: string) =>
     (text || '').toLowerCase()
@@ -787,14 +788,12 @@ const SmartLinkView: React.FC = () => {
                 if (!bookData) continue;
                 
                 const randomChapter = Math.floor(Math.random() * bookData.chapters) + 1;
-                const url = `https://bible-api.deno.dev/api/read/rv1960/${bookData.apiName}/${randomChapter}`;
-                const res = await fetch(url);
-                if (!res.ok) continue;
-                
-                const data = await res.json();
-                if (data && data.vers && Array.isArray(data.vers) && data.vers.length > 0) {
-                    const randomVerseObj = data.vers[Math.floor(Math.random() * data.vers.length)];
-                    verseText = randomVerseObj.verse;
+                const bookNr = BOOK_NR[bookData.apiName];
+                if (!bookNr) continue;
+                const verses = await fetchChapter(bookNr, randomChapter);
+                if (verses.length > 0) {
+                    const randomVerseObj = verses[Math.floor(Math.random() * verses.length)];
+                    verseText = randomVerseObj.text;
                     citation = `${bookData.prettyName.toUpperCase()} ${randomChapter}:${randomVerseObj.number}`;
                     success = true;
                 }

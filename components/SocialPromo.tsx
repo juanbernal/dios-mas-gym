@@ -47,7 +47,7 @@ export const SocialPopup: React.FC = () => {
         { name: 'YouTube', icon: 'fab fa-youtube', url: 'https://www.youtube.com/@Diosmasgym', bg: 'hover:bg-red-600 hover:text-white hover:border-red-500' },
         { name: 'Instagram', icon: 'fab fa-instagram', url: 'https://www.instagram.com/diosmasgym', bg: 'hover:bg-pink-600 hover:text-white hover:border-pink-500' },
         { name: 'TikTok', icon: 'fab fa-tiktok', url: 'https://www.tiktok.com/@diosmasgym', bg: 'hover:bg-white hover:text-black hover:border-white' },
-        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/4Z10Yx4YjL34q6S8S7W1Xw', bg: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
+        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do', bg: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
         { name: 'Facebook', icon: 'fab fa-facebook', url: 'https://www.facebook.com/diosmasgym', bg: 'hover:bg-blue-600 hover:text-white hover:border-blue-500' },
     ];
 
@@ -168,7 +168,7 @@ export const InlineFollowNetworks: React.FC = () => {
         { name: 'YouTube', icon: 'fab fa-youtube', url: 'https://www.youtube.com/@Diosmasgym', color: 'hover:bg-red-600 hover:text-white hover:border-red-500' },
         { name: 'Instagram', icon: 'fab fa-instagram', url: 'https://www.instagram.com/diosmasgym', color: 'hover:bg-pink-600 hover:text-white hover:border-pink-500' },
         { name: 'TikTok', icon: 'fab fa-tiktok', url: 'https://www.tiktok.com/@diosmasgym', color: 'hover:bg-white hover:text-black hover:border-white' },
-        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/4Z10Yx4YjL34q6S8S7W1Xw', color: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
+        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do', color: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
         { name: 'Facebook', icon: 'fab fa-facebook', url: 'https://www.facebook.com/diosmasgym', color: 'hover:bg-blue-600 hover:text-white hover:border-blue-500' },
     ];
 

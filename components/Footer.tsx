@@ -42,7 +42,7 @@ const Footer: React.FC = () => {
             { label: 'Instagram', icon: 'fa-instagram', href: 'https://www.instagram.com/diosmasgym', color: '#e1306c', bg: 'rgba(225,48,108,0.08)' },
             { label: 'TikTok', icon: 'fa-tiktok', href: 'https://www.tiktok.com/@diosmasgym', color: '#ffffff', bg: 'rgba(255,255,255,0.05)' },
             { label: 'YouTube', icon: 'fa-youtube', href: 'https://www.youtube.com/@diosmasgym', color: '#ff0000', bg: 'rgba(255,0,0,0.08)' },
-            { label: 'Spotify', icon: 'fa-spotify', href: 'https://open.spotify.com/artist/diosmasgym', color: '#1db954', bg: 'rgba(29,185,84,0.08)' },
+            { label: 'Spotify', icon: 'fa-spotify', href: 'https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do', color: '#1db954', bg: 'rgba(29,185,84,0.08)' },
             { label: 'Facebook', icon: 'fa-facebook-f', href: 'https://www.facebook.com/diosmasgym', color: '#1877f2', bg: 'rgba(24,119,242,0.08)' },
           ].map(social => (
             <a

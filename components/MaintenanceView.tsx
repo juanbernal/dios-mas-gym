@@ -71,7 +71,7 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ videoUrl }) => {
           <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#4a90d9] mb-1">Únete a Nuestra Comunidad • Escucha la Música</p>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <a 
-              href="https://open.spotify.com/artist/2vP29zO3zP1Mv1T3w2y5B1" 
+              href="https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do" 
               target="_blank" 
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/60 hover:text-[#1DB954] hover:bg-[#1DB954]/10 hover:border-[#1DB954]/30 active:scale-95 transition-all duration-300 group shadow-lg"
