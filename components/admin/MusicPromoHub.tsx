@@ -311,7 +311,16 @@ Genera lo siguiente en JSON estricto:
             <div className="text-[9px] text-gray-400">Scrapbook, Vinyl, Cyberpunk</div>
           </button>
 
-          <button 
+          <button
+            onClick={() => handleOpenTool('/admin/anuncio-studio')}
+            className="bg-[#0f111a] hover:bg-[#181b29] border border-white/10 hover:border-[#f26a1b]/50 p-4 rounded-xl text-left transition-all group"
+          >
+            <i className="fa-solid fa-bullhorn text-[#f26a1b] text-xl mb-2 group-hover:scale-110 transition-transform"></i>
+            <div className="font-bold text-xs">Anuncio Studio</div>
+            <div className="text-[9px] text-gray-400">Estilo Anuncio Pro</div>
+          </button>
+
+          <button
             onClick={() => handleOpenTool('/admin/promo-image')}
             className="bg-[#0f111a] hover:bg-[#181b29] border border-white/10 hover:border-[#c5a059]/50 p-4 rounded-xl text-left transition-all group"
           >

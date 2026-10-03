@@ -113,6 +113,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Contenido Audiovisual'
         },
         {
+            id: 'anuncio-studio',
+            title: 'Anuncio Studio',
+            description: 'Imágenes tipo anuncio: logo, titular gigante, beneficios con iconos y foto con curva y tu página web. Ideal para promocionar estrenos, el catálogo o eventos.',
+            icon: 'fa-bullhorn',
+            color: '#f26a1b',
+            route: '/admin/anuncio-studio',
+            category: 'Contenido Audiovisual'
+        },
+        {
             id: 'promo-image',
             title: 'Promo Image Generator',
             description: 'Crea imágenes promocionales para Instagram, Stories y más desde el catálogo de canciones.',

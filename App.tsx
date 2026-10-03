@@ -58,6 +58,7 @@ const PostScheduler = React.lazy(() => import('./components/admin/PostScheduler'
 const MusicPromoHub = React.lazy(() => import('./components/admin/MusicPromoHub'));
 const WeeklyContentAssistant = React.lazy(() => import('./components/admin/WeeklyContentAssistant'));
 const AudioStudioPro = React.lazy(() => import('./components/admin/AudioStudioPro'));
+const AnuncioStudio = React.lazy(() => import('./components/admin/AnuncioStudio'));
 
 import MaintenanceView from './components/MaintenanceView';
 import { fetchMaintenanceStatus } from './services/maintenanceService';
@@ -588,6 +589,7 @@ const App: React.FC = () => {
                 <Route path="music-promo-hub" element={<AdminAuthWrapper><MusicPromoHub/></AdminAuthWrapper>} />
                 <Route path="weekly-content" element={<AdminAuthWrapper><WeeklyContentAssistant catalog={combinedCatalog}/></AdminAuthWrapper>} />
                 <Route path="audio-studio" element={<AdminAuthWrapper><AudioStudioPro/></AdminAuthWrapper>} />
+                <Route path="anuncio-studio" element={<AdminAuthWrapper><AnuncioStudio/></AdminAuthWrapper>} />
                 {/* Cualquier ruta de admin que no exista vuelve al panel en vez de quedar en blanco */}
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Routes>
