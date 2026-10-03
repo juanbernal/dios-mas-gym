@@ -14,9 +14,11 @@ const FORMATS: Record<FormatKey, { label: string; hint: string; w: number; h: nu
   square: { label: 'Cuadrado', hint: '1:1 · WhatsApp / X', w: 1080, h: 1080 },
   story: { label: 'Historia', hint: '9:16 · Stories / TikTok', w: 1080, h: 1920 },
 };
-type ThemeKey = 'light' | 'dark';
+type ThemeKey = 'auto' | 'light' | 'dark';
+type FitKey = 'auto' | 'fill' | 'fit';
 type LogoKey = 'dmg' | 'juan' | 'none';
 const ACCENTS = [
+  { key: 'auto', label: 'Color de la foto', color: '' },
   { key: 'orange', label: 'Naranja', color: '#f26a1b' },
   { key: 'gold', label: 'Dorado', color: '#c5a059' },
   { key: 'blue', label: 'Azul', color: '#2f6fd1' },
@@ -134,6 +136,96 @@ function drawCover(ctx: CanvasRenderingContext2D, img: CanvasImageSource & { wid
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
+// Muchas portadas llegan con franjas lisas a los lados (ej. miniaturas 16:9 con relleno café):
+// se recortan las filas/columnas de color parejo para quedarnos solo con el arte.
+function trimSolidBorders(img: HTMLImageElement): HTMLCanvasElement {
+  const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const { data, width, height } = ctx.getImageData(0, 0, c.width, c.height);
+  // ¿La línea (fila o columna) es casi de un solo color?
+  const flat = (get: (i: number) => number, len: number) => {
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < len; i++) { const p = get(i); r += data[p]; g += data[p + 1]; b += data[p + 2]; }
+    r /= len; g /= len; b /= len;
+    let dev = 0;
+    for (let i = 0; i < len; i++) { const p = get(i); dev += Math.abs(data[p] - r) + Math.abs(data[p + 1] - g) + Math.abs(data[p + 2] - b); }
+    return dev / len < 24;
+  };
+  const col = (x: number) => flat(i => (i * width + x) * 4, height);
+  const row = (y: number) => flat(i => (y * width + i) * 4, width);
+  let x0 = 0, x1 = width - 1, y0 = 0, y1 = height - 1;
+  while (x0 < width * 0.4 && col(x0)) x0++;
+  while (x1 > width * 0.6 && col(x1)) x1--;
+  while (y0 < height * 0.4 && row(y0)) y0++;
+  while (y1 > height * 0.6 && row(y1)) y1--;
+  if (x0 === 0 && y0 === 0 && x1 === width - 1 && y1 === height - 1) return c;
+  const out = document.createElement('canvas');
+  out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+  out.getContext('2d')!.drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
+type HSL = [number, number, number];
+function rgbToHsl(r: number, g: number, b: number): HSL {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+const hsl = (h: number, s: number, l: number, a = 1) =>
+  `hsla(${Math.round(h)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%, ${a})`;
+
+interface PhotoColors { base: HSL; vivid: HSL | null; lum: number }
+// Saca el tono que más domina la foto y su color más vivo
+function extractColors(src: HTMLCanvasElement): PhotoColors {
+  const c = document.createElement('canvas');
+  c.width = 48; c.height = 48;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(src, 0, 0, 48, 48);
+  const { data } = ctx.getImageData(0, 0, 48, 48);
+  const bins = Array.from({ length: 12 }, () => ({ n: 0, w: 0, h: 0, s: 0, l: 0 }));
+  let lum = 0, count = 0;
+  for (let p = 0; p < data.length; p += 4) {
+    const [h, s, l] = rgbToHsl(data[p], data[p + 1], data[p + 2]);
+    lum += l; count++;
+    if (s < 0.2 || l < 0.12 || l > 0.9) continue;
+    const b = bins[Math.floor(h / 30) % 12];
+    const w = s * (1 - Math.abs(l - 0.5));
+    b.n++; b.w += w; b.h += h; b.s += s; b.l += l;
+  }
+  const avg = (b: typeof bins[0]): HSL => [b.h / b.n, b.s / b.n, b.l / b.n];
+  const byCount = [...bins].sort((a, b) => b.n - a.n)[0];
+  const byVivid = [...bins].sort((a, b) => b.w - a.w)[0];
+  return {
+    base: byCount.n > 0 ? avg(byCount) : [0, 0, 0.5],
+    vivid: byVivid.n > 0 ? avg(byVivid) : null,
+    lum: lum / count,
+  };
+}
+
+interface Palette { bg: string; bgClear: string; head: string; text: string; ribbonA: string; ribbonB: string; silk: string; empty: string; vivid: string | null }
+function buildPalette(theme: ThemeKey, colors: PhotoColors | null): Palette {
+  const vivid = colors?.vivid ? hsl(colors.vivid[0], Math.max(colors.vivid[1], 0.65), Math.min(Math.max(colors.vivid[2], 0.48), 0.6)) : null;
+  const mode = theme === 'auto' ? (colors && colors.lum > 0.62 ? 'autoLight' : 'autoDark') : theme;
+  if (mode === 'light') return { bg: '#ffffff', bgClear: 'rgba(255,255,255,0)', head: '#5b5b5b', text: '#111111', ribbonA: '#f2f2f2', ribbonB: '#e9e9e9', silk: 'rgba(0,0,0,0.07)', empty: '#d0d0d0', vivid };
+  if (mode === 'dark' || !colors) return { bg: '#0b0b0d', bgClear: 'rgba(11,11,13,0)', head: '#d9d9d9', text: '#ffffff', ribbonA: '#16161a', ribbonB: '#0f0f12', silk: 'rgba(255,255,255,0.07)', empty: '#1f1f25', vivid };
+  const [h, s0] = colors.base;
+  const s = Math.min(s0, 0.55);
+  if (mode === 'autoLight') {
+    return { bg: hsl(h, s, 0.95), bgClear: hsl(h, s, 0.95, 0), head: hsl(h, s * 0.6, 0.33), text: hsl(h, s * 0.5, 0.1), ribbonA: hsl(h, s, 0.92), ribbonB: hsl(h, s, 0.88), silk: hsl(h, s, 0.5, 0.12), empty: hsl(h, s, 0.8), vivid };
+  }
+  // En oscuro, poca saturación: un naranja muy oscuro se vería café
+  const ds = Math.min(s, 0.3);
+  return { bg: hsl(h, ds, 0.08), bgClear: hsl(h, ds, 0.08, 0), head: hsl(h, ds * 0.5, 0.88), text: '#ffffff', ribbonA: hsl(h, ds, 0.13), ribbonB: hsl(h, ds, 0.06), silk: hsl(h, s, 0.6, 0.16), empty: hsl(h, ds, 0.18), vivid };
+}
+
 // Ajusta el tamaño de letra para que el texto quepa en el ancho
 function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number, family: string, maxSize: number, maxWidth: number, minSize = 20): number {
   let size = maxSize;
@@ -163,11 +255,12 @@ function splitHeadline(ctx: CanvasRenderingContext2D, text: string, maxSize: num
 
 interface RenderOptions {
   format: FormatKey;
-  theme: ThemeKey;
+  palette: Palette;
   accent: string;
   logo: HTMLCanvasElement | null;
-  photo: HTMLImageElement | null;
+  photo: HTMLCanvasElement | null;
   photoFocus: number;
+  fit: FitKey;
   content: Content;
   icons: Record<string, HTMLImageElement | null>;
   globeIcon: HTMLImageElement | null;
@@ -178,17 +271,17 @@ function renderAnuncio(canvas: HTMLCanvasElement, o: RenderOptions) {
   const { w: W, h: H } = FORMATS[o.format];
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d')!;
-  const dark = o.theme === 'dark';
-  const bg = dark ? '#0b0b0d' : '#ffffff';
-  const headColor = dark ? '#d9d9d9' : '#5b5b5b';
-  const textColor = dark ? '#ffffff' : '#111111';
+  const pal = o.palette;
+  const bg = pal.bg;
+  const headColor = pal.head;
+  const textColor = pal.text;
   const k = H / 1350; // escala vertical respecto al post 4:5
 
   // Fondo con un brillo suave tipo seda
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   const silk = ctx.createRadialGradient(W * 0.92, H * 0.04, 0, W * 0.92, H * 0.04, W * 0.7);
-  silk.addColorStop(0, dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)');
+  silk.addColorStop(0, pal.silk);
   silk.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = silk;
   ctx.fillRect(0, 0, W, H);
@@ -276,24 +369,44 @@ function renderAnuncio(canvas: HTMLCanvasElement, o: RenderOptions) {
   const photoTop = Math.min(y + 10 * k, H * 0.62);
   const photoH = H - photoTop;
   if (o.photo) {
-    drawCover(ctx, o.photo, 0, photoTop, W, photoH, o.photoFocus);
+    const regionRatio = W / photoH;
+    const imgRatio = o.photo.width / o.photo.height;
+    // "Completa": si la foto es mucho más angosta que el espacio, se muestra entera
+    // sobre una versión difuminada de sí misma (así no se corta el título de la portada)
+    const showWhole = o.fit === 'fit' || (o.fit === 'auto' && imgRatio < regionRatio * 0.8);
+    if (showWhole) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, photoTop, W, photoH); ctx.clip();
+      ctx.filter = 'blur(40px) brightness(0.75) saturate(1.2)';
+      drawCover(ctx, o.photo, -60, photoTop - 60, W + 120, photoH + 120);
+      ctx.filter = 'none';
+      const ih = photoH * 0.94;
+      const iw = Math.min(ih * imgRatio, W * 0.92);
+      const realH = iw / imgRatio;
+      const ix = (W - iw) / 2, iy = photoTop + (photoH - realH) / 2 + photoH * 0.02;
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 50;
+      ctx.drawImage(o.photo, ix, iy, iw, realH);
+      ctx.restore();
+    } else {
+      drawCover(ctx, o.photo, 0, photoTop, W, photoH, o.photoFocus);
+    }
   } else {
-    const ph = ctx.createLinearGradient(0, photoTop, 0, H);
-    ph.addColorStop(0, dark ? '#1a1a1f' : '#d9d9d9');
-    ph.addColorStop(1, dark ? '#2a2a31' : '#bdbdbd');
-    ctx.fillStyle = ph;
+    ctx.fillStyle = pal.empty;
     ctx.fillRect(0, photoTop, W, photoH);
-    ctx.fillStyle = dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.4;
     ctx.font = `700 34px Poppins`;
     ctx.textAlign = 'center';
     ctx.fillText('Sube una foto o elige una portada', W / 2, photoTop + photoH / 2);
+    ctx.globalAlpha = 1;
   }
 
   // Desvanecido del fondo hacia la foto (como el horizonte del ejemplo)
   const fadeH = 70 * k;
   const fade = ctx.createLinearGradient(0, photoTop, 0, photoTop + fadeH);
   fade.addColorStop(0, bg);
-  fade.addColorStop(1, dark ? 'rgba(11,11,13,0)' : 'rgba(255,255,255,0)');
+  fade.addColorStop(1, pal.bgClear);
   ctx.fillStyle = fade;
   ctx.fillRect(0, photoTop - 1, W, fadeH + 1);
 
@@ -309,9 +422,9 @@ function renderAnuncio(canvas: HTMLCanvasElement, o: RenderOptions) {
   ctx.lineTo(0, H + 4);
   ctx.closePath();
   const ribbon = ctx.createLinearGradient(0, waveTop, W * 0.5, H);
-  ribbon.addColorStop(0, dark ? '#16161a' : '#f2f2f2');
+  ribbon.addColorStop(0, pal.ribbonA);
   ribbon.addColorStop(0.5, bg);
-  ribbon.addColorStop(1, dark ? '#0f0f12' : '#e9e9e9');
+  ribbon.addColorStop(1, pal.ribbonB);
   ctx.fillStyle = ribbon;
   ctx.fill();
   ctx.restore();
@@ -349,12 +462,14 @@ const AnuncioStudio: React.FC = () => {
   }, []);
 
   const [format, setFormat] = useState<FormatKey>(prefs.format in FORMATS ? prefs.format : 'post');
-  const [theme, setTheme] = useState<ThemeKey>(prefs.theme === 'dark' ? 'dark' : 'light');
-  const [accentKey, setAccentKey] = useState<string>(ACCENTS.some(a => a.key === prefs.accent) ? prefs.accent : 'orange');
+  const [theme, setTheme] = useState<ThemeKey>(['auto', 'light', 'dark'].includes(prefs.theme) ? prefs.theme : 'auto');
+  const [accentKey, setAccentKey] = useState<string>(ACCENTS.some(a => a.key === prefs.accent) ? prefs.accent : 'auto');
   const [logoKey, setLogoKey] = useState<LogoKey>(['dmg', 'juan', 'none'].includes(prefs.logo) ? prefs.logo : 'dmg');
   const [content, setContent] = useState<Content>(prefs.content?.features?.length === 3 ? prefs.content : TEMPLATES[1].content);
-  const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
+  const [photo, setPhotoState] = useState<HTMLCanvasElement | null>(null);
+  const [photoColors, setPhotoColors] = useState<PhotoColors | null>(null);
   const [photoFocus, setPhotoFocus] = useState(0.5);
+  const [fit, setFit] = useState<FitKey>('auto');
   const [logos, setLogos] = useState<{ dmg: HTMLCanvasElement | null; juan: HTMLCanvasElement | null }>({ dmg: null, juan: null });
   const [icons, setIcons] = useState<Record<string, HTMLImageElement | null>>({});
   const [globeIcon, setGlobeIcon] = useState<HTMLImageElement | null>(null);
@@ -365,7 +480,17 @@ const AnuncioStudio: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
-  const accent = ACCENTS.find(a => a.key === accentKey)!.color;
+  // Colores del fondo y acento: fijos o sacados de la foto
+  const palette = useMemo(() => buildPalette(theme, photoColors), [theme, photoColors]);
+  const accent = accentKey === 'auto' ? (palette.vivid || '#f26a1b') : ACCENTS.find(a => a.key === accentKey)!.color;
+
+  const setPhoto = (img: HTMLImageElement | null) => {
+    if (!img) { setPhotoState(null); setPhotoColors(null); return; }
+    const trimmed = trimSolidBorders(img);
+    setPhotoState(trimmed);
+    setPhotoColors(extractColors(trimmed));
+    setPhotoFocus(0.5);
+  };
 
   useEffect(() => {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify({ format, theme, accent: accentKey, logo: logoKey, content })); } catch {}
@@ -416,15 +541,15 @@ const AnuncioStudio: React.FC = () => {
       const names = Array.from(new Set(content.features.map(f => f.icon)));
       const loaded: Record<string, HTMLImageElement | null> = {};
       await Promise.all(names.map(async n => { loaded[n] = await loadIcon(n, accent); }));
-      const globe = await loadIcon('globe', theme === 'dark' ? '#ffffff' : '#111111');
+      const globe = await loadIcon('globe', palette.text);
       if (alive) { setIcons(loaded); setGlobeIcon(globe); }
     })();
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usedIcons, accent, theme]);
+  }, [usedIcons, accent, palette.text]);
 
   const renderOpts = (): RenderOptions => ({
-    format, theme, accent, photo, photoFocus, content, icons, globeIcon,
+    format, palette, accent, photo, photoFocus, fit, content, icons, globeIcon,
     logo: logoKey === 'none' ? null : logos[logoKey],
   });
 
@@ -433,12 +558,12 @@ const AnuncioStudio: React.FC = () => {
     const t = setTimeout(() => { if (canvasRef.current) renderAnuncio(canvasRef.current, renderOpts()); }, 80);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, theme, accent, photo, photoFocus, content, icons, globeIcon, logos, logoKey, fontsReady]);
+  }, [format, palette, accent, photo, photoFocus, fit, content, icons, globeIcon, logos, logoKey, fontsReady]);
 
   const chooseLogo = (k: LogoKey) => {
     setLogoKey(k);
     // El logo de Juan 614 es blanco: necesita fondo oscuro
-    if (k === 'juan') setTheme('dark');
+    if (k === 'juan' && theme === 'light') setTheme('dark');
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -446,7 +571,7 @@ const AnuncioStudio: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     const url = URL.createObjectURL(file);
-    loadImage(url).then(img => { setPhoto(img); setPhotoFocus(0.5); }).catch(() => flash('error', 'No se pudo abrir esa imagen.'));
+    loadImage(url).then(img => setPhoto(img)).catch(() => flash('error', 'No se pudo abrir esa imagen.'));
   };
 
   const pickSong = async (song: MusicItem, fillText: boolean) => {
@@ -458,7 +583,6 @@ const AnuncioStudio: React.FC = () => {
     setLoadingPhoto(true);
     try {
       setPhoto(await loadImage(await proxiedDataUrl(song.cover)));
-      setPhotoFocus(0.5);
     } catch {
       flash('error', 'No se pudo cargar la portada de esa canción.');
     } finally {
@@ -504,7 +628,7 @@ const AnuncioStudio: React.FC = () => {
       setIsGenerating(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [format, theme, accent, photo, photoFocus, content, icons, globeIcon, logos, logoKey, fileName]);
+  }, [format, palette, accent, photo, photoFocus, fit, content, icons, globeIcon, logos, logoKey, fileName]);
 
   const handleShare = async () => {
     const blob = await getBlob();
@@ -570,6 +694,7 @@ const AnuncioStudio: React.FC = () => {
               <div>
                 <span className={label}>Fondo</span>
                 <div className="flex gap-2">
+                  <button onClick={() => setTheme('auto')} className={`${chip(theme === 'auto')} flex-1`} title="Toma los colores de la foto">Auto</button>
                   <button onClick={() => setTheme('light')} className={`${chip(theme === 'light')} flex-1`}>Claro</button>
                   <button onClick={() => setTheme('dark')} className={`${chip(theme === 'dark')} flex-1`}>Oscuro</button>
                 </div>
@@ -580,7 +705,7 @@ const AnuncioStudio: React.FC = () => {
                   {ACCENTS.map(a => (
                     <button key={a.key} onClick={() => setAccentKey(a.key)} title={a.label} aria-label={a.label}
                       className={`w-9 h-9 rounded-full border-2 transition-transform ${accentKey === a.key ? 'border-white scale-110' : 'border-white/10'}`}
-                      style={{ background: a.color }} />
+                      style={{ background: a.key === 'auto' ? `conic-gradient(${palette.vivid || '#f26a1b'} 0 50%, #ef4444 50% 66%, #38bdf8 66% 83%, #c5a059 83%)` : a.color }} />
                   ))}
                 </div>
               </div>
@@ -657,7 +782,15 @@ const AnuncioStudio: React.FC = () => {
               </div>
               {loadingPhoto && <p className="text-[10px] text-white/40 mt-2"><i className="fas fa-spinner fa-spin mr-1" />Cargando portada...</p>}
               {photo && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <span className={label}>Cómo se acomoda la foto</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={() => setFit('auto')} className={chip(fit === 'auto')}>Auto</button>
+                      <button onClick={() => setFit('fill')} className={chip(fit === 'fill')}>Llenar</button>
+                      <button onClick={() => setFit('fit')} className={chip(fit === 'fit')}>Completa</button>
+                    </div>
+                  </div>
                   <label className={label} htmlFor="an-focus">Encuadre vertical de la foto</label>
                   <input id="an-focus" type="range" min={0} max={1} step={0.01} value={photoFocus}
                     onChange={e => setPhotoFocus(Number(e.target.value))} className="w-full" />
