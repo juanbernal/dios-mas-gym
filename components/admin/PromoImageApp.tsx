@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { rasterizeIconsForCanvas } from '../../services/canvasIcons';
@@ -70,6 +70,34 @@ const getCountdownLabel = (date: string): string => {
   return `FALTAN ${days} DÍAS`;
 };
 const STATUS_SUGGESTIONS = ['PRE-SAVE', 'ESTE VIERNES', 'NUEVO SENCILLO', 'ESCÚCHALA YA'];
+
+// ÁLBUMES DEL CATÁLOGO: el CSV no trae columna de álbum, pero los temas de Apple Music
+// llevan el id del álbum en la URL (/album/<slug>/<id>) y comparten portada.
+type AlbumGroup = { key: string; appleId?: string; country: string; album?: string; artist: string; cover: string; date: string; songs: MusicItem[] };
+type AlbumInfo = { name: string; kind: string; tracks: string[] };
+const normName = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+// "Mi Maestra me Dijo... (y esto fue lo que pasó)" -> "Mi Maestra me Dijo..." para que quepa en el tracklist
+const shortTrackName = (s: string) => s.replace(/\s*[([][^)\]]*[)\]]/g, '').replace(/\s{2,}/g, ' ').trim() || s.trim();
+const buildAlbumGroups = (catalog: MusicItem[]): AlbumGroup[] => {
+  const map = new Map<string, AlbumGroup>();
+  for (const s of catalog) {
+    if (!s?.name) continue;
+    // Prioridad: columna "Álbum" del Excel > id de album de Apple Music > misma portada (como el smart link)
+    const apple = s.url?.match(/music\.apple\.com\/([a-z]{2})\/album\/[^/]+\/(\d+)/);
+    const key = s.album ? `name-${normName(s.artist)}-${normName(s.album)}`
+      : apple ? `apple-${apple[2]}`
+      : s.cover ? `cover-${normName(s.artist)}-${s.cover}` : '';
+    if (!key) continue;
+    let g = map.get(key);
+    if (!g) {
+      g = { key, appleId: s.album ? undefined : apple?.[2], country: apple?.[1] || 'us', album: s.album, artist: s.artist, cover: s.cover, date: s.date || '', songs: [] };
+      map.set(key, g);
+    }
+    if (!g.songs.some(x => normName(x.name) === normName(s.name))) g.songs.push(s);
+    if (s.date && s.date < g.date) g.date = s.date;
+  }
+  return [...map.values()].filter(g => g.songs.length >= 2).sort((a, b) => b.date.localeCompare(a.date));
+};
 
 // Ajustes de estilo que se recuerdan entre sesiones y que los "Looks" pueden cambiar de golpe
 const DEFAULT_STYLE: Record<string, any> = {
@@ -260,6 +288,13 @@ const PromoImageApp: React.FC = () => {
   const [shareImageBlob, setShareImageBlob] = useState<Blob | null>(null);
   const [copySuccess, setCopySuccess] = useState("");
   const [songId, setSongId] = useState<string>("");
+
+  // ÁLBUM / EP DESDE EL CATÁLOGO
+  const [albumInfo, setAlbumInfo] = useState<Record<string, AlbumInfo>>({});
+  const [selectedAlbumKey, setSelectedAlbumKey] = useState("");
+  const [excludedTracks, setExcludedTracks] = useState<string[]>([]);
+  const [shortTrackNames, setShortTrackNames] = useState(true);
+  const albumLookupsRef = useRef<Set<string>>(new Set());
 
   // NUEVAS MEJORAS 2026 (v4.5)
   const [slogan, setSlogan] = useState(""); // #2 Versículo / Slogan opcional
@@ -498,6 +533,7 @@ const PromoImageApp: React.FC = () => {
     setCoverArt(song.cover);
     setSongId(song.id || "");
     setMode("disponible");
+    setSelectedAlbumKey("");
     setSize("instagram");
     setSearchQuery("");
     setIsSearchOpen(false);
@@ -514,6 +550,83 @@ const PromoImageApp: React.FC = () => {
     song.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     song.artist.toLowerCase().includes(searchQuery.toLowerCase())
   ).slice(0, 10);
+
+  const albumGroups = useMemo(() => buildAlbumGroups(catalog), [catalog]);
+  const selectedAlbum = albumGroups.find(g => g.key === selectedAlbumKey) || null;
+  // Orden oficial de iTunes si se pudo consultar; si no, los temas del catalogo
+  const albumTrackNames = selectedAlbum
+    ? (albumInfo[selectedAlbum.key]?.tracks?.length ? albumInfo[selectedAlbum.key].tracks : selectedAlbum.songs.map(s => s.name).reverse())
+    : [];
+
+  // Nombre y orden de temas desde la API publica de iTunes (permite CORS), solo al entrar a modo album
+  useEffect(() => {
+    if (mode !== 'album') return;
+    albumGroups.forEach(g => {
+      if (!g.appleId || albumLookupsRef.current.has(g.key)) return;
+      albumLookupsRef.current.add(g.key);
+      fetch(`https://itunes.apple.com/lookup?id=${g.appleId}&entity=song&country=${g.country}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const results: any[] = data?.results || [];
+          const collection = results.find(x => x.wrapperType === 'collection');
+          if (!collection?.collectionName) return;
+          const raw: string = collection.collectionName;
+          const kindMatch = raw.match(/\s-\s(EP|Single)$/i);
+          const tracks = results
+            .filter(x => x.wrapperType === 'track' && x.trackName)
+            .sort((a, b) => (a.discNumber - b.discNumber) || (a.trackNumber - b.trackNumber))
+            .map(x => x.trackName as string);
+          setAlbumInfo(prev => ({ ...prev, [g.key]: { name: raw.replace(/\s-\s(EP|Single)$/i, '').trim(), kind: kindMatch ? kindMatch[1].toUpperCase() : 'ÁLBUM', tracks } }));
+        })
+        .catch(() => { albumLookupsRef.current.delete(g.key); });
+    });
+  }, [mode, albumGroups]);
+
+  // El tracklist se arma con los temas marcados (el textarea sigue editable a mano)
+  const albumTracksJson = JSON.stringify(albumTrackNames);
+  useEffect(() => {
+    if (!selectedAlbumKey) return;
+    const list = albumTrackNames.filter(t => !excludedTracks.includes(t)).map(t => shortTrackNames ? shortTrackName(t) : t.trim());
+    setTracks(list.join("\n"));
+  }, [selectedAlbumKey, albumTracksJson, excludedTracks, shortTrackNames]);
+
+  // Al cargar el nombre oficial, si el titulo era el provisional se reemplaza
+  const selectedAlbumName = selectedAlbum ? albumInfo[selectedAlbum.key]?.name : undefined;
+  useEffect(() => {
+    if (selectedAlbumName && titleRef.current === 'ÁLBUM / EP') setTitle(selectedAlbumName.toUpperCase());
+  }, [selectedAlbumName]);
+
+  const handleSelectAlbum = (key: string) => {
+    const g = albumGroups.find(x => x.key === key);
+    setSelectedAlbumKey(key);
+    setExcludedTracks([]);
+    if (!g) return;
+    const info = albumInfo[key];
+    let normalizedArtist = g.artist;
+    if (normalizedArtist.toLowerCase().includes("juan")) normalizedArtist = "Juan 614";
+    if (normalizedArtist.toLowerCase().includes("dios")) normalizedArtist = "Diosmasgym";
+    const name = info?.name || g.album;
+    setTitle(name ? name.toUpperCase() : 'ÁLBUM / EP');
+    setArtist(normalizedArtist);
+    if (g.cover) { setBg(g.cover); setCoverArt(g.cover); }
+    setSongId(g.songs[0]?.id || "");
+    if (g.date) setDate(`${g.date.slice(0, 10)}T12:00`);
+  };
+
+  const handleModeChange = (value: string) => {
+    setMode(value);
+    // Si la cancion actual pertenece a un album del catalogo, se carga ese album automaticamente
+    if (value === 'album' && !selectedAlbumKey) {
+      const g = albumGroups.find(x => x.songs.some(s => s.id === songId));
+      if (g) handleSelectAlbum(g.key);
+    }
+  };
+
+  const albumOptionLabel = (g: AlbumGroup) => {
+    const info = albumInfo[g.key];
+    const n = info?.tracks?.length || g.songs.length;
+    return `${info ? `${info.name} (${info.kind})` : (g.album || 'Álbum')} · ${g.artist} · ${g.date.slice(0, 10)} · ${n} temas`;
+  };
 
   const config = sizes[size];
 
@@ -1226,7 +1339,7 @@ const PromoImageApp: React.FC = () => {
                   <select 
                     className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-sm appearance-none cursor-pointer"
                     value={mode} 
-                    onChange={(e)=>setMode(e.target.value)}
+                    onChange={(e)=>handleModeChange(e.target.value)}
                   >
                     <option value="proximamente">Próximamente</option>
                     <option value="disponible">Disponible</option>
@@ -1238,8 +1351,60 @@ const PromoImageApp: React.FC = () => {
 
               {/* TRACKLIST FOR ALBUM/EP */}
               {mode === 'album' && (
-                <div className="space-y-2 pt-4 border-t border-white/5">
-                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Canciones del Álbum / EP</label>
+                <div className="space-y-3 pt-4 border-t border-white/5">
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                    <i className="fas fa-compact-disc text-[#c5a059]" />
+                    Álbum del catálogo
+                  </label>
+                  <select
+                    className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none text-xs cursor-pointer"
+                    value={selectedAlbumKey}
+                    onChange={(e) => e.target.value ? handleSelectAlbum(e.target.value) : setSelectedAlbumKey('')}
+                  >
+                    <option value="">{albumGroups.length ? '— Escribir canciones a mano —' : (isLoadingCatalog ? 'Cargando álbumes...' : 'No hay álbumes en el catálogo')}</option>
+                    {albumGroups.map(g => (
+                      <option key={g.key} value={g.key}>{albumOptionLabel(g)}</option>
+                    ))}
+                  </select>
+
+                  {selectedAlbum && (
+                    <div className="bg-black/30 border border-white/5 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center gap-3">
+                        {selectedAlbum.cover && <img src={selectedAlbum.cover} className="w-10 h-10 rounded-lg object-cover bg-black" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-black text-white/90 truncate uppercase tracking-widest">{albumInfo[selectedAlbum.key]?.name || selectedAlbum.album || 'Álbum'}</div>
+                          <div className="text-[8px] font-bold text-[#c5a059] uppercase tracking-widest">
+                            {albumTrackNames.length - albumTrackNames.filter(t => excludedTracks.includes(t)).length} de {albumTrackNames.length} temas
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setExcludedTracks([])} className="px-2 py-1 rounded-md border border-white/10 text-[8px] font-bold text-white/50 hover:text-[#c5a059]">Todas</button>
+                        <button type="button" onClick={() => setExcludedTracks(albumTrackNames)} className="px-2 py-1 rounded-md border border-white/10 text-[8px] font-bold text-white/50 hover:text-[#c5a059]">Ninguna</button>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                        {albumTrackNames.map((t, i) => {
+                          const on = !excludedTracks.includes(t);
+                          return (
+                            <label key={t + i} className={`flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${on ? 'bg-[#c5a059]/10' : 'hover:bg-white/5'}`}>
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={() => setExcludedTracks(list => on ? [...list, t] : list.filter(x => x !== t))}
+                                className="accent-[#c5a059]"
+                              />
+                              <span className="text-[9px] font-black text-[#c5a059]/60 w-5">{String(i + 1).padStart(2, '0')}</span>
+                              <span className={`text-[10px] font-bold truncate ${on ? 'text-white/90' : 'text-white/30 line-through'}`}>{t}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <label className="flex items-center gap-2 text-[8px] font-bold text-white/40 uppercase tracking-widest cursor-pointer pt-1">
+                        <input type="checkbox" checked={shortTrackNames} onChange={(e) => setShortTrackNames(e.target.checked)} className="accent-[#c5a059]" />
+                        Títulos cortos (sin lo que va entre paréntesis)
+                      </label>
+                    </div>
+                  )}
+
+                  <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest block pt-1">Tracklist final (editable)</label>
                   <textarea
                     className="w-full bg-black/40 border border-white/5 p-4 rounded-xl outline-none focus:border-[#c5a059]/50 text-xs font-black tracking-widest text-[#c5a059] resize-none"
                     rows={6}
@@ -3373,9 +3538,9 @@ const PromoTemplate: React.FC<any> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: trackList.filter(t => t.trim()).length > 5 ? '1fr 1fr' : '1fr', gap: `${config.title * 0.1}px ${config.title * 0.6}px` }}>
                       {trackList.filter(t => t.trim()).map((track, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07 }}>
-                          <span style={{ fontSize: fz(0.18), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7 }}>{String(i + 1).padStart(2, '0')}</span>
-                          <span style={{ fontSize: fz(0.22), fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase' }}>{track.trim()}</span>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07, minWidth: 0 }}>
+                          <span style={{ fontSize: fz(0.18), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
+                          <span style={{ fontSize: fz(0.22), fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.trim()}</span>
                         </div>
                       ))}
                     </div>

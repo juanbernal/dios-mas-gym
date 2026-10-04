@@ -222,7 +222,7 @@ const parseMusicCSV = (csvText: string): MusicItem[] => {
       if (header.includes('portada')) entry.cover = val;
       if (header === 'tipo') entry.type = val;
       if (header === 'fecha') entry.date = val;
-      if (header.includes('album')) entry.album = val;
+      if (header.normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('album')) entry.album = val;
       if (header === 'letra' || header === 'lyrics') entry.lyrics = val.replace(/\\n/g, '\n');
     });
 
