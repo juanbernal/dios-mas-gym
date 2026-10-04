@@ -4,7 +4,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
-import { get as blobGet, put as blobPut } from '@vercel/blob';
+import { get as blobGet, put as blobPut, list as blobList, del as blobDel } from '@vercel/blob';
 import { waitUntil } from '@vercel/functions';
 
 // ── In-memory rate limiter (per IP, resets per serverless instance lifecycle) ──
@@ -1969,6 +1969,95 @@ export default async function handler(
   // ACTION: DAILY-POST (estado compartido de "Publicacion Rapida del Dia": saltos y usadas)
   // Se guarda en Vercel Blob para que la PC y el celular vean la misma cancion.
   // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // ACTION: GENERATED IMAGES (flyers de Studio PRO / SmartLink por cancion, compartidos entre dispositivos)
+  // GET ?songId=  -> lista { source, path, createdAt }
+  // GET ?path=    -> la imagen (sirve igual si la tienda de Blob es publica o privada)
+  // POST { songId, source, imageBase64 } -> guarda/reemplaza la de esa herramienta
+  // DELETE ?songId= -> borra las de esa cancion (al terminar de publicarla)
+  // Las de mas de 30 dias se borran solas en cada guardado.
+  // -------------------------------------------------------------
+  if (action === 'generated-images') {
+    if (!verifyAdminPassword(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return res.status(501).json({ error: 'Falta BLOB_READ_WRITE_TOKEN' });
+    const safeId = (v: any) => String(v || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 120);
+    const SOURCES = ['promo', 'smartlink'];
+    const accessModes: Array<'public' | 'private'> = ['public', 'private'];
+
+    if (req.method === 'GET' && req.query.path) {
+      const p = String(req.query.path);
+      if (!/^generated\/[A-Za-z0-9_-]+\/(promo|smartlink)\.jpg$/.test(p)) return res.status(400).json({ error: 'Ruta inválida' });
+      for (const access of accessModes) {
+        try {
+          const r: any = await blobGet(p, { access, useCache: false });
+          if (r && r.statusCode === 200 && r.stream) {
+            const buf = Buffer.from(await new Response(r.stream).arrayBuffer());
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.setHeader('Cache-Control', 'private, max-age=60');
+            return res.status(200).send(buf);
+          }
+        } catch (_) { /* probar el otro modo */ }
+      }
+      return res.status(404).json({ error: 'No encontrada' });
+    }
+
+    if (req.method === 'GET') {
+      const songId = safeId(req.query.songId);
+      if (!songId) return res.status(400).json({ error: 'Falta songId' });
+      res.setHeader('Cache-Control', 'no-store');
+      try {
+        const { blobs } = await blobList({ prefix: `generated/${songId}/` });
+        const items = blobs
+          .map(b => ({ source: b.pathname.split('/').pop()!.replace(/\.jpg$/, ''), path: b.pathname, createdAt: new Date(b.uploadedAt).getTime() }))
+          .filter(i => SOURCES.includes(i.source));
+        return res.status(200).json({ items });
+      } catch (e: any) {
+        return res.status(500).json({ error: 'No se pudo listar', details: e.message });
+      }
+    }
+
+    if (req.method === 'POST') {
+      let body: any = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      const songId = safeId(body?.songId);
+      const source = String(body?.source || '');
+      if (!songId || !SOURCES.includes(source)) return res.status(400).json({ error: 'Datos inválidos' });
+      const b64 = String(body?.imageBase64 || '').replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(b64, 'base64');
+      if (!buffer.length || buffer.length > 4 * 1024 * 1024) return res.status(413).json({ error: 'Imagen vacía o demasiado pesada' });
+      let lastErr: any = null;
+      for (const access of accessModes) {
+        try {
+          await blobPut(`generated/${songId}/${source}.jpg`, buffer, { access, contentType: 'image/jpeg', allowOverwrite: true, addRandomSuffix: false });
+          // Limpieza de las de mas de 30 dias: 1 de cada 10 guardados, porque listar
+          // gasta del cupo mensual de operaciones de Blob (no bloquea la respuesta)
+          if (Math.random() < 0.1) waitUntil((async () => {
+            try {
+              const { blobs } = await blobList({ prefix: 'generated/', limit: 1000 });
+              const old = blobs.filter(b => Date.now() - new Date(b.uploadedAt).getTime() > 30 * 86400000).map(b => b.url);
+              if (old.length) await blobDel(old);
+            } catch (_) { /* se intenta en el proximo guardado */ }
+          })());
+          return res.status(200).json({ ok: true });
+        } catch (e) { lastErr = e; }
+      }
+      return res.status(500).json({ error: 'No se pudo guardar', details: lastErr?.message });
+    }
+
+    if (req.method === 'DELETE') {
+      const songId = safeId(req.query.songId);
+      if (!songId) return res.status(400).json({ error: 'Falta songId' });
+      try {
+        const { blobs } = await blobList({ prefix: `generated/${songId}/` });
+        if (blobs.length) await blobDel(blobs.map(b => b.url));
+        return res.status(200).json({ ok: true, deleted: blobs.length });
+      } catch (e: any) {
+        return res.status(500).json({ error: 'No se pudo borrar', details: e.message });
+      }
+    }
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   // -------------------------------------------------------------
   // ACTION: SOCIAL PUBLISH (Instagram + pagina de Facebook via Meta Graph API)
   // Variables: META_PAGE_TOKEN (Diosmasgym) y META_PAGE_TOKEN_JUAN614 (opcional).

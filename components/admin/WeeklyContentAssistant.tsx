@@ -4,7 +4,7 @@ import { MusicItem } from '../../types';
 import { adminHeaders } from '../../services/adminSync';
 import { getCorsFriendlyUrl } from '../../services/imageHelpers';
 import { fetchSavedLyrics } from '../../services/musicService';
-import { getGeneratedImagesForSong, GeneratedImage } from '../../services/generatedImages';
+import { getGeneratedImagesForSong, deleteGeneratedImagesForSong, GeneratedImage } from '../../services/generatedImages';
 
 type Platform = 'ig' | 'tt' | 'wa' | 'fb';
 const PLATFORMS: { id: Platform; label: string; icon: string; color: string; upload: string }[] = [
@@ -319,6 +319,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const handleMarkUsed = () => {
         if (!suggestion?.song) return;
         const nextPromoted = [...promotedIds, suggestion.song.id];
+        // Ya publicada: sus flyers guardados no hacen falta (se borran aqui y en el servidor)
+        deleteGeneratedImagesForSong(suggestion.song.id);
         setPromotedIds(nextPromoted);
         localStorage.setItem(PROMOTED_KEY, JSON.stringify(nextPromoted));
         // Al salir del catalogo disponible la cancion usada, la sugerencia cambia sola
@@ -411,7 +413,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     useEffect(() => {
         if (!songKey) { setGenerated([]); return; }
         let cancelled = false;
-        const load = () => getGeneratedImagesForSong(songKey).then(list => {
+        const load = () => getGeneratedImagesForSong(songKey, suggestion?.song?.name || '').then(list => {
             if (cancelled) return;
             setGenerated(list);
             // Si acabas de crearla ("Usar en Publicacion Rapida"), se elige sola
