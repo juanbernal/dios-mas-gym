@@ -1,7 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MusicItem } from '../../types';
 import { adminHeaders } from '../../services/adminSync';
+import { getCorsFriendlyUrl } from '../../services/imageHelpers';
+
+type Platform = 'ig' | 'tt' | 'wa' | 'fb';
+const PLATFORMS: { id: Platform; label: string; icon: string; color: string; upload: string }[] = [
+    { id: 'ig', label: 'Instagram', icon: 'fab fa-instagram', color: '#E1306C', upload: 'https://www.instagram.com/' },
+    { id: 'fb', label: 'Facebook', icon: 'fab fa-facebook-f', color: '#1877F2', upload: 'https://www.facebook.com/' },
+    { id: 'tt', label: 'TikTok', icon: 'fab fa-tiktok', color: '#ffffff', upload: 'https://www.tiktok.com/upload' },
+    { id: 'wa', label: 'WhatsApp', icon: 'fab fa-whatsapp', color: '#25D366', upload: 'https://web.whatsapp.com/' },
+];
+const isMobileDevice = () => typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 interface ReleaseData {
     name: string;
@@ -62,6 +72,15 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const [copiedStatus, setCopiedStatus] = useState<string>('');
     const [aiLoading, setAiLoading] = useState(false);
     const [customAiText, setCustomAiText] = useState<string>('');
+
+    // IMAGEN QUE SE PUBLICA: portada de la cancion (por defecto) o una propia de la galeria
+    const [shareBlob, setShareBlob] = useState<Blob | null>(null);
+    const [sharePreview, setSharePreview] = useState<string>('');
+    const [shareSource, setShareSource] = useState<'cover' | 'upload'>('cover');
+    const [imageLoading, setImageLoading] = useState(false);
+    const [publishOpen, setPublishOpen] = useState(false);
+    const [publishedTo, setPublishedTo] = useState<Platform[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [promotedIds, setPromotedIds] = useState<string[]>(() => {
         try {
@@ -197,22 +216,23 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setTimeout(() => setCopiedStatus(''), 2000);
     };
 
-    const getActivePostText = () => {
+    const getPostText = (platform: Platform) => {
         if (!suggestion || !suggestion.song) return '';
         const smartLink = `${window.location.origin}/link/${suggestion.song.id}`;
-        
+
         if (customAiText) {
-            return `${customAiText}\n\n${smartLink}\n\n${suggestion.hashtags}`;
+            return platform === 'wa' ? `${customAiText}\n\n${smartLink}` : `${customAiText}\n\n${smartLink}\n\n${suggestion.hashtags}`;
         }
 
-        if (platformTab === 'ig') {
+        if (platform === 'ig' || platform === 'fb') {
             return `${suggestion.caption}\n\n${suggestion.hashtags}`;
         }
-        if (platformTab === 'tt') {
+        if (platform === 'tt') {
             return `${suggestion.tiktokCaption}\n\n${suggestion.hashtags} #fyp #parati`;
         }
         return `${suggestion.whatsappCaption}`;
     };
+    const getActivePostText = () => getPostText(platformTab);
 
     const copyToClipboard = async (text: string, label: string) => {
         try {
@@ -224,29 +244,106 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setTimeout(() => setCopiedStatus(''), 2500);
     };
 
-    const handleShareWhatsApp = () => {
-        const text = getActivePostText();
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    // La portada se descarga en cuanto cambia la cancion: el menu de compartir del celular
+    // exige que navigator.share se llame justo al tocar el boton, sin esperas de red.
+    const songKey = suggestion?.song?.id || '';
+    const coverUrl = suggestion?.song?.cover || '';
+    useEffect(() => {
+        setShareSource('cover');
+        setPublishedTo([]);
+    }, [songKey]);
+
+    useEffect(() => {
+        if (shareSource !== 'cover') return;
+        let cancelled = false;
+        setShareBlob(null);
+        setSharePreview(coverUrl);
+        if (!coverUrl) return;
+        setImageLoading(true);
+        fetch(getCorsFriendlyUrl(coverUrl))
+            .then(r => (r.ok ? r.blob() : null))
+            .then(blob => { if (!cancelled && blob && blob.type.startsWith('image/')) setShareBlob(blob); })
+            .catch(() => { /* sin imagen: se comparte solo el texto */ })
+            .finally(() => { if (!cancelled) setImageLoading(false); });
+        return () => { cancelled = true; };
+    }, [coverUrl, shareSource]);
+
+    useEffect(() => () => { if (sharePreview.startsWith('blob:')) URL.revokeObjectURL(sharePreview); }, [sharePreview]);
+
+    const handlePickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !file.type.startsWith('image/')) return;
+        setShareSource('upload');
+        setShareBlob(file);
+        setSharePreview(URL.createObjectURL(file));
     };
 
-    const handleShareInstagram = async () => {
-        const text = getActivePostText();
-        await copyToClipboard(text, 'Texto de Instagram');
-        window.open('https://www.instagram.com', '_blank');
+    const shareFileName = () => {
+        const base = (suggestion?.song?.name || 'post').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const ext = shareBlob?.type === 'image/png' ? 'png' : shareBlob?.type === 'image/webp' ? 'webp' : 'jpg';
+        return `${base || 'post'}.${ext}`;
     };
 
-    const handleShareTikTok = async () => {
-        const text = getActivePostText();
-        await copyToClipboard(text, 'Texto de TikTok');
-        window.open('https://www.tiktok.com', '_blank');
+    const downloadImage = () => {
+        if (!shareBlob) return;
+        const url = URL.createObjectURL(shareBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = shareFileName();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
     };
 
-    const handleShareFacebook = async () => {
+    const flash = (msg: string, ms = 3500) => {
+        setCopiedStatus(msg);
+        setTimeout(() => setCopiedStatus(''), ms);
+    };
+
+    const markPublished = (platform: Platform) =>
+        setPublishedTo(list => (list.includes(platform) ? list : [...list, platform]));
+
+    // Publica imagen + texto en una red.
+    // Celular: abre el menu nativo con la imagen adjunta (eliges la app; el texto ya va copiado para pegarlo).
+    // Computadora: descarga la imagen, copia el texto y abre la red para subirla.
+    const shareTo = async (platform: Platform) => {
         if (!suggestion?.song) return;
-        const smartLink = `${window.location.origin}/link/${suggestion.song.id}`;
-        const text = getActivePostText();
-        await copyToClipboard(text, 'Texto para Facebook');
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(smartLink)}`, '_blank');
+        const text = getPostText(platform);
+        const name = PLATFORMS.find(p => p.id === platform)!.label;
+        // Instagram y TikTok ignoran el texto que llega por el menu de compartir: se deja en el portapapeles
+        navigator.clipboard?.writeText(text).catch(() => {});
+
+        const file = shareBlob ? new File([shareBlob], shareFileName(), { type: shareBlob.type || 'image/jpeg' }) : null;
+        if (isMobileDevice() && file && navigator.canShare?.({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], text });
+                markPublished(platform);
+                flash(`✓ Listo · si ${name} no puso el texto, mantén presionado y pega`);
+            } catch (e) {
+                if ((e as Error)?.name !== 'AbortError') flash('⚠️ No se pudo abrir el menú de compartir');
+            }
+            return;
+        }
+
+        if (platform === 'wa') {
+            // WhatsApp Web no acepta imagenes por enlace: va el texto y la imagen queda descargada para adjuntarla
+            if (file) downloadImage();
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            markPublished(platform);
+            flash(file ? '✓ Texto listo en WhatsApp · adjunta la imagen descargada' : '✓ Texto listo en WhatsApp');
+            return;
+        }
+        if (file) downloadImage();
+        window.open(PLATFORMS.find(p => p.id === platform)!.upload, '_blank');
+        markPublished(platform);
+        flash(file ? `✓ Imagen descargada y texto copiado · súbela en ${name} y pega el texto` : `✓ Texto copiado · pégalo en ${name}`, 5000);
+    };
+
+    const handleFinishPublishing = () => {
+        setPublishOpen(false);
+        handleMarkUsed();
     };
 
     const handleAiRegenerate = async () => {
@@ -346,9 +443,9 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                     {/* LEFT COLUMN: SONG INFO & COVER (4 cols) */}
                     <div className="lg:col-span-4 flex flex-col gap-4">
                         <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black">
-                            <img 
-                                src={suggestion.song.cover} 
-                                alt={suggestion.song.name} 
+                            <img
+                                src={sharePreview || suggestion.song.cover}
+                                alt={suggestion.song.name}
                                 className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
@@ -368,6 +465,36 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 </p>
                             </div>
                         </div>
+
+                        {/* IMAGEN A PUBLICAR */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <button
+                                onClick={() => setShareSource('cover')}
+                                className={`py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider transition-all ${shareSource === 'cover' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
+                            >
+                                <i className="fas fa-compact-disc mr-1"></i> Portada
+                            </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider transition-all ${shareSource === 'upload' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
+                                title="Usa un flyer que ya tengas (por ejemplo, uno hecho en Studio PRO)"
+                            >
+                                <i className="fas fa-images mr-1"></i> Mi imagen
+                            </button>
+                            <button
+                                onClick={downloadImage}
+                                disabled={!shareBlob}
+                                className="py-2.5 rounded-xl border bg-white/5 border-white/10 text-white/60 hover:text-white text-[8px] font-black uppercase tracking-wider transition-all disabled:opacity-30"
+                            >
+                                <i className={`fas ${imageLoading ? 'fa-spinner fa-spin' : 'fa-download'} mr-1`}></i> Bajar
+                            </button>
+                            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePickImage} />
+                        </div>
+                        {!imageLoading && !shareBlob && (
+                            <p className="text-[8px] text-amber-400/70 font-bold uppercase tracking-widest -mt-2">
+                                <i className="fas fa-triangle-exclamation mr-1"></i> No se pudo cargar la portada · usa "Mi imagen"
+                            </p>
+                        )}
 
                         {/* SMART LINK PILL */}
                         <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
@@ -473,54 +600,100 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
                         {/* MAIN ACTION BAR: 1-CLICK POST BUTTONS */}
                         <div className="space-y-3 pt-2">
-                            {/* MASTER COPY BUTTON */}
+                            {/* MASTER BUTTON: PUBLICAR EN TODAS */}
                             <button
-                                onClick={() => copyToClipboard(getActivePostText(), 'Todo el contenido')}
+                                onClick={() => { setPublishOpen(true); navigator.clipboard?.writeText(getPostText('ig')).catch(() => {}); }}
                                 className="w-full py-4 rounded-xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-3 bg-gradient-to-r from-[#c5a059] to-[#d4af37] text-black hover:scale-[1.01] active:scale-95 transition-all shadow-[0_10px_30px_rgba(197,160,89,0.25)]"
                             >
-                                <i className="fas fa-copy text-sm"></i>
-                                ⚡ Copiar Todo para Publicar Ya (Texto + Link + Tags)
+                                <i className="fas fa-rocket text-sm"></i>
+                                🚀 Publicar en todas las redes (imagen + texto)
                             </button>
 
-                            {/* DIRECT ONE-CLICK SOCIAL LAUNCHERS */}
+                            {/* UNA RED A LA VEZ: imagen + texto de esa red */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <button
-                                    onClick={handleShareWhatsApp}
-                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366] hover:text-black transition-all text-[9px] font-black uppercase tracking-wider"
-                                >
-                                    <i className="fab fa-whatsapp text-sm"></i>
-                                    <span>WhatsApp</span>
-                                </button>
-
-                                <button
-                                    onClick={handleShareInstagram}
-                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#E1306C]/10 border border-[#E1306C]/30 text-[#E1306C] hover:bg-[#E1306C] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider"
-                                >
-                                    <i className="fab fa-instagram text-sm"></i>
-                                    <span>Instagram</span>
-                                </button>
-
-                                <button
-                                    onClick={handleShareTikTok}
-                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white hover:text-black transition-all text-[9px] font-black uppercase tracking-wider"
-                                >
-                                    <i className="fab fa-tiktok text-sm"></i>
-                                    <span>TikTok</span>
-                                </button>
-
-                                <button
-                                    onClick={handleShareFacebook}
-                                    className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all text-[9px] font-black uppercase tracking-wider"
-                                >
-                                    <i className="fab fa-facebook-f text-sm"></i>
-                                    <span>Facebook</span>
-                                </button>
+                                {PLATFORMS.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => shareTo(p.id)}
+                                        style={{ color: p.color, borderColor: `${p.color}4d`, background: `${p.color}1a` }}
+                                        className="relative flex items-center justify-center gap-2 py-3 px-3 rounded-xl border hover:brightness-150 transition-all text-[9px] font-black uppercase tracking-wider"
+                                    >
+                                        <i className={`${p.icon} text-sm`}></i>
+                                        <span>{p.label}</span>
+                                        {publishedTo.includes(p.id) && <i className="fas fa-circle-check text-green-400 text-[10px] absolute top-1.5 right-1.5"></i>}
+                                    </button>
+                                ))}
                             </div>
+
+                            <button
+                                onClick={() => copyToClipboard(getActivePostText(), 'Texto completo')}
+                                className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 text-white/60 hover:text-white text-[9px] font-black uppercase tracking-widest transition-all"
+                            >
+                                <i className="fas fa-copy mr-2"></i> Solo copiar texto + link + tags
+                            </button>
                         </div>
 
                     </div>
                 </div>
             </div>
+
+            {/* PUBLICAR EN TODAS: una red tras otra con la misma imagen */}
+            {publishOpen && (
+                <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" onClick={() => setPublishOpen(false)}>
+                    <div className="w-full max-w-md bg-[#0f111a] border border-[#c5a059]/30 rounded-3xl p-6 space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-4">
+                            {sharePreview && <img src={sharePreview} alt="" className="w-16 h-16 rounded-xl object-cover border border-white/10" />}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-[#c5a059]">Publicar en todas</p>
+                                <p className="text-sm font-serif italic text-white truncate">{suggestion.song.name}</p>
+                                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{publishedTo.length} de {PLATFORMS.length} listas</p>
+                            </div>
+                            <button onClick={() => setPublishOpen(false)} className="w-8 h-8 rounded-full bg-white/5 text-white/50 hover:text-white"><i className="fas fa-xmark"></i></button>
+                        </div>
+
+                        <p className="text-[10px] text-white/50 leading-relaxed">
+                            {isMobileDevice()
+                                ? 'Toca cada red: se abre el menú para compartir con la imagen y el texto de esa red ya copiado (si no aparece, mantén presionado y pega).'
+                                : 'Toca cada red: se descarga la imagen, se copia el texto de esa red y se abre la página para subirla. Abre esta pantalla en el celular para mandarla directo a las apps.'}
+                        </p>
+
+                        <div className="space-y-2">
+                            {PLATFORMS.map((p, i) => {
+                                const done = publishedTo.includes(p.id);
+                                const isNext = !done && PLATFORMS.findIndex(x => !publishedTo.includes(x.id)) === i;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => shareTo(p.id)}
+                                        className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${done ? 'bg-green-500/10 border-green-500/30' : isNext ? 'bg-white/10 border-[#c5a059]/60' : 'bg-white/5 border-white/10 hover:border-white/30'}`}
+                                    >
+                                        <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${p.color}22`, color: p.color }}>
+                                            <i className={p.icon}></i>
+                                        </span>
+                                        <span className="flex-1">
+                                            <span className="block text-[11px] font-black uppercase tracking-wider text-white">{i + 1}. {p.label}</span>
+                                            <span className="block text-[9px] text-white/40">{done ? 'Hecho · toca para repetir' : isNext ? 'Siguiente' : 'Pendiente'}</span>
+                                        </span>
+                                        <i className={`fas ${done ? 'fa-circle-check text-green-400' : 'fa-arrow-up-right-from-square text-white/30'}`}></i>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {copiedStatus && (
+                            <div className="p-2.5 rounded-xl bg-[#c5a059] text-black text-[9px] font-black uppercase tracking-widest text-center">{copiedStatus}</div>
+                        )}
+
+                        <button
+                            onClick={handleFinishPublishing}
+                            disabled={publishedTo.length === 0}
+                            className="w-full py-3.5 rounded-xl bg-green-500 text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-30 transition-all"
+                        >
+                            <i className="fas fa-check mr-2"></i> Terminé · marcar canción como usada
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
