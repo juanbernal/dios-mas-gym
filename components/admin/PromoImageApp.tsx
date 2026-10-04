@@ -294,6 +294,8 @@ const PromoImageApp: React.FC = () => {
   const [selectedAlbumKey, setSelectedAlbumKey] = useState("");
   const [excludedTracks, setExcludedTracks] = useState<string[]>([]);
   const [shortTrackNames, setShortTrackNames] = useState(true);
+  const [focusTrack, setFocusTrack] = useState(""); // cancion que se esta promocionando dentro del album
+  const [focusBadge, setFocusBadge] = useState("★ ESCÚCHALA YA");
   const albumLookupsRef = useRef<Set<string>>(new Set());
 
   // NUEVAS MEJORAS 2026 (v4.5)
@@ -600,6 +602,7 @@ const PromoImageApp: React.FC = () => {
     const g = albumGroups.find(x => x.key === key);
     setSelectedAlbumKey(key);
     setExcludedTracks([]);
+    setFocusTrack("");
     if (!g) return;
     const info = albumInfo[key];
     let normalizedArtist = g.artist;
@@ -618,7 +621,12 @@ const PromoImageApp: React.FC = () => {
     // Si la cancion actual pertenece a un album del catalogo, se carga ese album automaticamente
     if (value === 'album' && !selectedAlbumKey) {
       const g = albumGroups.find(x => x.songs.some(s => s.id === songId));
-      if (g) handleSelectAlbum(g.key);
+      if (g) {
+        const current = g.songs.find(s => s.id === songId);
+        handleSelectAlbum(g.key);
+        // La cancion que estaba cargada queda como la destacada del album
+        if (current) setFocusTrack(current.name);
+      }
     }
   };
 
@@ -1187,6 +1195,7 @@ const PromoImageApp: React.FC = () => {
   const commonProps = {
     title, artist, bg, cover: coverArt, mode, size, date, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, country, trackList: tracks.split("\n"),
+    focusTrack: mode === 'album' ? focusTrack : '', focusBadge,
     config: sizes[size],
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
@@ -1392,7 +1401,20 @@ const PromoImageApp: React.FC = () => {
                                 className="accent-[#c5a059]"
                               />
                               <span className="text-[9px] font-black text-[#c5a059]/60 w-5">{String(i + 1).padStart(2, '0')}</span>
-                              <span className={`text-[10px] font-bold truncate ${on ? 'text-white/90' : 'text-white/30 line-through'}`}>{t}</span>
+                              <span className={`flex-1 min-w-0 text-[10px] font-bold truncate ${on ? 'text-white/90' : 'text-white/30 line-through'}`}>{t}</span>
+                              <button
+                                type="button"
+                                title="Destacar: la canción que estás promocionando"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  const isFocus = normName(shortTrackName(focusTrack)) === normName(shortTrackName(t));
+                                  setFocusTrack(isFocus ? '' : t);
+                                  if (!isFocus && !on) setExcludedTracks(list => list.filter(x => x !== t));
+                                }}
+                                className={`shrink-0 w-6 h-6 rounded-md text-[10px] transition-colors ${focusTrack && normName(shortTrackName(focusTrack)) === normName(shortTrackName(t)) ? 'bg-[#c5a059] text-black' : 'text-white/25 hover:text-[#c5a059]'}`}
+                              >
+                                <i className="fas fa-star" />
+                              </button>
                             </label>
                           );
                         })}
@@ -1403,6 +1425,41 @@ const PromoImageApp: React.FC = () => {
                       </label>
                     </div>
                   )}
+
+                  {/* CANCION DESTACADA (tambien funciona con el tracklist escrito a mano) */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest flex items-center gap-2">
+                        <i className="fas fa-star text-[#c5a059]" /> Canción destacada
+                      </label>
+                      <select
+                        className="w-full bg-black/40 border border-white/5 p-3 rounded-xl outline-none text-[10px] cursor-pointer"
+                        value={tracks.split("\n").find(l => l.trim() && focusTrack && normName(shortTrackName(l)) === normName(shortTrackName(focusTrack))) || ''}
+                        onChange={(e) => setFocusTrack(e.target.value)}
+                      >
+                        <option value="">Ninguna</option>
+                        {tracks.split("\n").filter(l => l.trim()).map((l, i) => (
+                          <option key={l + i} value={l}>{String(i + 1).padStart(2, '0')} · {l.trim()}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Etiqueta</label>
+                      <input
+                        type="text"
+                        maxLength={18}
+                        className="w-full bg-black/40 border border-white/5 p-3 rounded-xl outline-none focus:border-[#c5a059]/50 text-[10px] font-black tracking-widest text-[#c5a059] uppercase"
+                        placeholder="SIN ETIQUETA"
+                        value={focusBadge}
+                        onChange={(e) => setFocusBadge(e.target.value.toUpperCase())}
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {['★ ESCÚCHALA YA', '★ NUEVO', '★ SENCILLO', '★ FOCUS TRACK'].map(b => (
+                          <button key={b} type="button" onClick={() => setFocusBadge(b)} className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/5 text-[7px] font-bold text-white/40 hover:text-[#c5a059]">{b.replace('★ ', '')}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
                   <label className="text-[9px] uppercase font-bold text-white/30 tracking-widest block pt-1">Tracklist final (editable)</label>
                   <textarea
@@ -2735,6 +2792,7 @@ const StageWrap: React.FC<{ on: boolean; width: number; children: React.ReactNod
 const PromoTemplate: React.FC<any> = ({ 
     title, artist, bg, cover = null, mode, config: canvasConfig, overlay, overlayColor, textColor, contrastColor, glow, stroke,
     formatDate, trackList, isExport = false, country,
+    focusTrack = '', focusBadge = '',
     grit, noise, scanlines, vignette, industrial, template,
     slogan, customFooterUrl,
     footerStyle = 'glass', coverMockup = 'vinyl', titleFont = 'bebas', titleEffect = 'glow',
@@ -3537,12 +3595,32 @@ const PromoTemplate: React.FC<any> = ({
                       <div style={{ height: 1, flex: 1, background: `linear-gradient(to left, transparent, ${theme.accent}80)` }}></div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: trackList.filter(t => t.trim()).length > 5 ? '1fr 1fr' : '1fr', gap: `${config.title * 0.1}px ${config.title * 0.6}px` }}>
-                      {trackList.filter(t => t.trim()).map((track, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07, minWidth: 0 }}>
-                          <span style={{ fontSize: fz(0.18), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
-                          <span style={{ fontSize: fz(0.22), fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.trim()}</span>
-                        </div>
-                      ))}
+                      {(() => {
+                        const lines = trackList.filter(t => t.trim());
+                        const focusKey = focusTrack ? normName(shortTrackName(focusTrack)) : '';
+                        const hasFocus = !!focusKey && lines.some(t => normName(shortTrackName(t)) === focusKey);
+                        return lines.map((track, i) => {
+                          const isFocus = hasFocus && normName(shortTrackName(track)) === focusKey;
+                          if (isFocus) {
+                            // La cancion que se promociona: fila completa, resaltada con el color de acento
+                            return (
+                              <div key={i} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: config.title * 0.18, minWidth: 0, padding: `${config.title * 0.12}px ${config.title * 0.2}px`, margin: `${config.title * 0.05}px 0`, borderRadius: config.title * 0.12, background: `linear-gradient(90deg, ${theme.accent}40, ${theme.accent}14)`, borderLeft: `${Math.max(3, config.title * 0.1)}px solid ${theme.accent}`, boxShadow: `0 0 ${config.title * 0.6}px ${theme.accent}33` }}>
+                                <span style={{ fontSize: fz(0.22), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
+                                <span style={{ flex: 1, fontSize: fz(0.3), fontWeight: 900, color: textColor, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.trim()}</span>
+                                {focusBadge.trim() && (
+                                  <span style={{ flexShrink: 0, fontSize: fz(0.16), fontWeight: 900, letterSpacing: '0.15em', color: '#000', background: theme.accent, padding: `${config.title * 0.05}px ${config.title * 0.15}px`, borderRadius: 999, whiteSpace: 'nowrap' }}>{focusBadge.trim()}</span>
+                                )}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: config.title * 0.15, borderBottom: `1px solid ${theme.accent}22`, paddingBottom: config.title * 0.07, minWidth: 0, opacity: hasFocus ? 0.6 : 1 }}>
+                              <span style={{ fontSize: fz(0.18), fontWeight: 900, color: theme.accent, minWidth: config.title * 0.45, opacity: 0.7, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
+                              <span style={{ fontSize: fz(0.22), fontWeight: 700, color: textColor, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.trim()}</span>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )}
