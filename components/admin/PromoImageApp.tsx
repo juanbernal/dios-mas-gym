@@ -7,6 +7,7 @@ import { generateSocialCaption, SocialCaptionResult } from "../../services/gemin
 import { MusicItem } from "../../types";
 import { getCorsFriendlyUrl } from "../../services/imageHelpers";
 import { BOOK_NR, fetchChapter } from "../../services/bibleService";
+import { saveGeneratedImage } from "../../services/generatedImages";
 
 const sizes = {
   instagram: { w: 500, h: 650, title: 32 },
@@ -881,7 +882,7 @@ const PromoImageApp: React.FC = () => {
         setAiHashtags(result.hashtags);
       }
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
-      if (blob) setShareImageBlob(blob);
+      if (blob) { setShareImageBlob(blob); saveGeneratedImage('promo', songId, title, blob); }
     } catch (err) {
       console.error("Share panel error:", err);
       // Fallback caption
@@ -1033,6 +1034,23 @@ const PromoImageApp: React.FC = () => {
     }
   };
 
+  // Guarda la imagen actual y vuelve al panel para publicarla desde "Publicacion Rapida del Dia"
+  const handleUseInQuickPost = async () => {
+    if (!songId) { alert('Elige una canción del catálogo para ligar la imagen.'); return; }
+    setIsGenerating(true);
+    try {
+      const canvas = await prepareCanvasForWidth(PROMO_EXPORT_WIDTHS.social);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error("Blob failed");
+      await saveGeneratedImage('promo', songId, title, blob);
+      navigate('/admin');
+    } catch (e: any) {
+      alert(`⚠️ No se pudo preparar la imagen: ${e.message || e}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleDownload = async (isUltra = true) => {
     setIsGenerating(true);
     const mimeType = exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
@@ -1044,6 +1062,7 @@ const PromoImageApp: React.FC = () => {
       console.log("[DOWNLOAD] CANVAS GENERATED, CREATING BLOB...");
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, mimeType, quality));
       if (!blob) throw new Error("Blob generation failed");
+      saveGeneratedImage('promo', songId, title, blob); // queda disponible en "Publicacion Rapida del Dia"
 
       console.log("[DOWNLOAD] BLOB READY, TRIGGERING DOWNLOAD...");
       const url = URL.createObjectURL(blob);
@@ -2251,6 +2270,15 @@ const PromoImageApp: React.FC = () => {
                  className="w-full py-6 bg-white text-black font-black uppercase text-[11px] tracking-[0.4em] rounded-2xl hover:bg-[#c5a059] transition-all flex items-center justify-center gap-4 group shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-50"
                >
                  <i className="fas fa-download group-hover:scale-110 transition-transform"></i> Descargar imagen
+               </button>
+
+               <button
+                 onClick={handleUseInQuickPost}
+                 disabled={isGenerating || !songId}
+                 title={songId ? 'Guarda esta imagen y vuelve al panel para publicarla' : 'Elige una canción del catálogo primero'}
+                 className="w-full py-3.5 bg-[#c5a059]/10 border border-[#c5a059]/40 text-[#c5a059] font-black uppercase text-[9px] tracking-[0.2em] rounded-xl hover:bg-[#c5a059] hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+               >
+                 <i className="fas fa-paper-plane"></i> Usar en Publicación Rápida
                </button>
 
                <div className="grid grid-cols-2 gap-3">

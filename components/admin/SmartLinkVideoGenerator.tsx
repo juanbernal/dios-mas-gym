@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchMusicCatalog } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import { getCorsFriendlyUrl } from '../../services/imageHelpers';
+import { saveGeneratedImage } from '../../services/generatedImages';
 
 const noise = (x: number, y: number) => {
     return Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
@@ -1054,9 +1055,27 @@ const SmartLinkVideoGenerator: React.FC = () => {
             a.href = dataUrl;
             a.download = `SmartLink_${songName}.png`;
             a.click();
+            // Queda disponible en "Publicacion Rapida del Dia"
+            canvasRef.current.toBlob(b => { if (b) saveGeneratedImage('smartlink', selectedSong.id, customTitle || selectedSong.name, b); }, 'image/png');
         } catch (e) {
             console.error("Error al descargar la imagen:", e);
             alert("No se pudo generar la imagen para descargar. Si cargaste una portada personalizada remota, verifica que admita CORS.");
+        }
+    };
+
+    // Guarda la imagen y vuelve al panel para publicarla desde "Publicacion Rapida del Dia"
+    const handleUseInQuickPost = () => {
+        if (!canvasRef.current || !selectedSong) return;
+        try {
+            renderCanvas(undefined, true);
+            canvasRef.current.toBlob(async b => {
+                if (!b) { alert('No se pudo generar la imagen.'); return; }
+                await saveGeneratedImage('smartlink', selectedSong.id, customTitle || selectedSong.name, b);
+                navigate('/admin');
+            }, 'image/jpeg', 0.92);
+        } catch (e) {
+            console.error("Error al preparar la imagen:", e);
+            alert("No se pudo generar la imagen. Si cargaste una portada personalizada remota, verifica que admita CORS.");
         }
     };
 
@@ -1205,6 +1224,13 @@ const SmartLinkVideoGenerator: React.FC = () => {
                                         <i className="fas fa-download text-xs"></i> Descargar Imagen Desktop (4K UHD)
                                     </>
                                 )}
+                            </button>
+                            <button
+                                onClick={handleUseInQuickPost}
+                                disabled={!isImageLoaded}
+                                className="w-full mt-3 py-3.5 rounded-2xl border border-[#c5a059]/40 bg-[#c5a059]/10 text-[#c5a059] hover:bg-[#c5a059] hover:text-black text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+                            >
+                                <i className="fas fa-paper-plane text-xs"></i> Usar en Publicación Rápida
                             </button>
                         </div>
                     )}

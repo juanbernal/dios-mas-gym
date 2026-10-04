@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MusicItem } from '../../types';
 import { adminHeaders } from '../../services/adminSync';
 import { getCorsFriendlyUrl } from '../../services/imageHelpers';
+import { fetchSavedLyrics } from '../../services/musicService';
+import { getGeneratedImagesForSong, GeneratedImage } from '../../services/generatedImages';
 
 type Platform = 'ig' | 'tt' | 'wa' | 'fb';
 const PLATFORMS: { id: Platform; label: string; icon: string; color: string; upload: string }[] = [
@@ -93,6 +95,65 @@ const CAPTIONS_BY_TYPE = {
     })
 };
 
+// LETRAS: fragmentos (de preferencia el coro) para armar el texto del post
+const stripHtml = (s: string) => s
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|h\d|li)>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+const normTitle = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s*[([][^)\]]*[)\]]/g, '').replace(/[^a-z0-9]+/g, '');
+const isLyricLine = (l: string) => {
+    const t = l.trim();
+    if (t.length < 12 || t.length > 90) return false;
+    if (/^\[.*\]$|^\(.*\)$/.test(t)) return false; // [Coro], (x2)
+    if (/^(coro|verso|intro|outro|puente|estribillo|pre-?coro|letra|autor|prod)\b/i.test(t)) return false;
+    if (/https?:|www\.|#|@/.test(t)) return false;
+    return true;
+};
+const extractLyricFragments = (raw: string): string[] => {
+    const lines = stripHtml(raw || '').replace(/\r/g, '').split('\n').map(l => {
+        let t = l.replace(/\s+/g, ' ').trim();
+        // La transcripcion automatica deja "¡" o "¿" sin cerrar
+        if (t.startsWith('¡') && !t.includes('!')) t = t.slice(1);
+        if (t.startsWith('¿') && !t.includes('?')) t = t.slice(1);
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    });
+    const valid = lines.filter(isLyricLine);
+    if (valid.length < 2) return [];
+    // Las lineas que mas se repiten suelen ser el coro: esas van primero
+    const count = new Map<string, number>();
+    valid.forEach(l => count.set(l.toLowerCase(), (count.get(l.toLowerCase()) || 0) + 1));
+    const seen = new Set<string>();
+    const frags: { text: string; score: number }[] = [];
+    for (let i = 0; i < lines.length - 1; i++) {
+        const a = lines[i], b = lines[i + 1];
+        if (!isLyricLine(a) || !isLyricLine(b)) continue;
+        const key = `${a}|${b}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        frags.push({ text: `${a}\n${b}`, score: (count.get(a.toLowerCase()) || 1) + (count.get(b.toLowerCase()) || 1) });
+    }
+    // Sin lineas repetidas entre fragmentos, asi "Otra frase" siempre trae algo distinto
+    const used = new Set<string>();
+    const out: string[] = [];
+    for (const f of frags.sort((x, y) => y.score - x.score)) {
+        const ls = f.text.split('\n').map(l => l.toLowerCase());
+        if (ls.some(l => used.has(l))) continue;
+        ls.forEach(l => used.add(l));
+        out.push(f.text);
+        if (out.length >= 10) break;
+    }
+    return out;
+};
+const LYRIC_CAPTIONS = (frag: string, name: string, artist: string, link: string) => {
+    const first = frag.split('\n')[0];
+    return {
+        ig: `“${frag}” 🎶\n\n${name} · ${artist}\n\n¿Con qué frase te quedas? 👇\n🎧 Escúchala completa: ${link}`,
+        tt: `“${first}” 🔥 ${name} - ${artist}. Escúchala completa 👉 ${link}`,
+        wa: `🎵 “${frag}”\n\n${name} de ${artist}\n👉 ${link}`
+    };
+};
+
 const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = [] }) => {
     const navigate = useNavigate();
     const [releases, setReleases] = useState<ReleaseData[]>([]);
@@ -105,7 +166,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     // IMAGEN QUE SE PUBLICA: portada de la cancion (por defecto) o una propia de la galeria
     const [shareBlob, setShareBlob] = useState<Blob | null>(null);
     const [sharePreview, setSharePreview] = useState<string>('');
-    const [shareSource, setShareSource] = useState<'cover' | 'upload'>('cover');
+    const [shareSource, setShareSource] = useState<'cover' | 'upload' | 'promo' | 'smartlink'>('cover');
+    const [generated, setGenerated] = useState<GeneratedImage[]>([]);
+
+    // LETRA: fragmento que se usa en el texto del post
+    const [savedLyrics, setSavedLyrics] = useState<any[]>([]);
+    const [fragIdx, setFragIdx] = useState(0);
+    const [useLyrics, setUseLyrics] = useState(true);
     const [imageLoading, setImageLoading] = useState(false);
     const [publishOpen, setPublishOpen] = useState(false);
     const [publishedTo, setPublishedTo] = useState<Platform[]>([]);
@@ -174,8 +241,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         const type: 'recent' | 'rotation' = idx % 2 === 0 ? 'recent' : 'rotation';
         const caps = CAPTIONS_BY_TYPE[type](song.name, song.artist, smartLink);
         
-        const words = song.name.replace(/[^a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]/g, '').trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-        const titleHashtags = words.map(w => `#${w}`).join(' ');
+        // Un solo hashtag con el titulo (#ElQueNoBrinque...), no uno por palabra
+        const titleTag = song.name.replace(/\s*[([][^)\]]*[)\]]/g, '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .split(/[^a-zA-Z0-9ñÑ]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join('');
+        const titleHashtags = titleTag && titleTag.length <= 40 ? `#${titleTag}` : '';
         const dynamicHashtags = `${titleHashtags} #musica #diosmasgym #juan614`;
         const finalHashtags = `${HASHTAG_SETS[type]} ${dynamicHashtags}`;
 
@@ -189,6 +258,24 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             hashtags: finalHashtags
         };
     }, [catalog, promotedIds, skipCount, dayOfYear]);
+
+    useEffect(() => {
+        fetchSavedLyrics().then(list => setSavedLyrics(Array.isArray(list) ? list : [])).catch(() => {});
+    }, []);
+
+    // Letra de la columna del Excel o, si no, la guardada en el Gestor de Letras
+    const lyricFragments = useMemo(() => {
+        const song = suggestion?.song;
+        if (!song) return [];
+        let raw = song.lyrics || '';
+        if (!raw.trim()) {
+            const k = normTitle(song.name);
+            raw = savedLyrics.find(l => l?.title && l?.content && normTitle(l.title) === k)?.content || '';
+        }
+        return extractLyricFragments(raw);
+    }, [suggestion?.song, savedLyrics]);
+    useEffect(() => { setFragIdx(0); }, [suggestion?.song?.id]);
+    const fragment = useLyrics && lyricFragments.length > 0 ? lyricFragments[fragIdx % lyricFragments.length] : '';
 
     // Estado compartido entre dispositivos (saltos del dia y canciones usadas).
     // Si el servidor no lo tiene configurado, se sigue usando solo el guardado local.
@@ -258,6 +345,13 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             return platform === 'wa' ? `${customAiText}\n\n${smartLink}` : `${customAiText}\n\n${smartLink}\n\n${suggestion.hashtags}`;
         }
 
+        if (fragment) {
+            const caps = LYRIC_CAPTIONS(fragment, suggestion.song.name, suggestion.song.artist, smartLink);
+            if (platform === 'tt') return `${caps.tt}\n\n${suggestion.hashtags} #fyp #parati`;
+            if (platform === 'wa') return caps.wa;
+            return `${caps.ig}\n\n${suggestion.hashtags}`;
+        }
+
         if (platform === 'ig' || platform === 'fb') {
             return `${suggestion.caption}\n\n${suggestion.hashtags}`;
         }
@@ -311,6 +405,36 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setShareSource('upload');
         setShareBlob(file);
         setSharePreview(URL.createObjectURL(file));
+    };
+
+    // Imagenes hechas en Studio PRO / SmartLink Image Creator para esta cancion (guardadas en este dispositivo)
+    useEffect(() => {
+        if (!songKey) { setGenerated([]); return; }
+        let cancelled = false;
+        const load = () => getGeneratedImagesForSong(songKey).then(list => {
+            if (cancelled) return;
+            setGenerated(list);
+            // Si acabas de crearla ("Usar en Publicacion Rapida"), se elige sola
+            const fresh = list.find(g => Date.now() - g.createdAt < 10 * 60 * 1000);
+            if (fresh) selectGenerated(fresh);
+        });
+        load();
+        const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); };
+    }, [songKey]);
+
+    const selectGenerated = (g: GeneratedImage) => {
+        setShareSource(g.source);
+        setShareBlob(g.blob);
+        setSharePreview(URL.createObjectURL(g.blob));
+    };
+
+    const pickToolImage = (source: 'promo' | 'smartlink') => {
+        const g = generated.find(x => x.source === source);
+        if (g) { selectGenerated(g); return; }
+        // Aun no hay: se abre la herramienta con la cancion; al tocar "Usar en Publicacion Rapida" vuelve aqui
+        navigate(source === 'promo' ? '/admin/promo-image' : '/admin/smartlink-video', { state: { song: suggestion?.song } });
     };
 
     const shareFileName = () => {
@@ -444,7 +568,8 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         setAiLoading(true);
         try {
             const prompt = {
-                input: `Genera un post viral MUY impactante y listo para publicar sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Estilo directo, épico, de motivación, fe y disciplina.`,
+                input: `Genera un post viral MUY impactante y listo para publicar sobre la canción "${suggestion.song.name}" de ${suggestion.song.artist}. Estilo directo, épico, de motivación, fe y disciplina.`
+                    + (lyricFragments.length ? ` Básate en la letra: cita textual este fragmento entre comillas y habla de su mensaje: "${(fragment || lyricFragments[0]).replace(/\n/g, ' / ')}". No inventes otras frases de la canción.` : ''),
                 platform: platformTab === 'tt' ? 'TikTok' : 'Instagram',
                 goal: 'Inspirar y Viralizar',
                 tone: 'Épico y Motivador'
@@ -560,27 +685,39 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                         </div>
 
                         {/* IMAGEN A PUBLICAR */}
-                        <div className="grid grid-cols-3 gap-2">
-                            <button
-                                onClick={() => setShareSource('cover')}
-                                className={`py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider transition-all ${shareSource === 'cover' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
-                            >
-                                <i className="fas fa-compact-disc mr-1"></i> Portada
-                            </button>
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wider transition-all ${shareSource === 'upload' ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
-                                title="Usa un flyer que ya tengas (por ejemplo, uno hecho en Studio PRO)"
-                            >
-                                <i className="fas fa-images mr-1"></i> Mi imagen
-                            </button>
-                            <button
-                                onClick={downloadImage}
-                                disabled={!shareBlob}
-                                className="py-2.5 rounded-xl border bg-white/5 border-white/10 text-white/60 hover:text-white text-[8px] font-black uppercase tracking-wider transition-all disabled:opacity-30"
-                            >
-                                <i className={`fas ${imageLoading ? 'fa-spinner fa-spin' : 'fa-download'} mr-1`}></i> Bajar
-                            </button>
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Imagen a publicar</span>
+                                <button
+                                    onClick={downloadImage}
+                                    disabled={!shareBlob}
+                                    className="text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white disabled:opacity-30"
+                                >
+                                    <i className={`fas ${imageLoading ? 'fa-spinner fa-spin' : 'fa-download'} mr-1`}></i> Bajar
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {([
+                                    { id: 'cover', label: 'Portada', icon: 'fa-compact-disc', onClick: () => setShareSource('cover') },
+                                    { id: 'promo', label: 'Studio PRO', icon: 'fa-palette', onClick: () => pickToolImage('promo') },
+                                    { id: 'smartlink', label: 'SmartLink', icon: 'fa-mobile-screen', onClick: () => pickToolImage('smartlink') },
+                                    { id: 'upload', label: 'Mi imagen', icon: 'fa-images', onClick: () => fileInputRef.current?.click() },
+                                ] as const).map(opt => {
+                                    const active = shareSource === opt.id;
+                                    const missing = (opt.id === 'promo' || opt.id === 'smartlink') && !generated.some(g => g.source === opt.id);
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={opt.onClick}
+                                            title={missing ? 'Aún no la has creado: se abre la herramienta con esta canción' : undefined}
+                                            className={`py-2.5 px-2 rounded-xl border text-[8px] font-black uppercase tracking-wider transition-all ${active ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
+                                        >
+                                            <i className={`fas ${opt.icon} mr-1`}></i> {opt.label}
+                                            {missing && <span className="block text-[7px] font-bold opacity-60 normal-case tracking-normal">+ crear</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePickImage} />
                         </div>
                         {!imageLoading && !shareBlob && (
@@ -663,6 +800,33 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 <span>{aiLoading ? 'Creando...' : '✨ Variar Copy con IA'}</span>
                             </button>
                         </div>
+
+                        {/* FRAGMENTO DE LA LETRA */}
+                        {lyricFragments.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2 bg-[#c5a059]/5 border border-[#c5a059]/20 rounded-2xl p-3">
+                                <button
+                                    onClick={() => { setUseLyrics(v => !v); setCustomAiText(''); }}
+                                    className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-all ${useLyrics ? 'bg-[#c5a059] text-black border-[#c5a059]' : 'bg-black/30 text-white/50 border-white/10'}`}
+                                >
+                                    <i className="fas fa-microphone-lines mr-1"></i> {useLyrics ? 'Con letra' : 'Sin letra'}
+                                </button>
+                                <span className="flex-1 min-w-0 text-[10px] italic text-white/70 truncate">
+                                    {useLyrics ? `“${fragment.replace(/\n/g, ' / ')}”` : 'Texto genérico (sin frase de la canción)'}
+                                </span>
+                                {useLyrics && lyricFragments.length > 1 && (
+                                    <button
+                                        onClick={() => { setFragIdx(i => i + 1); setCustomAiText(''); }}
+                                        className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/10 text-white/70 hover:text-white"
+                                    >
+                                        <i className="fas fa-shuffle mr-1"></i> Otra frase ({(fragIdx % lyricFragments.length) + 1}/{lyricFragments.length})
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-[9px] text-white/30">
+                                <i className="fas fa-microphone-lines-slash mr-1"></i> Esta canción aún no tiene letra guardada · agrégala en el Gestor de Letras para usar frases en el post
+                            </p>
+                        )}
 
                         {/* LIVE TEXT BOX WITH THE ENTIRE READY-TO-POST COPY */}
                         <div className="relative bg-black/50 border border-white/10 rounded-2xl p-5 group">
