@@ -362,11 +362,18 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         }
 
         if (platform === 'wa') {
-            // WhatsApp Web no acepta imagenes por enlace: va el texto y la imagen queda descargada para adjuntarla
-            if (file) downloadImage();
+            // El smart link lleva la portada como vista previa: WhatsApp la muestra sola al pegar el link
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
             markPublished(platform);
-            flash(file ? '✓ Texto listo en WhatsApp · adjunta la imagen descargada' : '✓ Texto listo en WhatsApp');
+            flash('✓ Elige el chat y envía · la portada sale como vista previa del link');
+            return;
+        }
+        if (platform === 'fb') {
+            // Facebook si deja publicar desde la compu con su ventana de compartir: el link sale con la portada
+            const smartLink = `${window.location.origin}/link/${suggestion.song.id}`;
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(smartLink)}`, '_blank', 'width=640,height=720');
+            markPublished(platform);
+            flash('✓ Pega el texto (Ctrl+V) en la ventana de Facebook y toca Publicar', 6000);
             return;
         }
         if (file) downloadImage();
@@ -410,6 +417,20 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
             flash(`⚠️ No se pudo publicar: ${(e as Error).message}`, 6000);
         } finally {
             setDirectPublishing(false);
+        }
+    };
+
+    // Windows/Mac tambien tienen menu de compartir (WhatsApp de escritorio, Correo, etc.)
+    const canShareFilesHere = !!shareBlob && typeof navigator !== 'undefined' && !!navigator.canShare
+        && navigator.canShare({ files: [new File([shareBlob], 'x.jpg', { type: shareBlob.type || 'image/jpeg' })] });
+    const shareWithSystem = async () => {
+        if (!shareBlob) return;
+        const text = getPostText('ig');
+        navigator.clipboard?.writeText(text).catch(() => {});
+        try {
+            await navigator.share({ files: [new File([shareBlob], shareFileName(), { type: shareBlob.type || 'image/jpeg' })], text });
+        } catch (e) {
+            if ((e as Error)?.name !== 'AbortError') flash('⚠️ Esta compu no dejó compartir la imagen');
         }
     };
 
@@ -723,11 +744,38 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                             <button onClick={() => setPublishOpen(false)} className="w-8 h-8 rounded-full bg-white/5 text-white/50 hover:text-white"><i className="fas fa-xmark"></i></button>
                         </div>
 
-                        <p className="text-[10px] text-white/50 leading-relaxed">
-                            {isMobileDevice()
-                                ? 'Toca cada red: se abre el menú para compartir con la imagen y el texto de esa red ya copiado (si no aparece, mantén presionado y pega).'
-                                : 'Toca cada red: se descarga la imagen, se copia el texto de esa red y se abre la página para subirla. Abre esta pantalla en el celular para mandarla directo a las apps.'}
-                        </p>
+                        {isMobileDevice() ? (
+                            <p className="text-[10px] text-white/50 leading-relaxed">
+                                Toca cada red: se abre el menú para compartir con la imagen y el texto de esa red ya copiado (si no aparece, mantén presionado y pega).
+                            </p>
+                        ) : (
+                            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3 space-y-2">
+                                <p className="text-[10px] text-amber-200/80 leading-relaxed">
+                                    <i className="fas fa-desktop mr-1"></i>
+                                    Desde la computadora, Instagram y TikTok no dejan que una página suba la imagen por ti: se descarga y tú la subes.
+                                    Facebook y WhatsApp sí se envían con la portada como vista previa del link.
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=1&data=${encodeURIComponent(`${window.location.origin}/admin`)}`}
+                                        alt="QR para abrir en el celular"
+                                        className="w-20 h-20 rounded-lg bg-white p-1 shrink-0"
+                                    />
+                                    <p className="text-[9px] text-white/50 leading-relaxed">
+                                        <b className="text-white/80">Para que se mande sola con imagen a todas las apps</b>, escanea con el celular y usa este mismo botón ahí.
+                                        O conecta Meta para que Instagram y Facebook se publiquen directo.
+                                    </p>
+                                </div>
+                                {canShareFilesHere && (
+                                    <button
+                                        onClick={shareWithSystem}
+                                        className="w-full py-2 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:text-white text-[9px] font-black uppercase tracking-widest"
+                                    >
+                                        <i className="fas fa-share-nodes mr-2"></i> Compartir con las apps de esta compu
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         {/* PUBLICACION DIRECTA EN INSTAGRAM + FACEBOOK */}
                         {directReady ? (
@@ -781,7 +829,7 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                         </span>
                                         <span className="flex-1">
                                             <span className="block text-[11px] font-black uppercase tracking-wider text-white">{i + 1}. {p.label}</span>
-                                            <span className="block text-[9px] text-white/40">{done ? 'Hecho · toca para repetir' : isNext ? 'Siguiente' : 'Pendiente'}</span>
+                                            <span className="block text-[9px] text-white/40">{done ? (isMobileDevice() ? 'Hecho · toca para repetir' : 'Abierto · termina de publicar allá') : isNext ? 'Siguiente' : 'Pendiente'}</span>
                                         </span>
                                         <i className={`fas ${done ? 'fa-circle-check text-green-400' : 'fa-arrow-up-right-from-square text-white/30'}`}></i>
                                     </button>
