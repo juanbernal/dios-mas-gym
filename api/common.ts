@@ -1969,6 +1969,115 @@ export default async function handler(
   // ACTION: DAILY-POST (estado compartido de "Publicacion Rapida del Dia": saltos y usadas)
   // Se guarda en Vercel Blob para que la PC y el celular vean la misma cancion.
   // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // ACTION: SOCIAL PUBLISH (Instagram + pagina de Facebook via Meta Graph API)
+  // Variables: META_PAGE_TOKEN (Diosmasgym) y META_PAGE_TOKEN_JUAN614 (opcional).
+  // Es un token de PAGINA (no caduca si sale de un token de usuario de larga duracion)
+  // con permisos pages_manage_posts, pages_read_engagement, instagram_basic e instagram_content_publish.
+  // -------------------------------------------------------------
+  if (action === 'social-publish') {
+    if (!verifyAdminPassword(req)) return res.status(401).json({ error: 'No autorizado' });
+    res.setHeader('Cache-Control', 'no-store');
+    const GRAPH = `https://graph.facebook.com/${(process.env.META_GRAPH_VERSION || 'v23.0').trim()}`;
+    const tokenFor = (account: string) => ((account === 'juan614'
+      ? process.env.META_PAGE_TOKEN_JUAN614
+      : process.env.META_PAGE_TOKEN) || '').trim();
+    const graph = async (path: string, token: string, method: 'GET' | 'POST' = 'GET', params: Record<string, string> = {}) => {
+      const body = new URLSearchParams({ ...params, access_token: token });
+      const r = method === 'GET'
+        ? await fetch(`${GRAPH}${path}${path.includes('?') ? '&' : '?'}${body.toString()}`)
+        : await fetch(`${GRAPH}${path}`, { method: 'POST', body });
+      const json: any = await r.json().catch(() => ({}));
+      if (!r.ok || json.error) throw new Error(json?.error?.error_user_msg || json?.error?.message || `Meta respondio ${r.status}`);
+      return json;
+    };
+    const getAccount = async (token: string) => {
+      const me = await graph('/me?fields=id,name,instagram_business_account{id,username}', token);
+      return { pageId: me.id as string, pageName: me.name as string, igId: me.instagram_business_account?.id as string | undefined, igUser: me.instagram_business_account?.username as string | undefined };
+    };
+
+    // GET: que cuentas estan conectadas (para pintar los botones)
+    if (req.method === 'GET') {
+      const out: Record<string, any> = {};
+      for (const account of ['diosmasgym', 'juan614']) {
+        const token = tokenFor(account);
+        if (!token) { out[account] = { connected: false }; continue; }
+        try { out[account] = { connected: true, ...(await getAccount(token)) }; }
+        catch (e: any) { out[account] = { connected: false, error: e.message }; }
+      }
+      return res.status(200).json(out);
+    }
+
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    let body: any = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    const account = body?.account === 'juan614' ? 'juan614' : 'diosmasgym';
+    const token = tokenFor(account);
+    if (!token) return res.status(501).json({ error: `Falta configurar ${account === 'juan614' ? 'META_PAGE_TOKEN_JUAN614' : 'META_PAGE_TOKEN'} en Vercel` });
+    const caption = String(body?.caption || '').slice(0, 2200);
+    const targets: string[] = Array.isArray(body?.targets) ? body.targets.filter((t: any) => t === 'ig' || t === 'fb') : ['ig', 'fb'];
+    if (targets.length === 0) return res.status(400).json({ error: 'Sin redes seleccionadas' });
+
+    // Meta descarga la imagen desde una URL publica: se sube el JPG a Blob (o ImgBB si Blob es privado)
+    let imageUrl = '';
+    try {
+      const b64 = String(body?.imageBase64 || '').replace(/^data:image\/\w+;base64,/, '');
+      if (!b64) return res.status(400).json({ error: 'Falta la imagen' });
+      const buffer = Buffer.from(b64, 'base64');
+      if (buffer.length > 8 * 1024 * 1024) return res.status(413).json({ error: 'Imagen demasiado pesada (máx. 8 MB)' });
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        try {
+          const blob = await blobPut(`social/${account}-${Date.now()}.jpg`, buffer, { access: 'public', contentType: 'image/jpeg', addRandomSuffix: true });
+          imageUrl = blob.url;
+        } catch (_) { /* tienda privada: probar ImgBB */ }
+      }
+      if (!imageUrl && process.env.IMGBB_API_KEY) {
+        const params = new URLSearchParams({ key: process.env.IMGBB_API_KEY.trim(), image: b64 });
+        const r = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: params });
+        const j: any = await r.json().catch(() => ({}));
+        if (j?.success) imageUrl = j.data.url;
+      }
+      if (!imageUrl) return res.status(500).json({ error: 'No se pudo alojar la imagen (Blob público o IMGBB_API_KEY)' });
+    } catch (e: any) {
+      return res.status(500).json({ error: 'Error al subir la imagen', details: e.message });
+    }
+
+    let acc: Awaited<ReturnType<typeof getAccount>>;
+    try { acc = await getAccount(token); }
+    catch (e: any) { return res.status(401).json({ error: `Token de Meta inválido o vencido: ${e.message}` }); }
+
+    const results: Record<string, { ok: boolean; id?: string; url?: string; error?: string }> = {};
+
+    if (targets.includes('fb')) {
+      try {
+        const r = await graph(`/${acc.pageId}/photos`, token, 'POST', { url: imageUrl, message: caption });
+        const postId = r.post_id || r.id;
+        results.fb = { ok: true, id: postId, url: `https://www.facebook.com/${postId}` };
+      } catch (e: any) { results.fb = { ok: false, error: e.message }; }
+    }
+
+    if (targets.includes('ig')) {
+      try {
+        if (!acc.igId) throw new Error('La página no tiene una cuenta de Instagram profesional ligada');
+        const container = await graph(`/${acc.igId}/media`, token, 'POST', { image_url: imageUrl, caption });
+        // Instagram procesa la imagen antes de dejar publicarla
+        for (let i = 0; i < 15; i++) {
+          const st = await graph(`/${container.id}?fields=status_code`, token);
+          if (st.status_code === 'FINISHED') break;
+          if (st.status_code === 'ERROR' || st.status_code === 'EXPIRED') throw new Error('Instagram no pudo procesar la imagen');
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        const pub = await graph(`/${acc.igId}/media_publish`, token, 'POST', { creation_id: container.id });
+        let url: string | undefined;
+        try { url = (await graph(`/${pub.id}?fields=permalink`, token)).permalink; } catch (_) { /* opcional */ }
+        results.ig = { ok: true, id: pub.id, url };
+      } catch (e: any) { results.ig = { ok: false, error: e.message }; }
+    }
+
+    const anyOk = Object.values(results).some(r => r.ok);
+    return res.status(anyOk ? 200 : 502).json({ account, imageUrl, results });
+  }
+
   if (action === 'daily-post') {
     if (!verifyAdminPassword(req)) return res.status(401).json({ error: 'No autorizado' });
     if (!process.env.BLOB_READ_WRITE_TOKEN) {

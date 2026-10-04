@@ -13,6 +13,35 @@ const PLATFORMS: { id: Platform; label: string; icon: string; color: string; upl
 ];
 const isMobileDevice = () => typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+type MetaAccount = { connected: boolean; pageName?: string; igUser?: string; igId?: string; error?: string };
+type DirectResult = { ok: boolean; url?: string; error?: string };
+
+// La API de Instagram solo acepta JPG con proporcion entre 4:5 y 1.91:1.
+// Si la imagen es mas alta (p. ej. una story 9:16) se centra sobre su propia version difuminada.
+const toInstagramJpeg = async (blob: Blob): Promise<string> => {
+    const bmp = await createImageBitmap(blob);
+    const ratio = bmp.width / bmp.height;
+    const target = Math.min(1.91, Math.max(0.8, ratio));
+    const W = Math.min(1440, Math.max(1080, bmp.width));
+    const H = Math.round(W / target);
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    if (Math.abs(ratio - target) > 0.01) {
+        const cover = Math.max(W / bmp.width, H / bmp.height);
+        ctx.filter = 'blur(40px) brightness(0.55)';
+        ctx.drawImage(bmp, (W - bmp.width * cover) / 2, (H - bmp.height * cover) / 2, bmp.width * cover, bmp.height * cover);
+        ctx.filter = 'none';
+    }
+    const fit = Math.min(W / bmp.width, H / bmp.height);
+    ctx.drawImage(bmp, (W - bmp.width * fit) / 2, (H - bmp.height * fit) / 2, bmp.width * fit, bmp.height * fit);
+    bmp.close?.();
+    return canvas.toDataURL('image/jpeg', 0.9);
+};
+
 interface ReleaseData {
     name: string;
     Artista: string;
@@ -81,6 +110,11 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
     const [publishOpen, setPublishOpen] = useState(false);
     const [publishedTo, setPublishedTo] = useState<Platform[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // PUBLICACION DIRECTA (Meta Graph API desde el servidor)
+    const [metaAccounts, setMetaAccounts] = useState<Record<string, MetaAccount>>({});
+    const [directPublishing, setDirectPublishing] = useState(false);
+    const [directResults, setDirectResults] = useState<Partial<Record<Platform, DirectResult>>>({});
 
     const [promotedIds, setPromotedIds] = useState<string[]>(() => {
         try {
@@ -339,6 +373,44 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         window.open(PLATFORMS.find(p => p.id === platform)!.upload, '_blank');
         markPublished(platform);
         flash(file ? `✓ Imagen descargada y texto copiado · súbela en ${name} y pega el texto` : `✓ Texto copiado · pégalo en ${name}`, 5000);
+    };
+
+    useEffect(() => {
+        fetch('/api/common?action=social-publish', { headers: adminHeaders() })
+            .then(r => (r.ok ? r.json() : {}))
+            .then(data => setMetaAccounts(data || {}))
+            .catch(() => { /* sin conexion directa: queda el modo manual */ });
+    }, []);
+
+    useEffect(() => { setDirectResults({}); }, [songKey]);
+
+    const metaKey = suggestion?.song?.artist?.toLowerCase().includes('juan') ? 'juan614' : 'diosmasgym';
+    const meta = metaAccounts[metaKey];
+    const directReady = !!meta?.connected;
+
+    const publishDirect = async (targets: ('ig' | 'fb')[]) => {
+        if (!suggestion?.song || !shareBlob || directPublishing) return;
+        const where = targets.map(t => (t === 'ig' ? `Instagram${meta?.igUser ? ` (@${meta.igUser})` : ''}` : `Facebook${meta?.pageName ? ` (${meta.pageName})` : ''}`)).join(' y ');
+        if (!window.confirm(`¿Publicar ahora en ${where}?\n\nSe publica de inmediato y queda visible para todos.`)) return;
+        setDirectPublishing(true);
+        try {
+            const imageBase64 = await toInstagramJpeg(shareBlob);
+            const res = await fetch('/api/common?action=social-publish', {
+                method: 'POST',
+                headers: adminHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ account: metaKey, targets, caption: getPostText('ig'), imageBase64 })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!data?.results) throw new Error(data?.error || `Error ${res.status}`);
+            setDirectResults(prev => ({ ...prev, ...data.results }));
+            (Object.entries(data.results) as [Platform, DirectResult][]).forEach(([p, r]) => { if (r.ok) markPublished(p); });
+            const failed = (Object.entries(data.results) as [Platform, DirectResult][]).filter(([, r]) => !r.ok);
+            flash(failed.length ? `⚠️ ${failed.map(([p]) => PLATFORMS.find(x => x.id === p)?.label).join(', ')} falló · revisa el detalle` : '✅ ¡Publicado!', 5000);
+        } catch (e) {
+            flash(`⚠️ No se pudo publicar: ${(e as Error).message}`, 6000);
+        } finally {
+            setDirectPublishing(false);
+        }
     };
 
     const handleFinishPublishing = () => {
@@ -657,10 +729,47 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
                                 : 'Toca cada red: se descarga la imagen, se copia el texto de esa red y se abre la página para subirla. Abre esta pantalla en el celular para mandarla directo a las apps.'}
                         </p>
 
+                        {/* PUBLICACION DIRECTA EN INSTAGRAM + FACEBOOK */}
+                        {directReady ? (
+                            <button
+                                onClick={() => publishDirect(['ig', 'fb'].filter(t => !directResults[t as Platform]?.ok) as ('ig' | 'fb')[])}
+                                disabled={directPublishing || !shareBlob || (!!directResults.ig?.ok && !!directResults.fb?.ok)}
+                                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#E1306C] to-[#1877F2] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-40 transition-all"
+                            >
+                                <i className={`fas ${directPublishing ? 'fa-spinner fa-spin' : 'fa-bolt'}`}></i>
+                                {directPublishing ? 'Publicando…' : (directResults.ig?.ok && directResults.fb?.ok) ? 'Publicado en Instagram y Facebook' : 'Publicar directo en Instagram + Facebook'}
+                            </button>
+                        ) : (
+                            <p className="text-[9px] text-white/30 leading-relaxed border border-white/5 rounded-xl p-2.5">
+                                <i className="fas fa-plug mr-1"></i>
+                                {meta?.error ? `Conexión con Meta falló: ${meta.error}` : 'Instagram y Facebook aún no están conectados para publicar directo (falta el token de Meta en Vercel).'}
+                            </p>
+                        )}
+
                         <div className="space-y-2">
                             {PLATFORMS.map((p, i) => {
                                 const done = publishedTo.includes(p.id);
                                 const isNext = !done && PLATFORMS.findIndex(x => !publishedTo.includes(x.id)) === i;
+                                const direct = directResults[p.id];
+                                if (direct) {
+                                    return (
+                                        <div key={p.id} className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border ${direct.ok ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${p.color}22`, color: p.color }}>
+                                                <i className={p.icon}></i>
+                                            </span>
+                                            <span className="flex-1 min-w-0">
+                                                <span className="block text-[11px] font-black uppercase tracking-wider text-white">{i + 1}. {p.label}</span>
+                                                <span className={`block text-[9px] ${direct.ok ? 'text-green-400' : 'text-red-300'} break-words`}>{direct.ok ? 'Publicado directo' : direct.error}</span>
+                                            </span>
+                                            {direct.ok && direct.url && (
+                                                <a href={direct.url} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black uppercase tracking-widest text-white/70 hover:text-white px-2 py-1 rounded-md border border-white/10">Ver</a>
+                                            )}
+                                            {!direct.ok && (
+                                                <button onClick={() => shareTo(p.id)} className="text-[8px] font-black uppercase tracking-widest text-white/70 hover:text-white px-2 py-1 rounded-md border border-white/10">Manual</button>
+                                            )}
+                                        </div>
+                                    );
+                                }
                                 return (
                                     <button
                                         key={p.id}
