@@ -467,6 +467,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     // Un album se guarda como una sola fila "Álbum: ..." con su fecha: sus canciones ya cuentan
                     if (/^[áa]lbum\b/.test(rowName) && day(String(row.releaseDate ?? "")) === day(item.date) &&
                         (!row.Artista || String(row.Artista).toLowerCase() === String(item.artist || '').toLowerCase())) return true;
+                    // La hoja guarda UNA fila por artista (el Apps Script la reemplaza): si ya tiene un
+                    // estreno igual o mas nuevo de ese artista, este ya quedo atras y no es nuevo.
+                    if (row.Artista && String(row.Artista).toLowerCase() === String(item.artist || '').toLowerCase() &&
+                        day(String(row.releaseDate ?? '')) >= day(item.date)) return true;
                     return rowName && itemName && (
                         rowName === itemName || 
                         rowName.includes(itemName) || 
@@ -485,7 +489,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(item);
             }
+            // Solo el estreno mas reciente de cada artista: guardar varios seguidos se pisarian entre si
+            const latestByArtist = new Map<string, any[]>();
             for (const group of groups.values()) {
+                const artist = String(group[0].artist || '').toLowerCase();
+                const prev = latestByArtist.get(artist);
+                if (!prev || String(group[0].date) > String(prev[0].date)) latestByArtist.set(artist, group);
+            }
+            for (const group of latestByArtist.values()) {
                 let items = group;
                 if (group.length >= 3) {
                     const rep = [...group].sort((a, b) => a.name.length - b.name.length)[0];

@@ -196,7 +196,12 @@ const ProximosLanzamientos: React.FC = () => {
             const missing = latestCatalog.filter((cat) => {
                 const normCatName = normalize(cat.name).replace(/[^a-z0-9]/g, '');
                 
+                const catDay = String(cat.date || '').slice(0, 10);
                 const foundItem = existing.find(ex => {
+                    // La hoja guarda una fila por artista: si ya tiene un estreno igual o mas nuevo
+                    // de ese artista, este ya quedo atras (si no, se pisarian y se avisaria de nuevo)
+                    if (ex.Artista && ex.Artista.toLowerCase() === String(cat.artist || '').toLowerCase() &&
+                        String(ex.releaseDate || '').slice(0, 10) >= catDay) return true;
                     const normExName = normalize(ex.name || '').replace(/[^a-z0-9]/g, '');
                     return normExName === normCatName;
                 });
