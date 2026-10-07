@@ -138,7 +138,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                   <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', color: 'rgba(255,255,255,0.2)', WebkitTextStroke: '1px rgba(126,184,247,0.55)' }}>
                     PURO
                   </span>
-                  <span aria-hidden="true" className="block text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.15em' }}>
+                  <span aria-hidden="true" className="block text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.35em', paddingTop: '0.2em' }}>
                     SEÑOR
                   </span>
                   <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
