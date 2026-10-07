@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchMusicCatalog } from '../services/musicService';
+import { useOneSignal } from '../services/useOneSignal';
 
 interface ReleaseData {
     Artista: string;
@@ -51,6 +52,17 @@ const UpcomingReleases: React.FC = () => {
     const [releases, setReleases] = useState<ReleaseData[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const push = useOneSignal();
+    const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
+
+    // Avisame: suscribe a las notificaciones del sitio (las mismas que salen el dia del estreno)
+    const onNotify = async () => {
+        if (push.isSubscribed) { setNotifyMsg('Ya estás en la lista: te avisamos el día del estreno.'); return; }
+        if (!push.isSupported) { setNotifyMsg('Tu navegador no permite avisos. Únete al canal de WhatsApp para enterarte.'); return; }
+        if (push.permission === 'denied') { setNotifyMsg('Tienes los avisos bloqueados para este sitio. Actívalos en la configuración del navegador.'); return; }
+        await push.subscribe();
+        setNotifyMsg('¡Listo! Te avisamos en cuanto salga.');
+    };
 
     useEffect(() => {
         const loadReleases = async () => {
@@ -229,17 +241,17 @@ const UpcomingReleases: React.FC = () => {
     ];
 
     return (
-        <section className="relative py-20 md:py-32 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
+        <section className="relative py-12 md:py-24 overflow-hidden bg-[#05070a] border-b border-white/5 font-['Poppins']">
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#4a90d9]/10 to-transparent rounded-full blur-md -mr-96 -mt-96 animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-[#4a90d9]/5 to-transparent rounded-full blur-sm -ml-64 -mb-64"></div>
             
             <div className="section-container relative z-10 max-w-7xl mx-auto px-6">
-                <div className="text-center mb-24 md:mb-32">
+                <div className="text-center mb-10 md:mb-16">
                     <div className="inline-flex items-center gap-4 mb-6 px-8 py-3 rounded-full border border-[#4a90d9]/30 bg-[#4a90d9]/10 backdrop-blur-md shadow-[0_0_30px_rgba(37,99,168,0.15)]">
                         <i className="fas fa-satellite-dish text-[#4a90d9]"></i>
                         <span className="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-[#4a90d9]">{hasUpcoming ? 'Próximos Estrenos Globales' : 'Recién Salidos'}</span>
                     </div>
-                    <h2 className="font-serif italic text-6xl md:text-8xl text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                    <h2 className="font-serif italic text-5xl md:text-8xl text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
                         {hasUpcoming ? 'Próxima' : 'Nueva'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] via-[#9cc8f5] to-[#4a90d9] animate-gradient-x">Artillería</span>
                     </h2>
                     <div className="mt-8 flex justify-center items-center gap-4 text-white/30 text-[10px] md:text-xs uppercase tracking-[0.3em] font-black">
@@ -295,6 +307,17 @@ const UpcomingReleases: React.FC = () => {
                                             <i className={`fas ${released ? 'fa-play' : 'fa-link'} mr-1.5`}></i> {released ? 'Escuchar' : 'Pre-Save'}
                                         </a>
                                     ) : <span></span>}
+                                    {!released && (
+                                        <button
+                                            type="button"
+                                            onClick={onNotify}
+                                            disabled={push.busy}
+                                            className={`inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-full text-[9px] font-black uppercase tracking-[0.15em] transition-colors ${push.isSubscribed ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40' : 'bg-[#4a90d9] text-black hover:bg-white'}`}
+                                        >
+                                            <i className={`fas ${push.busy ? 'fa-spinner fa-spin' : push.isSubscribed ? 'fa-check' : 'fa-bell'}`}></i>
+                                            {push.isSubscribed ? 'Te avisamos' : 'Avísame'}
+                                        </button>
+                                    )}
                                     {release.audioUrl && (
                                         <a
                                             href={release.audioUrl}
@@ -313,6 +336,9 @@ const UpcomingReleases: React.FC = () => {
                     })}
                 </div>
 
+                {notifyMsg && (
+                    <p role="status" className="mt-6 text-center text-xs text-[#7eb8f7]">{notifyMsg}</p>
+                )}
             </div>
             <style>{`
                 @keyframes fade-in-up {

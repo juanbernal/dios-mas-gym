@@ -10,6 +10,7 @@ import SmartLinkView from "./components/SmartLinkView";
 import AdminAuthWrapper from "./components/admin/AdminAuthWrapper";
 import LinkBioPublic from "./components/LinkBioPublic";
 import UpcomingReleases from "./components/UpcomingReleases";
+import VideoSpotlight from "./components/VideoSpotlight";
 import TemploGuerrero from "./components/TemploGuerrero";
 import ArmaduraPromo from "./components/ArmaduraPromo";
 import Footer from './components/Footer';
@@ -512,6 +513,9 @@ const App: React.FC = () => {
               
               <section id="arsenal-content"><UpcomingReleases /></section>
 
+              {/* VIDEOS RECIENTES */}
+              <VideoSpotlight catalog={combinedCatalog} />
+
               
 
               {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
@@ -520,13 +524,14 @@ const App: React.FC = () => {
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
               />
 
+              <HomeTestimonios />
+
               {/* LÍRICAS DE GUERRA & FE (LETRAS Y BARRAS PARA CANTAR) */}
               <HomeLyricsSection 
                 catalog={combinedCatalog} 
                 onPlaySong={(song) => setState((p: any) => ({ ...p, activeSong: song }))} 
               />
 
-              <HomeTestimonios />
 
               {/* CATÁLOGO: un artista a la vez para no alargar la página */}
               {(state.musicDiosmasgym.length > 0 || state.musicJuan614.length > 0) && (

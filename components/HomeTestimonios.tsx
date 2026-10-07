@@ -11,9 +11,9 @@ export const HomeTestimonios: React.FC = () => {
   }, []);
 
   return (
-    <section className="relative py-16 md:py-24 overflow-hidden bg-[#05070a] border-t border-white/5">
+    <section className="relative py-12 md:py-20 overflow-hidden bg-[#05070a] border-t border-white/5">
       <div className="max-w-[1400px] mx-auto px-6 md:px-16">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 md:mb-12">
           <div className="text-[10px] font-black uppercase tracking-[0.35em] text-[#7eb8f7] mb-3">
             <i className="fas fa-heart mr-2"></i>Comunidad
           </div>
@@ -26,9 +26,10 @@ export const HomeTestimonios: React.FC = () => {
         </div>
 
         {items.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10 overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-px-6 -mx-6 px-6 md:mx-0 md:px-0 pb-2 scrollbar-none">
             {items.map(t => (
-              <figure key={t.id} className="flex flex-col rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <figure key={t.id} className="relative flex flex-col flex-shrink-0 w-[82%] md:w-auto snap-center rounded-3xl border border-[#4a90d9]/20 bg-gradient-to-br from-[#4a90d9]/[0.08] to-white/[0.02] p-6">
+                <i className="fas fa-quote-right absolute top-5 right-6 text-3xl text-[#4a90d9]/20" aria-hidden="true"></i>
                 <blockquote className="text-sm text-white/70 leading-relaxed line-clamp-6 flex-1">
                   “{t.text}”
                 </blockquote>

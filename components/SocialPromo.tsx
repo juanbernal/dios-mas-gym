@@ -8,8 +8,8 @@ export const SocialPopup: React.FC = () => {
     useEffect(() => {
         const popupDismissed = safeStorage.getItem('dg_popup_dismissed');
         if (!popupDismissed || Date.now() > parseInt(popupDismissed)) {
-            // No tapar la pagina al entrar: aparece cuando la persona ya exploro un poco
-            // (bajo en la pagina) o tras 25 s, lo que pase primero.
+            // No interrumpir: es una tarjeta pequeña abajo (no tapa la pagina) que sale cuando
+            // la persona ya recorrio buena parte de la portada o tras 45 s, lo que pase primero.
             let shown = false;
             const show = () => {
                 if (shown) return;
@@ -17,8 +17,8 @@ export const SocialPopup: React.FC = () => {
                 setShowPopup(true);
                 cleanup();
             };
-            const onScroll = () => { if (window.scrollY > window.innerHeight * 0.8) show(); };
-            const timer = setTimeout(show, 25000);
+            const onScroll = () => { if (window.scrollY > window.innerHeight * 2.5) show(); };
+            const timer = setTimeout(show, 45000);
             const cleanup = () => {
                 clearTimeout(timer);
                 window.removeEventListener('scroll', onScroll);
@@ -43,96 +43,32 @@ export const SocialPopup: React.FC = () => {
 
     if (!showPopup) return null;
 
-    const socialLinks = [
-        { name: 'YouTube', icon: 'fab fa-youtube', url: 'https://www.youtube.com/@Diosmasgym', bg: 'hover:bg-red-600 hover:text-white hover:border-red-500' },
-        { name: 'Instagram', icon: 'fab fa-instagram', url: 'https://www.instagram.com/diosmasgym', bg: 'hover:bg-pink-600 hover:text-white hover:border-pink-500' },
-        { name: 'TikTok', icon: 'fab fa-tiktok', url: 'https://www.tiktok.com/@diosmasgym', bg: 'hover:bg-white hover:text-black hover:border-white' },
-        { name: 'Spotify', icon: 'fab fa-spotify', url: 'https://open.spotify.com/artist/2mEoedcjDJ7x6SCVLMI4Do', bg: 'hover:bg-emerald-500 hover:text-black hover:border-emerald-400' },
-        { name: 'Facebook', icon: 'fab fa-facebook', url: 'https://www.facebook.com/diosmasgym', bg: 'hover:bg-blue-600 hover:text-white hover:border-blue-500' },
-    ];
-
     return (
-        <div onClick={dismissPopup} role="dialog" aria-modal="true" aria-label="Únete a la Tropa" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
-            <div onClick={e => e.stopPropagation()} className="bg-gradient-to-br from-[#121624] via-[#090b14] to-[#05070a] border border-[#4a90d9]/40 rounded-[2.5rem] max-w-md w-full p-6 md:p-8 shadow-[0_30px_100px_rgba(37,99,168,0.3)] relative overflow-hidden text-center group">
-                {/* Glow decorativo */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent opacity-80"></div>
-                <div className="absolute top-0 right-0 w-72 h-72 bg-[#4a90d9]/15 rounded-full blur-[90px] -mr-24 -mt-24 pointer-events-none group-hover:bg-[#4a90d9]/25 transition-all duration-700"></div>
-                <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-600/10 rounded-full blur-[90px] -ml-24 -mb-24 pointer-events-none"></div>
-                
-                {/* Botón Cerrar */}
-                <button onClick={dismissPopup} aria-label="Cerrar" className="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 transition-all w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 z-20">
+        <div role="dialog" aria-label="Únete a la Tropa" className="fixed left-3 right-3 bottom-[84px] md:left-auto md:right-6 md:bottom-6 md:w-[380px] z-[9000] animate-fade-in-up">
+            <div className="relative overflow-hidden rounded-3xl border border-[#4a90d9]/40 bg-gradient-to-br from-[#121624] via-[#090b14] to-[#05070a] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(37,99,168,0.25)]">
+                <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#4a90d9] to-transparent"></div>
+                <button onClick={dismissPopup} aria-label="Cerrar" className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors">
                     <i className="fas fa-times text-xs"></i>
                 </button>
-
-                {/* Header con Logo */}
-                <div className="relative w-20 h-20 mx-auto mb-5">
-                    <div className="absolute inset-0 bg-[#4a90d9]/30 rounded-[1.8rem] blur-xl animate-pulse"></div>
-                    <img src="/logo-diosmasgym-sm.webp" alt="Logo" className="w-full h-full object-cover rounded-[1.8rem] border border-[#4a90d9]/60 shadow-2xl relative z-10" />
+                <div className="flex items-center gap-3 pr-8 mb-3">
+                    <img src="/logo-diosmasgym-sm.webp" alt="" className="w-11 h-11 rounded-xl object-cover border border-[#4a90d9]/50 flex-shrink-0" />
+                    <div className="min-w-0">
+                        <p className="font-serif italic text-xl text-white leading-tight">Únete a la <span className="text-[#7eb8f7]">Tropa</span></p>
+                        <p className="text-[10px] text-white/50 leading-snug">Entérate primero de cada estreno.</p>
+                    </div>
                 </div>
-
-                <h3 className="font-serif italic text-3xl md:text-4xl text-white mb-2 leading-tight">
-                    Únete a la <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4a90d9] to-blue-300">Tropa</span>
-                </h3>
-                <p className="text-white/60 text-[10px] md:text-[11px] leading-relaxed mb-6 uppercase tracking-[0.2em] font-black">
-                    Recibe lanzamientos, música y contenido exclusivo
-                </p>
-
-                {/* 1. Botones Principales (Telegram & WhatsApp) */}
-                <div className="flex flex-col gap-3 mb-6 relative z-10">
-                    <a 
-                        href="https://t.me/Diosmasgymbot" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={dismissPopup} 
-                        className="relative group/btn w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 bg-[#4a90d9] text-black font-black text-[11px] uppercase tracking-widest hover:bg-white hover:shadow-[0_0_30px_rgba(37,99,168,0.5)] transition-all overflow-hidden"
-                    >
-                        <i className="fab fa-telegram text-lg"></i>
-                        <span>Grupo Telegram VIP</span>
+                <div className="grid grid-cols-2 gap-2">
+                    <a href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="py-2.5 rounded-xl flex items-center justify-center gap-2 bg-emerald-500 text-black font-black text-[10px] uppercase tracking-wider hover:bg-emerald-400 transition-colors">
+                        <i className="fab fa-whatsapp text-base"></i>WhatsApp
                     </a>
-                    <a 
-                        href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={dismissPopup} 
-                        className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-black text-[11px] uppercase tracking-widest hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all"
-                    >
-                        <i className="fab fa-whatsapp text-lg"></i>
-                        <span>Canal Oficial WhatsApp</span>
+                    <a href="https://t.me/Diosmasgymbot" target="_blank" rel="noopener noreferrer" onClick={dismissPopup} className="py-2.5 rounded-xl flex items-center justify-center gap-2 bg-[#4a90d9] text-black font-black text-[10px] uppercase tracking-wider hover:bg-white transition-colors">
+                        <i className="fab fa-telegram text-base"></i>Telegram
                     </a>
                 </div>
-
-                {/* Separador */}
-                <div className="flex items-center gap-3 mb-5 relative z-10">
-                    <div className="h-px flex-1 bg-white/10"></div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Síguenos en Redes</span>
-                    <div className="h-px flex-1 bg-white/10"></div>
-                </div>
-
-                {/* 2. Redes Sociales Oficiales */}
-                <div className="flex flex-wrap items-center justify-center gap-2 relative z-10 mb-6">
-                    {socialLinks.map((item, idx) => (
-                        <a
-                            key={idx}
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={dismissPopup}
-                            className={`px-3.5 py-2.5 rounded-xl flex items-center gap-2 bg-white/5 text-white/80 border border-white/10 font-black text-[9px] uppercase tracking-wider transition-all duration-300 ${item.bg} hover:scale-105`}
-                        >
-                            <i className={`${item.icon} text-sm`}></i>
-                            <span>{item.name}</span>
-                        </a>
-                    ))}
-                </div>
-                
-                <button onClick={dismissPopup} className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors border-b border-white/10 hover:border-white/30 pb-0.5 relative z-10">
-                    Continuar a la web
-                </button>
             </div>
         </div>
     );
 };
-
 
 // El Banner Integrado en el Layout (Comunidad Telegram & WhatsApp)
 export const InlineSocialBanner: React.FC = () => {

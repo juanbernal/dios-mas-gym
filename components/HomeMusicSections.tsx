@@ -21,6 +21,25 @@ interface YTVideoItem {
   handle?: string;
 }
 
+// Numero que sube desde 0 hasta su valor cuando aparece en pantalla
+const CountUp: React.FC<{ value: number; run: boolean }> = ({ value, run }) => {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!run) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / 1400);
+      setN(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [run, value]);
+  const fmt = (v: number) => v >= 10000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1)}K` : v.toLocaleString('es-MX');
+  return <>{fmt(n)}</>;
+};
+
 export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, onPlaySong }) => {
   if (!catalog || catalog.length === 0) return null;
 
@@ -32,7 +51,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   const [selectedChannel, setSelectedChannel] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
   const [selectedChannelGems, setSelectedChannelGems] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [visibleLimit, setVisibleLimit] = useState(10);
+  const [visibleLimit, setVisibleLimit] = useState(8);
   const [gemsLimit, setGemsLimit] = useState(10);
   const [rankTab, setRankTab] = useState<'top' | 'gems'>('top');
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>(() => {
@@ -237,6 +256,20 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     return list;
   }, [topVideos, selectedChannel, searchQuery]);
 
+  // Grafica del ranking: las barras crecen cuando la lista entra en pantalla
+  const chartRef = React.useRef<HTMLDivElement>(null);
+  const [chartVisible, setChartVisible] = useState(false);
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el || chartVisible) return;
+    if (typeof IntersectionObserver === 'undefined') { setChartVisible(true); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setChartVisible(true); io.disconnect(); } }, { threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [chartVisible, loadingYT, rankTab]);
+  const maxViews = Math.max(1, ...filteredTopList.map(v => v.views || 0));
+  const totalViews = topVideos.reduce((a, v) => a + (v.views || 0), 0);
+
   // Filtered Joyas Ocultas (Menos escuchadas)
   const filteredGemsList = useMemo(() => {
     let list = hiddenGems;
@@ -430,6 +463,25 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
             </div>
           </div>
 
+          {/* Numeros grandes animados */}
+          {topVideos.length > 0 && (
+            <div ref={chartRef} className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
+              {[
+                { label: 'Reproducciones', value: totalViews, icon: 'fa-play', color: 'from-[#4a90d9] to-[#9cc8f5]' },
+                { label: 'La #1 tiene', value: topVideos[0]?.views || 0, icon: 'fa-crown', color: 'from-amber-400 to-yellow-200' },
+                { label: 'Canciones', value: topVideos.length, icon: 'fa-music', color: 'from-red-500 to-orange-300' },
+              ].map(st => (
+                <div key={st.label} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3 md:p-5">
+                  <i className={`fas ${st.icon} absolute -right-2 -bottom-2 text-5xl md:text-7xl text-white/[0.04]`}></i>
+                  <div className={`font-black text-xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r ${st.color} tabular-nums`}>
+                    <CountUp value={st.value} run={chartVisible} />
+                  </div>
+                  <div className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">{st.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Tabla de Canciones Top 50 */}
           {loadingYT && filteredTopList.length === 0 ? (
             <div className="py-20 flex flex-col items-center justify-center text-center">
@@ -460,8 +512,14 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                     <div
                       key={item.id || idx}
                       onClick={() => handlePlayYTTrack(item)}
-                      className="group grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
+                      className="group relative isolate grid grid-cols-[40px_1fr_auto] md:grid-cols-[48px_1fr_200px_220px_48px_70px] items-center px-3 md:px-4 py-3 md:py-3.5 rounded-xl hover:bg-white/[0.05] transition-all duration-200 cursor-pointer"
                     >
+                      {/* Barra de la grafica: largo segun reproducciones */}
+                      <div
+                        aria-hidden="true"
+                        className={`absolute -z-10 left-0 top-1 bottom-1 rounded-xl pointer-events-none bg-gradient-to-r ${isTop3 ? 'from-amber-400/25 via-amber-400/10' : 'from-[#4a90d9]/20 via-[#4a90d9]/[0.07]'} to-transparent`}
+                        style={{ width: chartVisible ? `${Math.max(6, (item.views / maxViews) * 100)}%` : '0%', transition: `width 1.1s cubic-bezier(.2,.8,.2,1) ${Math.min(idx, 12) * 70}ms` }}
+                      ></div>
                       <div className="flex items-center justify-center relative">
                         <span className={`font-mono text-xs md:text-sm font-bold transition-opacity group-hover:opacity-0 ${
                           isTop3 ? 'text-amber-400 font-black scale-110' : 'text-white/40'
@@ -495,6 +553,8 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                             {item.title}
                           </h4>
                           <div className="flex md:hidden items-center gap-2 text-[10px] text-white/50 mt-1 truncate">
+                            <span className="font-bold text-[#7eb8f7]">{item.viewsFormatted?.replace(' reproducciones', '')}</span>
+                            <span>•</span>
                             <span className="font-semibold text-white/70">{item.channel}</span>
                             {item.album && (
                               <>
@@ -520,6 +580,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
                         <span className="truncate hover:text-white/70 transition-colors">
                           {item.album || 'Single'}
                         </span>
+                        {item.views > 0 && <span className="ml-2 flex-shrink-0 font-bold text-[#7eb8f7]">{item.viewsFormatted?.replace(' reproducciones', '')}</span>}
                       </div>
 
                       <div className="flex items-center justify-center">

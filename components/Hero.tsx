@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchVerse } from '../services/bibleService';
 import { useNavigate } from 'react-router-dom';
+import { shareVerseImage } from '../services/shareVerseImage';
 
 interface HeroProps {
   verse: { t: string; r: string };
@@ -76,6 +77,18 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
       .sort((a, b) => t(b.date) - t(a.date))[0];
   }, [catalog]);
   const songCount = catalog.length;
+  const [sharing, setSharing] = useState<'idle' | 'busy' | 'done'>('idle');
+  const onShareVerse = async () => {
+    if (sharing === 'busy') return;
+    setSharing('busy');
+    try {
+      const r = await shareVerseImage(verse);
+      setSharing(r === 'cancelled' ? 'idle' : 'done');
+      if (r !== 'cancelled') setTimeout(() => setSharing('idle'), 3000);
+    } catch {
+      setSharing('idle');
+    }
+  };
 
   // Barras del ecualizador de fondo (alturas y tiempos fijos para que no cambien en cada render)
   const eqBars = React.useMemo(() => Array.from({ length: 72 }, (_, i) => ({
@@ -85,7 +98,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
   })), []);
 
   return (
-    <header className="relative min-h-screen overflow-hidden cinematic-grain" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 50%, #0b1929 100%)' }}>
+    <header className="relative lg:min-h-screen overflow-hidden cinematic-grain" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 50%, #0b1929 100%)' }}>
 
       {/* Background elements */}
       <div className="gradient-glow w-[600px] h-[600px] top-[-200px] right-[-100px]" style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.18) 0%, transparent 70%)' }}></div>
@@ -115,16 +128,16 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
       </div>
 
       <div className="section-container relative z-10">
-        <div className="min-h-screen flex flex-col">
+        <div className="lg:min-h-screen flex flex-col">
 
           {/* === MAIN CONTENT === */}
-          <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 py-28">
+          <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 pt-8 pb-12 md:py-28">
 
             {/* LEFT: Giant text block */}
             <div className="w-full lg:w-[55%] flex flex-col items-start">
 
               {/* Top label */}
-              <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center gap-3 mb-5 md:mb-8">
                 <div className="w-8 h-[2px]" style={{ background: '#2563a8' }}></div>
                 <span className="label-tag" style={{ color: '#4a90d9', letterSpacing: '0.4em' }}>✝ Diosmasgym · 614 ✝</span>
                 <div className="w-8 h-[2px]" style={{ background: '#2563a8' }}></div>
@@ -135,13 +148,13 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                 {/* Un solo h1: antes eran cuatro y Google/lectores de pantalla
                     veian cuatro titulos principales en la misma pagina. */}
                 <h1 className="h1-gothic leading-none" aria-label="Puro Señor Jesucristo compa">
-                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', color: 'rgba(255,255,255,0.2)', WebkitTextStroke: '1px rgba(126,184,247,0.55)' }}>
+                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(3.8rem, 12vw, 11rem)', color: 'rgba(255,255,255,0.2)', WebkitTextStroke: '1px rgba(126,184,247,0.55)' }}>
                     PURO
                   </span>
-                  <span aria-hidden="true" className="block text-blue-gradient" style={{ fontSize: 'clamp(4.5rem, 12vw, 11rem)', marginTop: '-0.35em', paddingTop: '0.2em' }}>
+                  <span aria-hidden="true" className="block text-blue-gradient" style={{ fontSize: 'clamp(3.8rem, 12vw, 11rem)', marginTop: '-0.35em', paddingTop: '0.2em' }}>
                     SEÑOR
                   </span>
-                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(3.5rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
+                  <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(3rem, 9vw, 8rem)', color: '#fff', marginTop: '-0.1em' }}>
                     JESUCRISTO
                   </span>
                   <span aria-hidden="true" className="block" style={{ fontSize: 'clamp(2.2rem, 5.5vw, 5rem)', color: '#7eb8f7', marginTop: '-0.05em', letterSpacing: '0.12em' }}>
@@ -151,12 +164,41 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
               </div>
 
               {/* Tagline */}
-              <p className="text-sm mb-10 max-w-md" style={{ color: 'rgba(200,205,212,0.55)', fontFamily: 'var(--font-bold)', letterSpacing: '0.1em', lineHeight: 1.8 }}>
+              <p className="text-sm mb-6 md:mb-8 max-w-md" style={{ color: 'rgba(200,205,212,0.55)', fontFamily: 'var(--font-bold)', letterSpacing: '0.1em', lineHeight: 1.8 }}>
                 FE · MÚSCULO · CORRIDO
               </p>
 
+              {/* Ultimo estreno: lo primero que se ve, con portada y boton de escuchar */}
+              {latest && (
+                <div className="w-full max-w-xl mb-6 md:mb-8 rounded-2xl p-3 md:p-4 flex items-center gap-4 animate-fade-in-up relative overflow-hidden" style={{ background: 'linear-gradient(120deg, rgba(37,99,168,0.28), rgba(10,20,38,0.85) 60%)', border: '1px solid rgba(74,144,217,0.45)', boxShadow: '0 20px 60px rgba(37,99,168,0.25)' }}>
+                  <button type="button" onClick={() => onPlaySong && onPlaySong(latest)} className="relative flex-shrink-0 group" aria-label={`Escuchar ${latest.name}`}>
+                    <img src={latest.cover} alt={`Portada de ${latest.name}`} className="w-24 h-24 md:w-28 md:h-28 object-cover rounded-xl shadow-2xl group-hover:scale-105 transition-transform" />
+                    <span className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-[#4a90d9] text-black flex items-center justify-center shadow-[0_0_25px_rgba(74,144,217,0.9)] group-hover:scale-110 transition-transform">
+                      <i className="fas fa-play text-sm ml-0.5"></i>
+                    </span>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500 text-white text-[9px] font-black uppercase tracking-[0.2em] mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>Nuevo estreno
+                    </span>
+                    <p className="text-white font-black text-lg md:text-xl leading-tight line-clamp-2">{latest.name}</p>
+                    <p className="label-tag truncate mt-1" style={{ color: 'rgba(200,205,212,0.6)' }}>{latest.artist}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <button type="button" onClick={() => onPlaySong && onPlaySong(latest)} className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7eb8f7] hover:text-white transition-colors">
+                        <i className="fas fa-headphones mr-1.5"></i>Escuchar
+                      </button>
+                      {latest.id && (
+                        <a href={`/link/${latest.id}`} className="text-[10px] font-black uppercase tracking-[0.1em] text-white/50 hover:text-white transition-colors">
+                          <i className="fas fa-share-nodes mr-1.5"></i>Plataformas
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* CTA Buttons */}
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3 md:gap-4">
                 <button
                   onClick={() => { onEntrenar(); scrollToSection('#arsenal-content'); }}
                   className="btn-primary"
@@ -180,7 +222,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
               </div>
 
               {/* Artist logos row */}
-              <div className="flex items-center gap-6 mt-12 pt-8" style={{ borderTop: '1px solid rgba(37,99,168,0.15)' }}>
+              <div className="hidden md:flex items-center gap-6 mt-12 pt-8" style={{ borderTop: '1px solid rgba(37,99,168,0.15)' }}>
                 <img src="/logo-diosmasgym-sm.webp" alt="Diosmasgym" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)', background: 'rgba(255,255,255,0.05)' }} />
                 <div style={{ width: '1px', height: '40px', background: 'rgba(37,99,168,0.3)' }}></div>
                 <img src="/logo-juan614-v2-sm.webp" alt="Juan 614" loading="lazy" className="w-14 h-14 object-cover rounded-md" style={{ border: '1px solid rgba(37,99,168,0.3)', background: 'rgba(255,255,255,0.05)' }} />
@@ -197,7 +239,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
               {/* Verse card */}
               <div
                 key={verse.r}
-                className="card-street animate-fade-in-up p-8"
+                className="card-street animate-fade-in-up p-6 md:p-8"
                 style={{ borderRadius: '2px', borderLeft: '3px solid #2563a8' }}
               >
                 {/* Header */}
@@ -228,35 +270,22 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
                   <span className="label-tag px-4 py-2" style={{ background: 'rgba(37,99,168,0.15)', color: '#7eb8f7', borderRadius: '2px', border: '1px solid rgba(37,99,168,0.3)' }}>
                     {verse.r}
                   </span>
-                  <span className="label-tag" style={{ color: 'rgba(200,205,212,0.3)', fontSize: '0.5rem' }}>
-                    Versículo de hoy
-                  </span>
+                  <button
+                    type="button"
+                    onClick={onShareVerse}
+                    disabled={sharing === 'busy'}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#25d366]/15 border border-[#25d366]/40 text-[#25d366] text-[10px] font-black uppercase tracking-[0.15em] hover:bg-[#25d366] hover:text-black transition-colors disabled:opacity-60"
+                    aria-label="Compartir el versículo del día como imagen"
+                  >
+                    <i className={`fas ${sharing === 'busy' ? 'fa-spinner fa-spin' : sharing === 'done' ? 'fa-check' : 'fa-share-nodes'}`}></i>
+                    {sharing === 'done' ? 'Listo' : 'Compartir'}
+                  </button>
                 </div>
               </div>
 
-              {/* Ultimo estreno */}
-              {latest && (
-                <button
-                  type="button"
-                  onClick={() => onPlaySong && onPlaySong(latest)}
-                  className="card-street p-4 flex items-center gap-4 text-left group transition-all hover:border-[#4a90d9]/50"
-                  style={{ borderRadius: '2px' }}
-                  aria-label={`Escuchar ${latest.name}`}
-                >
-                  <img src={latest.cover} alt={`Portada de ${latest.name}`} className="w-16 h-16 object-cover rounded-md flex-shrink-0" style={{ border: '1px solid rgba(37,99,168,0.4)' }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="label-tag mb-1" style={{ color: '#4a90d9' }}>Último estreno</p>
-                    <p className="text-white font-bold text-sm truncate">{latest.name}</p>
-                    <p className="label-tag truncate" style={{ color: 'rgba(200,205,212,0.5)', fontSize: '0.55rem' }}>{latest.artist}</p>
-                  </div>
-                  <span className="w-11 h-11 rounded-full bg-[#4a90d9] text-black flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <i className="fas fa-play text-sm ml-0.5"></i>
-                  </span>
-                </button>
-              )}
 
               {/* Stats strip */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="hidden md:grid grid-cols-3 gap-3">
                 {[
                   { icon: 'fa-music', label: 'Canciones', val: songCount > 0 ? songCount.toLocaleString('es-MX') : '—' },
                   { icon: 'fa-users', label: 'Artistas', val: '2' },
@@ -275,7 +304,7 @@ const Hero: React.FC<HeroProps> = ({ verse: initialVerse, catalog = [], onPlaySo
           {/* === BOTTOM SCROLL INDICATOR === */}
           <button
             onClick={() => scrollToSection('#arsenal-content')}
-            className="flex flex-col items-center gap-2 mx-auto pb-10 opacity-30 hover:opacity-70 transition-all cursor-pointer"
+            className="hidden lg:flex flex-col items-center gap-2 mx-auto pb-10 opacity-30 hover:opacity-70 transition-all cursor-pointer"
             style={{ background: 'none', border: 'none' }}
           >
             <span className="label-tag" style={{ color: '#fff' }}>Descubrir</span>
