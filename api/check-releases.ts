@@ -119,7 +119,8 @@ async function fetchRows(): Promise<Record<string, string>[]> {
 function normalizeRow(r: Record<string, string>): ReleaseRow {
     const find = (keys: string[]) => {
         const k = Object.keys(r).find(key => keys.includes(key.trim().toLowerCase()));
-        return k ? (r[k] ?? '') : '';
+        // Sheets manda numeros o fechas en algunas celdas: todo se trata como texto
+        return k && r[k] != null ? String(r[k]) : '';
     };
     let rawDate = find(['releasedate', 'fecha']).trim();
     // Convert DD/MM/YYYY to YYYY-MM-DD if needed
@@ -447,11 +448,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 
                 // Check if already in sheet
                 const alreadyInSheet = sheetRows.some(row => {
-                    const rowName = row.name.toLowerCase().trim();
+                    const rowName = String(row.name ?? "").toLowerCase().trim();
                     const itemName = (item.name || '').toLowerCase().trim();
                     // Un album se guarda como una sola fila "Álbum: ..." con su fecha: sus canciones ya cuentan
-                    if (/^[áa]lbum\b/.test(rowName) && day(row.releaseDate) === day(item.date) &&
-                        (!row.Artista || row.Artista.toLowerCase() === String(item.artist || '').toLowerCase())) return true;
+                    if (/^[áa]lbum\b/.test(rowName) && day(String(row.releaseDate ?? "")) === day(item.date) &&
+                        (!row.Artista || String(row.Artista).toLowerCase() === String(item.artist || '').toLowerCase())) return true;
                     return rowName && itemName && (
                         rowName === itemName || 
                         rowName.includes(itemName) || 
