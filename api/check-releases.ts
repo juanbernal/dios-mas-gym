@@ -252,6 +252,10 @@ const KNOWN_ALBUMS: Record<string, string> = {
     'diosmasgym|2026-10-06': 'Entre Amigos y Ángeles',
 };
 
+// Estrenos que ya se avisaron por notificacion aunque no quedaron en la hoja (artista|fecha):
+// se guardan en la hoja pero no se vuelve a notificar.
+const ALREADY_NOTIFIED = new Set<string>(['diosmasgym|2026-10-06']);
+
 async function syncToGoogleSheet(item: any): Promise<boolean> {
     try {
         const payload: Record<string, string> = {
@@ -265,6 +269,9 @@ async function syncToGoogleSheet(item: any): Promise<boolean> {
 
         const formParams = new URLSearchParams();
         Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v ?? '')));
+        // El Apps Script de la hoja principal solo acepta escrituras con su clave
+        const secret = (process.env.GS_MAIN_SECRET || '').trim();
+        if (secret) formParams.append('secret', secret);
 
         const response = await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
@@ -275,8 +282,15 @@ async function syncToGoogleSheet(item: any): Promise<boolean> {
             body: formParams.toString()
         });
 
-        console.log(`[check-releases] Auto-synced "${item.name}" to Google Sheet (status: ${response.status})`);
-        return response.ok;
+        // Apps Script responde 200 aunque rechace la escritura: hay que leer la respuesta
+        const text = await response.text();
+        let ok = response.ok;
+        try {
+            const body = JSON.parse(text);
+            if (body?.error || body?.status === 'error' || body?.success === false || body?.result === 'error') ok = false;
+        } catch { if (/error|unauthorized|denied/i.test(text.slice(0, 300))) ok = false; }
+        console.log(`[check-releases] Auto-sync "${item.name}" -> ${ok ? 'guardado' : 'RECHAZADO'} (status ${response.status}): ${text.slice(0, 150)}`);
+        return ok;
     } catch (e) {
         console.error(`[check-releases] Failed to auto-sync "${item.name}" to Google Sheet:`, e);
         return false;
@@ -483,9 +497,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const vid = String(item.url || '').match(/(?:v=|youtu\.be\/)([\w-]{11})/)?.[1];
                     if (vid) item.id = vid;
                     console.log(`[check-releases] New item detected: ${item.name} (${item.date})`);
-                    newlyDetected.push(item);
-                    // Sincronizar automáticamente a Google Sheets
-                    await syncToGoogleSheet(item);
+                    // Solo se avisa si quedo guardado en la hoja; si no, la siguiente revision
+                    // lo volveria a detectar y mandaria la notificacion otra vez.
+                    const saved = await syncToGoogleSheet(item);
+                    if (saved && !ALREADY_NOTIFIED.has(`${String(item.artist || '').toLowerCase()}|${String(item.date).slice(0, 10)}`)) newlyDetected.push(item);
                 }
             }
         } catch (catalogErr: any) {
