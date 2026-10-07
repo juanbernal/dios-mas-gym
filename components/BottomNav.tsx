@@ -34,16 +34,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, changeView }) => {
       isActive: location.pathname.startsWith('/letra') || location.pathname.startsWith('/lyrics'),
     },
     {
-      label: 'Buscar',
-      icon: 'fa-search',
-      action: () => navigate('/buscar'),
-      isActive: location.pathname === '/buscar',
+      label: 'Rutinas',
+      icon: 'fa-dumbbell',
+      action: () => navigate('/rutinas'),
+      isActive: location.pathname === '/rutinas',
     },
     {
-      label: 'Testimonios',
+      label: 'Oración',
       icon: 'fa-hands-praying',
-      action: () => navigate('/testimonios'),
-      isActive: location.pathname === '/testimonios',
+      action: () => navigate('/oracion'),
+      isActive: location.pathname === '/oracion',
     },
   ];
 

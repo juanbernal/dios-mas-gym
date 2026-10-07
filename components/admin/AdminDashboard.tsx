@@ -149,6 +149,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'oraciones',
+            title: 'Muro de Oración',
+            description: 'Revisa y publica las peticiones de oración que deja la comunidad. Llegan pendientes y tú decides cuáles se publican.',
+            icon: 'fa-hands-praying',
+            color: '#4a90d9',
+            route: '/admin/oraciones',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'proximos-lanzamientos',
             title: 'Próximos Lanzamientos',
             description: 'Gestión y programación de estrenos directamente desde la base de datos centralizada de Google.',

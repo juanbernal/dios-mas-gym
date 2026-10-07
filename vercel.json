@@ -83,6 +83,10 @@
       "destination": "/api/common?action=testimonios"
     },
     {
+      "source": "/api/oraciones",
+      "destination": "/api/common?action=oraciones"
+    },
+    {
       "source": "/api/sheet-proxy",
       "destination": "/api/common?action=sheet-proxy"
     },

@@ -432,3 +432,7 @@ section[id],
   .eq-bar { animation: none !important; transform: scaleY(0.4); }
   .vinyl-disc { transition: none; }
 }
+
+/* Carruseles horizontales sin barra visible (en todo el sitio) */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

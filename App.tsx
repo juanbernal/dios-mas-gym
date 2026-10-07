@@ -28,6 +28,10 @@ import NotFound from './components/NotFound';
 import SearchView from './components/SearchView';
 import LyricsView from './components/LyricsView';
 import TestimoniosView from './components/TestimoniosView';
+import HomeComunidad from './components/HomeComunidad';
+const RutinasView = React.lazy(() => import('./components/RutinasView'));
+const OracionView = React.lazy(() => import('./components/OracionView'));
+const OracionesAdmin = React.lazy(() => import('./components/admin/OracionesAdmin'));
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
@@ -516,6 +520,9 @@ const App: React.FC = () => {
               {/* VIDEOS RECIENTES */}
               <VideoSpotlight catalog={combinedCatalog} />
 
+              {/* RUTINA DEL DIA + MURO DE ORACION */}
+              <HomeComunidad />
+
               
 
               {/* NUEVAS SECCIONES DE MUSICA Y BANNER REFLEXIONES */}
@@ -599,6 +606,7 @@ const App: React.FC = () => {
                 <Route path="weekly-content" element={<AdminAuthWrapper><WeeklyContentAssistant catalog={combinedCatalog}/></AdminAuthWrapper>} />
                 <Route path="audio-studio" element={<AdminAuthWrapper><AudioStudioPro/></AdminAuthWrapper>} />
                 <Route path="anuncio-studio" element={<AdminAuthWrapper><AnuncioStudio/></AdminAuthWrapper>} />
+                <Route path="oraciones" element={<AdminAuthWrapper><OracionesAdmin/></AdminAuthWrapper>} />
                 {/* Cualquier ruta de admin que no exista vuelve al panel en vez de quedar en blanco */}
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Routes>
@@ -616,6 +624,8 @@ const App: React.FC = () => {
           <Route path="/lyrics" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/letras" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/testimonios" element={<TestimoniosView />} />
+          <Route path="/rutinas" element={<React.Suspense fallback={<div className="min-h-screen" />}><RutinasView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} /></React.Suspense>} />
+          <Route path="/oracion" element={<React.Suspense fallback={<div className="min-h-screen" />}><OracionView /></React.Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

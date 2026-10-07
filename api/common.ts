@@ -63,6 +63,69 @@ function getClientIp(req: any): string {
     || 'unknown';
 }
 
+// ── Muro de oracion ──
+// Se guarda como JSON en Vercel Blob (la hoja de Google guarda una fila por "Artista" y las
+// peticiones se pisarian). Las peticiones llegan pendientes y el admin las aprueba.
+// Los "Estoy orando" se juntan en memoria y se guardan como mucho cada 2 min (el plan
+// gratis de Blob limita las escrituras).
+interface Oracion { id: string; name: string; text: string; createdAt: number; status: 'pendiente' | 'aprobada'; count: number }
+let oracionesCache: { list: Oracion[]; at: number } | null = null;
+const oracionDeltas = new Map<string, number>();
+let oracionLastFlush = 0;
+const oracionPostMap = new Map<string, { count: number; resetAt: number }>();
+const oracionPrayMap = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(map: Map<string, { count: number; resetAt: number }>, ip: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  const e = map.get(ip);
+  if (!e || now > e.resetAt) { map.set(ip, { count: 1, resetAt: now + windowMs }); return true; }
+  e.count++;
+  return e.count <= max;
+}
+
+async function readOraciones(fresh = false): Promise<Oracion[]> {
+  if (!fresh && oracionesCache && Date.now() - oracionesCache.at < 30000) return oracionesCache.list;
+  const snap = await readBlobSnapshot('oraciones');
+  let list: Oracion[] = [];
+  try { list = snap ? JSON.parse(snap.body) : []; } catch { list = []; }
+  if (!Array.isArray(list)) list = [];
+  oracionesCache = { list, at: Date.now() };
+  return list;
+}
+
+async function saveOraciones(list: Oracion[]): Promise<void> {
+  // Solo las ultimas 300 para que el archivo no crezca sin limite
+  const trimmed = list.slice(0, 300);
+  await writeBlobSnapshot('oraciones', { savedAt: Date.now(), body: JSON.stringify(trimmed) });
+  oracionesCache = { list: trimmed, at: Date.now() };
+}
+
+// Aplica los "Estoy orando" acumulados sobre la copia mas reciente y la guarda
+async function flushOracionDeltas(force = false): Promise<void> {
+  if (oracionDeltas.size === 0) return;
+  if (!force && Date.now() - oracionLastFlush < 120000) return;
+  oracionLastFlush = Date.now();
+  const deltas = new Map(oracionDeltas);
+  oracionDeltas.clear();
+  const list = await readOraciones(true);
+  for (const o of list) { const d = deltas.get(o.id); if (d) o.count = (o.count || 0) + d; }
+  await saveOraciones(list);
+}
+
+async function notifyTelegram(text: string): Promise<void> {
+  const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
+  if (!token || !chat) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text, disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(8000)
+    });
+  } catch (e) { console.error('[oraciones] telegram:', (e as any)?.message); }
+}
+
 // El index.html trae contenido de relleno para la home (rastreable); los handlers SSR
 // necesitan el <div id="root"></div> vacio para inyectar el contenido propio de cada pagina.
 function stripHomeFallback(html: string): string {
@@ -1458,6 +1521,69 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: MURO DE ORACION
+  // -------------------------------------------------------------
+  if (action === 'oraciones') {
+    let body: any = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    body = body || {};
+    const isAdmin = verifyAdminPassword(req);
+    const view = (o: Oracion) => ({ id: o.id, name: o.name, text: o.text, createdAt: o.createdAt, count: (o.count || 0) + (oracionDeltas.get(o.id) || 0), ...(isAdmin ? { status: o.status } : {}) });
+
+    if (req.method === 'GET') {
+      const all = req.query.all === '1' && isAdmin;
+      const list = await readOraciones(all);
+      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=20, stale-while-revalidate=120');
+      return res.status(200).json(list.filter(o => all || o.status === 'aprobada').slice(0, all ? 300 : 60).map(view));
+    }
+
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    const op = String(body.op || 'nueva');
+    const ip = getClientIp(req);
+
+    if (op === 'orar') {
+      const id = String(body.id || '');
+      if (!rateLimit(oracionPrayMap, ip, 60, 3600000)) return res.status(429).json({ error: 'Demasiados intentos.' });
+      const list = await readOraciones();
+      if (!list.some(o => o.id === id && o.status === 'aprobada')) return res.status(404).json({ error: 'No encontrada' });
+      oracionDeltas.set(id, (oracionDeltas.get(id) || 0) + 1);
+      waitUntil(flushOracionDeltas().catch(e => console.error('[oraciones] flush:', e?.message)));
+      const o = list.find(x => x.id === id)!;
+      return res.status(200).json({ count: (o.count || 0) + (oracionDeltas.get(id) || 0) });
+    }
+
+    if (op === 'aprobar' || op === 'borrar') {
+      if (!isAdmin) return res.status(401).json({ error: 'No autorizado' });
+      await flushOracionDeltas(true);
+      const list = await readOraciones(true);
+      const id = String(body.id || '');
+      const next = op === 'borrar' ? list.filter(o => o.id !== id) : list.map(o => o.id === id ? { ...o, status: 'aprobada' as const } : o);
+      await saveOraciones(next);
+      return res.status(200).json({ success: true });
+    }
+
+    // Nueva peticion (queda pendiente hasta que el admin la apruebe)
+    if (body.website) return res.status(200).json({ success: true }); // trampa para bots
+    if (!rateLimit(oracionPostMap, ip, 3, 3600000)) return res.status(429).json({ error: 'Ya enviaste varias peticiones. Intenta más tarde.' });
+    const clean = (v: any, max: number) => String(v ?? '').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+    const name = clean(body.name, 40) || 'Anónimo';
+    const text = clean(body.text, 500);
+    if (text.length < 15) return res.status(400).json({ error: 'Escribe tu petición (al menos 15 caracteres).' });
+    if (/https?:\/\/|www\.|\.com\b/i.test(text + name)) return res.status(400).json({ error: 'Por favor no incluyas enlaces.' });
+    try {
+      await flushOracionDeltas(true);
+      const list = await readOraciones(true);
+      const item: Oracion = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, text, createdAt: Date.now(), status: 'pendiente', count: 0 };
+      await saveOraciones([item, ...list]);
+      waitUntil(notifyTelegram(`🙏 Nueva petición de oración (pendiente)\n\n${name}: ${text}\n\nApruébala en https://www.diosmasgym.com/admin/oraciones`));
+      return res.status(200).json({ success: true });
+    } catch (e: any) {
+      console.error('[oraciones] save:', e?.message);
+      return res.status(500).json({ error: 'No pudimos guardar tu petición. Intenta de nuevo.' });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: TESTIMONIOS (envío público moderado)
   // Los envíos se guardan en la hoja como CONFIG_TESTIMONIO_PENDIENTE (el prefijo
   // CONFIG_ hace que los lanzamientos los ignoren). Para publicar uno, cambia esa
@@ -1828,6 +1954,8 @@ export default async function handler(
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/testimonios`, today, 'monthly', '0.7');
+      xml += urlBlock(`${BASE}/rutinas`, today, 'weekly', '0.8');
+      xml += urlBlock(`${BASE}/oracion`, today, 'daily', '0.7');
       xml += urlBlock(`${BASE}/catalogo`, today, 'daily', '0.9');
       xml += urlBlock(`${BASE}/buscar`, today, 'weekly', '0.6');
 
@@ -2395,6 +2523,16 @@ ${sections}
         title: 'Buscar canciones y letras | Diosmasgym',
         description: 'Busca entre todas las canciones y letras de Diosmasgym y Juan 614: música cristiana, rap cristiano y corridos de fe.',
         canonical: `${BASE}/buscar`,
+      },
+      '/rutinas': {
+        title: 'Rutinas de ejercicio en casa y en el gym | Fe + Gym | Diosmasgym',
+        description: 'Rutinas por parte del cuerpo (pecho, espalda, piernas, hombros, brazos, abdomen y cuerpo completo) para entrenar en casa o en el gym, con versículo y música cristiana para entrenar.',
+        canonical: `${BASE}/rutinas`,
+      },
+      '/oracion': {
+        title: 'Muro de oración | Diosmasgym',
+        description: 'Deja tu petición de oración y ora por otros. Una comunidad de fe que se levanta unida.',
+        canonical: `${BASE}/oracion`,
       },
       '/testimonios': {
         title: 'Testimonios | Diosmasgym',
