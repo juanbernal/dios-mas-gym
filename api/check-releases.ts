@@ -352,9 +352,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // --- 1. Detect New Releases from Catalog ---
         // Usa el mismo endpoint de música pero con un parser robusto
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = req.headers.host || 'www.diosmasgym.com';
-        const baseUrl = `${protocol}://${host}`;
+        // Siempre el dominio publico: el cron entra por la direccion interna *.vercel.app, que tiene
+        // proteccion de acceso y devuelve una pagina de login en vez del catalogo.
+        const host = String(req.headers.host || '');
+        const baseUrl = /localhost|127\.0\.0\.1/.test(host) ? `http://${host}` : 'https://www.diosmasgym.com';
 
         // Parse CSV robusto: comillas, comas y SALTOS DE LINEA dentro de un campo (la columna
         // Letra trae la letra completa). Antes se partia por renglones y el catalogo se cortaba
@@ -614,8 +615,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const cronSecret = (process.env.CRON_SECRET || '').trim();
         const fromCron = !!cronSecret && (req.headers as any)?.authorization === `Bearer ${cronSecret}`;
         if (fromCron && !detectOnly) {
-            const host = (req.headers as any)?.host || 'www.diosmasgym.com';
-            fetch(`https://${host}/api/generate-promo`, {
+            fetch(`${baseUrl}/api/generate-promo`, {
                 headers: { Authorization: `Bearer ${cronSecret}` }
             }).catch(() => null);
         }
