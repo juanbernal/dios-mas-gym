@@ -2407,6 +2407,22 @@ ${sections}
       return res.status(200).send(html);
     }
 
+    // URLs del blog viejo de Blogger que Google sigue visitando: se mandan con 301 a la
+    // pagina nueva equivalente para que Search Console deje de reportarlas como 404.
+    const lower = pathname.toLowerCase();
+    if (first === 'search') {
+      const labelMatch = pathname.match(/^\/search\/label\/(.+)$/i);
+      let q = String(req.query.q || '').trim();
+      if (!q && labelMatch) { try { q = decodeURIComponent(labelMatch[1]); } catch { q = labelMatch[1]; } }
+      q = q.replace(/[+_-]+/g, ' ').trim().slice(0, 100);
+      res.setHeader('Cache-Control', 'public, s-maxage=86400');
+      return res.redirect(301, q ? `${BASE}/buscar?q=${encodeURIComponent(q)}` : `${BASE}/buscar`);
+    }
+    if (/^\/\d{4}\/\d{2}(\/.*)?$/.test(lower) || /^\/\d{4}$/.test(lower) || /^\/p\/.+\.html$/.test(lower) || lower === '/feeds' || lower.startsWith('/feeds/')) {
+      res.setHeader('Cache-Control', 'public, s-maxage=86400');
+      return res.redirect(301, lower.startsWith('/feeds') ? `${BASE}/feed.xml` : `${BASE}/`);
+    }
+
     // Cualquier otra ruta: 404 real (la app sigue mostrando su pantalla de "no encontrado")
     html = applyPageMeta(html, {
       title: 'Página no encontrada | Diosmasgym',

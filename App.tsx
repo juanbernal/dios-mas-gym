@@ -410,11 +410,15 @@ const App: React.FC = () => {
     }
 
     const path = location.pathname;
-    const bloggerPathMatch = path.match(/\/\d{4}\/\d{2}\/(.+)\.html/);
-    if (bloggerPathMatch && bloggerPathMatch[1]) { navigate(`/post/${bloggerPathMatch[1]}`, { replace: true }); return; }
-    
-    const bloggerPageMatch = path.match(/^\/p\/(.+)\.html$/);
-    if (bloggerPageMatch && bloggerPageMatch[1]) { navigate(`/post/${bloggerPageMatch[1]}`, { replace: true }); return; }
+    // El blog viejo ya no existe: sus entradas van al inicio y sus busquedas/etiquetas al buscador
+    if (/\/\d{4}\/\d{2}\/.+\.html$/.test(path) || /^\/p\/.+\.html$/.test(path)) { navigate('/', { replace: true }); return; }
+
+    const labelMatch = path.match(/^\/search(?:\/label\/(.+))?$/);
+    if (labelMatch) {
+      const q = new URLSearchParams(location.search).get('q') || (labelMatch[1] ? (() => { try { return decodeURIComponent(labelMatch[1]); } catch { return labelMatch[1]; } })() : '');
+      navigate(q ? `/buscar?q=${encodeURIComponent(q)}` : '/buscar', { replace: true });
+      return;
+    }
 
     if (location.search.includes('m=1') && path === '/') { navigate('/', { replace: true }); }
   }, [location.pathname, location.search, navigate]);
