@@ -245,6 +245,12 @@ async function sendConsolidatedPush(items: any[]): Promise<any> {
     return await response.json();
 }
 
+// El catalogo no dice a que album pertenece cada cancion. Aqui va el nombre real de cada album
+// (artista|fecha de estreno); si no esta, se usa el titulo mas corto, igual que el panel.
+const KNOWN_ALBUMS: Record<string, string> = {
+    'diosmasgym|2026-10-06': 'Entre Amigos y Ángeles',
+};
+
 async function syncToGoogleSheet(item: any): Promise<boolean> {
     try {
         const payload: Record<string, string> = {
@@ -252,7 +258,7 @@ async function syncToGoogleSheet(item: any): Promise<boolean> {
             name: item.name,
             releaseDate: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
             coverImageUrl: item.cover || '',
-            preSaveLink: item.url ? (item.url.startsWith('http') ? item.url : `https://www.diosmasgym.com/link/${item.id}`) : '',
+            preSaveLink: item.id ? `https://www.diosmasgym.com/link/${item.id}` : (item.url || ''),
             audioUrl: item.url || ''
         };
 
@@ -350,37 +356,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const host = req.headers.host || 'www.diosmasgym.com';
         const baseUrl = `${protocol}://${host}`;
 
-        // Parse CSV robusto (maneja comillas, comas dentro de campos, etc.)
+        // Parse CSV robusto: comillas, comas y SALTOS DE LINEA dentro de un campo (la columna
+        // Letra trae la letra completa). Antes se partia por renglones y el catalogo se cortaba
+        // en la primera letra: solo se leian ~4 canciones por artista.
         const parseCatalogCSV = (text: string): any[] => {
-            const lines = text.split(/\r?\n/);
-            if (lines.length < 2) return [];
-            
-            // Buscar la línea de headers
-            let headerIdx = 0;
-            for (let i = 0; i < lines.length; i++) {
-                const l = lines[i].toLowerCase();
-                if (l.includes('nombre') || l.includes('artista')) { headerIdx = i; break; }
+            const rows: string[][] = [];
+            let row: string[] = [];
+            let field = '';
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (inQuotes) {
+                    if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+                    else if (c === '"') inQuotes = false;
+                    else field += c;
+                } else if (c === '"') inQuotes = true;
+                else if (c === ',') { row.push(field.trim()); field = ''; }
+                else if (c === '\n' || c === '\r') {
+                    if (c === '\r' && text[i + 1] === '\n') i++;
+                    row.push(field.trim()); field = '';
+                    rows.push(row); row = [];
+                } else field += c;
             }
-            
-            const parseCSVLine = (line: string): string[] => {
-                const values: string[] = [];
-                let current = '';
-                let inQuotes = false;
-                for (const char of line) {
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-                    else current += char;
-                }
-                values.push(current.trim());
-                return values.map(v => v.replace(/^"|"$/g, '').trim());
-            };
-            
+            if (field || row.length) { row.push(field.trim()); rows.push(row); }
+            if (rows.length < 2) return [];
+
+            // Buscar la fila de encabezados
+            let headerIdx = rows.findIndex(r => r.some(v => /^(nombre|artista)$/i.test(v)));
+            if (headerIdx < 0) headerIdx = 0;
+            const lines = rows.map(r => r);
+            const parseCSVLine = (r: string[]) => r;
+
             const headers = parseCSVLine(lines[headerIdx]);
             const results: any[] = [];
             
             for (let i = headerIdx + 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line || line === '---') continue;
+                const line = lines[i];
+                if (!line.some(v => v) || line[0] === '---') continue;
                 const vals = parseCSVLine(line);
                 const entry: any = {};
                 headers.forEach((h, idx) => {
@@ -423,16 +435,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
             const allCatalog = [...dMCatalog, ...j6Catalog];
             
+            const day = (d: string) => String(d || '').slice(0, 10);
+            const sheetRows = rows.map(normalizeRow);
+            const fresh: any[] = [];
+
             for (const item of allCatalog) {
                 if (!item.date) continue;
                 const itemDate = new Date(item.date);
                 if (isNaN(itemDate.getTime()) || itemDate < sevenDaysAgo) continue;
                 
                 // Check if already in sheet
-                const alreadyInSheet = rows.some(r => {
-                    const row = normalizeRow(r);
+                const alreadyInSheet = sheetRows.some(row => {
                     const rowName = row.name.toLowerCase().trim();
                     const itemName = (item.name || '').toLowerCase().trim();
+                    // Un album se guarda como una sola fila "Álbum: ..." con su fecha: sus canciones ya cuentan
+                    if (/^[áa]lbum\b/.test(rowName) && day(row.releaseDate) === day(item.date) &&
+                        (!row.Artista || row.Artista.toLowerCase() === String(item.artist || '').toLowerCase())) return true;
                     return rowName && itemName && (
                         rowName === itemName || 
                         rowName.includes(itemName) || 
@@ -440,7 +458,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     );
                 });
                 
-                if (!alreadyInSheet && item.name) {
+                if (!alreadyInSheet && item.name) fresh.push(item);
+            }
+
+            // Igual que el panel: 3 o mas canciones del mismo artista con la misma fecha son un
+            // album y van como una sola fila (y una sola notificacion), no una por cancion.
+            const groups = new Map<string, any[]>();
+            for (const item of fresh) {
+                const key = `${String(item.artist || '').toLowerCase()}|${item.date}`;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push(item);
+            }
+            for (const group of groups.values()) {
+                let items = group;
+                if (group.length >= 3) {
+                    const rep = [...group].sort((a, b) => a.name.length - b.name.length)[0];
+                    const albumName = KNOWN_ALBUMS[`${String(rep.artist || '').toLowerCase()}|${String(rep.date).slice(0, 10)}`]
+                        || rep.name.replace(/\s*\(feat\..*?\)/gi, '').trim();
+                    items = [{ ...group[0], name: `Álbum: ${albumName}` }];
+                }
+                for (const item of items) {
+                    const vid = String(item.url || '').match(/(?:v=|youtu\.be\/)([\w-]{11})/)?.[1];
+                    if (vid) item.id = vid;
                     console.log(`[check-releases] New item detected: ${item.name} (${item.date})`);
                     newlyDetected.push(item);
                     // Sincronizar automáticamente a Google Sheets
