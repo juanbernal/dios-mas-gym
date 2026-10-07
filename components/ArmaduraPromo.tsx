@@ -1,143 +1,113 @@
 import React, { useState } from 'react';
+import { useOneSignal } from '../services/useOneSignal';
 
+// La Armadura (ropa, proximamente). Antes tenia un formulario de correo que no guardaba nada:
+// la persona veia "Reclutamiento exitoso" y el correo se perdia. Ahora el aviso es real:
+// notificaciones del sitio o el canal de WhatsApp.
 const ArmaduraPromo: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
+  const push = useOneSignal();
+  const [msg, setMsg] = useState<string | null>(null);
 
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
+  const onNotify = async () => {
+    if (push.isSubscribed) { setMsg('Ya estás en la lista: te avisamos en cuanto salga.'); return; }
+    if (!push.isSupported || push.permission === 'denied') {
+      setMsg('Tu navegador no permite avisos aquí. Únete al canal de WhatsApp y te enteras primero.');
+      return;
     }
+    await push.subscribe();
+    setMsg('¡Listo! Te avisamos en cuanto salga La Armadura.');
   };
 
   return (
-    <section className="relative overflow-hidden py-24" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 60%, #0b1929 100%)' }}>
-
-      {/* Decorative top line */}
+    <section className="relative overflow-hidden py-16 md:py-24" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #071325 60%, #0b1929 100%)' }}>
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,#2563a8,transparent)' }}></div>
-
-      {/* BG glow */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.12) 0%, transparent 70%)' }}></div>
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.18) 0%, transparent 70%)' }}></div>
 
       <div className="section-container relative z-10">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
+        <div className="flex flex-col-reverse lg:flex-row items-center gap-10 lg:gap-16">
 
-          {/* LEFT: Text */}
+          {/* Texto */}
           <div className="w-full lg:w-1/2">
-            {/* Label */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-6 h-px" style={{ background: '#2563a8' }}></div>
-              <span className="label-tag" style={{ color: '#4a90d9' }}>Próximamente</span>
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#2563a8', boxShadow: '0 0 12px #2563a8' }}></span>
+            <div className="flex items-center gap-3 mb-6">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4a90d9]/15 border border-[#4a90d9]/40 label-tag" style={{ color: '#7eb8f7' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4a90d9] animate-pulse"></span>Próximamente · Drop 01
+              </span>
             </div>
 
-            <h2 className="h2-display mb-6 text-white">
+            <h2 className="h2-display mb-5 text-white">
               La <span className="text-blue-gradient">Armadura</span>
             </h2>
 
-            <p className="mb-10 leading-relaxed" style={{ color: 'rgba(200,205,212,0.55)', maxWidth: '440px', fontSize: '0.9rem' }}>
-              Puro Señor Jesucristo compa. Ropa y accesorios para templar el cuerpo y el espíritu. Únete a la lista de espera para tener acceso anticipado.
+            <p className="mb-8 leading-relaxed" style={{ color: 'rgba(200,205,212,0.65)', maxWidth: '460px', fontSize: '0.95rem' }}>
+              Ropa para templar el cuerpo y el espíritu. Playeras y sudaderas de edición limitada con el sello de Puro Señor Jesucristo compa.
             </p>
 
-            {/* Feature pills */}
-            <div className="flex flex-wrap gap-3 mb-10">
-              {['Edición Limitada', 'Calidad Premium', 'Streetwear de Fe'].map(tag => (
-                <span key={tag} className="label-tag px-4 py-2" style={{
-                  border: '1px solid rgba(37,99,168,0.3)',
-                  color: 'rgba(200,205,212,0.6)',
-                  borderRadius: '2px',
-                  background: 'rgba(37,99,168,0.06)'
-                }}>
-                  {tag}
+            <div className="flex flex-wrap gap-2 mb-8">
+              {[['fa-gem', 'Edición limitada'], ['fa-shirt', 'Calidad premium'], ['fa-cross', 'Streetwear de fe']].map(([icon, tag]) => (
+                <span key={tag} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 bg-white/[0.04] border border-white/10">
+                  <i className={`fas ${icon} text-[#4a90d9]`}></i>{tag}
                 </span>
               ))}
             </div>
 
-            {/* Signup form */}
-            {subscribed ? (
-              <div className="p-6" style={{ background: 'rgba(37,99,168,0.08)', border: '1px solid rgba(37,99,168,0.25)', borderRadius: '2px' }}>
-                <p className="label-tag mb-2" style={{ color: '#4a90d9' }}>
-                  <i className="fas fa-check-circle mr-2"></i>¡Reclutamiento Exitoso!
-                </p>
-                <p className="text-xs" style={{ color: 'rgba(200,205,212,0.5)' }}>Serás el primero en enterarte cuando la armadura esté disponible.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="TU CORREO..."
-                  aria-label="Tu correo electrónico"
-                  autoComplete="email"
-                  required
-                  className="flex-1 label-tag px-5 py-4 outline-none transition-all"
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(37,99,168,0.25)',
-                    color: '#fff',
-                    borderRadius: '2px',
-                    fontSize: '0.6rem'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#2563a8'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(37,99,168,0.25)'}
-                />
-                <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                  Avisarme
-                </button>
-              </form>
-            )}
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+              <button
+                type="button"
+                onClick={onNotify}
+                disabled={push.busy}
+                className={`flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-colors ${push.isSubscribed ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40' : 'bg-[#4a90d9] text-black hover:bg-white'}`}
+              >
+                <i className={`fas ${push.busy ? 'fa-spinner fa-spin' : push.isSubscribed ? 'fa-check' : 'fa-bell'}`}></i>
+                {push.isSubscribed ? 'Ya estás en la lista' : 'Avísame cuando salga'}
+              </button>
+              <a
+                href="https://whatsapp.com/channel/0029VbCDSNR3bbUxtipXBJ1q"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] bg-emerald-500/10 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500 hover:text-black transition-colors"
+              >
+                <i className="fab fa-whatsapp text-base"></i>Canal WhatsApp
+              </a>
+            </div>
+            {msg && <p role="status" className="mt-4 text-xs text-[#7eb8f7]">{msg}</p>}
           </div>
 
-          {/* RIGHT: Visual mockup */}
+          {/* Vista previa de la playera */}
           <div className="w-full lg:w-1/2 flex justify-center">
-            <div className="relative group" style={{ perspective: '1000px' }}>
-
-              {/* Main mockup box */}
-              <div
-                className="relative w-72 h-80 flex items-center justify-center transition-transform duration-700 group-hover:rotate-y-6"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(30,58,95,0.6) 0%, rgba(8,24,48,0.9) 100%)',
-                  border: '1px solid rgba(37,99,168,0.4)',
-                  borderRadius: '4px',
-                  boxShadow: '0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(74,144,217,0.15)',
-                }}
-              >
-                {/* Diagonal stripe */}
-                <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '4px' }}>
-                  <div className="absolute top-0 right-0 w-px h-full opacity-20" style={{ background: 'linear-gradient(to bottom, #4a90d9, transparent)' }}></div>
-                  <div className="absolute top-0 left-0 w-full h-px opacity-20" style={{ background: 'linear-gradient(to right, #4a90d9, transparent)' }}></div>
-                </div>
-
-                {/* Content */}
-                <div className="flex flex-col items-center gap-4 z-10">
-                  <i className="fas fa-tshirt text-6xl" style={{ color: 'rgba(74,144,217,0.3)' }}></i>
-                  <img src="/logo-diosmasgym-sm.webp" alt="Logo" className="w-16 h-16 object-contain absolute" style={{ opacity: 0.25, filter: 'brightness(0) invert(1)' }} />
-                  <span className="label-tag mt-16" style={{ color: 'rgba(74,144,217,0.6)', letterSpacing: '0.4em' }}>TOP SECRET</span>
-                </div>
-
-                {/* Shine effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%)', borderRadius: '4px' }}></div>
-              </div>
-
-              {/* Floating badges */}
-              <div
-                className="absolute -top-4 -right-8 opacity-0 group-hover:opacity-100 transition-all duration-500 label-tag px-4 py-2"
-                style={{ background: 'rgba(8,24,48,0.95)', border: '1px solid rgba(37,99,168,0.4)', color: 'rgba(200,205,212,0.7)', borderRadius: '2px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', transform: 'translateX(8px)', transitionDelay: '100ms' }}
-              >
-                Edición Limitada
-              </div>
-              <div
-                className="absolute -bottom-4 -left-8 opacity-0 group-hover:opacity-100 transition-all duration-500 label-tag px-4 py-2"
-                style={{ background: 'rgba(8,24,48,0.95)', border: '1px solid rgba(37,99,168,0.4)', color: '#4a90d9', borderRadius: '2px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', transitionDelay: '200ms' }}
-              >
-                Calidad Premium
-              </div>
-
-              {/* Glow */}
-              <div className="absolute inset-0 -z-10 blur-[60px] opacity-30 group-hover:opacity-50 transition-opacity duration-700" style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.5) 0%, transparent 70%)' }}></div>
+            <div className="relative group w-[300px] md:w-[400px]">
+              <div className="absolute inset-0 blur-[70px] opacity-50 group-hover:opacity-70 transition-opacity duration-700" style={{ background: 'radial-gradient(circle, rgba(37,99,168,0.6) 0%, transparent 65%)' }}></div>
+              <svg viewBox="0 0 400 420" className="relative w-full drop-shadow-[0_40px_60px_rgba(0,0,0,0.7)] group-hover:-translate-y-2 transition-transform duration-700" aria-label="Vista previa de la playera La Armadura" role="img">
+                <defs>
+                  <linearGradient id="armadura-tela" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#14263f" />
+                    <stop offset="0.55" stopColor="#0a1628" />
+                    <stop offset="1" stopColor="#050c18" />
+                  </linearGradient>
+                  <linearGradient id="armadura-brillo" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stopColor="#4a90d9" />
+                    <stop offset="0.5" stopColor="#9cc8f5" />
+                    <stop offset="1" stopColor="#ffffff" />
+                  </linearGradient>
+                </defs>
+                {/* Playera */}
+                <path
+                  d="M140 20 C160 42 240 42 260 20 L345 55 L392 140 L330 170 L318 150 L318 405 L82 405 L82 150 L70 170 L8 140 L55 55 Z"
+                  fill="url(#armadura-tela)"
+                  stroke="rgba(74,144,217,0.45)"
+                  strokeWidth="2"
+                />
+                <path d="M140 20 C160 42 240 42 260 20" fill="none" stroke="rgba(74,144,217,0.6)" strokeWidth="5" />
+                {/* Estampado */}
+                <image href="/logo-diosmasgym-md.webp" x="150" y="85" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
+                <text x="200" y="225" textAnchor="middle" fill="url(#armadura-brillo)" style={{ fontFamily: 'var(--font-gothic)', fontSize: 40 }}>Puro Señor</text>
+                <text x="200" y="268" textAnchor="middle" fill="#ffffff" style={{ fontFamily: 'var(--font-gothic)', fontSize: 40 }}>Jesucristo</text>
+                <text x="200" y="300" textAnchor="middle" fill="#7eb8f7" style={{ fontFamily: 'var(--font-bold)', fontSize: 15, letterSpacing: 8 }}>COMPA</text>
+                <line x1="150" y1="322" x2="250" y2="322" stroke="rgba(74,144,217,0.5)" strokeWidth="1.5" />
+                <text x="200" y="345" textAnchor="middle" fill="rgba(200,205,212,0.55)" style={{ fontFamily: 'var(--font-bold)', fontSize: 10, letterSpacing: 5 }}>FE · MÚSCULO · CORRIDO</text>
+              </svg>
+              <span className="absolute top-6 -right-2 md:right-0 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rotate-6 shadow-lg">
+                Edición limitada
+              </span>
             </div>
           </div>
 

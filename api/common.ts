@@ -1046,6 +1046,12 @@ export default async function handler(
         total: allVideos.length,
         items: top50,
         top: top50,
+        // Top de cada artista: en el top general Diosmasgym ocupa los 50 lugares y el filtro
+        // "Juan 614" se quedaba vacio
+        topByArtist: {
+          diosmasgym: [...allVideos].filter((v: any) => !/juan/i.test(v.channel)).sort((a: any, b: any) => b.views - a.views).slice(0, 50),
+          juan614: [...allVideos].filter((v: any) => /juan/i.test(v.channel)).sort((a: any, b: any) => b.views - a.views).slice(0, 50),
+        },
         hiddenGems: hiddenGems
       });
     } catch (err: any) {

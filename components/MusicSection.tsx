@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import MusicCard from './MusicCard';
 import { MusicItem } from '../types';
 
 interface MusicSectionProps {
@@ -21,14 +20,14 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
   const artistUrl = isDios ? 'https://open.spotify.com/intl-es/artist/2mEoedcjDJ7x6SCVLMI4Do' : 'https://juan614.diosmasgym.com/';
   const accentBlue = isDios ? '#2563a8' : '#1e3a5f';
 
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   const listed = catalog.slice(skip);
   const displayedSongs = listed.slice(0, visibleCount);
   const hasMore = listed.length > visibleCount;
 
   return (
-    <section className="relative overflow-hidden py-16 md:py-20"
+    <section className="relative overflow-hidden py-12 md:py-20"
       style={{ background: isDios ? 'linear-gradient(160deg,#020d1a,#071325)' : 'linear-gradient(160deg,#040a14,#0b1929)' }}>
 
       {/* Top border line */}
@@ -105,17 +104,45 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
           </div>
         </div>
 
-        {/* === MUSIC GRID === */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* === CUADRICULA DE PORTADAS (clic = escuchar) === */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-5">
           {displayedSongs.map((item, idx) => (
-            <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${(idx % 6) * 80}ms` }}>
-              <MusicCard item={item} onPlay={() => onPlay(item)} />
+            <div key={item.id} className="group animate-fade-in-up" style={{ animationDelay: `${(idx % 12) * 50}ms` }}>
+              <button
+                type="button"
+                onClick={() => onPlay(item)}
+                className="relative block w-full aspect-square rounded-xl overflow-hidden border border-white/10 group-hover:border-[#4a90d9]/60 transition-colors shadow-[0_15px_35px_rgba(0,0,0,0.45)]"
+                aria-label={`Escuchar ${item.name}`}
+              >
+                <img
+                  loading="lazy"
+                  src={item.cover || artistLogo}
+                  alt=""
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  onError={(e) => { e.currentTarget.src = artistLogo; }}
+                />
+                <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity"></span>
+                <span className="absolute right-2.5 bottom-2.5 w-10 h-10 rounded-full bg-[#4a90d9] text-black flex items-center justify-center shadow-[0_0_20px_rgba(74,144,217,0.7)] md:opacity-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                  <i className="fas fa-play text-xs ml-0.5"></i>
+                </span>
+              </button>
+              <div className="mt-2.5 flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-[#7eb8f7] transition-colors">{item.name}</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35 mt-0.5">{item.date && !isNaN(new Date(item.date).getTime()) ? new Date(item.date).getFullYear() : item.artist}</p>
+                </div>
+                {item.id && (
+                  <a href={`/link/${item.id}`} className="flex-shrink-0 w-8 h-8 rounded-full text-white/40 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors" aria-label={`Escuchar ${item.name} en otras plataformas`} title="Todas las plataformas">
+                    <i className="fas fa-share-nodes text-xs"></i>
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>
 
         {/* Load more / explore controls */}
-        {listed.length > 3 && (
+        {listed.length > 12 && (
           <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
             {hasMore ? (
               <button
@@ -127,7 +154,7 @@ const MusicSection: React.FC<MusicSectionProps> = ({ artist, catalog, onPlay, ra
               </button>
             ) : (
               <button
-                onClick={() => setVisibleCount(3)}
+                onClick={() => setVisibleCount(12)}
                 className="px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white border border-white/10 text-[9px] font-black uppercase tracking-widest transition-all"
               >
                 <i className="fas fa-arrow-up text-xs mr-2" />

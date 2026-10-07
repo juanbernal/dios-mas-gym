@@ -47,6 +47,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
 
   const [topAnalytics, setTopAnalytics] = useState<string[]>([]);
   const [topVideos, setTopVideos] = useState<YTVideoItem[]>([]);
+  const [topByArtist, setTopByArtist] = useState<{ diosmasgym: YTVideoItem[]; juan614: YTVideoItem[] } | null>(null);
   const [hiddenGems, setHiddenGems] = useState<YTVideoItem[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
   const [selectedChannelGems, setSelectedChannelGems] = useState<'all' | 'diosmasgym' | 'juan614'>('all');
@@ -172,6 +173,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
               });
 
             setTopVideos(enrichItems(data.top));
+            if (data.topByArtist) setTopByArtist({ diosmasgym: enrichItems(data.topByArtist.diosmasgym || []), juan614: enrichItems(data.topByArtist.juan614 || []) });
             setHiddenGems(enrichItems(data.hiddenGems || []));
             setLoadingYT(false);
             return;
@@ -240,10 +242,16 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
   // Filtered Top 50
   const filteredTopList = useMemo(() => {
     let list = topVideos;
-    if (selectedChannel === 'diosmasgym') {
-      list = list.filter(v => v.channel.toLowerCase().includes('dios') || v.handle?.includes('dios'));
-    } else if (selectedChannel === 'juan614') {
-      list = list.filter(v => v.channel.toLowerCase().includes('juan') || v.handle?.includes('juan'));
+    const isJuan = (v: YTVideoItem) => v.channel.toLowerCase().includes('juan') || !!v.handle?.includes('juan');
+    if (selectedChannel !== 'all') {
+      // Top propio de cada artista (en el general casi todo es de Diosmasgym)
+      const own = topByArtist?.[selectedChannel];
+      if (own && own.length > 0) {
+        list = own;
+      } else {
+        const pool = [...topVideos, ...hiddenGems].filter(v => selectedChannel === 'juan614' ? isJuan(v) : !isJuan(v));
+        list = pool.filter((v, i) => pool.findIndex(x => x.id === v.id) === i).sort((a, b) => b.views - a.views);
+      }
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -254,7 +262,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
       );
     }
     return list;
-  }, [topVideos, selectedChannel, searchQuery]);
+  }, [topVideos, topByArtist, hiddenGems, selectedChannel, searchQuery]);
 
   // Grafica del ranking: las barras crecen cuando la lista entra en pantalla
   const chartRef = React.useRef<HTMLDivElement>(null);
@@ -268,7 +276,7 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
     return () => io.disconnect();
   }, [chartVisible, loadingYT, rankTab]);
   const maxViews = Math.max(1, ...filteredTopList.map(v => v.views || 0));
-  const totalViews = topVideos.reduce((a, v) => a + (v.views || 0), 0);
+  const totalViews = filteredTopList.reduce((a, v) => a + (v.views || 0), 0);
 
   // Filtered Joyas Ocultas (Menos escuchadas)
   const filteredGemsList = useMemo(() => {
@@ -468,8 +476,8 @@ export const HomeMusicSections: React.FC<HomeMusicSectionsProps> = ({ catalog, o
             <div ref={chartRef} className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
               {[
                 { label: 'Reproducciones', value: totalViews, icon: 'fa-play', color: 'from-[#4a90d9] to-[#9cc8f5]' },
-                { label: 'La #1 tiene', value: topVideos[0]?.views || 0, icon: 'fa-crown', color: 'from-amber-400 to-yellow-200' },
-                { label: 'Canciones', value: topVideos.length, icon: 'fa-music', color: 'from-red-500 to-orange-300' },
+                { label: 'La #1 tiene', value: filteredTopList[0]?.views || 0, icon: 'fa-crown', color: 'from-amber-400 to-yellow-200' },
+                { label: 'Canciones', value: filteredTopList.length, icon: 'fa-music', color: 'from-red-500 to-orange-300' },
               ].map(st => (
                 <div key={st.label} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3 md:p-5">
                   <i className={`fas ${st.icon} absolute -right-2 -bottom-2 text-5xl md:text-7xl text-white/[0.04]`}></i>
