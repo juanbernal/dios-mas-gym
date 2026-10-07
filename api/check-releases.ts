@@ -54,28 +54,17 @@ function verifyCronOrAdmin(req: any): boolean {
     return true;
   }
 
-  // 2. Si viene de la automatización Cron de Vercel
-  const cronSecret = process.env.CRON_SECRET;
+  // 2. Si viene de la automatización Cron de Vercel: Vercel manda "Authorization: Bearer <CRON_SECRET>".
+  // (Antes bastaba con mandar cualquier cabecera x-vercel-signature, y cualquiera podia disparar
+  // notificaciones a todos los suscriptores.)
+  const cronSecret = (process.env.CRON_SECRET || '').trim();
   let authHeader = '';
-  let vercelSig = '';
-
   if (typeof req.headers?.get === 'function') {
     authHeader = req.headers.get('authorization') || '';
-    vercelSig = req.headers.get('x-vercel-signature') || '';
   } else if (req.headers) {
     authHeader = (req.headers['authorization'] as string) || '';
-    vercelSig = (req.headers['x-vercel-signature'] as string) || '';
   }
-
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  if (vercelSig) {
-    return true;
-  }
-
-  return false;
+  return !!cronSecret && timingSafeCompare(authHeader, `Bearer ${cronSecret}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,6 +333,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
 
+    // mode=detect: solo busca canciones nuevas del catalogo, las pasa a la hoja y avisa.
+    // Corre varias veces al dia; el aviso de "estreno de hoy" y las promos solo van en la corrida diaria.
+    const detectOnly = req.query.mode === 'detect';
+
     try {
         const rows = await fetchRows();
 
@@ -569,7 +562,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[check-releases] Target: ${targetDate} | Candidate dates: ${[...datesToCheck].join(',')} | Total Rows: ${finalRows.length} | Today's releases: ${todaysReleases.length}`);
         
         // Enviar para los estrenos del día en la hoja que no hayan sido ya notificados
-        const remainingToday = todaysReleases.filter(r => 
+        const remainingToday = detectOnly ? [] : todaysReleases.filter(r => 
             !notifiedSongNames.has((r.name || '').toLowerCase().trim())
         );
 
@@ -579,15 +572,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Disparar generación de promos diarias en background si viene de cron
-        const cronSecret = process.env.CRON_SECRET;
-        const vercelSig = (req.headers as any)?.['x-vercel-signature'] || '';
-        if (cronSecret || vercelSig) {
+        const cronSecret = (process.env.CRON_SECRET || '').trim();
+        const fromCron = !!cronSecret && (req.headers as any)?.authorization === `Bearer ${cronSecret}`;
+        if (fromCron && !detectOnly) {
             const host = (req.headers as any)?.host || 'www.diosmasgym.com';
             fetch(`https://${host}/api/generate-promo`, {
-                headers: {
-                    ...(cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {}),
-                    ...(vercelSig ? { 'x-vercel-signature': String(vercelSig) } : {})
-                }
+                headers: { Authorization: `Bearer ${cronSecret}` }
             }).catch(() => null);
         }
 

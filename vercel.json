@@ -121,6 +121,30 @@
       "schedule": "0 15 * * *"
     },
     {
+      "path": "/api/check-releases?mode=detect&run=0",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/check-releases?mode=detect&run=3",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/check-releases?mode=detect&run=6",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/check-releases?mode=detect&run=12",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/check-releases?mode=detect&run=18",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/check-releases?mode=detect&run=21",
+      "schedule": "0 21 * * *"
+    },
+    {
       "path": "/api/analytics?action=sendReport",
       "schedule": "0 5 * * *"
     }

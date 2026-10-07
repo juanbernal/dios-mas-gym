@@ -236,11 +236,13 @@ const ProximosLanzamientos: React.FC = () => {
                 ? `/api/sheet-proxy?read=true&nocache=true&t=${Date.now()}`
                 : `/api/sheet-proxy?read=true`;
 
-            const [response, dM, j6] = await Promise.all([
-                fetch(sheetUrl),
+            // La hoja se muestra en cuanto llega; el catalogo (lo lento) se revisa despues
+            // sin bloquear la pantalla. El servidor tambien hace esta revision solo, varias veces al dia.
+            const catalogsPromise = Promise.all([
                 fetchMusicCatalog('diosmasgym', force),
                 fetchMusicCatalog('juan614', force)
             ]);
+            const response = await fetch(sheetUrl);
 
             let filtered: ReleaseData[] = [];
             if (response.ok) {
@@ -270,6 +272,8 @@ const ProximosLanzamientos: React.FC = () => {
                 filtered = normalized.filter(r => !r.Artista || !r.Artista.toLowerCase().startsWith('config'));
                 setCurrentReleases(filtered);
             }
+            setLoadingReleases(false);
+            const [dM, j6] = await catalogsPromise;
             processCatalogSync(filtered, dM, j6, force);
         } catch (error) {
             console.error("Error fetching admin releases:", error);

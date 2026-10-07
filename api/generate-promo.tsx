@@ -55,27 +55,17 @@ function verifyCronOrAdmin(req: any): boolean {
     return true;
   }
 
-  const cronSecret = process.env.CRON_SECRET;
+  // Cron de Vercel: manda "Authorization: Bearer <CRON_SECRET>"
+  const cronSecret = (process.env.CRON_SECRET || '').trim();
   let authHeader = '';
-  let vercelSig = '';
 
   if (typeof req.headers?.get === 'function') {
     authHeader = req.headers.get('authorization') || '';
-    vercelSig = req.headers.get('x-vercel-signature') || '';
   } else if (req.headers) {
     authHeader = (req.headers['authorization'] as string) || '';
-    vercelSig = (req.headers['x-vercel-signature'] as string) || '';
   }
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  if (vercelSig) {
-    return true;
-  }
-
-  return false;
+  return !!cronSecret && authHeader === `Bearer ${cronSecret}`;
 }
 
 // VERSIÓN 2.1: Anti-Cache + Transformación Explícita
