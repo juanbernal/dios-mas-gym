@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DEFAULT_RUTINAS, Ejercicio, ICONOS_PARTE, Lugar, NIVELES, Nivel, OBJETIVOS, ParteCuerpo, Rutina, RutinasData } from '../../data/rutinas';
+import { DEFAULT_RUTINAS, Ejercicio, ICONOS_PARTE, Lugar, MUSCULOS, NIVELES, Nivel, OBJETIVOS, ParteCuerpo, Rutina, RutinasData, zonasDeParte } from '../../data/rutinas';
+import BodyMap from '../BodyMap';
 import { fetchRutinasAdmin, saveRutinas, uploadRutinaImagen, youtubeId } from '../../services/rutinaService';
 
 // Panel de rutinas: crear, editar, ocultar y destacar rutinas, sus ejercicios (con foto/GIF y video)
@@ -308,7 +309,20 @@ const PartesEditor: React.FC<{ data: RutinasData; onChange: (d: RutinasData) => 
                   <label><span className={lbl}>Cita</span><input value={p.versiculo.cita} onChange={e => setParte(i, { ...p, versiculo: { ...p.versiculo, cita: e.target.value } })} className={inp} placeholder="Filipenses 4:13" /></label>
                   <button onClick={() => remove(p)} className={`${btn} self-start bg-red-500/15 text-red-300`}><i className="fas fa-trash"></i>Borrar parte</button>
                 </div>
-                <ImageField label="Imagen (si la rutina no tiene portada)" value={p.imagen} onChange={v => setParte(i, { ...p, imagen: v })} />
+                <div className="flex flex-col gap-4">
+                  <ImageField label="Imagen (si la rutina no tiene portada)" value={p.imagen} onChange={v => setParte(i, { ...p, imagen: v })} />
+                  <div>
+                    <span className={lbl}>Músculos en el mapa (toca para marcar)</span>
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                      <BodyMap
+                        alto={200}
+                        activos={new Set(zonasDeParte(p))}
+                        onPick={m => { const z = new Set(zonasDeParte(p)); z.has(m) ? z.delete(m) : z.add(m); setParte(i, { ...p, zonas: [...z] }); }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-white/40 mt-1.5">{zonasDeParte(p).map(z => MUSCULOS[z]).join(', ') || 'Ninguno'}</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -340,6 +354,11 @@ const RutinasAdmin: React.FC = () => {
     try {
       const r = await fetchRutinasAdmin();
       setData(clone(r.data)); setGuardado(r.guardado); setDirty(false);
+      // fetchRutinasAdmin agrega solas las rutinas nuevas de la plantilla; hay que guardarlas
+      if (r.guardado && r.nuevas > 0) {
+        setDirty(true);
+        setMsg({ ok: true, text: `Llegaron ${r.nuevas} rutinas nuevas de la plantilla. Pulsa Guardar cambios para conservarlas.` });
+      }
     } catch (e: any) {
       setMsg({ ok: false, text: e?.message || 'No se pudo cargar' });
     } finally { setLoading(false); }

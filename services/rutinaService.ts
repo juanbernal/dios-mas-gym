@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_RUTINAS, RutinasData } from '../data/rutinas';
+import { DEFAULT_RUTINAS, PLANTILLA_VERSION, RutinasData, aplicarPlantilla } from '../data/rutinas';
 import { syncFetch } from './adminSync';
 
 // Las rutinas que edita el admin viven en /api/rutinas; si todavia no hay nada guardado
@@ -14,7 +14,7 @@ export function fetchRutinas(): Promise<RutinasData> {
   if (!inFlight) {
     inFlight = fetch('/api/rutinas')
       .then(r => (r.ok ? r.json() : null))
-      .then(j => (cache = isValid(j?.data) ? j.data : DEFAULT_RUTINAS))
+      .then(j => (cache = isValid(j?.data) ? aplicarPlantilla(j.data) : DEFAULT_RUTINAS))
       .catch(() => DEFAULT_RUTINAS)
       .finally(() => { inFlight = null; });
   }
@@ -33,18 +33,20 @@ export function useRutinas(): RutinasData {
 }
 
 // ── Admin ──
-export async function fetchRutinasAdmin(): Promise<{ data: RutinasData; guardado: boolean }> {
+export async function fetchRutinasAdmin(): Promise<{ data: RutinasData; guardado: boolean; nuevas: number }> {
   const res = await syncFetch(`/api/rutinas?all=1&t=${Date.now()}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || `Error ${res.status}`);
   const j = await res.json();
-  return isValid(j?.data) ? { data: j.data, guardado: true } : { data: DEFAULT_RUTINAS, guardado: false };
+  if (!isValid(j?.data)) return { data: DEFAULT_RUTINAS, guardado: false, nuevas: 0 };
+  const data = aplicarPlantilla(j.data);
+  return { data, guardado: true, nuevas: data.rutinas.length - j.data.rutinas.length };
 }
 
 export async function saveRutinas(data: RutinasData): Promise<void> {
   const res = await syncFetch('/api/rutinas', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ op: 'guardar', data }),
+    body: JSON.stringify({ op: 'guardar', data: { ...data, plantilla: PLANTILLA_VERSION } }),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || `Error ${res.status}`);
   cache = data;

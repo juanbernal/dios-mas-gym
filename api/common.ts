@@ -142,7 +142,7 @@ async function readRutinas(fresh = false): Promise<any | null> {
 }
 
 // Limpia lo que manda el panel: solo campos conocidos, textos acotados y URLs http(s)
-function sanitizeRutinas(input: any): { partes: any[]; rutinas: any[]; updatedAt: number } | null {
+function sanitizeRutinas(input: any): { partes: any[]; rutinas: any[]; updatedAt: number; plantilla: number } | null {
   if (!input || !Array.isArray(input.partes) || !Array.isArray(input.rutinas)) return null;
   const str = (v: any, max: number) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, max);
   const num = (v: any, min: number, max: number, def: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
@@ -158,6 +158,7 @@ function sanitizeRutinas(input: any): { partes: any[]; rutinas: any[]; updatedAt
     frase: str(p?.frase, 160),
     versiculo: { texto: str(p?.versiculo?.texto, 400), cita: str(p?.versiculo?.cita, 60) },
     imagen: url(p?.imagen),
+    zonas: Array.isArray(p?.zonas) ? p.zonas.map((z: any) => String(z)).filter((z: string) => /^[a-z-]{2,20}$/.test(z)).slice(0, 20) : undefined,
   })).filter((p: any) => p.id && p.nombre);
   const parteIds = new Set(partes.map((p: any) => p.id));
 
@@ -191,7 +192,7 @@ function sanitizeRutinas(input: any): { partes: any[]; rutinas: any[]; updatedAt
     return true;
   });
   if (partes.length === 0) return null;
-  return { partes, rutinas, updatedAt: Date.now() };
+  return { partes, rutinas, updatedAt: Date.now(), plantilla: num(input.plantilla, 1, 1000, 1) };
 }
 
 // El index.html trae contenido de relleno para la home (rastreable); los handlers SSR

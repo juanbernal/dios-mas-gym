@@ -49,9 +49,10 @@ interface Props {
   onPick?: (m: Musculo) => void;
   className?: string;
   corazon?: boolean;
+  alto?: number; // alto de cada figura en px
 }
 
-const Figura: React.FC<{ formas: Forma[]; label: string; activos: Set<string>; hover: Musculo | null; setHover: (m: Musculo | null) => void; onPick?: (m: Musculo) => void; corazon?: boolean }> = ({ formas, label, activos, hover, setHover, onPick, corazon }) => {
+const Figura: React.FC<{ alto: number; formas: Forma[]; label: string; activos: Set<string>; hover: Musculo | null; setHover: (m: Musculo | null) => void; onPick?: (m: Musculo) => void; corazon?: boolean }> = ({ alto, formas, label, activos, hover, setHover, onPick, corazon }) => {
   const pieza = (f: Forma, i: number, espejo: boolean) => {
     const on = activos.has(f.m);
     const hv = hover === f.m;
@@ -74,7 +75,7 @@ const Figura: React.FC<{ formas: Forma[]; label: string; activos: Set<string>; h
   };
   return (
     <figure className="flex flex-col items-center min-w-0">
-      <svg viewBox="30 0 140 410" className="w-full h-full max-h-[inherit]" role="img" aria-label={`Cuerpo ${label}`}>
+      <svg viewBox="30 0 140 410" style={{ height: alto, width: '100%' }} role="img" aria-label={`Cuerpo ${label}`}>
         <g fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="1">{SILUETA}</g>
         {formas.map((f, i) => pieza(f, i, false))}
         {formas.map((f, i) => pieza(f, i, true))}
@@ -92,13 +93,13 @@ const Figura: React.FC<{ formas: Forma[]; label: string; activos: Set<string>; h
   );
 };
 
-const BodyMap: React.FC<Props> = ({ activos, onPick, className, corazon }) => {
+const BodyMap: React.FC<Props> = ({ activos, onPick, className, corazon, alto = 230 }) => {
   const [hover, setHover] = useState<Musculo | null>(null);
   return (
     <div className={className}>
-      <div className="grid grid-cols-2 gap-2 h-full max-h-[inherit]">
-        <Figura formas={FRENTE} label="frente" activos={activos} hover={hover} setHover={setHover} onPick={onPick} corazon={corazon} />
-        <Figura formas={ESPALDA} label="espalda" activos={activos} hover={hover} setHover={setHover} onPick={onPick} />
+      <div className="grid grid-cols-2 gap-2">
+        <Figura alto={alto} formas={FRENTE} label="frente" activos={activos} hover={hover} setHover={setHover} onPick={onPick} corazon={corazon} />
+        <Figura alto={alto} formas={ESPALDA} label="espalda" activos={activos} hover={hover} setHover={setHover} onPick={onPick} />
       </div>
       <p className="text-center text-[11px] font-bold text-white/60 mt-2 min-h-[1.25em]">
         {hover ? MUSCULOS[hover] : onPick ? 'Toca un músculo' : ''}

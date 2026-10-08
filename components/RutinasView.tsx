@@ -243,7 +243,7 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
           <div className="mt-6 rounded-3xl border border-white/10 bg-black/30 p-4 max-w-md">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7eb8f7] mb-2"><i className="fas fa-person-running mr-2"></i>Mapa muscular · {parte.nombre}</p>
             <BodyMap
-              className="h-[260px] md:h-[300px]"
+              alto={250}
               activos={new Set(zonasDeParte(parte))}
               corazon={parte.id === 'cardio'}
               onPick={m => { const p = parteDeMusculo(data.partes, m); if (p) select({ parte: p.id }); }}

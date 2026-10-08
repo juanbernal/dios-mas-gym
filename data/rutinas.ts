@@ -812,7 +812,262 @@ export const RUTINAS_BASE: Rutina[] = [
   },
 ];
 
-export const DEFAULT_RUTINAS: RutinasData = { partes: PARTES_BASE, rutinas: RUTINAS_BASE };
+// ───────── Plantilla v2: mas rutinas de nivel avanzado ─────────
+const RUTINAS_V2: Rutina[] = [
+  {
+    id: 'pecho-casa-4', parte: 'pecho', lugar: 'casa', nivel: 'Avanzado', titulo: 'Serie gigante de Josué', minutos: 30, objetivo: 'Hipertrofia',
+    descripcion: 'Serie gigante: los 4 ejercicios seguidos sin descanso y descansas 2 min al final. Repite 4 vueltas.',
+    ejercicios: [
+      e('Lagartijas declinadas', 4, '12', 0, 'Pies en silla. Pasa directo al siguiente.', 'Pecho alto'),
+      e('Lagartijas con manos abiertas', 4, '12', 0, 'Baja en 3 s; sin descanso.', 'Pecho'),
+      e('Lagartijas diamante', 4, '10', 0, 'Codos pegados; sigue de inmediato.', 'Tríceps y pecho'),
+      e('Lagartija isométrica abajo', 4, '20 s', 120, 'Quédate a 2 cm del piso. Ahora sí, descansa 2 min.', 'Pecho'),
+    ],
+  },
+  {
+    id: 'pecho-gym-4', parte: 'pecho', lugar: 'gym', nivel: 'Avanzado', titulo: 'Hierro afila al hierro', minutos: 60, objetivo: 'Hipertrofia',
+    descripcion: 'Enfoque en pecho superior con pausas y lastre. Proverbios 27:17.',
+    calentamiento: ['5 min de remo', 'Rotaciones externas con liga 2 x 15', 'Press inclinado con barra sola x 10', 'Aproximación: 50% x 6, 70% x 3'],
+    ejercicios: [
+      e('Press inclinado con barra', 4, '6-8', 150, 'Banco a 30°; barra a la clavícula.', 'Pecho alto'),
+      e('Press inclinado con mancuernas', 4, '8-10', 120, 'Estira abajo, junta arriba.', 'Pecho alto'),
+      e('Press de banca con pausa', 3, '5', 150, 'Pausa de 2 s con la barra en el pecho, sin rebotar.', 'Pecho'),
+      e('Aperturas en polea baja (inclinadas)', 3, '12-15', 75, 'De abajo hacia la barbilla.', 'Pecho alto'),
+      e('Fondos con lastre', 3, '8-10', 120, 'Torso al frente.', 'Pecho bajo'),
+      e('Lagartijas (final)', 2, 'Al fallo', 60, 'Vacía el tanque.', 'Pecho'),
+    ],
+  },
+  {
+    id: 'espalda-casa-4', parte: 'espalda', lugar: 'casa', nivel: 'Avanzado', titulo: 'Toma tu cruz: dominadas', minutos: 40, objetivo: 'Fuerza',
+    descripcion: 'Para quien ya hace 8 dominadas. Mochila con peso y negativas lentas.',
+    ejercicios: [
+      e('Dominadas con mochila cargada', 5, '5-8', 150, 'Mochila bien ajustada; sin balanceo.', 'Dorsales'),
+      e('Dominadas negativas lentas', 3, '5 (5 s bajando)', 90, 'Salta arriba y baja lo más lento posible.', 'Dorsales'),
+      e('Remo invertido con pausa', 4, '10', 90, 'Pausa 2 s con el pecho en la mesa.', 'Espalda media'),
+      e('Remo invertido agarre supino', 3, '12', 60, 'Palmas hacia ti; codos pegados.', 'Dorsales y bíceps'),
+      e('Superman con mochila', 3, '15', 45, 'Mochila en las manos estiradas.', 'Espalda baja'),
+      e('Colgado a una mano (alternando)', 3, '15-20 s por mano', 60, 'Hombro activo, no colgado de las articulaciones.', 'Agarre'),
+    ],
+  },
+  {
+    id: 'espalda-gym-4', parte: 'espalda', lugar: 'gym', nivel: 'Avanzado', titulo: 'Columnas de Salomón', minutos: 60, objetivo: 'Hipertrofia',
+    descripcion: 'Espalda gruesa y ancha: rack pulls, dominadas neutras y remos unilaterales.',
+    ejercicios: [
+      e('Rack pull (peso muerto desde rodillas)', 4, '5-6', 150, 'Barra a la altura de las rodillas; bloquea con glúteo.', 'Espalda alta y trapecio'),
+      e('Dominadas agarre neutro', 4, '8-10', 120, 'Con lastre si pasas de 10.', 'Dorsales'),
+      e('Remo Meadows', 3, '10 por lado', 90, 'Barra en mina, de lado; jala con el codo alto.', 'Espalda media'),
+      e('Remo sentado agarre ancho', 3, '10-12', 90, 'Codos abiertos a 45°.', 'Espalda alta'),
+      e('Jalón a una mano en polea', 3, '12 por lado', 60, 'Estira arriba y lleva el codo a la cadera.', 'Dorsales'),
+      e('Hiperextensiones con disco', 3, '12', 60, 'Disco al pecho.', 'Espalda baja'),
+    ],
+  },
+  {
+    id: 'piernas-casa-4', parte: 'piernas', lugar: 'casa', nivel: 'Avanzado', titulo: 'Escalera de Jacob', minutos: 40, objetivo: 'Fuerza',
+    descripcion: 'Pistols completas, cosacas y saltos: fuerza y control en una pierna.',
+    ejercicios: [
+      e('Sentadilla pistol', 5, '5 por pierna', 120, 'Brazos al frente para equilibrio; baja completo.', 'Cuádriceps'),
+      e('Sentadilla cosaca', 4, '8 por lado', 75, 'Lado a lado, pierna contraria estirada.', 'Cuádriceps y aductores'),
+      e('Búlgara con salto', 4, '8 por pierna', 90, 'Explota hacia arriba y cae suave.', 'Cuádriceps y glúteo'),
+      e('Puente femoral a una pierna', 4, '12 por pierna', 60, 'Talón en una silla.', 'Femoral'),
+      e('Sentadilla en la pared con mochila', 3, '60 s', 60, 'Mochila sobre los muslos.', 'Cuádriceps'),
+      e('Saltos de rana', 3, '10', 60, 'Salta lo más lejos posible.', 'Potencia'),
+    ],
+  },
+  {
+    id: 'piernas-gym-4', parte: 'piernas', lugar: 'gym', nivel: 'Avanzado', titulo: 'Fortaleza de David', minutos: 70, objetivo: 'Fuerza',
+    descripcion: 'Sentadilla 5x5 y frontal en el mismo día. Sube peso cada semana si completas todas las series.',
+    calentamiento: ['5 min de bicicleta', 'Sentadilla profunda sostenida 1 min', 'Aproximación: barra x 10, 40% x 5, 60% x 3, 80% x 1'],
+    ejercicios: [
+      e('Sentadilla trasera', 5, '5', 180, 'Mismo peso las 5 series.', 'Cuádriceps y glúteo'),
+      e('Sentadilla frontal', 3, '6-8', 150, 'Codos altos; torso vertical.', 'Cuádriceps'),
+      e('Peso muerto rumano', 4, '6-8', 150, 'Pesado y con la espalda neutra.', 'Femoral'),
+      e('Prensa a una pierna', 3, '10 por pierna', 90, 'Controla la bajada.', 'Cuádriceps'),
+      e('Curl nórdico', 3, '5-8', 120, 'Con compañero o en la máquina de femoral.', 'Femoral'),
+      e('Pantorrilla sentado', 4, '15', 45, 'Pausa abajo.', 'Pantorrilla'),
+    ],
+  },
+  {
+    id: 'gluteo-casa-3', parte: 'gluteo', lugar: 'casa', nivel: 'Avanzado', titulo: 'Siete vueltas (finisher)', minutos: 25, objetivo: 'Resistencia',
+    descripcion: 'Tensión continua para terminar el glúteo. Poco descanso, mucho ardor.',
+    ejercicios: [
+      e('Puente de glúteo a una pierna', 4, '15 por pierna', 30, 'Cadera nivelada arriba.', 'Glúteo mayor'),
+      e('Sentadilla sumo con pulsos', 4, '20', 30, 'Abajo, sube y baja medio rango sin subir completo.', 'Glúteo'),
+      e('Patada de glúteo con mochila', 4, '15 por pierna', 30, 'Mochila detrás de la rodilla.', 'Glúteo mayor'),
+      e('Caminata lateral en media sentadilla', 4, '20 pasos', 30, 'No te levantes.', 'Glúteo medio'),
+      e('Hip thrust isométrico', 4, '45 s', 60, 'Arriba y apretando todo el tiempo.', 'Glúteo mayor'),
+    ],
+  },
+  {
+    id: 'gluteo-gym-3', parte: 'gluteo', lugar: 'gym', nivel: 'Avanzado', titulo: 'Fundamento de piedra', minutos: 55, objetivo: 'Hipertrofia',
+    descripcion: 'Trabajo unilateral y con déficit para un glúteo fuerte y parejo.',
+    ejercicios: [
+      e('Hip thrust B-stance', 4, '10 por pierna', 90, 'Una pierna trabaja, la otra solo apoya la punta.', 'Glúteo mayor'),
+      e('Peso muerto rumano con déficit', 4, '8', 120, 'Parado sobre un disco para más estiramiento.', 'Glúteo y femoral'),
+      e('Búlgara en Smith', 3, '10 por pierna', 90, 'Torso inclinado al frente.', 'Glúteo'),
+      e('Step-up alto con mancuernas', 3, '10 por pierna', 90, 'Cajón a la altura de la rodilla; sin impulso.', 'Glúteo'),
+      e('Abducción con banda sentado', 3, '25', 45, 'Inclinado al frente.', 'Glúteo medio'),
+      e('Patada de glúteo en máquina', 3, '15 por pierna', 45, 'Pausa arriba.', 'Glúteo mayor'),
+    ],
+  },
+  {
+    id: 'hombros-casa-4', parte: 'hombros', lugar: 'casa', nivel: 'Avanzado', titulo: 'Pino del guerrero', minutos: 35, objetivo: 'Fuerza',
+    descripcion: 'Camino a la lagartija en parada de manos.',
+    ejercicios: [
+      e('Lagartija en parada de manos (negativas)', 5, '3-5', 120, 'Contra la pared, baja la cabeza al piso en 4 s.', 'Hombros'),
+      e('Pike push-up con déficit', 4, '8', 90, 'Manos sobre libros para bajar más.', 'Hombro frontal'),
+      e('Press Z con mochila (sentado en el piso)', 3, '10', 75, 'Piernas estiradas, sin apoyar la espalda.', 'Hombros'),
+      e('Laterales isométricas con mochila', 3, '30 s', 45, 'Brazos a la altura de los hombros.', 'Hombro lateral'),
+      e('Superserie: pica + elevación en Y', 3, '8 + 12', 60, 'Sin descanso entre los dos.', 'Hombros'),
+      e('Caminata de oso', 3, '30 s', 45, 'Rodillas a 2 cm del piso.', 'Hombros y zona media'),
+    ],
+  },
+  {
+    id: 'hombros-gym-4', parte: 'hombros', lugar: 'gym', nivel: 'Avanzado', titulo: 'Escudo de la fe', minutos: 55, objetivo: 'Hipertrofia',
+    descripcion: 'Potencia con push press y volumen alto de deltoide lateral y posterior.',
+    ejercicios: [
+      e('Push press', 4, '5', 150, 'Impulso de piernas y bloquea arriba.', 'Hombros'),
+      e('Press Arnold', 3, '10', 90, 'Gira las palmas al subir.', 'Hombros'),
+      e('Elevación lateral en máquina + parciales', 4, '15 + 10 parciales', 60, 'Al terminar, 10 repeticiones de medio rango.', 'Hombro lateral'),
+      e('Elevación lateral inclinado en banco', 3, '12 por brazo', 60, 'De lado sobre el banco inclinado.', 'Hombro lateral'),
+      e('Pájaros en polea cruzada', 4, '15', 60, 'Cruza los cables y abre hacia atrás.', 'Hombro posterior'),
+      e('Encogimientos con barra por detrás', 3, '12', 60, 'Barra detrás del cuerpo.', 'Trapecio'),
+    ],
+  },
+  {
+    id: 'brazos-casa-4', parte: 'brazos', lugar: 'casa', nivel: 'Avanzado', titulo: 'La honda de David', minutos: 30, objetivo: 'Hipertrofia',
+    descripcion: 'Bíceps y tríceps sin pesas, con tempo lento y ejercicios de gimnasta.',
+    ejercicios: [
+      e('Chin-ups lentos', 4, '6-8', 90, '3 s subiendo, 3 s bajando.', 'Bíceps'),
+      e('Lagartijas diamante con déficit', 4, '12', 60, 'Manos sobre libros.', 'Tríceps'),
+      e('Extensión de tríceps tipo esfinge', 3, '10-12', 60, 'Desde antebrazos en el piso, empuja hasta estirar.', 'Tríceps'),
+      e('Curl con toalla en la barra', 3, '10', 60, 'Toalla en la barra; jala como curl.', 'Bíceps y agarre'),
+      e('Curl martillo con garrafas', 3, '15', 45, 'Lento y sin balanceo.', 'Braquial'),
+      e('Fondos entre sillas (final)', 2, 'Al fallo', 60, 'Torso vertical.', 'Tríceps'),
+    ],
+  },
+  {
+    id: 'brazos-gym-4', parte: 'brazos', lugar: 'gym', nivel: 'Avanzado', titulo: 'Brazos de Benaía', minutos: 55, objetivo: 'Hipertrofia',
+    descripcion: 'Volumen alto con trabajo a un brazo. Benaía venció a un león (2 Samuel 23:20).',
+    ejercicios: [
+      e('Curl con barra', 4, '6-8', 90, 'Pesado; la última con un poco de impulso controlado.', 'Bíceps'),
+      e('Press francés con mancuernas', 4, '10', 90, 'Mancuernas a los lados de la cabeza.', 'Tríceps'),
+      e('Curl araña con barra Z', 3, '10-12', 75, 'Pecho sobre el banco inclinado.', 'Bíceps'),
+      e('Fondos en máquina', 3, '10-12', 75, 'Pesado y completo.', 'Tríceps'),
+      e('Curl en polea a una mano', 3, '12 por brazo', 60, 'Aprieta arriba 1 s.', 'Bíceps'),
+      e('Extensión de tríceps a una mano en polea', 3, '12 por brazo', 60, 'Agarre inverso.', 'Tríceps'),
+      e('Curl inverso con barra Z', 2, '15', 45, 'Palmas hacia abajo.', 'Antebrazo'),
+    ],
+  },
+  {
+    id: 'abdomen-casa-4', parte: 'abdomen', lugar: 'casa', nivel: 'Avanzado', titulo: 'Fuego interior', minutos: 20, objetivo: 'Fuerza',
+    descripcion: 'L-sit, hollow rocks y deslizamientos: abdomen de gimnasta en casa.',
+    ejercicios: [
+      e('L-sit entre dos sillas', 5, '15-20 s', 60, 'Brazos bloqueados y piernas estiradas al frente.', 'Abdomen'),
+      e('Hollow rocks', 4, '20', 45, 'Mécete en posición de barquito sin perder la forma.', 'Abdomen'),
+      e('Deslizamientos con toalla (rollout)', 4, '10', 60, 'Manos sobre una toalla en piso liso; estírate y regresa.', 'Zona media'),
+      e('Plancha lateral con rotación', 3, '10 por lado', 30, 'Pasa el brazo por debajo del cuerpo.', 'Oblicuos'),
+      e('Bicicleta lenta con pausa', 3, '20', 30, 'Pausa 1 s en cada lado.', 'Oblicuos'),
+    ],
+  },
+  {
+    id: 'abdomen-gym-4', parte: 'abdomen', lugar: 'gym', nivel: 'Avanzado', titulo: 'Coraza abdominal', minutos: 30, objetivo: 'Fuerza',
+    descripcion: 'Dragon flags, rueda de pie y cargas: la zona media más fuerte.',
+    ejercicios: [
+      e('Dragon flag', 4, '5-6', 90, 'Agarrado del banco, cuerpo recto como tabla.', 'Abdomen'),
+      e('Rueda abdominal de pie', 3, '5-8', 90, 'Si no sale, desde rodillas con rango máximo.', 'Zona media'),
+      e('Elevación de piernas colgado con peso', 3, '10', 75, 'Mancuerna entre los pies.', 'Abdomen bajo'),
+      e('Pallof press con paso', 3, '10 por lado', 45, 'Da un paso lateral sin girar.', 'Oblicuos'),
+      e('Caminata con maleta (una mano)', 3, '30 m por lado', 60, 'No te inclines hacia la pesa.', 'Oblicuos'),
+      e('Plancha lateral con peso', 3, '30 s por lado', 45, 'Disco sobre la cadera.', 'Oblicuos'),
+    ],
+  },
+  {
+    id: 'completo-casa-4', parte: 'completo', lugar: 'casa', nivel: 'Avanzado', titulo: 'Murph de la fe', minutos: 50, objetivo: 'Resistencia',
+    descripcion: 'Versión del famoso Murph: 1.6 km, 100 dominadas, 200 lagartijas, 300 sentadillas y otros 1.6 km. Divide en 10 rondas.',
+    ejercicios: [
+      e('Trote (o 100 jumping jacks)', 1, '1.6 km', 0, 'Ritmo que puedas sostener.', 'Cardio'),
+      e('Dominadas o remo invertido', 10, '10', 0, 'Ronda: dominadas, lagartijas y sentadillas sin parar.', 'Espalda'),
+      e('Lagartijas', 10, '20', 0, 'Divide en bloques si hace falta.', 'Pecho'),
+      e('Sentadillas', 10, '30', 30, 'Descansa 30 s y siguiente ronda.', 'Piernas'),
+      e('Trote final (o 100 jumping jacks)', 1, '1.6 km', 0, 'Termina la carrera. Hebreos 12:1.', 'Cardio'),
+    ],
+  },
+  {
+    id: 'completo-gym-4', parte: 'completo', lugar: 'gym', nivel: 'Avanzado', titulo: 'Complejo del guerrero', minutos: 50, objetivo: 'Fuerza',
+    descripcion: 'Complejos con barra y fuerza: todo el cuerpo en una sola sesión de alto nivel.',
+    ejercicios: [
+      e('Complejo con barra (peso muerto, remo, cargada, press, sentadilla)', 5, '5 de cada uno', 120, 'Sin soltar la barra entre ejercicios.', 'Todo el cuerpo'),
+      e('Thrusters con barra', 4, '8', 120, 'Sentadilla frontal y press en un solo movimiento.', 'Todo el cuerpo'),
+      e('Dominadas con lastre', 4, '5', 120, 'Rango completo.', 'Espalda'),
+      e('Peso muerto rumano', 3, '8', 90, 'Controlado.', 'Femoral'),
+      e('Remo ergómetro (sprint)', 4, '250 m', 60, 'A tope.', 'Cardio'),
+      e('Caminata del granjero', 3, '40 m', 60, 'Lo más pesado que puedas sostener.', 'Agarre'),
+    ],
+  },
+  {
+    id: 'cardio-casa-4', parte: 'cardio', lugar: 'casa', nivel: 'Avanzado', titulo: 'Siete vueltas a Jericó', minutos: 30, objetivo: 'Quemar grasa',
+    descripcion: '7 rondas como las 7 vueltas a Jericó: los 4 ejercicios sin parar y descanso al final de cada ronda.',
+    ejercicios: [
+      e('Burpees', 7, '10', 0, 'Pasa directo al siguiente.', 'Todo el cuerpo'),
+      e('Sentadilla con salto', 7, '15', 0, 'Cae suave.', 'Piernas'),
+      e('Escaladores', 7, '30', 0, 'Cuenta cada rodilla.', 'Zona media'),
+      e('Lagartijas', 7, '10', 90, 'Descansa 90 s y otra vuelta.', 'Pecho'),
+    ],
+  },
+  {
+    id: 'cardio-gym-3', parte: 'cardio', lugar: 'gym', nivel: 'Avanzado', titulo: 'Sprint de Elías', minutos: 35, objetivo: 'Quemar grasa',
+    descripcion: 'Elías corrió más rápido que el carro de Acab (1 Reyes 18:46). Intervalos de máxima intensidad.',
+    ejercicios: [
+      e('Bicicleta de aire (assault bike)', 10, '20 s', 40, 'Todo lo que tengas.', 'Cardio'),
+      e('Sprint en caminadora inclinada', 6, '30 s', 60, 'Inclinación 6-8%.', 'Cardio'),
+      e('Remo ergómetro', 4, '500 m', 90, 'Ritmo fuerte y constante.', 'Todo el cuerpo'),
+      e('Cuerdas de batalla', 4, '40 s', 40, 'Ondas alternas.', 'Hombros y cardio'),
+      e('Burpees saltando la barra', 3, '12', 60, 'Burpee y salta de lado sobre la barra.', 'Todo el cuerpo'),
+    ],
+  },
+  {
+    id: 'movilidad-casa-3', parte: 'movilidad', lugar: 'casa', nivel: 'Avanzado', titulo: 'Flexibilidad del atleta', minutos: 30, objetivo: 'Movilidad',
+    descripcion: 'Puente, pancake y aperturas. Calienta bien antes y nunca fuerces el dolor.',
+    calentamiento: ['5 min de movilidad articular', '2 rondas de gusano (inchworm) x 6'],
+    ejercicios: [
+      e('Puente completo (rueda)', 4, '5-10 s', 45, 'Empuja el pecho hacia la pared detrás de ti.', 'Columna y hombros'),
+      e('Sentadilla cosaca lenta', 3, '8 por lado', 30, 'Baja lo más que puedas con control.', 'Cadera'),
+      e('Pancake (apertura sentado)', 3, '45 s', 30, 'Piernas abiertas, pecho al piso con espalda recta.', 'Aductores'),
+      e('Pike stretch con piernas juntas', 3, '45 s', 30, 'Rodillas estiradas; bisagra de cadera.', 'Femoral'),
+      e('Dislocaciones con palo de escoba', 3, '10', 30, 'Cierra el agarre poco a poco.', 'Hombros'),
+      e('Split asistido', 3, '45 s por lado', 30, 'Manos en sillas a los lados para controlar.', 'Cadera'),
+    ],
+  },
+  {
+    id: 'movilidad-gym-2', parte: 'movilidad', lugar: 'gym', nivel: 'Avanzado', titulo: 'Movilidad con carga', minutos: 30, objetivo: 'Movilidad',
+    descripcion: 'Fuerza en los rangos extremos: movilidad que sí se queda.',
+    ejercicios: [
+      e('Sentadilla goblet con pausa larga', 3, '5 (5 s abajo)', 45, 'Abre las rodillas con los codos abajo.', 'Cadera y tobillos'),
+      e('Jefferson curl ligero', 3, '8', 60, 'Peso muy ligero; enrolla vértebra por vértebra.', 'Espalda y femoral'),
+      e('Peso muerto rumano lento', 3, '8', 45, '4 s bajando con mancuernas ligeras.', 'Femoral'),
+      e('Rotación externa en polea', 3, '12', 30, 'Codo pegado al cuerpo.', 'Manguito rotador'),
+      e('Colgado activo', 3, '30 s', 30, 'Baja y sube los hombros sin doblar los brazos.', 'Hombros'),
+      e('Estiramiento de dorsal en polea', 2, '40 s por lado', 15, 'Agárrate y deja que la cadera se vaya atrás.', 'Dorsales'),
+    ],
+  },
+];
+
+// Cada vez que se agregan rutinas a la plantilla sube la version; quien ya guardo antes
+// recibe solas las nuevas (sin tocar ni revivir las que borro o edito).
+export const PLANTILLA_VERSION = 2;
+const IDS_V2 = new Set(RUTINAS_V2.map(r => r.id));
+const versionDe = (id: string) => (IDS_V2.has(id) ? 2 : 1);
+
+export const aplicarPlantilla = (data: RutinasData): RutinasData => {
+  const desde = data.plantilla ?? 1;
+  if (desde >= PLANTILLA_VERSION) return data;
+  const ids = new Set(data.rutinas.map(r => r.id));
+  const partes = new Set(data.partes.map(p => p.id));
+  const nuevas = [...RUTINAS_BASE, ...RUTINAS_V2].filter(r => versionDe(r.id) > desde && !ids.has(r.id) && partes.has(r.parte));
+  return { ...data, rutinas: [...data.rutinas, ...nuevas], plantilla: PLANTILLA_VERSION };
+};
+
+export const DEFAULT_RUTINAS: RutinasData = { partes: PARTES_BASE, rutinas: [...RUTINAS_BASE, ...RUTINAS_V2], plantilla: PLANTILLA_VERSION };
 
 // Dia del año local: una parte del cuerpo por dia, igual para todos
 const diaLocal = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
