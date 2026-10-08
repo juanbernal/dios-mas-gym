@@ -40,13 +40,56 @@ export interface ParteCuerpo {
   frase: string;
   versiculo: { texto: string; cita: string };
   imagen?: string;
+  zonas?: Musculo[];  // musculos que se pintan en el mapa del cuerpo
 }
 
 export interface RutinasData {
   partes: ParteCuerpo[];
   rutinas: Rutina[];
   updatedAt?: number;
+  plantilla?: number; // version de la plantilla con la que se guardo
 }
+
+// Musculos del mapa del cuerpo
+export const MUSCULOS = {
+  pecho: 'Pecho',
+  hombros: 'Hombros',
+  biceps: 'Bíceps',
+  triceps: 'Tríceps',
+  antebrazos: 'Antebrazos',
+  abdomen: 'Abdomen',
+  oblicuos: 'Oblicuos',
+  trapecio: 'Trapecio',
+  dorsales: 'Dorsales',
+  'espalda-baja': 'Espalda baja',
+  gluteos: 'Glúteos',
+  cuadriceps: 'Cuádriceps',
+  femorales: 'Femorales',
+  pantorrillas: 'Pantorrillas',
+} as const;
+export type Musculo = keyof typeof MUSCULOS;
+const TODOS = Object.keys(MUSCULOS) as Musculo[];
+
+const ZONAS_POR_PARTE: Record<string, Musculo[]> = {
+  pecho: ['pecho'],
+  espalda: ['dorsales', 'trapecio', 'espalda-baja'],
+  piernas: ['cuadriceps', 'femorales', 'pantorrillas'],
+  gluteo: ['gluteos'],
+  hombros: ['hombros'],
+  brazos: ['biceps', 'triceps', 'antebrazos'],
+  abdomen: ['abdomen', 'oblicuos'],
+  completo: TODOS,
+  cardio: ['cuadriceps', 'femorales', 'pantorrillas', 'gluteos'],
+  movilidad: TODOS,
+};
+
+export const zonasDeParte = (p: ParteCuerpo): Musculo[] => p.zonas ?? ZONAS_POR_PARTE[p.id] ?? [];
+
+// Al tocar un musculo se abre la parte mas especifica que lo trabaja
+export const parteDeMusculo = (partes: ParteCuerpo[], m: Musculo): ParteCuerpo | undefined =>
+  partes
+    .filter(p => zonasDeParte(p).includes(m))
+    .sort((a, b) => zonasDeParte(a).length - zonasDeParte(b).length)[0];
 
 export const OBJETIVOS = ['Fuerza', 'Hipertrofia', 'Resistencia', 'Quemar grasa', 'Movilidad', 'Técnica'];
 

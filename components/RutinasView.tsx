@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CALENTAMIENTO_GENERAL, Ejercicio, Lugar, NIVELES, Nivel, parteDelDia, rutinaPrincipal, rutinasVisibles } from '../data/rutinas';
+import { CALENTAMIENTO_GENERAL, Ejercicio, Lugar, NIVELES, Nivel, parteDeMusculo, parteDelDia, rutinaPrincipal, rutinasVisibles, zonasDeParte } from '../data/rutinas';
+import BodyMap from './BodyMap';
 import { Entreno, entrenosEstaSemana, getHistorial, racha, registrarEntreno, useRutinas, youtubeId } from '../services/rutinaService';
 
 interface Props {
@@ -237,6 +238,16 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
                 {p.id === today && <span className="absolute -top-2 -right-1 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[8px] tracking-normal">HOY</span>}
               </button>
             ))}
+          </div>
+          {/* Mapa del cuerpo: se pinta la parte elegida y al tocar un musculo se abre su rutina */}
+          <div className="mt-6 rounded-3xl border border-white/10 bg-black/30 p-4 max-w-md">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7eb8f7] mb-2"><i className="fas fa-person-running mr-2"></i>Mapa muscular · {parte.nombre}</p>
+            <BodyMap
+              className="h-[260px] md:h-[300px]"
+              activos={new Set(zonasDeParte(parte))}
+              corazon={parte.id === 'cardio'}
+              onPick={m => { const p = parteDeMusculo(data.partes, m); if (p) select({ parte: p.id }); }}
+            />
           </div>
         </div>
       </header>
