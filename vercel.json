@@ -87,6 +87,10 @@
       "destination": "/api/common?action=oraciones"
     },
     {
+      "source": "/api/rutinas",
+      "destination": "/api/common?action=rutinas"
+    },
+    {
       "source": "/api/sheet-proxy",
       "destination": "/api/common?action=sheet-proxy"
     },

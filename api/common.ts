@@ -126,6 +126,74 @@ async function notifyTelegram(text: string): Promise<void> {
   } catch (e) { console.error('[oraciones] telegram:', (e as any)?.message); }
 }
 
+// ── Rutinas Fe + Gym ──
+// El admin las edita desde /admin/rutinas y se guardan completas como JSON en Vercel Blob.
+// Si no hay nada guardado se responde data: null y la pagina usa la plantilla del codigo.
+let rutinasCache: { data: any; at: number } | null = null;
+
+async function readRutinas(fresh = false): Promise<any | null> {
+  if (!fresh && rutinasCache && Date.now() - rutinasCache.at < 60000) return rutinasCache.data;
+  const snap = await readBlobSnapshot('rutinas');
+  let data: any = null;
+  try { data = snap ? JSON.parse(snap.body) : null; } catch { data = null; }
+  if (!data || !Array.isArray(data.partes) || !Array.isArray(data.rutinas)) data = null;
+  rutinasCache = { data, at: Date.now() };
+  return data;
+}
+
+// Limpia lo que manda el panel: solo campos conocidos, textos acotados y URLs http(s)
+function sanitizeRutinas(input: any): { partes: any[]; rutinas: any[]; updatedAt: number } | null {
+  if (!input || !Array.isArray(input.partes) || !Array.isArray(input.rutinas)) return null;
+  const str = (v: any, max: number) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, max);
+  const num = (v: any, min: number, max: number, def: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
+  const url = (v: any) => { const s = String(v ?? '').trim(); return /^https?:\/\/\S+$/i.test(s) && s.length <= 1000 ? s : undefined; };
+  const id = (v: any) => String(v ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
+  const opt = <T,>(o: T) => Object.fromEntries(Object.entries(o as any).filter(([, v]) => v !== undefined && v !== '' && v !== false)) as T;
+  const niveles = ['Principiante', 'Intermedio', 'Avanzado'];
+
+  const partes = input.partes.slice(0, 40).map((p: any) => opt({
+    id: id(p?.id),
+    nombre: str(p?.nombre, 40),
+    icono: /^fa-[a-z0-9-]+$/.test(String(p?.icono)) ? String(p.icono) : 'fa-dumbbell',
+    frase: str(p?.frase, 160),
+    versiculo: { texto: str(p?.versiculo?.texto, 400), cita: str(p?.versiculo?.cita, 60) },
+    imagen: url(p?.imagen),
+  })).filter((p: any) => p.id && p.nombre);
+  const parteIds = new Set(partes.map((p: any) => p.id));
+
+  const seen = new Set<string>();
+  const rutinas = input.rutinas.slice(0, 400).map((r: any) => opt({
+    id: id(r?.id),
+    parte: id(r?.parte),
+    lugar: r?.lugar === 'gym' ? 'gym' : 'casa',
+    nivel: niveles.includes(r?.nivel) ? r.nivel : 'Intermedio',
+    titulo: str(r?.titulo, 80),
+    minutos: num(r?.minutos, 1, 240, 30),
+    objetivo: str(r?.objetivo, 30),
+    descripcion: str(r?.descripcion, 600),
+    imagen: url(r?.imagen),
+    calentamiento: Array.isArray(r?.calentamiento) ? r.calentamiento.map((c: any) => str(c, 160)).filter(Boolean).slice(0, 12) : undefined,
+    ejercicios: (Array.isArray(r?.ejercicios) ? r.ejercicios : []).slice(0, 30).map((e: any) => opt({
+      nombre: str(e?.nombre, 100),
+      series: num(e?.series, 1, 20, 3),
+      reps: str(e?.reps, 30) || '10',
+      descanso: num(e?.descanso, 0, 600, 60),
+      tip: str(e?.tip, 400),
+      musculo: str(e?.musculo, 40),
+      imagen: url(e?.imagen),
+      video: url(e?.video),
+    })).filter((e: any) => e.nombre),
+    destacada: r?.destacada === true,
+    oculta: r?.oculta === true,
+  })).filter((r: any) => {
+    if (!r.id || !r.titulo || !parteIds.has(r.parte) || seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
+  if (partes.length === 0) return null;
+  return { partes, rutinas, updatedAt: Date.now() };
+}
+
 // El index.html trae contenido de relleno para la home (rastreable); los handlers SSR
 // necesitan el <div id="root"></div> vacio para inyectar el contenido propio de cada pagina.
 function stripHomeFallback(html: string): string {
@@ -1581,6 +1649,69 @@ export default async function handler(
       console.error('[oraciones] save:', e?.message);
       return res.status(500).json({ error: 'No pudimos guardar tu petición. Intenta de nuevo.' });
     }
+  }
+
+  // -------------------------------------------------------------
+  // ACTION: RUTINAS (lectura publica; edicion e imagenes solo admin)
+  // -------------------------------------------------------------
+  if (action === 'rutinas') {
+    let body: any = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    body = body || {};
+    const isAdmin = verifyAdminPassword(req);
+
+    if (req.method === 'GET') {
+      const all = req.query.all === '1';
+      if (all && !isAdmin) return res.status(401).json({ error: 'No autorizado' });
+      const data = await readRutinas(all);
+      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=600');
+      if (!data) return res.status(200).json({ data: null });
+      return res.status(200).json({ data: all ? data : { ...data, rutinas: data.rutinas.filter((r: any) => !r.oculta) } });
+    }
+
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!isAdmin) return res.status(401).json({ error: 'No autorizado' });
+    const op = String(body.op || '');
+
+    if (op === 'guardar') {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) return res.status(500).json({ error: 'Falta BLOB_READ_WRITE_TOKEN en el servidor' });
+      const data = sanitizeRutinas(body.data);
+      if (!data) return res.status(400).json({ error: 'Datos inválidos: debe haber al menos una parte del cuerpo' });
+      try {
+        await writeBlobSnapshot('rutinas', { savedAt: Date.now(), body: JSON.stringify(data) });
+        rutinasCache = { data, at: Date.now() };
+        return res.status(200).json({ success: true, rutinas: data.rutinas.length });
+      } catch (e: any) {
+        return res.status(500).json({ error: 'No se pudo guardar', details: e?.message });
+      }
+    }
+
+    if (op === 'imagen') {
+      const m = String(body.imageBase64 || '').match(/^data:image\/(jpeg|png|gif|webp);base64,(.+)$/);
+      if (!m) return res.status(400).json({ error: 'Imagen inválida (JPG, PNG, GIF o WEBP)' });
+      const buffer = Buffer.from(m[2], 'base64');
+      if (!buffer.length || buffer.length > 4 * 1024 * 1024) return res.status(413).json({ error: 'Imagen vacía o demasiado pesada (máx. 4 MB)' });
+      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      let imageUrl = '';
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        try {
+          const blob = await blobPut(`rutinas/img-${Date.now()}.${ext}`, buffer, { access: 'public', contentType: `image/${m[1]}`, addRandomSuffix: true });
+          imageUrl = blob.url;
+        } catch (_) { /* tienda privada: probar ImgBB */ }
+      }
+      if (!imageUrl && process.env.IMGBB_API_KEY) {
+        try {
+          const params = new URLSearchParams({ key: process.env.IMGBB_API_KEY.trim(), image: m[2] });
+          const r = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: params });
+          const j: any = await r.json().catch(() => ({}));
+          if (j?.success) imageUrl = j.data.url;
+        } catch (_) { /* sin alojamiento */ }
+      }
+      if (!imageUrl) return res.status(500).json({ error: 'No se pudo alojar la imagen (Blob público o IMGBB_API_KEY)' });
+      return res.status(200).json({ url: imageUrl });
+    }
+
+    return res.status(400).json({ error: 'Operación desconocida' });
   }
 
   // -------------------------------------------------------------

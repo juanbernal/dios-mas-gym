@@ -149,6 +149,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'rutinas',
+            title: 'Rutinas Fe + Gym',
+            description: 'Crea y edita rutinas de casa y gym: ejercicios, series, descansos, fotos o GIFs, videos de técnica, portadas y partes del cuerpo.',
+            icon: 'fa-dumbbell',
+            color: '#4a90d9',
+            route: '/admin/rutinas',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'oraciones',
             title: 'Muro de Oración',
             description: 'Revisa y publica las peticiones de oración que deja la comunidad. Llegan pendientes y tú decides cuáles se publican.',

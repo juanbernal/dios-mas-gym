@@ -60,6 +60,11 @@ async function startServer() {
     commonHandler(req as any, res as any);
   });
 
+  app.all("/api/rutinas", (req, res) => {
+    req.query.action = 'rutinas';
+    commonHandler(req as any, res as any);
+  });
+
   app.all("/api/lyrics", (req, res) => {
     req.query.action = 'lyrics';
     commonHandler(req as any, res as any);

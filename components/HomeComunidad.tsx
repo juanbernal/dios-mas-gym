@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PARTES, parteDelDia, Lugar } from '../data/rutinas';
+import { parteDelDia, rutinaPrincipal, rutinasVisibles, Lugar } from '../data/rutinas';
+import { useRutinas } from '../services/rutinaService';
 import { Oracion, fetchOraciones } from '../services/oracionService';
 import { OracionCard } from './OracionView';
 
 // Portada: "Entrena hoy" (rutina del dia) y "Oramos juntos" (muro de oracion) lado a lado
 const HomeComunidad: React.FC = () => {
   const navigate = useNavigate();
-  const parte = parteDelDia();
+  const data = useRutinas();
+  const parte = parteDelDia(data);
   const [lugar, setLugar] = useState<Lugar>('casa');
-  const rutina = parte[lugar];
+  const rutina = rutinaPrincipal(data, parte.id, lugar) || rutinaPrincipal(data, parte.id, lugar === 'casa' ? 'gym' : 'casa');
   const [oraciones, setOraciones] = useState<Oracion[]>([]);
 
   useEffect(() => { fetchOraciones().then(l => setOraciones(l.slice(0, 2))); }, []);
@@ -21,7 +23,10 @@ const HomeComunidad: React.FC = () => {
 
         {/* Entrena hoy */}
         <div className="relative overflow-hidden rounded-[2rem] border border-[#4a90d9]/30 p-6 md:p-8" style={{ background: 'linear-gradient(150deg, rgba(37,99,168,0.25), rgba(5,10,20,0.95) 60%)' }}>
-          <i className={`fas ${parte.icono} absolute -right-6 -bottom-6 text-[160px] text-white/[0.04]`} aria-hidden="true"></i>
+          {(rutina?.imagen || parte.imagen) ? <>
+            <img src={rutina?.imagen || parte.imagen} alt="" loading="lazy" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/75 to-[#05070a]/95"></div>
+          </> : <i className={`fas ${parte.icono} absolute -right-6 -bottom-6 text-[160px] text-white/[0.04]`} aria-hidden="true"></i>}
           <div className="relative">
             <div className="flex items-center justify-between gap-3 mb-4">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500 text-white text-[9px] font-black uppercase tracking-[0.2em]">
@@ -37,10 +42,13 @@ const HomeComunidad: React.FC = () => {
             </div>
             <h2 className="font-serif italic text-4xl md:text-6xl text-white leading-none">Entrena <span className="text-[#7eb8f7]">{parte.nombre.toLowerCase()}</span></h2>
             <p className="text-sm text-white/55 mt-3">{parte.frase}</p>
-            <div className="flex gap-4 mt-4 text-[11px] font-bold text-white/70">
+            {rutina && <>
+            <p className="mt-4 text-sm font-bold text-white">{rutina.titulo}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] font-bold text-white/70">
               <span><i className="fas fa-clock text-[#4a90d9] mr-1.5"></i>{rutina.minutos} min</span>
               <span><i className="fas fa-signal text-[#4a90d9] mr-1.5"></i>{rutina.nivel}</span>
               <span><i className="fas fa-list-check text-[#4a90d9] mr-1.5"></i>{rutina.ejercicios.length} ejercicios</span>
+              {rutinasVisibles(data, parte.id, lugar).length > 1 && <span><i className="fas fa-layer-group text-[#4a90d9] mr-1.5"></i>{rutinasVisibles(data, parte.id, lugar).length} rutinas</span>}
             </div>
             <ol className="mt-5 flex flex-col gap-2">
               {rutina.ejercicios.slice(0, 3).map((e, i) => (
@@ -52,14 +60,15 @@ const HomeComunidad: React.FC = () => {
               ))}
               {rutina.ejercicios.length > 3 && <li className="text-[11px] text-white/40 pl-1">+ {rutina.ejercicios.length - 3} ejercicios más</li>}
             </ol>
+            </>}
             <button
-              onClick={() => navigate(`/rutinas?parte=${parte.id}&lugar=${lugar}`)}
+              onClick={() => navigate(`/rutinas?parte=${parte.id}&lugar=${rutina?.lugar || lugar}${rutina ? `&r=${rutina.id}` : ''}`)}
               className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl bg-[#4a90d9] text-black text-[11px] font-black uppercase tracking-[0.2em] hover:bg-white transition-colors shadow-[0_10px_30px_rgba(74,144,217,0.35)]"
             >
               <i className="fas fa-play"></i>Empezar rutina
             </button>
             <div className="mt-5 flex flex-wrap gap-2">
-              {PARTES.filter(p => p.id !== parte.id).map(p => (
+              {data.partes.filter(p => p.id !== parte.id).map(p => (
                 <button key={p.id} onClick={() => navigate(`/rutinas?parte=${p.id}&lugar=${lugar}`)} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-white/60 hover:text-white hover:border-white/30 transition-colors">
                   <i className={`fas ${p.icono} mr-1.5`}></i>{p.nombre}
                 </button>
