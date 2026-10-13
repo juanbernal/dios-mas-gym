@@ -1756,6 +1756,73 @@ const AntiAIWatermark: React.FC = () => {
         return { canvas, downscaled: k < 1 };
     };
 
+    // Portada para DistroKid / tiendas: cuadrada 3000x3000 (piden cuadrada, min 1500px, max 35MB).
+    // La composicion completa (con pie y marcas) se centra sin recortar; el hueco se rellena
+    // con la misma foto desenfocada y oscurecida. El desenfoque se hace reduciendo y ampliando,
+    // porque ctx.filter no existe en Safari.
+    const COVER_SIDE = 3000;
+    const toCoverSquare = (comp: HTMLCanvasElement, img: HTMLImageElement): HTMLCanvasElement => {
+        const S = COVER_SIDE;
+        const out = document.createElement('canvas');
+        out.width = S;
+        out.height = S;
+        const ctx = out.getContext('2d');
+        if (!ctx) throw new Error('El navegador no pudo crear el lienzo');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        if (comp.width !== comp.height) {
+            const iw = img.naturalWidth || img.width;
+            const ih = img.naturalHeight || img.height;
+            const small = document.createElement('canvas');
+            small.width = 40;
+            small.height = 40;
+            const sctx = small.getContext('2d');
+            if (sctx) {
+                const c = Math.max(40 / iw, 40 / ih);
+                sctx.drawImage(img, (40 - iw * c) / 2, (40 - ih * c) / 2, iw * c, ih * c);
+                ctx.drawImage(small, 0, 0, S, S);
+            }
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, S, S);
+        }
+        const k = Math.min(S / comp.width, S / comp.height);
+        const dw = Math.round(comp.width * k);
+        const dh = Math.round(comp.height * k);
+        ctx.drawImage(comp, Math.round((S - dw) / 2), Math.round((S - dh) / 2), dw, dh);
+        return out;
+    };
+
+    const handleDownloadCover = async () => {
+        const img = sourceImgRef.current;
+        if (!img) return;
+        setIsDownloading(true);
+        setNotice('');
+        try {
+            await new Promise(r => setTimeout(r, 30));
+            const { canvas } = renderFull(img);
+            const cover = toCoverSquare(canvas, img);
+            // Siempre JPG: un PNG de 3000x3000 puede acercarse al limite de 35MB
+            let blob: Blob;
+            if (injectExif) {
+                try {
+                    const piexifLib = (piexif as any).default || piexif;
+                    blob = dataUrlToBlob(piexifLib.insert(buildExifBytes(), cover.toDataURL('image/jpeg', 0.95)));
+                } catch {
+                    blob = await canvasToBlob(cover, 'image/jpeg', 0.95);
+                }
+            } else {
+                blob = await canvasToBlob(cover, 'image/jpeg', 0.95);
+            }
+            downloadBlob(blob, `${baseName(currentName)}_portada_${COVER_SIDE}.jpg`);
+            setNotice(`Portada lista: ${COVER_SIDE}×${COVER_SIDE}px, JPG de ${(blob.size / 1048576).toFixed(1)} MB. Sirve para DistroKid.`);
+        } catch (e: any) {
+            console.error(e);
+            alert(`No se pudo exportar la portada: ${e?.message || 'error desconocido'}`);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const canvasToBlob = (canvas: HTMLCanvasElement, mime: string, quality?: number) =>
         new Promise<Blob>((resolve, reject) =>
             canvas.toBlob(b => (b ? resolve(b) : reject(new Error('No se pudo generar la imagen'))), mime, quality));
@@ -2712,6 +2779,14 @@ const AntiAIWatermark: React.FC = () => {
                             ) : (
                                 <><i className="fas fa-download"></i> Descargar Master HD</>
                             )}
+                        </button>
+                        <button
+                            onClick={handleDownloadCover}
+                            disabled={!imageSrc || isDownloading}
+                            title="Cuadrada 3000×3000 JPG: lo que piden DistroKid y las tiendas de música"
+                            className="w-full py-3 bg-white/5 border border-[#c5a059]/40 text-[#c5a059] font-black uppercase tracking-widest rounded-xl hover:bg-[#c5a059] hover:text-black transition-all disabled:opacity-30 flex justify-center items-center gap-2 text-[10px]"
+                        >
+                            <i className="fas fa-compact-disc"></i> Portada DistroKid (3000×3000)
                         </button>
                     </div>
                 </div>
