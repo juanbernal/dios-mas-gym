@@ -1716,6 +1716,44 @@ export default async function handler(
   }
 
   // -------------------------------------------------------------
+  // ACTION: MIGRACION (avance de la migracion del catalogo a TooLost; solo admin)
+  // -------------------------------------------------------------
+  if (action === 'migracion') {
+    if (!verifyAdminPassword(req)) return res.status(401).json({ error: 'No autorizado' });
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.method === 'GET') {
+      const snap = await readBlobSnapshot('migracion');
+      let data: any = null;
+      try { data = snap ? JSON.parse(snap.body) : null; } catch { data = null; }
+      return res.status(200).json({ data });
+    }
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return res.status(500).json({ error: 'Falta BLOB_READ_WRITE_TOKEN en el servidor' });
+    let body: any = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    const txt = (v: any, max: number) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+    const ESTADOS = ['pendiente', 'preparando', 'subido', 'publicado', 'omitir'];
+    const discos: Record<string, any> = {};
+    Object.entries(body?.data?.discos || {}).slice(0, 2000).forEach(([k, v]: [string, any]) => {
+      if (!v || typeof v !== 'object' || k.length > 300) return;
+      discos[k.slice(0, 300)] = {
+        estado: ESTADOS.includes(v.estado) ? v.estado : 'pendiente',
+        genero: txt(v.genero, 60), genero2: txt(v.genero2, 60), nota: txt(v.nota, 500),
+        upc: txt(v.upc, 40), fecha: typeof v.fecha === 'number' ? v.fecha : undefined,
+      };
+    });
+    const pistas: Record<string, boolean> = {};
+    Object.entries(body?.data?.pistas || {}).slice(0, 5000).forEach(([k, v]) => { if (/^[\w-]{11}$/.test(k) && v === true) pistas[k] = true; });
+    const data = { discos, pistas, updatedAt: Date.now() };
+    try {
+      await writeBlobSnapshot('migracion', { savedAt: Date.now(), body: JSON.stringify(data) });
+      return res.status(200).json({ success: true, updatedAt: data.updatedAt });
+    } catch (e: any) {
+      return res.status(500).json({ error: 'No se pudo guardar', details: e?.message });
+    }
+  }
+
+  // -------------------------------------------------------------
   // ACTION: TESTIMONIOS (envío público moderado)
   // Los envíos se guardan en la hoja como CONFIG_TESTIMONIO_PENDIENTE (el prefijo
   // CONFIG_ hace que los lanzamientos los ignoren). Para publicar uno, cambia esa

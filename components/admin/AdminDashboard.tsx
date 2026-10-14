@@ -149,6 +149,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'migracion',
+            title: 'Migración a TooLost',
+            description: 'Todo tu catálogo de Diosmasgym y Juan 614 agrupado por disco (sencillo, EP o álbum) con fecha original, sello y género sugerido, para subirlo a TooLost poco a poco y marcar tu avance.',
+            icon: 'fa-compact-disc',
+            color: '#a855f7',
+            route: '/admin/migracion',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'rutinas',
             title: 'Rutinas Fe + Gym',
             description: 'Crea y edita rutinas de casa y gym: ejercicios, series, descansos, fotos o GIFs, videos de técnica, portadas y partes del cuerpo.',
