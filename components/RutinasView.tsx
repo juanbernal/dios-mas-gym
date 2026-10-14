@@ -4,6 +4,7 @@ import { CALENTAMIENTO_GENERAL, Ejercicio, Lugar, NIVELES, Nivel, Rutina, parteD
 import BodyMap from './BodyMap';
 import BuscadorRutinas from './rutinas/BuscadorRutinas';
 import ProgresoPanel from './rutinas/ProgresoPanel';
+import FiguraEjercicio, { tieneFigura } from './rutinas/FiguraEjercicio';
 import {
   Entreno, SerieLog, borrarSesion, entrenosEstaSemana, getFavoritas, getHistorial, getMeta, getSesion, guardarSeries, guardarSesion, hoyLocal,
   mejorKg, racha, registrarEntreno, segundosDeReps, setMeta, toggleFavorita, ultimaVez, useRutinas, youtubeId,
@@ -89,7 +90,7 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
   const [warmOpen, setWarmOpen] = useState(false);
   const [modo, setModo] = useState(false);
   const [focus, setFocus] = useState(0);
-  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ src?: string; alt: string; tip?: string } | null>(null);
   const [video, setVideo] = useState<{ id: string; title: string } | null>(null);
   const [hist, setHist] = useState<Entreno[]>(() => getHistorial());
   const [favs, setFavs] = useState<string[]>(() => getFavoritas());
@@ -642,6 +643,12 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
                             <img src={ej.imagen} alt={ej.nombre} loading="lazy" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                             <span className={`absolute top-1 left-1 w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black ${completo ? 'bg-emerald-500 text-black' : 'bg-black/70 text-white'}`}>{completo ? <i className="fas fa-check"></i> : ei + 1}</span>
                           </button>
+                        ) : tieneFigura(ej.nombre) ? (
+                          <button onClick={() => setLightbox({ alt: ej.nombre, tip: ej.tip })} className="relative flex-shrink-0 w-24 h-20 md:w-32 md:h-24 rounded-xl overflow-hidden border border-white/10 bg-[#0a1322]" aria-label={`Ver cómo se hace ${ej.nombre}`}>
+                            <FiguraEjercicio nombre={ej.nombre} className="w-full h-full" />
+                            <span className={`absolute top-1 left-1 w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black ${completo ? 'bg-emerald-500 text-black' : 'bg-black/70 text-white'}`}>{completo ? <i className="fas fa-check"></i> : ei + 1}</span>
+                            <span className="absolute bottom-1 right-1 w-5 h-5 rounded-md bg-black/60 text-white/80 flex items-center justify-center text-[8px]"><i className="fas fa-magnifying-glass"></i></span>
+                          </button>
                         ) : (
                           <span className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black ${completo ? 'bg-emerald-500 text-black' : 'bg-[#4a90d9]/15 text-[#7eb8f7]'}`}>
                             {completo ? <i className="fas fa-check"></i> : ei + 1}
@@ -874,6 +881,8 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Ejercicio {focus + 1} de {ejercicios.length}</p>
                 {ejFocus.imagen ? (
                   <img src={ejFocus.imagen} alt={ejFocus.nombre} referrerPolicy="no-referrer" className="mt-4 w-full max-h-[30vh] object-contain rounded-2xl bg-black border border-white/10" />
+                ) : tieneFigura(ejFocus.nombre) ? (
+                  <FiguraEjercicio nombre={ejFocus.nombre} className="mt-4 w-full max-w-md h-[30vh] max-h-[260px] rounded-2xl bg-[#0a1322] border border-white/10" />
                 ) : (
                   <div className="mt-4 w-24 h-24 rounded-3xl bg-[#4a90d9]/15 text-[#7eb8f7] flex items-center justify-center text-4xl"><i className={`fas ${parte.icono}`}></i></div>
                 )}
@@ -928,7 +937,16 @@ const RutinasView: React.FC<Props> = ({ catalog, onPlaySong }) => {
       {/* Imagen en grande */}
       {lightbox && (
         <div className="fixed inset-0 z-[9700] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
-          <img src={lightbox.src} alt={lightbox.alt} referrerPolicy="no-referrer" className="max-w-full max-h-[85vh] rounded-2xl object-contain" />
+          {lightbox.src ? (
+            <img src={lightbox.src} alt={lightbox.alt} referrerPolicy="no-referrer" className="max-w-full max-h-[85vh] rounded-2xl object-contain" />
+          ) : (
+            <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#0a1322] p-4" onClick={ev => ev.stopPropagation()}>
+              <p className="text-white font-bold text-lg px-1 pr-12">{lightbox.alt}</p>
+              <FiguraEjercicio nombre={lightbox.alt} className="w-full aspect-[4/3] mt-2" />
+              <p className="text-[10px] text-white/40 px-1"><span className="inline-block w-2 h-2 rounded-full bg-[#ff9a3c] mr-1.5"></span>En naranja, lo que trabaja</p>
+              {lightbox.tip && <p className="text-sm text-white/70 mt-3 px-1 leading-relaxed"><i className="fas fa-lightbulb text-amber-400/80 mr-1.5"></i>{lightbox.tip}</p>}
+            </div>
+          )}
           <button className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 text-white" aria-label="Cerrar"><i className="fas fa-xmark"></i></button>
         </div>
       )}
