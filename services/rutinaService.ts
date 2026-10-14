@@ -97,17 +97,36 @@ export async function uploadRutinaImagen(file: File): Promise<string> {
 
 // ── Historial en este telefono (racha y entrenamientos terminados) ──
 const HIST_KEY = 'dg_rutinas_hist';
-export interface Entreno { id: string; titulo: string; fecha: string } // fecha YYYY-MM-DD local
+export interface Entreno {
+  id: string;
+  titulo: string;
+  fecha: string;      // YYYY-MM-DD local
+  parte?: string;
+  lugar?: string;
+  minutos?: number;   // duracion real
+  series?: number;
+  volumen?: number;   // kg x reps sumados
+  prs?: number;       // records personales en esa sesion
+  hora?: number;      // hora local en que termino
+}
 
-const hoyLocal = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const hoyLocal = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export const getHistorial = (): Entreno[] => {
-  try { const l = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch { return []; }
+const leer = <T,>(key: string, fallback: T): T => {
+  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch { return fallback; }
+};
+const escribir = (key: string, v: unknown) => {
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* sin almacenamiento */ }
 };
 
-export const registrarEntreno = (id: string, titulo: string): Entreno[] => {
-  const list = [{ id, titulo, fecha: hoyLocal() }, ...getHistorial()].slice(0, 400);
-  try { localStorage.setItem(HIST_KEY, JSON.stringify(list)); } catch { /* sin almacenamiento */ }
+export const getHistorial = (): Entreno[] => {
+  const l = leer<Entreno[]>(HIST_KEY, []);
+  return Array.isArray(l) ? l : [];
+};
+
+export const registrarEntreno = (e: Omit<Entreno, 'fecha' | 'hora'>): Entreno[] => {
+  const list = [{ ...e, fecha: hoyLocal(), hora: new Date().getHours() }, ...getHistorial()].slice(0, 400);
+  escribir(HIST_KEY, list);
   return list;
 };
 
@@ -121,11 +140,115 @@ export const racha = (list: Entreno[]): number => {
   return n;
 };
 
+export const mejorRacha = (list: Entreno[]): number => {
+  const dias = Array.from(new Set(list.map(e => e.fecha))).sort();
+  let mejor = 0, n = 0, prev = '';
+  dias.forEach(f => {
+    const d = new Date(`${f}T12:00:00`);
+    d.setDate(d.getDate() - 1);
+    n = prev === hoyLocal(d) ? n + 1 : 1;
+    mejor = Math.max(mejor, n);
+    prev = f;
+  });
+  return mejor;
+};
+
 export const entrenosEstaSemana = (list: Entreno[]): number => {
   const d = new Date();
   const lunes = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
   const desde = hoyLocal(lunes);
   return new Set(list.filter(e => e.fecha >= desde).map(e => e.fecha)).size;
+};
+
+// ── Meta semanal (dias a entrenar por semana) ──
+const META_KEY = 'dg_rutinas_meta';
+export const getMeta = (): number => { const n = Number(leer(META_KEY, 4)); return n >= 1 && n <= 7 ? n : 4; };
+export const setMeta = (n: number) => escribir(META_KEY, n);
+
+// ── Favoritas ──
+const FAVS_KEY = 'dg_rutinas_favs';
+export const getFavoritas = (): string[] => { const l = leer<string[]>(FAVS_KEY, []); return Array.isArray(l) ? l : []; };
+export const toggleFavorita = (id: string): string[] => {
+  const l = getFavoritas();
+  const next = l.includes(id) ? l.filter(x => x !== id) : [id, ...l];
+  escribir(FAVS_KEY, next);
+  return next;
+};
+
+// ── Pesos y repeticiones por ejercicio (sobrecarga progresiva) ──
+export interface SerieLog { kg?: number; reps?: number }
+interface SesionEj { fecha: string; sets: SerieLog[] }
+const LOG_KEY = 'dg_rutinas_log';
+const claveEj = (nombre: string) => nombre.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+
+const getLog = (): Record<string, SesionEj[]> => {
+  const l = leer<Record<string, SesionEj[]>>(LOG_KEY, {});
+  return l && typeof l === 'object' && !Array.isArray(l) ? l : {};
+};
+
+// La ultima sesion anterior a hoy en la que se anoto algo de este ejercicio
+export const ultimaVez = (nombre: string): SesionEj | null => {
+  const hoy = hoyLocal();
+  return (getLog()[claveEj(nombre)] || []).find(s => s.fecha !== hoy && s.sets.some(x => x.kg || x.reps)) || null;
+};
+
+export const mejorKg = (nombre: string): number =>
+  (getLog()[claveEj(nombre)] || []).filter(s => s.fecha !== hoyLocal()).reduce((m, s) => Math.max(m, ...s.sets.map(x => x.kg || 0)), 0);
+
+export const guardarSeries = (nombre: string, sets: SerieLog[]) => {
+  if (!sets.some(x => x.kg || x.reps)) return;
+  const log = getLog();
+  const k = claveEj(nombre);
+  const hoy = hoyLocal();
+  log[k] = [{ fecha: hoy, sets }, ...(log[k] || []).filter(s => s.fecha !== hoy)].slice(0, 30);
+  escribir(LOG_KEY, log);
+};
+
+// ── Entreno en curso: si se cierra la pagina se retoma donde iba (solo el mismo dia) ──
+const SESION_KEY = 'dg_rutinas_sesion';
+export interface SesionEnCurso {
+  rutinaId: string;
+  fecha: string;
+  done: string[];
+  warmDone: number[];
+  pesos: Record<string, SerieLog>;
+  inicio: number | null;
+}
+export const getSesion = (rutinaId: string): SesionEnCurso | null => {
+  const s = leer<SesionEnCurso | null>(SESION_KEY, null);
+  return s && s.rutinaId === rutinaId && s.fecha === hoyLocal() ? s : null;
+};
+export const guardarSesion = (s: SesionEnCurso) => escribir(SESION_KEY, s);
+export const borrarSesion = () => { try { localStorage.removeItem(SESION_KEY); } catch { /* nada */ } };
+
+// ── Medallas ──
+export interface Logro { id: string; nombre: string; icono: string; desc: string; ok: boolean }
+export const logros = (list: Entreno[]): Logro[] => {
+  const total = list.length;
+  const mr = mejorRacha(list);
+  const partes = new Set(list.map(e => e.parte).filter(Boolean));
+  const lugares = new Set(list.map(e => e.lugar).filter(Boolean));
+  const prs = list.reduce((a, e) => a + (e.prs || 0), 0);
+  return [
+    { id: 'primer', nombre: 'Primer paso', icono: 'fa-person-walking', desc: 'Termina tu primera rutina', ok: total >= 1 },
+    { id: 'fiel', nombre: 'Fiel en lo poco', icono: 'fa-gem', desc: '5 rutinas terminadas (Lucas 16:10)', ok: total >= 5 },
+    { id: 'racha3', nombre: 'Constante', icono: 'fa-fire', desc: 'Racha de 3 días', ok: mr >= 3 },
+    { id: 'racha7', nombre: 'Siete días', icono: 'fa-fire-flame-curved', desc: 'Racha de 7 días', ok: mr >= 7 },
+    { id: 'record', nombre: 'Nuevo récord', icono: 'fa-star', desc: 'Supera tu mejor peso en un ejercicio', ok: prs >= 1 },
+    { id: 'completo', nombre: 'Templo completo', icono: 'fa-person-running', desc: 'Entrena 5 partes distintas', ok: partes.size >= 5 },
+    { id: 'ambos', nombre: 'Casa y gym', icono: 'fa-house', desc: 'Entrena en casa y en el gym', ok: lugares.size >= 2 },
+    { id: 'madrugador', nombre: 'Madrugador', icono: 'fa-sun', desc: 'Termina un entreno antes de las 8 am', ok: list.some(e => e.hora !== undefined && e.hora < 8) },
+    { id: 'guerrero', nombre: 'Guerrero', icono: 'fa-shield-halved', desc: '25 rutinas terminadas', ok: total >= 25 },
+    { id: 'cien', nombre: 'Centurión', icono: 'fa-crown', desc: '100 rutinas terminadas', ok: total >= 100 },
+  ];
+};
+
+// Ejercicios por tiempo: "30 s", "45 s por lado", "30-45 s", "5 min" -> segundos
+export const segundosDeReps = (reps: string): number | null => {
+  const m = reps.match(/(\d+)(?:\s*-\s*(\d+))?\s*(s|seg|min)\b/i);
+  if (!m) return null;
+  const n = Number(m[2] || m[1]);
+  return /min/i.test(m[3]) ? n * 60 : n;
 };
 
 // YouTube: acepta enlaces watch, youtu.be y shorts
