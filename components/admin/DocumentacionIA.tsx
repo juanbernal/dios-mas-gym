@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  CONFIG_INICIAL, ConfigIA, LanzamientoIA, cargarConfig, comprimirImagen, crearPDF, faltantes, guardarConfig, nombreArchivo,
+  CONFIG_INICIAL, ConfigIA, LanzamientoIA, cargarConfig, comprimirImagen, crearPDF, diasDesde, faltantes, guardarConfig, nombreArchivo,
 } from '../../services/docIAService';
 
 const campo = 'mt-1 w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/25 normal-case tracking-normal font-normal';
 const etiqueta = 'block text-[10px] font-black uppercase tracking-[0.15em] text-white/45';
+const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const VACIO: LanzamientoIA = { artista: 'Diosmasgym', nombre: '', tipo: 'Sencillo', fecha: '', sello: '', pistas: [] };
 
 // Firma dibujada con el dedo o el mouse; se guarda recortada como PNG transparente
@@ -83,7 +84,7 @@ const DocumentacionIA: React.FC = () => {
   const [lanz, setLanz] = useState<LanzamientoIA>(() => (location.state as any)?.lanzamiento || VACIO);
   const [pistasTxt, setPistasTxt] = useState(() => ((location.state as any)?.lanzamiento?.pistas || []).join('\n'));
   const [firmando, setFirmando] = useState(false);
-  const [verConfig, setVerConfig] = useState(() => faltantes(cargarConfig(), { ...VACIO, nombre: 'x', pistas: ['x'] }).length > 0);
+  const [verConfig, setVerConfig] = useState(() => { const c = cargarConfig(); return !c.nombreLegal.trim() || !c.firma; });
   const [aviso, setAviso] = useState('');
   const [guardadoOk, setGuardadoOk] = useState(true);
   const desdeMigracion = !!(location.state as any)?.lanzamiento;
@@ -93,6 +94,8 @@ const DocumentacionIA: React.FC = () => {
 
   const lanzamiento: LanzamientoIA = { ...lanz, pistas: pistasTxt.split('\n').map(s => s.replace(/^\s*\d+[.)-]\s*/, '').trim()).filter(Boolean) };
   const falta = faltantes(config, lanzamiento);
+  // Un mes despues de la captura o del recibo, toca actualizarlos
+  const vencido = (diasDesde(config.capturaFecha) ?? 0) > 31 || (!!config.recibo && (diasDesde(config.reciboFecha) ?? 0) > 31);
 
   const subir = async (e: React.ChangeEvent<HTMLInputElement>, fn: (img: string) => void) => {
     const f = e.target.files?.[0];
@@ -122,9 +125,9 @@ const DocumentacionIA: React.FC = () => {
         <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03]">
           <button onClick={() => setVerConfig(v => !v)} className="w-full flex items-center justify-between gap-3 p-4 text-left" aria-expanded={verConfig}>
             <span>
-              <span className="block font-black">1. Tus datos y pruebas <span className="text-white/40 font-normal text-xs">(se llenan una vez)</span></span>
+              <span className="block font-black">1. Datos fijos <span className="text-white/40 font-normal text-xs">(se llenan una vez y se quedan guardados)</span></span>
               <span className="block text-[11px] text-white/45 mt-0.5">
-                {config.captura ? '✓ Captura' : '✗ Falta captura'} · {config.firma ? '✓ Firma' : '✗ Falta firma'} · {config.herramienta} {config.plan} · {config.extras.length} anexo{config.extras.length === 1 ? '' : 's'}
+                {config.nombreLegal || '✗ Falta nombre'} · {config.firma ? '✓ Firma' : '✗ Falta firma'} · {config.herramienta} {config.plan} · {config.extras.length} anexo{config.extras.length === 1 ? '' : 's'}
                 {!guardadoOk && <span className="text-red-300"> · No se pudo guardar (imágenes muy pesadas)</span>}
               </span>
             </span>
@@ -139,23 +142,6 @@ const DocumentacionIA: React.FC = () => {
                   <label className={etiqueta}>Herramienta<input value={config.herramienta} onChange={e => cambiar({ herramienta: e.target.value })} className={campo} /></label>
                   <label className={etiqueta}>Sitio<input value={config.herramientaUrl} onChange={e => cambiar({ herramientaUrl: e.target.value })} className={campo} /></label>
                   <label className={etiqueta}>Plan<input value={config.plan} onChange={e => cambiar({ plan: e.target.value })} className={campo} /></label>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-[1fr_220px] gap-3 items-start">
-                <div>
-                  <p className={etiqueta}>Captura de tu cuenta con el plan activo</p>
-                  <p className="text-[11px] text-white/40 mt-1">Entra a {config.herramientaUrl}/account y toma captura donde se vea el plan {config.plan} y “Commercial use rights”. Tómala de nuevo si cambias de plan.</p>
-                  {config.captura
-                    ? <img src={config.captura} alt="Captura de la cuenta" className="mt-2 w-full max-h-64 object-contain rounded-lg border border-white/10 bg-black" />
-                    : <div className="mt-2 rounded-lg border border-dashed border-amber-400/40 bg-amber-500/5 p-6 text-center text-xs text-amber-200/80">Aún no subes la captura</div>}
-                  <label className="mt-2 inline-block px-3 py-2 rounded-lg bg-white/10 text-xs font-bold cursor-pointer"><i className="fas fa-upload mr-1.5"></i>{config.captura ? 'Cambiar captura' : 'Subir captura'}
-                    <input type="file" accept="image/*" className="hidden" onChange={e => subir(e, img => cambiar({ captura: img }))} />
-                  </label>
-                </div>
-                <div className="grid gap-3">
-                  <label className={etiqueta}>Fecha de la captura<input type="date" value={config.capturaFecha} onChange={e => cambiar({ capturaFecha: e.target.value })} className={campo} /></label>
-                  <label className={etiqueta}>Facturación<input value={config.facturacion} onChange={e => cambiar({ facturacion: e.target.value })} placeholder="monthly billing, next billing date Nov 3, 2026" className={campo} /></label>
                 </div>
               </div>
 
@@ -220,18 +206,51 @@ const DocumentacionIA: React.FC = () => {
           )}
         </section>
 
+        {/* Lo que cambia cada mes */}
+        <section className={`mt-4 rounded-2xl border p-4 grid gap-4 ${vencido ? 'border-amber-400/40 bg-amber-500/[0.05]' : 'border-white/10 bg-white/[0.03]'}`}>
+          <div>
+            <p className="font-black">2. Cada mes <span className="text-white/40 font-normal text-xs">(cuando se renueva tu plan de {config.herramienta})</span></p>
+            {vencido
+              ? <p className="text-[11px] text-amber-200/90 mt-1"><i className="fas fa-triangle-exclamation mr-1.5"></i>Tu captura o tu recibo tienen más de un mes. Actualízalos antes de generar el documento.</p>
+              : <p className="text-[11px] text-white/45 mt-1">Lo demás se queda igual; aquí solo cambias la captura, el recibo y la fecha del siguiente cobro.</p>}
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {([
+              { k: 'captura', f: 'capturaFecha', titulo: 'Captura de tu cuenta', ayuda: `${config.herramientaUrl}/account, donde se vea el plan ${config.plan} y “Commercial use rights”.` },
+              { k: 'recibo', f: 'reciboFecha', titulo: 'Recibo de pago (opcional)', ayuda: 'El correo o comprobante del cobro del mes (Google Play, tarjeta, etc.).' },
+            ] as const).map(({ k, f, titulo, ayuda }) => (
+              <div key={k}>
+                <p className={etiqueta}>{titulo}</p>
+                <p className="text-[11px] text-white/40 mt-1">{ayuda}</p>
+                {config[k]
+                  ? <img src={config[k]} alt={titulo} className="mt-2 w-full h-40 object-contain rounded-lg border border-white/10 bg-black" />
+                  : <div className={`mt-2 h-40 flex items-center justify-center rounded-lg border border-dashed p-4 text-center text-xs ${k === 'captura' ? 'border-amber-400/40 bg-amber-500/5 text-amber-200/80' : 'border-white/15 text-white/35'}`}>Aún no la subes</div>}
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <label className="px-3 py-2 rounded-lg bg-white/10 text-xs font-bold cursor-pointer"><i className="fas fa-upload mr-1.5"></i>{config[k] ? 'Cambiar' : 'Subir'}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => subir(e, img => cambiar({ [k]: img, [f]: config[f] && (diasDesde(config[f]) ?? 99) < 3 ? config[f] : hoy() } as Partial<ConfigIA>))} />
+                  </label>
+                  {k === 'recibo' && config.recibo && <button onClick={() => cambiar({ recibo: undefined, reciboFecha: '' })} className="px-2 py-2 text-xs text-white/40 hover:text-red-300">Quitar</button>}
+                  <label className={`${etiqueta} flex-1 min-w-[140px]`}>Fecha<input type="date" value={config[f]} onChange={e => cambiar({ [f]: e.target.value } as Partial<ConfigIA>)} className={campo} /></label>
+                </div>
+              </div>
+            ))}
+          </div>
+          <label className={etiqueta}>Facturación (en inglés)<input value={config.facturacion} onChange={e => cambiar({ facturacion: e.target.value })} placeholder="monthly billing, next billing date Nov 3, 2026" className={campo} /></label>
+        </section>
+
         {/* Lanzamiento */}
         <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid gap-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="font-black">2. El lanzamiento</p>
+            <p className="font-black">3. El lanzamiento <span className="text-white/40 font-normal text-xs">(cambia en cada documento)</span></p>
             {(lanz.nombre || pistasTxt) && <button onClick={() => { setLanz(VACIO); setPistasTxt(''); }} className="text-xs text-white/50 hover:text-white"><i className="fas fa-eraser mr-1.5"></i>Limpiar</button>}
           </div>
           {desdeMigracion && <p className="text-[11px] text-emerald-300/80 -mt-2"><i className="fas fa-circle-check mr-1.5"></i>Datos traídos de Migración a TooLost. Revisa que el orden de las canciones sea el mismo que en TooLost.</p>}
           <div className="grid md:grid-cols-[1fr_160px_150px] gap-3">
             <label className={etiqueta}>Nombre (igual que en TooLost)<input value={lanz.nombre} onChange={e => setLanz({ ...lanz, nombre: e.target.value })} placeholder="Ej. Somos o No Somos (Confesión de un Pecador)" className={campo} /></label>
             <label className={etiqueta}>Artista
-              <input list="docia-artistas" value={lanz.artista} onChange={e => setLanz({ ...lanz, artista: e.target.value })} className={campo} />
-              <datalist id="docia-artistas"><option value="Diosmasgym" /><option value="Juan 614" /></datalist>
+              <select value={lanz.artista} onChange={e => setLanz({ ...lanz, artista: e.target.value })} className={campo}>
+                {['Diosmasgym', 'Juan 614'].map(x => <option key={x} value={x} className="bg-[#0a1322]">{x}</option>)}
+              </select>
             </label>
             <label className={etiqueta}>Tipo
               <select value={lanz.tipo} onChange={e => setLanz({ ...lanz, tipo: e.target.value as LanzamientoIA['tipo'] })} className={campo}>

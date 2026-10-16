@@ -15,6 +15,8 @@ export interface ConfigIA {
   facturacion: string;
   capturaFecha: string; // AAAA-MM-DD
   captura?: string; // dataURL
+  recibo?: string; // dataURL del recibo de pago del mes
+  reciboFecha: string; // AAAA-MM-DD
   terminosUrl: string;
   terminosRevision: string;
   terminosVigencia: string;
@@ -40,6 +42,7 @@ export const CONFIG_INICIAL: ConfigIA = {
   plan: 'Pro',
   facturacion: 'monthly billing',
   capturaFecha: '',
+  reciboFecha: '',
   terminosUrl: 'https://suno.com/terms',
   terminosRevision: 'August 10, 2026',
   terminosVigencia: 'September 3, 2026',
@@ -92,6 +95,12 @@ export const fechaIngles = (iso?: string): string => {
   const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return iso || '';
   return `${MESES[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}`;
+};
+// Dias desde una fecha AAAA-MM-DD (para avisar cuando ya toca actualizar la captura o el recibo)
+export const diasDesde = (iso?: string): number | null => {
+  const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return Math.floor((Date.now() - new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime()) / 86400000);
 };
 const hoyISO = () => {
   const d = new Date();
@@ -154,12 +163,14 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
     y += size * 1.4 + 2;
   };
   const titulo = (s: string) => { y += 10; saltoSi(40); texto(s, { size: 14, bold: true, gap: 6, color: 10 }); };
-  const imagen = (src: string, maxAlto: number) => {
+  // La leyenda va pegada a su imagen: si no caben juntas, ambas pasan a la pagina siguiente
+  const imagen = (src: string, maxAlto: number, leyenda?: string) => {
     const p = doc.getImageProperties(src);
     let w = ancho;
     let h = (p.height / p.width) * w;
     if (h > maxAlto) { h = maxAlto; w = (p.width / p.height) * h; }
-    saltoSi(h + 8);
+    saltoSi(h + 8 + (leyenda ? 30 : 0));
+    if (leyenda) texto(leyenda);
     doc.addImage(src, p.fileType, M + (ancho - w) / 2, y, w, h);
     doc.setDrawColor(200);
     doc.rect(M + (ancho - w) / 2, y, w, h);
@@ -187,6 +198,9 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
   titulo(`1. Account status - ${c.herramienta} ${c.plan} Plan (active)`);
   texto(`Screenshot of the ${c.herramienta} account page (${c.herramientaUrl}/account)${c.capturaFecha ? ` taken ${fechaIngles(c.capturaFecha)}` : ''}. It shows: Current plan: ${c.plan} Plan${c.facturacion ? `, ${c.facturacion}` : ''}. The ${c.plan} plan includes "Commercial use rights".`);
   if (c.captura) imagen(c.captura, 300);
+  if (c.recibo) {
+    imagen(c.recibo, 300, `Payment receipt for the current ${c.herramienta} ${c.plan} subscription${c.reciboFecha ? ` (${fechaIngles(c.reciboFecha)})` : ''}:`);
+  }
 
   // 2. Licencia
   titulo(`2. Applicable license - ${c.herramienta} Terms of Service`);
@@ -232,6 +246,10 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
   });
 
   // 4. Declaracion
+  // Declaracion y firma siempre en la misma pagina
+  y += 10;
+  saltoSi(200);
+  y -= 10;
   titulo('4. Declaration');
   texto(`I, ${c.nombreLegal} (artist name ${l.artista}), declare that the AI-assisted tracks on the release "${l.nombre}" were generated with ${c.herramienta} while subscribed to the ${c.herramienta} ${c.plan} plan, were obtained through ${c.herramienta}'s official download feature${c.letraPropia ? ', and that all lyrics were written by me' : ''}. I hold the rights needed to distribute this content.`, { gap: 14 });
   saltoSi(90);
