@@ -158,6 +158,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'documentacion-ia',
+            title: 'Documentación IA (TooLost)',
+            description: 'Crea el PDF que TooLost pide en "AI Documentation Required" para cada sencillo, EP o álbum: captura de tu plan, licencia, canciones y tu declaración firmada.',
+            icon: 'fa-file-shield',
+            color: '#f59e0b',
+            route: '/admin/documentacion-ia',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'rutinas',
             title: 'Rutinas Fe + Gym',
             description: 'Crea y edita rutinas de casa y gym: ejercicios, series, descansos, fotos o GIFs, videos de técnica, portadas y partes del cuerpo.',

@@ -34,6 +34,7 @@ const OracionView = React.lazy(() => import('./components/OracionView'));
 const OracionesAdmin = React.lazy(() => import('./components/admin/OracionesAdmin'));
 const RutinasAdmin = React.lazy(() => import('./components/admin/RutinasAdmin'));
 const MigracionTooLost = React.lazy(() => import('./components/admin/MigracionTooLost'));
+const DocumentacionIA = React.lazy(() => import('./components/admin/DocumentacionIA'));
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Lazy load admin tools to reduce initial bundle size (Performance Audit)
@@ -611,6 +612,7 @@ const App: React.FC = () => {
                 <Route path="oraciones" element={<AdminAuthWrapper><OracionesAdmin/></AdminAuthWrapper>} />
                 <Route path="rutinas" element={<AdminAuthWrapper><RutinasAdmin/></AdminAuthWrapper>} />
                 <Route path="migracion" element={<AdminAuthWrapper><MigracionTooLost/></AdminAuthWrapper>} />
+                <Route path="documentacion-ia" element={<AdminAuthWrapper><DocumentacionIA/></AdminAuthWrapper>} />
                 {/* Cualquier ruta de admin que no exista vuelve al panel en vez de quedar en blanco */}
                 <Route path="*" element={<Navigate to="/admin" replace />} />
               </Routes>

@@ -299,6 +299,10 @@ const MigracionTooLost: React.FC = () => {
                             <textarea value={datos?.nota || ''} onChange={e => setDisco(d.key, { nota: e.target.value })} rows={2} placeholder="Ej. falta el WAV de la pista 3" className="mt-1 w-full rounded-lg bg-white/5 border border-white/10 px-2 py-2 text-xs normal-case tracking-normal text-white placeholder:text-white/25" />
                           </label>
                           <button onClick={() => copiar(fichaDisco(d, datos), avisar, 'Ficha')} className="w-full px-3 py-2.5 rounded-xl bg-[#a855f7] text-white text-xs font-black"><i className="fas fa-copy mr-2"></i>Copiar ficha para TooLost</button>
+                          {d.tipo !== 'Sin disco' && (
+                            <button onClick={() => navigate('/admin/documentacion-ia', { state: { lanzamiento: { artista: d.artista, nombre: d.nombre, tipo: d.tipo, fecha: d.fecha, sello: d.sello, pistas: d.pistas.map(p => p.titulo) } } })}
+                              className="w-full px-3 py-2 rounded-xl bg-amber-500/15 text-amber-200 text-xs font-bold"><i className="fas fa-file-shield mr-2"></i>PDF de IA para TooLost</button>
+                          )}
                           <button onClick={() => copiar(d.pistas.map(p => p.titulo).join('\n'), avisar, 'Lista')} className="w-full px-3 py-2 rounded-xl bg-white/10 text-xs font-bold"><i className="fas fa-list-ol mr-2"></i>Copiar lista de canciones</button>
                         </div>
                       </div>
