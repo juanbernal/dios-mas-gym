@@ -70,7 +70,7 @@ export const guardarConfig = (c: ConfigIA): boolean => {
 };
 
 // Reduce la imagen para que quepa en el almacenamiento y el PDF no pese de mas
-export const comprimirImagen = (file: File, maxLado = 1800, calidad = 0.88): Promise<string> =>
+export const comprimirImagen = (file: File, maxLado = 2400, calidad = 0.9): Promise<string> =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -163,18 +163,30 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
     y += size * 1.4 + 2;
   };
   const titulo = (s: string) => { y += 10; saltoSi(40); texto(s, { size: 14, bold: true, gap: 6, color: 10 }); };
-  // La leyenda va pegada a su imagen: si no caben juntas, ambas pasan a la pagina siguiente
-  const imagen = (src: string, maxAlto: number, leyenda?: string) => {
+  // Prueba a pagina completa: la hoja se gira segun la imagen para que se lea bien
+  // (una captura de escritorio va en horizontal y llena toda la hoja)
+  const pruebaPagina = (src: string, leyenda: string) => {
     const p = doc.getImageProperties(src);
-    let w = ancho;
+    const horizontal = p.width > p.height;
+    doc.addPage('letter', horizontal ? 'landscape' : 'portrait');
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const m = 30;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(10);
+    const lineas = doc.splitTextToSize(t(leyenda), pw - m * 2);
+    doc.text(lineas, m, m + 12);
+    const top = m + 12 + lineas.length * 15;
+    const maxW = pw - m * 2;
+    const maxH = ph - top - m - 22;
+    let w = maxW;
     let h = (p.height / p.width) * w;
-    if (h > maxAlto) { h = maxAlto; w = (p.width / p.height) * h; }
-    saltoSi(h + 8 + (leyenda ? 30 : 0));
-    if (leyenda) texto(leyenda);
-    doc.addImage(src, p.fileType, M + (ancho - w) / 2, y, w, h);
+    if (h > maxH) { h = maxH; w = (p.width / p.height) * h; }
+    const x = (pw - w) / 2;
+    doc.addImage(src, p.fileType, x, top, w, h);
     doc.setDrawColor(200);
-    doc.rect(M + (ancho - w) / 2, y, w, h);
-    y += h + 10;
+    doc.rect(x, top, w, h);
   };
 
   // Encabezado
@@ -196,11 +208,14 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
 
   // 1. Cuenta
   titulo(`1. Account status - ${c.herramienta} ${c.plan} Plan (active)`);
-  texto(`Screenshot of the ${c.herramienta} account page (${c.herramientaUrl}/account)${c.capturaFecha ? ` taken ${fechaIngles(c.capturaFecha)}` : ''}. It shows: Current plan: ${c.plan} Plan${c.facturacion ? `, ${c.facturacion}` : ''}. The ${c.plan} plan includes "Commercial use rights".`);
-  if (c.captura) imagen(c.captura, 300);
-  if (c.recibo) {
-    imagen(c.recibo, 300, `Payment receipt for the current ${c.herramienta} ${c.plan} subscription${c.reciboFecha ? ` (${fechaIngles(c.reciboFecha)})` : ''}:`);
-  }
+  // Las imagenes van al final, cada una en su propia hoja y a tamano completo
+  const pruebas: { src: string; leyenda: string }[] = [];
+  const letra = () => String.fromCharCode(65 + pruebas.length);
+  const refCaptura = c.captura ? ` (attached full-size as Exhibit ${letra()})` : '';
+  if (c.captura) pruebas.push({ src: c.captura, leyenda: `Exhibit A - ${c.herramienta} account page (${c.herramientaUrl}/account)${c.capturaFecha ? `, screenshot taken ${fechaIngles(c.capturaFecha)}` : ''}: Current plan ${c.plan}` });
+  const refRecibo = c.recibo ? ` A payment receipt for the current subscription${c.reciboFecha ? ` (${fechaIngles(c.reciboFecha)})` : ''} is attached as Exhibit ${letra()}.` : '';
+  if (c.recibo) pruebas.push({ src: c.recibo, leyenda: `Exhibit ${letra()} - Payment receipt for the ${c.herramienta} ${c.plan} subscription${c.reciboFecha ? ` (${fechaIngles(c.reciboFecha)})` : ''}` });
+  texto(`Screenshot of the ${c.herramienta} account page (${c.herramientaUrl}/account)${c.capturaFecha ? ` taken ${fechaIngles(c.capturaFecha)}` : ''}${refCaptura}. It shows: Current plan: ${c.plan} Plan${c.facturacion ? `, ${c.facturacion}` : ''}. The ${c.plan} plan includes "Commercial use rights".${refRecibo}`);
 
   // 2. Licencia
   titulo(`2. Applicable license - ${c.herramienta} Terms of Service`);
@@ -275,18 +290,17 @@ export function crearPDF(c: ConfigIA, l: LanzamientoIA): jsPDF {
   doc.text(t(`${c.nombreLegal} (${l.artista})`), xFirma + 52, y);
   y += 10;
 
-  // Anexos
-  c.extras.filter(e => e.img).forEach((e, i) => {
-    doc.addPage();
-    y = M - 10;
-    titulo(`Annex ${i + 1}${e.titulo ? ` - ${e.titulo}` : ''}`);
-    imagen(e.img, H - M * 2 - 80);
-  });
+  // Pruebas y anexos, cada uno en su hoja
+  c.extras.filter(e => e.img).forEach(e => pruebas.push({ src: e.img, leyenda: `Exhibit ${letra()}${e.titulo ? ` - ${e.titulo}` : ''}` }));
+  pruebas.forEach(p => pruebaPagina(p.src, p.leyenda));
 
   // Pie de pagina
   const n = doc.getNumberOfPages();
   for (let i = 1; i <= n; i++) {
     doc.setPage(i);
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = W > H ? 30 : 54;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(130);

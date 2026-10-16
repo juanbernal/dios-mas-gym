@@ -76,6 +76,54 @@ const PadFirma: React.FC<{ onGuardar: (png: string) => void; onCancelar: () => v
   );
 };
 
+// Recorte de una captura: se arrastra sobre la imagen para quedarse solo con la parte importante
+const Recortador: React.FC<{ src: string; onListo: (img: string) => void; onCancelar: () => void }> = ({ src, onListo, onCancelar }) => {
+  const caja = useRef<HTMLDivElement>(null);
+  const inicio = useRef<[number, number] | null>(null);
+  const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  const rel = (e: React.PointerEvent): [number, number] => {
+    const r = caja.current!.getBoundingClientRect();
+    return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))];
+  };
+  const bajar = (e: React.PointerEvent) => { caja.current!.setPointerCapture(e.pointerId); inicio.current = rel(e); setSel(null); };
+  const mover = (e: React.PointerEvent) => {
+    if (!inicio.current) return;
+    const [x0, y0] = inicio.current;
+    const [x1, y1] = rel(e);
+    setSel({ x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) });
+  };
+  const aplicar = () => {
+    if (!sel) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = Math.round(sel.w * img.width);
+      c.height = Math.round(sel.h * img.height);
+      c.getContext('2d')!.drawImage(img, sel.x * img.width, sel.y * img.height, c.width, c.height, 0, 0, c.width, c.height);
+      onListo(c.toDataURL('image/jpeg', 0.92));
+    };
+    img.src = src;
+  };
+  const valido = !!sel && sel.w > 0.05 && sel.h > 0.05;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/85 p-4 flex flex-col items-center justify-center gap-3" role="dialog" aria-label="Recortar imagen">
+      <p className="text-sm text-white/80 text-center">Arrastra sobre la parte que importa (donde dice el plan y “Commercial use rights”).</p>
+      <div ref={caja} onPointerDown={bajar} onPointerMove={mover} onPointerUp={() => (inicio.current = null)}
+        className="relative max-w-full touch-none select-none cursor-crosshair">
+        <img src={src} alt="" draggable={false} className="block max-w-full max-h-[70vh]" />
+        {sel && <div className="absolute border-2 border-[#a855f7] shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+          style={{ left: `${sel.x * 100}%`, top: `${sel.y * 100}%`, width: `${sel.w * 100}%`, height: `${sel.h * 100}%` }} />}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={aplicar} disabled={!valido} className="px-4 py-2.5 rounded-xl bg-[#a855f7] text-sm font-black disabled:opacity-40"><i className="fas fa-crop-simple mr-2"></i>Recortar</button>
+        <button onClick={onCancelar} className="px-4 py-2.5 rounded-xl bg-white/10 text-sm font-bold">Cancelar</button>
+      </div>
+    </div>
+  );
+};
+
 // Genera el PDF que TooLost pide ("AI Documentation Required") para cada lanzamiento hecho con IA
 const DocumentacionIA: React.FC = () => {
   const navigate = useNavigate();
@@ -84,6 +132,7 @@ const DocumentacionIA: React.FC = () => {
   const [lanz, setLanz] = useState<LanzamientoIA>(() => (location.state as any)?.lanzamiento || VACIO);
   const [pistasTxt, setPistasTxt] = useState(() => ((location.state as any)?.lanzamiento?.pistas || []).join('\n'));
   const [firmando, setFirmando] = useState(false);
+  const [recortando, setRecortando] = useState<'captura' | 'recibo' | null>(null);
   const [verConfig, setVerConfig] = useState(() => { const c = cargarConfig(); return !c.nombreLegal.trim() || !c.firma; });
   const [aviso, setAviso] = useState('');
   const [guardadoOk, setGuardadoOk] = useState(true);
@@ -221,7 +270,7 @@ const DocumentacionIA: React.FC = () => {
             ] as const).map(({ k, f, titulo, ayuda }) => (
               <div key={k}>
                 <p className={etiqueta}>{titulo}</p>
-                <p className="text-[11px] text-white/40 mt-1">{ayuda}</p>
+                <p className="text-[11px] text-white/40 mt-1">{ayuda}{k === 'captura' && ' Recórtala para que en el PDF se lea grande.'}</p>
                 {config[k]
                   ? <img src={config[k]} alt={titulo} className="mt-2 w-full h-40 object-contain rounded-lg border border-white/10 bg-black" />
                   : <div className={`mt-2 h-40 flex items-center justify-center rounded-lg border border-dashed p-4 text-center text-xs ${k === 'captura' ? 'border-amber-400/40 bg-amber-500/5 text-amber-200/80' : 'border-white/15 text-white/35'}`}>Aún no la subes</div>}
@@ -229,6 +278,7 @@ const DocumentacionIA: React.FC = () => {
                   <label className="px-3 py-2 rounded-lg bg-white/10 text-xs font-bold cursor-pointer"><i className="fas fa-upload mr-1.5"></i>{config[k] ? 'Cambiar' : 'Subir'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => subir(e, img => cambiar({ [k]: img, [f]: config[f] && (diasDesde(config[f]) ?? 99) < 3 ? config[f] : hoy() } as Partial<ConfigIA>))} />
                   </label>
+                  {config[k] && <button onClick={() => setRecortando(k)} className="px-3 py-2 rounded-lg bg-white/10 text-xs font-bold"><i className="fas fa-crop-simple mr-1.5"></i>Recortar</button>}
                   {k === 'recibo' && config.recibo && <button onClick={() => cambiar({ recibo: undefined, reciboFecha: '' })} className="px-2 py-2 text-xs text-white/40 hover:text-red-300">Quitar</button>}
                   <label className={`${etiqueta} flex-1 min-w-[140px]`}>Fecha<input type="date" value={config[f]} onChange={e => cambiar({ [f]: e.target.value } as Partial<ConfigIA>)} className={campo} /></label>
                 </div>
@@ -296,6 +346,10 @@ const DocumentacionIA: React.FC = () => {
         </div>
       </div>
 
+      {recortando && config[recortando] && (
+        <Recortador src={config[recortando]!} onCancelar={() => setRecortando(null)}
+          onListo={img => { cambiar({ [recortando]: img } as Partial<ConfigIA>); setRecortando(null); avisar('Imagen recortada'); }} />
+      )}
       {aviso && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-emerald-500 text-black text-sm font-black shadow-xl">{aviso}</div>}
     </div>
   );
