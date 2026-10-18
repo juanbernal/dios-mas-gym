@@ -82,7 +82,7 @@ const TiendaAdmin: React.FC = () => {
           if (!old) return n;
           return {
             ...old,
-            imagenes: old.imagenes.length ? old.imagenes : n.imagenes,
+            imagenes: n.imagenes.length ? n.imagenes : old.imagenes,
             variantes: n.variantes.map(v => ({ ...v, activo: v.activo && (old.variantes.find(o => o.id === v.id)?.activo ?? true) })),
           };
         });

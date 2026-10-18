@@ -176,9 +176,11 @@ async function importarPrintful(): Promise<Producto[]> {
       const preview = (v.files || []).find((f: any) => f.type === 'preview')?.preview_url || v.product?.image;
       return { id: v.id, nombre: String(v.name || ''), talla: v.size || undefined, color: v.color || undefined, imagen: preview || undefined, activo: v.availability_status !== 'discontinued' };
     });
+    // La miniatura del producto en Printful puede ser de otro color; primero van las fotos de cada variante
+    const imagenes = [...new Set([...variantes.filter(v => v.activo).map(v => v.imagen), sp.thumbnail_url].filter(Boolean) as string[])].slice(0, 12);
     productos.push({
       id: `pf${sp.id}`, nombre: String(sp.name || 'Producto'), descripcion: '', precio: 0,
-      imagenes: sp.thumbnail_url ? [sp.thumbnail_url] : [], activo: false, printfulId: sp.id, variantes,
+      imagenes, activo: false, printfulId: sp.id, variantes,
     });
   }
   return productos;
