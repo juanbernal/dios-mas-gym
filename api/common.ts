@@ -2689,7 +2689,7 @@ ${sections}
       return res.status(200).send(html);
     }
 
-    const pages: Record<string, { title: string; description: string; canonical: string }> = {
+    const pages: Record<string, { title: string; description: string; canonical: string; image?: string; imageAlt?: string }> = {
       '/buscar': {
         title: 'Buscar canciones y letras | Diosmasgym',
         description: 'Busca entre todas las canciones y letras de Diosmasgym y Juan 614: música cristiana, rap cristiano y corridos de fe.',
@@ -2709,6 +2709,9 @@ ${sections}
         title: 'Tienda oficial: gorras y ropa | Diosmasgym',
         description: 'Merch oficial de Diosmasgym: gorras y ropa con propósito, hechas bajo pedido y enviadas a todo México. Paga con tarjeta, OXXO o Mercado Pago.',
         canonical: `${BASE}/tienda`,
+        // v= cambia la URL para que WhatsApp/Facebook no reusen la imagen vieja guardada
+        image: `${BASE}/api/og-image?type=tienda&v=1`,
+        imageAlt: 'Tienda oficial Diosmasgym: gorras y sudaderas',
       },
       '/testimonios': {
         title: 'Testimonios | Diosmasgym',

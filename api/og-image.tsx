@@ -54,9 +54,115 @@ async function pngToJpeg(png: ArrayBuffer, quality = 85): Promise<Uint8Array> {
   return new Uint8Array(out.data);
 }
 
+// ── Vista previa de /tienda: fotos de los productos activos ──────────────────
+interface ProductoOg { nombre: string; precio: number; imagen: string }
+
+async function productosTienda(): Promise<ProductoOg[]> {
+  try {
+    const r = await fetch(`${BASE}/api/tienda?op=productos`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return [];
+    const j: any = await r.json();
+    return (Array.isArray(j?.productos) ? j.productos : [])
+      .map((p: any) => ({ nombre: String(p.nombre || ''), precio: Number(p.precio) || 0, imagen: String(p.imagenes?.[0] || '') }))
+      .filter((p: ProductoOg) => /^https:\/\//.test(p.imagen));
+  } catch { return []; }
+}
+
+// Una gorra y una sudadera de cada lado en vez de 4 gorras seguidas
+function elegirProductos(lista: ProductoOg[], n: number): ProductoOg[] {
+  const esGorra = (p: ProductoOg) => /hat|gorr|cap|beanie/i.test(p.nombre);
+  const gorras = lista.filter(esGorra);
+  const ropa = lista.filter(p => !esGorra(p));
+  const out: ProductoOg[] = [];
+  while (out.length < n && (gorras.length || ropa.length)) {
+    const sig = (out.length % 2 === 0 ? gorras.shift() || ropa.shift() : ropa.shift() || gorras.shift());
+    if (sig) out.push(sig);
+  }
+  return out;
+}
+
+const precioMx = (n: number) => `$${n.toLocaleString('es-MX')}`;
+
+function tiendaImage(productos: ProductoOg[]) {
+  const h = React.createElement;
+  const elegidos = elegirProductos(productos, 4);
+  const desde = productos.length ? Math.min(...productos.map(p => p.precio).filter(n => n > 0)) : 0;
+
+  const card = (p: ProductoOg) => h('div', {
+    key: p.imagen,
+    style: {
+      width: '262px', height: '262px', borderRadius: '22px', background: '#ffffff', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+      boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
+    },
+  },
+    h('img', { src: p.imagen, width: 240, height: 240, style: { objectFit: 'contain' } }),
+    h('div', {
+      style: {
+        position: 'absolute', bottom: '12px', right: '12px', padding: '5px 12px', borderRadius: '999px',
+        background: '#05070a', color: '#ffffff', fontSize: '20px', fontWeight: 800,
+      },
+    }, precioMx(p.precio)),
+  );
+
+  return h('div', {
+    style: {
+      width: '1200px', height: '630px', display: 'flex', flexDirection: 'row', alignItems: 'center',
+      background: 'linear-gradient(135deg, #05070a 0%, #071325 55%, #0b1f3a 100%)',
+      fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden',
+    },
+  },
+    h('div', {
+      style: {
+        position: 'absolute', top: '-160px', right: '120px', width: '700px', height: '700px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(74,144,217,0.35) 0%, transparent 70%)',
+      },
+    }),
+    // Texto
+    h('div', { style: { display: 'flex', flexDirection: 'column', width: '560px', paddingLeft: '64px', paddingRight: '20px' } },
+      h('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '28px' } },
+        h('img', { src: `${BASE}/logo-diosmasgym.png`, width: 48, height: 48, style: { borderRadius: '10px', marginRight: '14px' } }),
+        h('span', { style: { color: '#60a5fa', fontSize: '20px', fontWeight: 800, letterSpacing: '0.1em' } }, 'DIOSMASGYM'),
+      ),
+      h('div', { style: { display: 'flex', marginBottom: '18px' } },
+        h('span', {
+          style: { padding: '6px 16px', background: '#facc15', borderRadius: '999px', color: '#05070a', fontSize: '18px', fontWeight: 900, letterSpacing: '0.12em' },
+        }, 'TIENDA OFICIAL'),
+      ),
+      h('div', { style: { display: 'flex', flexDirection: 'column', color: '#ffffff', fontSize: '76px', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em' } },
+        h('span', null, 'Vístete con'),
+        h('span', { style: { color: '#4a90d9' } }, 'propósito'),
+      ),
+      h('div', { style: { color: '#cbd5e1', fontSize: '28px', fontWeight: 600, marginTop: '24px' } },
+        desde ? `Gorras y sudaderas desde ${precioMx(desde)}` : 'Gorras y sudaderas oficiales'),
+      h('div', { style: { display: 'flex', alignItems: 'center', marginTop: '30px' } },
+        h('div', { style: { width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', marginRight: '10px' } }),
+        h('span', { style: { color: '#94a3b8', fontSize: '20px' } }, 'Envío a todo México · diosmasgym.com/tienda'),
+      ),
+    ),
+    // Productos 2x2
+    elegidos.length
+      ? h('div', { style: { display: 'flex', flexWrap: 'wrap', width: '560px', gap: '20px', justifyContent: 'center' } }, ...elegidos.map(card))
+      : h('img', { src: `${BASE}/icon-512.png`, width: 400, height: 400, style: { borderRadius: '28px', marginLeft: '60px' } }),
+  );
+}
+
 export default async function handler(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+
+    if (searchParams.get('type') === 'tienda') {
+      const png = new ImageResponse(tiendaImage(await productosTienda()), { width: 1200, height: 630 });
+      const jpeg = await pngToJpeg(await png.arrayBuffer());
+      return new Response(jpeg, {
+        headers: {
+          'Content-Type': 'image/jpeg',
+          // Un dia: si cambian los productos la vista previa se actualiza sola
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+        },
+      });
+    }
+
     const title = (searchParams.get('title') || 'Diosmasgym').slice(0, 80);
     const artist = (searchParams.get('artist') || 'El Arsenal de Fe').slice(0, 60);
     const type = searchParams.get('type') || 'song';
