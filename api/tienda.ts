@@ -43,6 +43,10 @@ export const ESTADOS_MX: Record<string, string> = {
 };
 
 // ── Admin ──
+// Intentos fallidos de contraseña por IP (frena la fuerza bruta; se reinicia con cada instancia)
+const adminFails = new Map<string, { count: number; resetAt: number }>();
+const clientIp = (req: any) => String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+
 function isAdmin(req: any): boolean {
   const keyName = process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD' : (Object.keys(process.env).find(k => k.toUpperCase().includes('ADMIN_PASSWORD')) || 'ADMIN_PASSWORD');
   const master = (process.env[keyName] || '').trim().replace(/^["']|["']$/g, '');
@@ -87,7 +91,12 @@ async function writeJson(path: string, data: unknown): Promise<void> {
 }
 
 const CATALOGO_PATH = 'tienda/catalogo.json';
-const pedidoPath = (id: string) => `tienda/pedidos/${id}.json`;
+// El nombre del archivo lleva una firma secreta: aunque alguien conozca el numero de pedido
+// no puede adivinar la direccion del archivo (que trae nombre y domicilio del cliente).
+const pedidoFirma = (id: string) => crypto
+  .createHmac('sha256', `${process.env.BLOB_READ_WRITE_TOKEN || ''}|tienda`)
+  .update(id).digest('hex').slice(0, 24);
+const pedidoPath = (id: string) => `tienda/pedidos/${id}-${pedidoFirma(id)}.json`;
 
 let catalogoCache: { data: Catalogo; at: number } | null = null;
 async function readCatalogo(fresh = false): Promise<Catalogo> {
@@ -98,7 +107,17 @@ async function readCatalogo(fresh = false): Promise<Catalogo> {
   return data;
 }
 
-const readPedido = (id: string) => /^DMG[0-9a-f]{16}$/.test(id) ? readJson<Pedido>(pedidoPath(id)) : Promise.resolve(null);
+async function readPedido(id: string): Promise<Pedido | null> {
+  if (!/^DMG[0-9a-f]{16}$/.test(id)) return null;
+  const p = await readJson<Pedido>(pedidoPath(id));
+  if (p) return p;
+  // Si la firma cambio (p. ej. se renovo el token de Blob) se busca el archivo por su prefijo
+  try {
+    const page: any = await blobList({ prefix: `tienda/pedidos/${id}-`, limit: 1 });
+    const found = page.blobs?.[0]?.pathname;
+    return found ? readJson<Pedido>(found) : null;
+  } catch { return null; }
+}
 const savePedido = (p: Pedido) => writeJson(pedidoPath(p.id), p);
 
 // ── Limpieza de lo que manda el admin ──
@@ -250,16 +269,16 @@ async function procesarPago(paymentId: string): Promise<string> {
   pedido.pagado = Date.now();
   await savePedido(pedido);
   const { config } = await readCatalogo(true);
-  await enviarAPrintful(pedido, config.autoConfirmar);
-  await savePedido(pedido);
+  const enviado = await enviarAPrintful(pedido, config.autoConfirmar);
+  await savePedido(enviado);
   const resumen = pedido.items.map(i => `• ${i.cantidad} × ${i.nombre} (${i.variante})`).join('\n');
   await notifyTelegram(
     `🛒 Nueva venta: $${pedido.total.toFixed(2)} MXN\n${resumen}\n${pedido.direccion.nombre} — ${pedido.direccion.ciudad}, ${ESTADOS_MX[pedido.direccion.estado] || pedido.direccion.estado}\n` +
-    (pedido.estado === 'enviado_printful'
+    (enviado.estado === 'enviado_printful'
       ? (config.autoConfirmar ? 'Printful ya lo está fabricando.' : 'Quedó como borrador en Printful: confírmalo en /admin/tienda.')
-      : `❌ No se pudo mandar a Printful: ${pedido.error}`)
+      : `❌ No se pudo mandar a Printful: ${enviado.error}`)
   );
-  return pedido.estado;
+  return enviado.estado;
 }
 
 // Limite simple por IP para crear pedidos
@@ -269,7 +288,14 @@ function allowCheckout(ip: string): boolean {
   const e = checkoutMap.get(ip);
   if (!e || now > e.resetAt) { checkoutMap.set(ip, { count: 1, resetAt: now + 3600000 }); return true; }
   e.count++;
-  return e.count <= 15;
+  return e.count <= 6;
+}
+// Tope general por instancia: cada intento crea un archivo en Blob y el plan gratis limita las escrituras
+let checkoutsHora = { count: 0, resetAt: 0 };
+function allowCheckoutGlobal(): boolean {
+  const now = Date.now();
+  if (now > checkoutsHora.resetAt) checkoutsHora = { count: 0, resetAt: now + 3600000 };
+  return ++checkoutsHora.count <= 60;
 }
 
 const publicPedido = (p: Pedido) => ({
@@ -321,8 +347,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST' && op === 'checkout') {
-      const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-      if (!allowCheckout(ip)) return res.status(429).json({ error: 'Demasiados intentos, espera un rato.' });
+      if (!allowCheckout(clientIp(req)) || !allowCheckoutGlobal()) return res.status(429).json({ error: 'Demasiados intentos, espera un rato.' });
 
       const d = body.direccion || {};
       const direccion: Direccion = {
@@ -389,7 +414,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── Admin ──
-    if (!isAdmin(req)) return res.status(401).json({ error: 'No autorizado' });
+    const ip = clientIp(req);
+    const fails = adminFails.get(ip);
+    if (fails && Date.now() < fails.resetAt && fails.count >= 5) return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
+    if (!isAdmin(req)) {
+      const now = Date.now();
+      if (!fails || now > fails.resetAt) adminFails.set(ip, { count: 1, resetAt: now + 15 * 60000 });
+      else fails.count++;
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    adminFails.delete(ip);
 
     if (req.method === 'GET' && op === 'admin') {
       const catalogo = await readCatalogo(true);
@@ -412,7 +446,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let cursor: string | undefined;
       do {
         const page: any = await blobList({ prefix: 'tienda/pedidos/', cursor, limit: 1000 });
-        for (const b of page.blobs || []) { const m = String(b.pathname).match(/(DMG[0-9a-f]{16})\.json$/); if (m) ids.push(m[1]); }
+        for (const b of page.blobs || []) { const m = String(b.pathname).match(/(DMG[0-9a-f]{16})-[0-9a-f]{24}\.json$/); if (m) ids.push(m[1]); }
         cursor = page.hasMore ? page.cursor : undefined;
       } while (cursor && ids.length < 2000);
       const pedidos = (await Promise.all(ids.map(id => readPedido(id)))).filter(Boolean) as Pedido[];
