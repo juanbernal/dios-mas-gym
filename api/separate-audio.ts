@@ -105,11 +105,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const isRoformer = selectedModel.startsWith('roformer_');
-      const replicateUrl = isRoformer
-        ? 'https://api.replicate.com/v1/models/cottom/bs-roformer/predictions'
-        : 'https://api.replicate.com/v1/predictions';
+      // Modelo de la comunidad: Replicate exige el id de version (la ruta /models/.../predictions solo sirve para modelos oficiales)
+      const replicateUrl = 'https://api.replicate.com/v1/predictions';
       const replicateBody = isRoformer
         ? {
+            version: '4705a6f81046d29dc9b2101765bbbc81c68cb4aeec630e9465fc191ccdcd6e63', // cottom/bs-roformer
             input: {
               audio: audioUrl,
               mode: selectedModel === 'roformer_2' ? 'vocals' : selectedModel === 'roformer_4' ? '4-stem' : '6-stem',
