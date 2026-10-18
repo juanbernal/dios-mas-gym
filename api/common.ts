@@ -3303,8 +3303,13 @@ ${sections}
       // Calculate absolute cover URL first (needed for ogImageUrl)
       const absoluteSongCover = songCover.startsWith('http') ? songCover : `https://www.diosmasgym.com${songCover.startsWith('/') ? '' : '/'}${songCover}`;
 
-      // Branded OG image URL for letra pages
-      const ogImageUrl = `https://www.diosmasgym.com/api/og-image?title=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(songArtist)}&cover=${encodeURIComponent(absoluteSongCover)}&type=lyrics`;
+      // Las letras son cientos de paginas que los robots visitan sin parar: generar una imagen por
+      // cada una gastaba la mayor parte del CPU del plan de Vercel. Se usa la portada tal cual y
+      // la imagen generada solo queda para canciones sin portada.
+      // (maxresdefault de YouTube no existe en algunos videos; hqdefault siempre existe)
+      const ogImageUrl = song?.cover && /^https?:\/\//.test(song.cover)
+        ? song.cover.replace('/maxresdefault.jpg', '/hqdefault.jpg')
+        :`https://www.diosmasgym.com/api/og-image?title=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(songArtist)}&cover=${encodeURIComponent(absoluteSongCover)}&type=lyrics`;
 
       const schemaJsonLd = {
         "@context": "https://schema.org",
