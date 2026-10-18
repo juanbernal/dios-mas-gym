@@ -73,8 +73,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'audioUrl es requerido' });
       }
 
-      // Validar el modelo: 'htdemucs' (4 pistas), 'htdemucs_ft' (4 pistas, mayor calidad y mas lento) o 'htdemucs_6s' (6 pistas)
-      const ALLOWED_MODELS = ['htdemucs', 'htdemucs_ft', 'htdemucs_6s'];
+      // Validar el modelo: Demucs 'htdemucs' (4 pistas), 'htdemucs_ft' (4 pistas, mayor calidad y mas lento),
+      // 'htdemucs_6s' (6 pistas) o el motor BS-RoFormer (mas nuevo): 'roformer_2' (voz + instrumental), 'roformer_4', 'roformer_6'
+      const ALLOWED_MODELS = ['htdemucs', 'htdemucs_ft', 'htdemucs_6s', 'roformer_2', 'roformer_4', 'roformer_6'];
       const selectedModel = ALLOWED_MODELS.includes(String(model_name)) ? String(model_name) : 'htdemucs';
 
       // Solo se aceptan direcciones del servicio temporal de subida o de Replicate (evita que el servidor
@@ -103,13 +104,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const isRoformer = selectedModel.startsWith('roformer_');
+      const replicateUrl = isRoformer
+        ? 'https://api.replicate.com/v1/models/cottom/bs-roformer/predictions'
+        : 'https://api.replicate.com/v1/predictions';
+      const replicateBody = isRoformer
+        ? {
+            input: {
+              audio: audioUrl,
+              mode: selectedModel === 'roformer_2' ? 'vocals' : selectedModel === 'roformer_4' ? '4-stem' : '6-stem',
+              output_format: 'wav', // WAV 24-bit a la frecuencia original
+            },
+          }
+        : {
           version: '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953', // cjwbw/demucs official latest
           input: {
             audio: audioUrl,
@@ -120,7 +127,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             overlap: 0.25,
             output_format: 'wav',   // Genera salida en WAV puro
           },
-        }),
+        };
+
+      const response = await fetch(replicateUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(replicateBody),
       });
 
       const data = await response.json();
@@ -154,6 +169,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Limpiar output si terminó con éxito para eliminar campos nulos (ej: guitar o piano cuando se eligen 4 stems)
+      // BS-RoFormer devuelve una lista de URLs sin nombre: se nombran por el archivo o, si no, por su posicion
+      if (data.status === 'succeeded' && Array.isArray(data.output)) {
+        const urls = data.output.filter((v: any) => typeof v === 'string' && v.trim().startsWith('http')).map((v: string) => v.trim());
+        const byPosition: Record<number, string[]> = {
+          2: ['vocals', 'instrumental'],
+          4: ['vocals', 'drums', 'bass', 'other'],
+          6: ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'],
+        };
+        const keywords: [string, RegExp][] = [
+          ['instrumental', /instrum|no_?vocal|accomp|karaoke/i],
+          ['vocals', /vocal|voice|voz/i],
+          ['drums', /drum/i],
+          ['bass', /bass/i],
+          ['guitar', /guitar/i],
+          ['piano', /piano|keys/i],
+          ['other', /other|rest/i],
+        ];
+        const named: Record<string, string> = {};
+        const unnamed: number[] = [];
+        urls.forEach((url: string, i: number) => {
+          const file = decodeURIComponent(url.split('?')[0].split('/').pop() || '');
+          const hit = keywords.find(([key, re]) => re.test(file) && !named[key]);
+          if (hit) named[hit[0]] = url; else unnamed.push(i);
+        });
+        const order = byPosition[urls.length] || [];
+        for (const i of unnamed) {
+          const key = order[i] && !named[order[i]] ? order[i] : `pista_${i + 1}`;
+          named[key] = urls[i];
+        }
+        data.output = named;
+      }
+
       if (data.status === 'succeeded' && data.output && typeof data.output === 'object') {
         const cleaned: Record<string, string> = {};
         for (const [key, val] of Object.entries(data.output)) {

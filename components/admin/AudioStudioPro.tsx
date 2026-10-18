@@ -617,7 +617,7 @@ const AudioStudioPro:React.FC=()=>{
   const [aiStems,setAiStems]=useState<Record<string,string>|null>(null);
   const [isExtracting,setIsExtracting]=useState(false);
   const [extractStatus,setExtractStatus]=useState('');
-  const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_ft'|'htdemucs_6s'>('htdemucs');
+  const [selectedModel,setSelectedModel]=useState<'htdemucs'|'htdemucs_ft'|'htdemucs_6s'|'roformer_2'|'roformer_4'|'roformer_6'>('htdemucs');
   const [isMixing,setIsMixing]=useState(false);
   const [isZipping,setIsZipping]=useState(false);
   const [zipProgress,setZipProgress]=useState('');
@@ -1965,6 +1965,14 @@ const AudioStudioPro:React.FC=()=>{
           color: 'text-pink-400',
           genreHint: 'Pop Latino y Baladas: Pianos y sintetizadores de acordes'
         };
+      case 'instrumental':
+        return {
+          title: 'Instrumental (Pista sin voz)',
+          desc: 'Toda la música sin la voz, lista para karaoke, ensayo o remix',
+          icon: 'fa-music',
+          color: 'text-indigo-400',
+          genreHint: 'Ideal para presentaciones en vivo y versiones karaoke'
+        };
       case 'other':
       default:
         return {
@@ -2413,7 +2421,7 @@ const AudioStudioPro:React.FC=()=>{
       const predictionId = repData.id;
       let result = repData;
       let elapsedSec = 0;
-      const MAX_WAIT_SEC = selectedModel === 'htdemucs_ft' ? 1500 : 720; // el modelo de alta calidad tarda mas
+      const MAX_WAIT_SEC = selectedModel === 'htdemucs_ft' ? 1500 : selectedModel.startsWith('roformer_') ? 1200 : 720; // los modelos de alta calidad tardan mas
       const POLL_INTERVAL = 5000;
 
       const statusMessages: Record<string, string> = {
@@ -2462,9 +2470,11 @@ const AudioStudioPro:React.FC=()=>{
       }
 
       // Filtrar estrictamente según el modelo seleccionado y URLs válidas
-      const allowedOrder = selectedModel !== 'htdemucs_6s'
-        ? ['vocals', 'drums', 'bass', 'other']
-        : ['vocals', 'drums', 'bass', 'other', 'guitar', 'piano'];
+      const allowedOrder = selectedModel === 'roformer_2'
+        ? ['vocals', 'instrumental']
+        : selectedModel === 'htdemucs_6s' || selectedModel === 'roformer_6'
+          ? ['vocals', 'drums', 'bass', 'other', 'guitar', 'piano']
+          : ['vocals', 'drums', 'bass', 'other'];
 
       const filteredStems: Record<string, string> = {};
       for (const key of allowedOrder) {
@@ -2478,7 +2488,7 @@ const AudioStudioPro:React.FC=()=>{
       if (Object.keys(filteredStems).length === 0) {
         for (const [key, val] of Object.entries(result.output)) {
           if (val && typeof val === 'string' && val.trim().startsWith('http')) {
-            if (selectedModel !== 'htdemucs_6s' && (key === 'guitar' || key === 'piano')) continue;
+            if (!allowedOrder.includes('guitar') && (key === 'guitar' || key === 'piano')) continue;
             filteredStems[key] = val.trim();
           }
         }
@@ -4078,6 +4088,9 @@ const AudioStudioPro:React.FC=()=>{
                 </p>
 
                 {/* Selector de Modelo / Número de Pistas */}
+                <div className="max-w-4xl mx-auto mb-3 text-left">
+                  <p className="text-white/70 text-xs font-bold">Motor Demucs <span className="text-white/40 font-normal">— el de siempre</span></p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-8 text-left">
                   <div 
                     onClick={() => !isExtracting && setSelectedModel('htdemucs')}
@@ -4166,6 +4179,92 @@ const AudioStudioPro:React.FC=()=>{
                   </div>
                 </div>
 
+                <div className="max-w-4xl mx-auto mb-3 text-left flex items-center gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">Nuevo</span>
+                  <p className="text-white/70 text-xs font-bold">Motor BS-RoFormer <span className="text-white/40 font-normal">— modelo más reciente, separa más limpio (sobre todo la voz). Salida WAV 24-bit.</span></p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-8 text-left">
+                  <div
+                    onClick={() => !isExtracting && setSelectedModel('roformer_2')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'roformer_2'
+                        ? 'bg-emerald-600/15 border-emerald-500 shadow-lg shadow-emerald-950/40'
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-300 font-bold text-xs flex items-center justify-center">2</span>
+                        <h4 className="text-white font-bold text-sm">Voz + Instrumental</h4>
+                      </div>
+                      <input
+                        type="radio"
+                        name="modelSelect"
+                        checked={selectedModel === 'roformer_2'}
+                        onChange={() => setSelectedModel('roformer_2')}
+                        className="accent-emerald-500"
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">La voz más limpia posible y la pista sin voz. Lo mejor para karaoke y en vivo.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-md font-bold">Karaoke</span>
+                      <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-bold">Acapella limpia</span>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => !isExtracting && setSelectedModel('roformer_4')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'roformer_4'
+                        ? 'bg-emerald-600/15 border-emerald-500 shadow-lg shadow-emerald-950/40'
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center">4</span>
+                        <h4 className="text-white font-bold text-sm">4 Pistas</h4>
+                      </div>
+                      <input
+                        type="radio"
+                        name="modelSelect"
+                        checked={selectedModel === 'roformer_4'}
+                        onChange={() => setSelectedModel('roformer_4')}
+                        className="accent-emerald-500"
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">Voces, Batería, Bajo y Otros con menos “sangrado” entre pistas que Demucs.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">Mejor calidad</span>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => !isExtracting && setSelectedModel('roformer_6')}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedModel === 'roformer_6'
+                        ? 'bg-emerald-600/15 border-emerald-500 shadow-lg shadow-emerald-950/40'
+                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs flex items-center justify-center">6</span>
+                        <h4 className="text-white font-bold text-sm">6 Pistas</h4>
+                      </div>
+                      <input
+                        type="radio"
+                        name="modelSelect"
+                        checked={selectedModel === 'roformer_6'}
+                        onChange={() => setSelectedModel('roformer_6')}
+                        className="accent-emerald-500"
+                      />
+                    </div>
+                    <p className="text-white/50 text-[11px] mb-3">Voces, Batería, Bajo, Guitarras/Requintos, Pianos y Otros.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-md font-bold">Corridos / Sierreño</span>
+                    </div>
+                  </div>
+                </div>
+
                 <p className="text-[10px] text-white/30 max-w-xl mx-auto mb-5 leading-relaxed">
                   <i className="fas fa-circle-info mr-1.5"></i>
                   Para separar, el audio se sube a tu almacenamiento (dirección aleatoria imposible de adivinar, se borra al terminar) y se procesa en Replicate. Si el almacenamiento no está configurado, se usa un servidor temporal público (tmpfiles.org): en ese caso no subas música que no quieras exponer antes del estreno.
@@ -4177,7 +4276,7 @@ const AudioStudioPro:React.FC=()=>{
                     className="px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 mx-auto shadow-xl shadow-purple-900/30"
                   >
                     <i className="fas fa-wand-magic-sparkles text-lg"></i>
-                    Extraer {selectedModel === 'htdemucs_6s' ? '6 Pistas' : '4 Pistas'} Ahora
+                    Extraer {selectedModel === 'roformer_2' ? 'Voz + Instrumental' : selectedModel.endsWith('6s') || selectedModel === 'roformer_6' ? '6 Pistas' : '4 Pistas'} Ahora
                   </button>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
