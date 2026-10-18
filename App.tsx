@@ -33,6 +33,8 @@ const RutinasView = React.lazy(() => import('./components/RutinasView'));
 const OracionView = React.lazy(() => import('./components/OracionView'));
 const OracionesAdmin = React.lazy(() => import('./components/admin/OracionesAdmin'));
 const RutinasAdmin = React.lazy(() => import('./components/admin/RutinasAdmin'));
+const TiendaView = React.lazy(() => import('./components/TiendaView'));
+const TiendaAdmin = React.lazy(() => import('./components/admin/TiendaAdmin'));
 const MigracionTooLost = React.lazy(() => import('./components/admin/MigracionTooLost'));
 const DocumentacionIA = React.lazy(() => import('./components/admin/DocumentacionIA'));
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -611,6 +613,7 @@ const App: React.FC = () => {
                 <Route path="anuncio-studio" element={<AdminAuthWrapper><AnuncioStudio/></AdminAuthWrapper>} />
                 <Route path="oraciones" element={<AdminAuthWrapper><OracionesAdmin/></AdminAuthWrapper>} />
                 <Route path="rutinas" element={<AdminAuthWrapper><RutinasAdmin/></AdminAuthWrapper>} />
+                <Route path="tienda" element={<AdminAuthWrapper><TiendaAdmin/></AdminAuthWrapper>} />
                 <Route path="migracion" element={<AdminAuthWrapper><MigracionTooLost/></AdminAuthWrapper>} />
                 <Route path="documentacion-ia" element={<AdminAuthWrapper><DocumentacionIA/></AdminAuthWrapper>} />
                 {/* Cualquier ruta de admin que no exista vuelve al panel en vez de quedar en blanco */}
@@ -631,6 +634,7 @@ const App: React.FC = () => {
           <Route path="/letras" element={<SearchView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} />} />
           <Route path="/testimonios" element={<TestimoniosView />} />
           <Route path="/rutinas" element={<React.Suspense fallback={<div className="min-h-screen" />}><RutinasView catalog={combinedCatalog} onPlaySong={(song) => setState(p => ({ ...p, activeSong: song }))} /></React.Suspense>} />
+          <Route path="/tienda" element={<React.Suspense fallback={<div className="min-h-screen" />}><TiendaView /></React.Suspense>} />
           <Route path="/oracion" element={<React.Suspense fallback={<div className="min-h-screen" />}><OracionView /></React.Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

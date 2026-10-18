@@ -2124,6 +2124,7 @@ export default async function handler(
       xml += urlBlock(`${BASE}/bio/diosmasgym`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/bio/juan614`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/testimonios`, today, 'monthly', '0.7');
+      xml += urlBlock(`${BASE}/tienda`, today, 'weekly', '0.7');
       xml += urlBlock(`${BASE}/rutinas`, today, 'weekly', '0.8');
       xml += urlBlock(`${BASE}/oracion`, today, 'daily', '0.7');
       xml += urlBlock(`${BASE}/catalogo`, today, 'daily', '0.9');
@@ -2703,6 +2704,11 @@ ${sections}
         title: 'Muro de oración | Diosmasgym',
         description: 'Deja tu petición de oración y ora por otros. Una comunidad de fe que se levanta unida.',
         canonical: `${BASE}/oracion`,
+      },
+      '/tienda': {
+        title: 'Tienda oficial: gorras y ropa | Diosmasgym',
+        description: 'Merch oficial de Diosmasgym: gorras y ropa con propósito, hechas bajo pedido y enviadas a todo México. Paga con tarjeta, OXXO o Mercado Pago.',
+        canonical: `${BASE}/tienda`,
       },
       '/testimonios': {
         title: 'Testimonios | Diosmasgym',

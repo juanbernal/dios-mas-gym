@@ -19,6 +19,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
   const isTestimonios = location.pathname === '/testimonios';
   const isRutinas = location.pathname === '/rutinas';
   const isOracion = location.pathname === '/oracion';
+  const isTienda = location.pathname === '/tienda';
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, changeView }) => {
           <NavLink active={isRutinas} onClick={() => navigate('/rutinas')} label="Rutinas" />
           <NavLink active={isOracion} onClick={() => navigate('/oracion')} label="Oración" />
           <NavLink active={isTestimonios} onClick={() => navigate('/testimonios')} label="Testimonios" />
+          <NavLink active={isTienda} onClick={() => navigate('/tienda')} label="Tienda" />
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import http from "http";
 import commonHandler from "./api/common.ts";
 import separateAudioHandler from "./api/separate-audio.ts";
 import analyticsHandler from "./api/analytics.ts";
+import tiendaHandler from "./api/tienda.ts";
 
 dotenv.config({ path: ".env.local" });
 
@@ -34,6 +35,10 @@ async function startServer() {
 
   app.all("/api/analytics", (req, res) => {
     analyticsHandler(req as any, res as any);
+  });
+
+  app.all("/api/tienda", (req, res) => {
+    tiendaHandler(req as any, res as any);
   });
 
   app.all("/api/separate-audio", (req, res) => {

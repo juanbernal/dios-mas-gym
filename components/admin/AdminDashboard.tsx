@@ -167,6 +167,15 @@ const AdminDashboard: React.FC = () => {
             category: 'Gestión y Utilidades'
         },
         {
+            id: 'tienda',
+            title: 'Tienda de Merch',
+            description: 'Importa tus gorras y playeras de Printful, ponles precio en pesos y revisa los pedidos pagados con Mercado Pago.',
+            icon: 'fa-shirt',
+            color: '#009ee3',
+            route: '/admin/tienda',
+            category: 'Gestión y Utilidades'
+        },
+        {
             id: 'rutinas',
             title: 'Rutinas Fe + Gym',
             description: 'Crea y edita rutinas de casa y gym: ejercicios, series, descansos, fotos o GIFs, videos de técnica, portadas y partes del cuerpo.',

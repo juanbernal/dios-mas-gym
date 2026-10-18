@@ -646,9 +646,9 @@ const BANNERS = [
         id: 'merch',
         icon: 'fas fa-tshirt',
         title: 'MERCH OFICIAL',
-        text: 'Vístete con propósito. Descubre la nueva colección de gorras y playeras oficiales (Próximamente).',
+        text: 'Vístete con propósito. Descubre la colección de gorras y playeras oficiales.',
         buttonText: 'Ver Tienda',
-        url: 'https://diosmasgym.com/', 
+        url: 'https://www.diosmasgym.com/tienda', 
     },
     {
         id: 'social',
