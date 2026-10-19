@@ -903,7 +903,7 @@ export default async function handler(
       'blogger.googleusercontent.com', 'storage.googleapis.com', 'i.scdn.co',
       'mosaic.scdn.co', 'seeded-session-images.scdn.co', 'lineup-images.scdn.co',
       'is1-ssl.mzstatic.com', 'is2-ssl.mzstatic.com', 'is3-ssl.mzstatic.com',
-      'resources.tidal.com', 'cdns-images.dzcdn.net'
+      'resources.tidal.com', 'cdns-images.dzcdn.net', 'files.cdn.printful.com'
     ];
     try {
       const parsedUrl = new URL(imageUrl);
@@ -2710,7 +2710,7 @@ ${sections}
         description: 'Merch oficial de Diosmasgym: gorras y ropa con propósito, hechas bajo pedido y enviadas a todo México. Paga con tarjeta, OXXO o Mercado Pago.',
         canonical: `${BASE}/tienda`,
         // v= cambia la URL para que WhatsApp/Facebook no reusen la imagen vieja guardada
-        image: `${BASE}/api/og-image?type=tienda&v=2`,
+        image: `${BASE}/api/og-image?type=tienda&v=3`,
         imageAlt: 'Tienda oficial Diosmasgym: gorras y sudaderas',
       },
       '/testimonios': {

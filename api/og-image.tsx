@@ -81,12 +81,14 @@ function elegirProductos(lista: ProductoOg[], n: number): ProductoOg[] {
   return out;
 }
 
-// En Vercel las fotos de Printful no cargaban si se le pasaba la URL al generador
-// (salian los cuadros en blanco): se descargan aqui y van incrustadas. Si la grande
-// falla se usa la miniatura (_thumb, 165px) para que al menos se vea el producto.
+// El CDN de Printful no responde a las funciones edge de Vercel (salian los cuadros
+// en blanco), asi que las fotos se bajan por /api/image-proxy (funcion Node) y van
+// incrustadas. Si la grande falla se usa la miniatura (_thumb, 165px).
 async function fotoIncrustada(url: string): Promise<string> {
-  const candidatos = [url];
-  if (url.includes('_preview.png')) candidatos.push(url.replace('_preview.png', '_thumb.png'));
+  const proxy = (u: string) => `${BASE}/api/image-proxy?url=${encodeURIComponent(u)}`;
+  const candidatos = [proxy(url)];
+  if (url.includes('_preview.png')) candidatos.push(proxy(url.replace('_preview.png', '_thumb.png')));
+  candidatos.push(url);
   for (const u of candidatos) {
     try {
       const r = await fetch(u, {
