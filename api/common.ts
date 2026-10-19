@@ -2710,7 +2710,7 @@ ${sections}
         description: 'Merch oficial de Diosmasgym: gorras y ropa con propósito, hechas bajo pedido y enviadas a todo México. Paga con tarjeta, OXXO o Mercado Pago.',
         canonical: `${BASE}/tienda`,
         // v= cambia la URL para que WhatsApp/Facebook no reusen la imagen vieja guardada
-        image: `${BASE}/api/og-image?type=tienda&v=1`,
+        image: `${BASE}/api/og-image?type=tienda&v=2`,
         imageAlt: 'Tienda oficial Diosmasgym: gorras y sudaderas',
       },
       '/testimonios': {

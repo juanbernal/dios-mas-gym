@@ -81,15 +81,37 @@ function elegirProductos(lista: ProductoOg[], n: number): ProductoOg[] {
   return out;
 }
 
-const precioMx = (n: number) => `$${n.toLocaleString('es-MX')}`;
+// En Vercel las fotos de Printful no cargaban si se le pasaba la URL al generador
+// (salian los cuadros en blanco): se descargan aqui y van incrustadas. Si la grande
+// falla se usa la miniatura (_thumb, 165px) para que al menos se vea el producto.
+async function fotoIncrustada(url: string): Promise<string> {
+  const candidatos = [url];
+  if (url.includes('_preview.png')) candidatos.push(url.replace('_preview.png', '_thumb.png'));
+  for (const u of candidatos) {
+    try {
+      const r = await fetch(u, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DiosmasgymOG/1.0)', Accept: 'image/png,image/*' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!r.ok) continue;
+      const tipo = r.headers.get('content-type') || 'image/png';
+      return `data:${tipo};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`;
+    } catch { /* probar la miniatura */ }
+  }
+  return '';
+}
 
-function tiendaImage(productos: ProductoOg[]) {
+const precioMx =(n: number) => `$${n.toLocaleString('es-MX')}`;
+
+async function tiendaImage(productos: ProductoOg[]) {
   const h = React.createElement;
-  const elegidos = elegirProductos(productos, 4);
+  const elegidos = (await Promise.all(elegirProductos(productos, 4)
+    .map(async p => ({ ...p, imagen: await fotoIncrustada(p.imagen) }))))
+    .filter(p => p.imagen);
   const desde = productos.length ? Math.min(...productos.map(p => p.precio).filter(n => n > 0)) : 0;
 
   const card = (p: ProductoOg) => h('div', {
-    key: p.imagen,
+    key: p.nombre,
     style: {
       width: '262px', height: '262px', borderRadius: '22px', background: '#ffffff', display: 'flex',
       alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
@@ -152,7 +174,7 @@ export default async function handler(req: Request) {
     const { searchParams } = new URL(req.url);
 
     if (searchParams.get('type') === 'tienda') {
-      const png = new ImageResponse(tiendaImage(await productosTienda()), { width: 1200, height: 630 });
+      const png = new ImageResponse(await tiendaImage(await productosTienda()), { width: 1200, height: 630 });
       const jpeg = await pngToJpeg(await png.arrayBuffer());
       return new Response(jpeg, {
         headers: {
