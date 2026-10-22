@@ -9,6 +9,37 @@ const generateSlug = (text: string) => {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
+// Descarga un archivo y la corta si pasan `sinDatosMs` sin recibir nada: un fetch normal
+// se queda colgado para siempre cuando la conexion se cae a medias
+const descargarConLimite = async (url: string, onMb?: (mb: number) => void, sinDatosMs = 30000): Promise<ArrayBuffer> => {
+  const ctrl = new AbortController();
+  let timer = window.setTimeout(() => ctrl.abort(), sinDatosMs);
+  const reiniciar = () => { window.clearTimeout(timer); timer = window.setTimeout(() => ctrl.abort(), sinDatosMs); };
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.body) return await res.arrayBuffer();
+    const reader = res.body.getReader();
+    const partes: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      reiniciar();
+      partes.push(value);
+      total += value.length;
+      onMb?.(total / 1048576);
+    }
+    if (!total) throw new Error('Archivo vac\u00edo');
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const p of partes) { out.set(p, off); off += p.length; }
+    return out.buffer;
+  } finally {
+    window.clearTimeout(timer);
+  }
+};
+
 interface AudioMetadata {
   title: string;
   artist: string;
@@ -2186,9 +2217,7 @@ const AudioStudioPro:React.FC=()=>{
       setDownloadingStem(stemName);
       const baseName = (meta.title || fi?.name.replace(/\.[^.]+$/, '') || 'audio').replace(/[<>:"/\\|?*]/g, '').trim();
       const info = getStemInfo(stemName);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const arrayBuf = await res.arrayBuffer();
+      const arrayBuf = await descargarConLimite(url);
 
       // Inyectar metadatos ID3 oficiales en la pista WAV
       const covBytes = await getCoverBytes();
@@ -2232,9 +2261,7 @@ const AudioStudioPro:React.FC=()=>{
       const ac = new AudioCtxClass();
       const buffers: AudioBuffer[] = [];
       for (const [, url] of parts) {
-        const res = await fetch(url as string);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        buffers.push(await ac.decodeAudioData(await res.arrayBuffer()));
+        buffers.push(await ac.decodeAudioData(await descargarConLimite(url as string)));
       }
       const channels = Math.max(...buffers.map(b => b.numberOfChannels));
       const length = Math.max(...buffers.map(b => b.length));
@@ -2299,22 +2326,21 @@ const AudioStudioPro:React.FC=()=>{
       for (const [name, url] of stemsToExport) {
         count++;
         setZipProgress(`Descargando e incrustando metadatos en pista ${count} de ${stemsToExport.length} (${name})...`);
+        const etiqueta = `pista ${count} de ${stemsToExport.length} (${name})`;
         let rawBuf: ArrayBuffer | null = null;
-        try {
-          const res = await fetch(url as string);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          rawBuf = await res.arrayBuffer();
-        } catch (fetchErr) {
-          console.warn(`[ZIP] Falló descarga directa de ${name}, reintentando vía proxy...`, fetchErr);
+        // Hasta 3 intentos directos y luego el proxy; cada uno se corta si se queda sin recibir datos
+        const fuentes = [url as string, url as string, url as string, `https://api.allorigins.win/raw?url=${encodeURIComponent(url as string)}`];
+        for (let intento = 0; intento < fuentes.length && !rawBuf; intento++) {
           try {
-            const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url as string)}`);
-            if (proxyRes.ok) {
-              rawBuf = await proxyRes.arrayBuffer();
-            }
-          } catch {
-            rawBuf = null;
+            rawBuf = await descargarConLimite(fuentes[intento], mb => {
+              setZipProgress(`Descargando ${etiqueta}: ${mb.toFixed(1)} MB${intento ? ` (reintento ${intento})` : ''}...`);
+            });
+          } catch (fetchErr) {
+            console.warn(`[ZIP] Falló la descarga de ${name} (intento ${intento + 1})`, fetchErr);
+            setZipProgress(`Reintentando ${etiqueta}...`);
           }
         }
+        setZipProgress(`Incrustando metadatos en ${etiqueta}...`);
 
         if (!rawBuf || rawBuf.byteLength === 0) {
           console.warn(`[ZIP] Omitiendo pista ${name} porque no se pudo descargar el archivo binario.`);
