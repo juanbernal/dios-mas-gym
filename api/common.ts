@@ -660,17 +660,77 @@ async function getMigradas(): Promise<Set<string>> {
   return migradasCache.ids;
 }
 
-function quitarMigradas(csv: string, ids: Set<string>): string {
-  if (!ids.size) return csv;
-  return csv.split(/\r?\n/).filter(line => {
-    const m = line.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
-    return !(m && ids.has(m[1]));
-  }).join('\n');
+// Canal de YouTube de cada video del catalogo. La sincronizacion de la hoja busca "Juan 614" y se
+// trae videos de otros canales (Juan 14:6, Cesareo Gabarain...): solo se aceptan los canales propios.
+// El canal se pide al oEmbed de YouTube (sin cuota) y se guarda en Blob: un video no cambia de canal.
+// '?' = YouTube no lo dijo (video borrado o privado): esos se dejan.
+const esCanalPropio = (canal: string) => {
+  const c = canal.toLowerCase().replace(/\s*-\s*topic$/, '').normalize('NFD').replace(/[^a-z0-9]/g, '');
+  return c === 'juan614' || c.includes('diosmasgym');
+};
+let canalesCache: { at: number; data: Record<string, string> } | null = null;
+let canalesLlenando = false;
+
+async function getCanales(): Promise<Record<string, string>> {
+  if (canalesCache && Date.now() - canalesCache.at < 5 * 60 * 1000) return canalesCache.data;
+  try {
+    const snap = await readBlobSnapshot('canales-yt');
+    canalesCache = { at: Date.now(), data: snap ? JSON.parse(snap.body) || {} : {} };
+  } catch (e: any) {
+    console.error('[canales]', e?.message);
+    canalesCache = { at: Date.now(), data: canalesCache?.data || {} };
+  }
+  return canalesCache.data;
 }
 
-async function getCatalogCsv(artist: 'diosmasgym' | 'juan614', force = false): Promise<string> {
-  const [csv, ids] = await Promise.all([getMusicCsv(artist, force), getMigradas()]);
-  return quitarMigradas(csv, ids);
+async function completarCanales(ids: string[]): Promise<void> {
+  if (canalesLlenando || !ids.length) return;
+  canalesLlenando = true;
+  try {
+    const nuevos: Record<string, string> = {};
+    const lote = ids.slice(0, 300);
+    let i = 0;
+    await Promise.all(Array.from({ length: 10 }, async () => {
+      while (i < lote.length) {
+        const id = lote[i++];
+        try {
+          const r = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`, { signal: AbortSignal.timeout(5000) });
+          if (r.ok) nuevos[id] = String((await r.json())?.author_name || '?');
+          else if ([401, 403, 404].includes(r.status)) nuevos[id] = '?';
+        } catch { /* se reintenta en la siguiente visita */ }
+      }
+    }));
+    if (!Object.keys(nuevos).length) return;
+    canalesCache = null;
+    const data = { ...(await getCanales()), ...nuevos };
+    canalesCache = { at: Date.now(), data };
+    await writeBlobSnapshot('canales-yt', { savedAt: Date.now(), body: JSON.stringify(data) });
+  } finally {
+    canalesLlenando = false;
+  }
+}
+
+function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>): { csv: string; sinCanal: string[] } {
+  const sinCanal: string[] = [];
+  const lineas = csv.split(/\r?\n/).filter(line => {
+    const id = line.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/)?.[1];
+    if (!id) return true;
+    if (migradas.has(id)) return false;
+    const canal = canales[id];
+    if (canal === undefined) { sinCanal.push(id); return true; }
+    return canal === '?' || esCanalPropio(canal);
+  });
+  return { csv: lineas.join('\n'), sinCanal };
+}
+
+// incluirMigradas: el panel de migracion necesita ver tambien lo ya migrado
+async function getCatalogCsv(artist: 'diosmasgym' | 'juan614', force = false, incluirMigradas = false): Promise<string> {
+  const [csv, migradas, canales] = await Promise.all([
+    getMusicCsv(artist, force), incluirMigradas ? new Set<string>() : getMigradas(), getCanales(),
+  ]);
+  const r = filtrarCatalogo(csv, migradas, canales);
+  if (r.sinCanal.length) waitUntil(completarCanales(r.sinCanal).catch(e => console.error('[canales] llenar:', e?.message)));
+  return r.csv;
 }
 
 async function fetchLyricsFromSheets(): Promise<any[]> {
@@ -1502,7 +1562,7 @@ export default async function handler(
       // Copia rapida al instante; refresh fuerza leer la hoja de Google en el momento
       // ?todas=1 (solo admin) incluye las canciones ya migradas, para el panel de migracion
       const todas = req.query.todas === '1' && verifyAdminPassword(req);
-      const csvData = todas ? await getMusicCsv(artist, refresh) : await getCatalogCsv(artist, refresh);
+      const csvData = await getCatalogCsv(artist, refresh, todas);
       res.setHeader('Cache-Control', refresh || todas
         ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
         : 'public, s-maxage=300, stale-while-revalidate=86400');
