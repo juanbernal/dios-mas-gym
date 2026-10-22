@@ -2321,38 +2321,44 @@ const AudioStudioPro:React.FC=()=>{
       const folder = zip.folder(`${baseName}_Stems`) || zip;
       const covBytes = await getCoverBytes();
 
-      let count = 0;
+      // Se bajan 3 pistas a la vez (una por una tardaba mucho: cada WAV pesa ~50 MB)
+      const total = stemsToExport.length;
+      const mbPorPista: Record<string, number> = {};
+      let listas = 0;
       let successCount = 0;
-      for (const [name, url] of stemsToExport) {
-        count++;
-        setZipProgress(`Descargando e incrustando metadatos en pista ${count} de ${stemsToExport.length} (${name})...`);
-        const etiqueta = `pista ${count} de ${stemsToExport.length} (${name})`;
+      const mostrar = () => {
+        const mb = Object.values(mbPorPista).reduce((a, b) => a + b, 0);
+        setZipProgress(`Descargando pistas: ${listas} de ${total} listas · ${mb.toFixed(1)} MB...`);
+      };
+      const bajarPista = async (name: string, url: string) => {
         let rawBuf: ArrayBuffer | null = null;
         // Hasta 3 intentos directos y luego el proxy; cada uno se corta si se queda sin recibir datos
-        const fuentes = [url as string, url as string, url as string, `https://api.allorigins.win/raw?url=${encodeURIComponent(url as string)}`];
+        const fuentes = [url, url, url, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
         for (let intento = 0; intento < fuentes.length && !rawBuf; intento++) {
           try {
-            rawBuf = await descargarConLimite(fuentes[intento], mb => {
-              setZipProgress(`Descargando ${etiqueta}: ${mb.toFixed(1)} MB${intento ? ` (reintento ${intento})` : ''}...`);
-            });
+            rawBuf = await descargarConLimite(fuentes[intento], mb => { mbPorPista[name] = mb; mostrar(); });
           } catch (fetchErr) {
             console.warn(`[ZIP] Falló la descarga de ${name} (intento ${intento + 1})`, fetchErr);
-            setZipProgress(`Reintentando ${etiqueta}...`);
+            mbPorPista[name] = 0;
           }
         }
-        setZipProgress(`Incrustando metadatos en ${etiqueta}...`);
-
         if (!rawBuf || rawBuf.byteLength === 0) {
           console.warn(`[ZIP] Omitiendo pista ${name} porque no se pudo descargar el archivo binario.`);
-          continue;
+          return;
         }
-
         const info = getStemInfo(name);
         // Inyectar metadatos ID3 completos en cada WAV dentro del archivo ZIP
         const tagged = await injectId3ToWav(rawBuf, info.title, name, covBytes);
         folder.file(`${baseName}_${name}.wav`, tagged);
         successCount++;
-      }
+        listas++;
+        mostrar();
+      };
+      const cola = [...stemsToExport];
+      await Promise.all(Array.from({ length: Math.min(3, total) }, async () => {
+        for (let sig = cola.shift(); sig; sig = cola.shift()) await bajarPista(sig[0], sig[1] as string);
+      }));
+      mostrar();
 
       if (successCount === 0) {
         throw new Error('No se pudo descargar ninguna de las pistas de audio para empaquetar en el ZIP.');
