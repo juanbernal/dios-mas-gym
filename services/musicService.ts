@@ -1,4 +1,5 @@
 import { MusicItem } from '../types';
+import { syncFetch } from './adminSync';
 
 const generateSlug = (text: string) => {
     return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -103,6 +104,13 @@ const doFetch = async (artist: string, forceRefresh = false): Promise<MusicItem[
   
   const csvText = await response.text();
   return parseMusicCSV(csvText);
+};
+
+// Catalogo completo, incluidas las canciones ya migradas a TooLost (solo para el panel de admin)
+export const fetchMusicCatalogCompleto = async (artist: 'diosmasgym' | 'juan614'): Promise<MusicItem[]> => {
+  const res = await syncFetch(`/api/music?artist=${artist}&todas=1&t=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`No se pudo leer el catálogo de ${artist} (${res.status})`);
+  return parseMusicCSV(await res.text());
 };
 
 const isNonMusicOrForeign = (title: string): boolean => {

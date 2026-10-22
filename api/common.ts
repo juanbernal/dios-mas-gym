@@ -643,6 +643,36 @@ function getMusicCsv(artist: 'diosmasgym' | 'juan614', force = false): Promise<s
   return getSnapshotted(`music-${artist}`, () => fetchMusicCsvFromSheets(artist), csv => parseCSV(csv).length > 0, force);
 }
 
+// Canciones ya migradas a TooLost (marcadas en Admin > Migracion): el link viejo de la
+// distribuidora anterior se quita del catalogo publico. El panel de migracion pide todo con ?todas=1
+let migradasCache: { at: number; ids: Set<string> } | null = null;
+async function getMigradas(): Promise<Set<string>> {
+  if (migradasCache && Date.now() - migradasCache.at < 60 * 1000) return migradasCache.ids;
+  try {
+    const snap = await readBlobSnapshot('migracion');
+    const pistas = snap ? JSON.parse(snap.body)?.pistas || {} : {};
+    migradasCache = { at: Date.now(), ids: new Set(Object.keys(pistas).filter(k => pistas[k] === true)) };
+  } catch (e: any) {
+    // Si Blob falla se conserva la lista anterior
+    console.error('[migradas]', e?.message);
+    migradasCache = { at: Date.now(), ids: migradasCache?.ids || new Set() };
+  }
+  return migradasCache.ids;
+}
+
+function quitarMigradas(csv: string, ids: Set<string>): string {
+  if (!ids.size) return csv;
+  return csv.split(/\r?\n/).filter(line => {
+    const m = line.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/);
+    return !(m && ids.has(m[1]));
+  }).join('\n');
+}
+
+async function getCatalogCsv(artist: 'diosmasgym' | 'juan614', force = false): Promise<string> {
+  const [csv, ids] = await Promise.all([getMusicCsv(artist, force), getMigradas()]);
+  return quitarMigradas(csv, ids);
+}
+
 async function fetchLyricsFromSheets(): Promise<any[]> {
   // 1. Pestana publicada como CSV (si esta configurada)
   const CSV_URL_LYRICS = process.env.CSV_URL_LYRICS;
@@ -751,7 +781,7 @@ const refreshMainSheetSoon = () => waitUntil(getMainSheetRows(true).catch(e => c
 
 async function fetchAllMusic(): Promise<MusicItem[]> {
   try {
-    const [dCsv, jCsv] = await Promise.all([getMusicCsv('diosmasgym'), getMusicCsv('juan614')]);
+    const [dCsv, jCsv] = await Promise.all([getCatalogCsv('diosmasgym'), getCatalogCsv('juan614')]);
     return [...parseCSV(dCsv), ...parseCSV(jCsv)];
   } catch (e) {
     console.error("Error fetching/parsing CSVs in SSR:", e);
@@ -1063,8 +1093,8 @@ export default async function handler(
     try {
       // 1. Fetch official music catalogs of Diosmasgym and Juan 614
       const [csvDios, csvJuan] = await Promise.allSettled([
-        getMusicCsv('diosmasgym'),
-        getMusicCsv('juan614'),
+        getCatalogCsv('diosmasgym'),
+        getCatalogCsv('juan614'),
       ]);
 
       const musicDios = csvDios.status === 'fulfilled' ? parseCSV(csvDios.value) : [];
@@ -1470,8 +1500,10 @@ export default async function handler(
 
     try {
       // Copia rapida al instante; refresh fuerza leer la hoja de Google en el momento
-      const csvData = await getMusicCsv(artist, refresh);
-      res.setHeader('Cache-Control', refresh
+      // ?todas=1 (solo admin) incluye las canciones ya migradas, para el panel de migracion
+      const todas = req.query.todas === '1' && verifyAdminPassword(req);
+      const csvData = todas ? await getMusicCsv(artist, refresh) : await getCatalogCsv(artist, refresh);
+      res.setHeader('Cache-Control', refresh || todas
         ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
         : 'public, s-maxage=300, stale-while-revalidate=86400');
       res.setHeader('Content-Type', 'text/csv');
@@ -1747,6 +1779,7 @@ export default async function handler(
     const data = { discos, pistas, updatedAt: Date.now() };
     try {
       await writeBlobSnapshot('migracion', { savedAt: Date.now(), body: JSON.stringify(data) });
+      migradasCache = null;
       return res.status(200).json({ success: true, updatedAt: data.updatedAt });
     } catch (e: any) {
       return res.status(500).json({ error: 'No se pudo guardar', details: e?.message });
