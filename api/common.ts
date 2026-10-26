@@ -788,35 +788,29 @@ function letraOculta(titulo: string, v: Vigencia): boolean {
   return claves.some(k => v.viejas.has(k)) && !claves.some(k => v.vigentes.has(k));
 }
 
-function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>, vigencia?: Vigencia): { csv: string; sinCanal: string[] } {
+// soloNuevas: el catalogo publico solo lleva lo publicado desde el inicio de la migracion; lo de la
+// distribuidora anterior (todos sus videos son "- Topic") ya no esta en las plataformas
+function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>, soloNuevas = false): { csv: string; sinCanal: string[] } {
   const sinCanal: string[] = [];
   const filas = filasCsv(csv).flatMap(fila => {
     const id = fila.match(YT_ID_RE)?.[1];
     if (!id) return [fila];
     if (migradas.has(id)) return [];
+    if (soloNuevas && sinComillas(camposFila(fila)[5]) < MIGRACION_INICIO) return [];
     const canal = canales[id];
     if (canal === undefined) sinCanal.push(id);
     else if (canal !== '?' && !esCanalPropio(canal)) return [];
-    // Letra (columna 7) de una cancion que aun no se vuelve a publicar: se quita
-    if (vigencia) {
-      const campos = camposFila(fila);
-      if (campos.length > 6 && sinComillas(campos[6]) && letraOculta(sinComillas(campos[0]), vigencia)) {
-        campos[6] = '';
-        return [campos.join(',')];
-      }
-    }
     return [fila];
   });
   return { csv: filas.join('\n'), sinCanal };
 }
 
-// incluirMigradas: el panel de migracion necesita ver tambien lo ya migrado (y todas las letras)
+// incluirMigradas: el panel de migracion necesita ver todo el catalogo, tambien lo viejo y lo ya migrado
 async function getCatalogCsv(artist: 'diosmasgym' | 'juan614', force = false, incluirMigradas = false): Promise<string> {
-  const [csv, migradas, canales, vigencia] = await Promise.all([
+  const [csv, migradas, canales] = await Promise.all([
     getMusicCsv(artist, force), incluirMigradas ? new Set<string>() : getMigradas(), getCanales(),
-    incluirMigradas ? undefined : getVigencia(),
   ]);
-  const r = filtrarCatalogo(csv, migradas, canales, vigencia);
+  const r = filtrarCatalogo(csv, migradas, canales, !incluirMigradas);
   if (r.sinCanal.length) waitUntil(completarCanales(r.sinCanal).catch(e => console.error('[canales] llenar:', e?.message)));
   return r.csv;
 }
