@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchMusicCatalogCompleto, fetchAllSavedLyrics } from '../../services/musicService';
 import {
   DatosDisco, Disco, ESTADOS, Estado, EstadoMigracion, GENEROS, Meta,
-  armarDiscos, cargarEstado, cargarMetadatos, exportarCSV, fichaDisco, guardarEstado,
+  armarDiscos, cargarEstado, conEstadoPistas, estadoPista, cargarMetadatos, exportarCSV, fichaDisco, guardarEstado,
 } from '../../services/migracionService';
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -78,14 +78,10 @@ const MigracionTooLost: React.FC = () => {
     cambiar(e => ({ ...e, discos: { ...e.discos, [key]: { ...(e.discos[key] || { estado: 'pendiente' }), ...datos } } }));
   const setEstadoDisco = (d: Disco, est: Estado) => {
     setDisco(d.key, { estado: est, fecha: Date.now() });
-    // Al marcarlo subido o publicado, se marcan todas sus pistas
-    if (est === 'subido' || est === 'publicado') cambiar(e => ({ ...e, pistas: { ...e.pistas, ...Object.fromEntries(d.pistas.map(p => [p.id, true])) } }));
+    // El estado del disco pasa a todas sus canciones; luego cada una se puede cambiar sola
+    cambiar(e => conEstadoPistas(e, d.pistas.map(p => p.id), est));
   };
-  const togglePista = (id: string) => cambiar(e => {
-    const pistas = { ...e.pistas };
-    if (pistas[id]) delete pistas[id]; else pistas[id] = true;
-    return { ...e, pistas };
-  });
+  const setEstadoPista = (id: string, est: Estado) => cambiar(e => conEstadoPistas(e, [id], est));
 
   const estadoDe = (d: Disco): Estado => estado.discos[d.key]?.estado || 'pendiente';
 
@@ -93,7 +89,12 @@ const MigracionTooLost: React.FC = () => {
   const visibles = useMemo(() => {
     const t = norm(q);
     return delArtista
-      .filter(d => filtroEstado === 'todos' || (filtroEstado === 'faltan' ? !['subido', 'publicado', 'omitir'].includes(estadoDe(d)) : estadoDe(d) === filtroEstado))
+      // El filtro tambien encuentra el disco si alguna de sus canciones tiene ese estado
+      .filter(d => {
+        if (filtroEstado === 'todos') return true;
+        const estados = [estadoDe(d), ...d.pistas.map(p => estadoPista(estado, p.id))];
+        return filtroEstado === 'faltan' ? estados.some(s => !['subido', 'publicado', 'omitir'].includes(s)) : estados.includes(filtroEstado as Estado);
+      })
       .filter(d => tipo === 'todos' || d.tipo === tipo)
       .filter(d => !t || norm(`${d.nombre} ${d.pistas.map(p => p.titulo).join(' ')}`).includes(t))
       .sort((a, b) => (a.tipo === 'Sin disco' ? 1 : 0) - (b.tipo === 'Sin disco' ? 1 : 0) || (orden === 'viejos' ? a.fecha.localeCompare(b.fecha) : b.fecha.localeCompare(a.fecha)));
@@ -249,26 +250,30 @@ const MigracionTooLost: React.FC = () => {
                     {abiertoEste && (
                       <div className="border-t border-white/10 p-4 grid md:grid-cols-[1fr_260px] gap-5">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45 mb-2">Canciones (marca cada una al subirla)</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45 mb-2">Canciones (cada una tiene su propio estado)</p>
                           <ol className="flex flex-col gap-1">
-                            {d.pistas.map((p, i) => (
-                              <li key={p.id} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/5">
-                                <button onClick={() => togglePista(p.id)} aria-pressed={!!estado.pistas[p.id]} aria-label={`Marcar ${p.titulo} como subida`}
-                                  className={`mt-0.5 w-5 h-5 rounded-md border flex-shrink-0 flex items-center justify-center text-[9px] ${estado.pistas[p.id] ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/25'}`}>
-                                  {estado.pistas[p.id] && <i className="fas fa-check"></i>}
-                                </button>
+                            {d.pistas.map((p, i) => {
+                              const estP = estadoPista(estado, p.id);
+                              const infoP = ESTADOS.find(s => s.id === estP)!;
+                              const hecha = estP === 'subido' || estP === 'publicado';
+                              return (
+                              <li key={p.id} className="flex flex-wrap items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/5">
                                 <span className="text-xs text-white/40 w-5 text-right mt-0.5">{i + 1}.</span>
                                 <span className="min-w-0 flex-1">
-                                  <span className={`block text-sm ${estado.pistas[p.id] ? 'text-white/45 line-through' : 'text-white/90'}`}>{p.titulo}</span>
+                                  <span className={`block text-sm ${hecha ? 'text-white/45 line-through' : estP === 'omitir' ? 'text-white/35' : 'text-white/90'}`}>{p.titulo}</span>
                                   {p.creditos && <span className="block text-[10px] text-white/35 truncate">{p.creditos}</span>}
                                   {p.otrosDiscos.length > 0 && <span className="block text-[10px] text-amber-300/80"><i className="fas fa-layer-group mr-1"></i>También en: {p.otrosDiscos.join(', ')}</span>}
                                 </span>
-                                <span className="flex gap-1 flex-shrink-0">
+                                <span className="flex gap-1 flex-shrink-0 items-center">
+                                  <select value={estP} onChange={e => setEstadoPista(p.id, e.target.value as Estado)} className={`rounded-md border px-1.5 py-1 text-[10px] font-black max-w-[130px] ${infoP.color}`} aria-label={`Estado de ${p.titulo}`}>
+                                    {ESTADOS.map(s => <option key={s.id} value={s.id} className="bg-[#0a1322] text-white">{s.label}</option>)}
+                                  </select>
                                   {p.letra && <button onClick={() => copiar(p.letra!, avisar, 'Letra')} className="px-2 py-1 rounded-md bg-white/5 text-[10px] text-white/70 hover:bg-white/10" title="Copiar letra"><i className="fas fa-align-left mr-1"></i>Letra</button>}
                                   <a href={p.url} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded-md bg-white/5 text-[10px] text-white/70 hover:bg-white/10" title="Escuchar en YouTube Music"><i className="fab fa-youtube"></i></a>
                                 </span>
                               </li>
-                            ))}
+                              );
+                            })}
                           </ol>
                           <p className="text-[10px] text-white/35 mt-2">El orden es el de tu catálogo; confírmalo con el disco original antes de subir.</p>
                         </div>

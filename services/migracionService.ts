@@ -28,7 +28,22 @@ export interface Disco {
   generoSugerido: string; genero2Sugerido: string;
 }
 export interface DatosDisco { estado: Estado; genero?: string; genero2?: string; nota?: string; upc?: string; fecha?: number }
-export interface EstadoMigracion { discos: Record<string, DatosDisco>; pistas: Record<string, boolean>; updatedAt?: number }
+// pistas: canciones ya subidas (subido o publicado), es lo que usa el sitio para saber que ya se migro.
+// estadosPista: el estado de cada cancion suelta (sin guardar = pendiente)
+export interface EstadoMigracion { discos: Record<string, DatosDisco>; pistas: Record<string, boolean>; estadosPista?: Record<string, Estado>; updatedAt?: number }
+
+export const estadoPista = (e: EstadoMigracion, id: string): Estado => e.estadosPista?.[id] || (e.pistas[id] ? 'subido' : 'pendiente');
+
+// Cambia el estado de varias canciones y mantiene al dia la lista de subidas
+export const conEstadoPistas = (e: EstadoMigracion, ids: string[], est: Estado): EstadoMigracion => {
+  const pistas = { ...e.pistas };
+  const estadosPista = { ...(e.estadosPista || {}) };
+  ids.forEach(id => {
+    if (est === 'pendiente') delete estadosPista[id]; else estadosPista[id] = est;
+    if (est === 'subido' || est === 'publicado') pistas[id] = true; else delete pistas[id];
+  });
+  return { ...e, pistas, estadosPista };
+};
 
 const youtubeId = (url: string) => url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/)?.[1] || null;
 
@@ -132,7 +147,7 @@ export async function cargarEstado(): Promise<EstadoMigracion> {
     const j = await res.json();
     const srv: EstadoMigracion | null = j?.data && typeof j.data === 'object' ? j.data : null;
     // Gana la copia mas reciente
-    if (srv && (srv.updatedAt || 0) >= (local.updatedAt || 0)) return { discos: srv.discos || {}, pistas: srv.pistas || {}, updatedAt: srv.updatedAt };
+    if (srv && (srv.updatedAt || 0) >= (local.updatedAt || 0)) return { discos: srv.discos || {}, pistas: srv.pistas || {}, estadosPista: srv.estadosPista || {}, updatedAt: srv.updatedAt };
   } catch { /* sin servidor: usar la local */ }
   return local;
 }
@@ -166,13 +181,13 @@ export const fichaDisco = (d: Disco, datos: DatosDisco | undefined): string => [
 
 export const exportarCSV = (discos: Disco[], estado: EstadoMigracion): string => {
   const q = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const filas = [['Artista', 'Disco', 'Tipo', 'Fecha original', 'Sello', 'Pista', 'Título', 'Créditos', 'Género', 'Género 2', 'Estado', 'Pista subida', 'Tiene letra', 'YouTube']];
+  const filas = [['Artista', 'Disco', 'Tipo', 'Fecha original', 'Sello', 'Pista', 'Título', 'Créditos', 'Género', 'Género 2', 'Estado', 'Estado de la canción', 'Tiene letra', 'YouTube']];
   discos.forEach(d => {
     const dd = estado.discos[d.key];
     d.pistas.forEach((p, i) => filas.push([
       d.artista, d.nombre, d.tipo, d.fecha, d.sello, String(i + 1), p.titulo, p.creditos,
       dd?.genero || d.generoSugerido, dd?.genero2 || d.genero2Sugerido, dd?.estado || 'pendiente',
-      estado.pistas[p.id] ? 'sí' : 'no', p.letra ? 'sí' : 'no', p.url,
+      ESTADOS.find(s => s.id === estadoPista(estado, p.id))!.label, p.letra ? 'sí' : 'no', p.url,
     ]));
   });
   return '﻿' + filas.map(f => f.map(q).join(',')).join('\n');

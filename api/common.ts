@@ -793,10 +793,12 @@ function letraOculta(titulo: string, v: Vigencia): boolean {
 function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>, soloNuevas = false): { csv: string; sinCanal: string[] } {
   const sinCanal: string[] = [];
   const filas = filasCsv(csv).flatMap(fila => {
+    // Tambien las filas con link de Apple Music; el encabezado y la fila del artista no tienen fecha
+    const fecha = sinComillas(camposFila(fila)[5]);
+    if (soloNuevas && /^\d{4}-\d{2}-\d{2}/.test(fecha) && fecha < MIGRACION_INICIO) return [];
     const id = fila.match(YT_ID_RE)?.[1];
     if (!id) return [fila];
     if (migradas.has(id)) return [];
-    if (soloNuevas && sinComillas(camposFila(fila)[5]) < MIGRACION_INICIO) return [];
     const canal = canales[id];
     if (canal === undefined) sinCanal.push(id);
     else if (canal !== '?' && !esCanalPropio(canal)) return [];
@@ -1926,7 +1928,14 @@ export default async function handler(
     });
     const pistas: Record<string, boolean> = {};
     Object.entries(body?.data?.pistas || {}).slice(0, 5000).forEach(([k, v]) => { if (/^[\w-]{11}$/.test(k) && v === true) pistas[k] = true; });
-    const data = { discos, pistas, updatedAt: Date.now() };
+    // Estado de cada cancion suelta; subido/publicado tambien la cuenta como migrada
+    const estadosPista: Record<string, string> = {};
+    Object.entries(body?.data?.estadosPista || {}).slice(0, 5000).forEach(([k, v]: [string, any]) => {
+      if (!/^[\w-]{11}$/.test(k) || !ESTADOS.includes(v) || v === 'pendiente') return;
+      estadosPista[k] = v;
+      if (v === 'subido' || v === 'publicado') pistas[k] = true; else delete pistas[k];
+    });
+    const data = { discos, pistas, estadosPista, updatedAt: Date.now() };
     try {
       await writeBlobSnapshot('migracion', { savedAt: Date.now(), body: JSON.stringify(data) });
       migradasCache = null;
