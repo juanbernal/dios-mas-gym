@@ -710,25 +710,113 @@ async function completarCanales(ids: string[]): Promise<void> {
   }
 }
 
-function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>): { csv: string; sinCanal: string[] } {
-  const sinCanal: string[] = [];
-  const lineas = csv.split(/\r?\n/).filter(line => {
-    const id = line.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/)?.[1];
-    if (!id) return true;
-    if (migradas.has(id)) return false;
-    const canal = canales[id];
-    if (canal === undefined) { sinCanal.push(id); return true; }
-    return canal === '?' || esCanalPropio(canal);
-  });
-  return { csv: lineas.join('\n'), sinCanal };
+const YT_ID_RE = /(?:v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([\w-]{11})/;
+
+// Filas del CSV respetando las comillas: la letra ocupa varias lineas dentro de una sola fila
+function filasCsv(csv: string): string[] {
+  const filas: string[] = [];
+  let fila = '';
+  let enComillas = false;
+  for (const ch of csv) {
+    if (ch === '"') enComillas = !enComillas;
+    if (ch === '\n' && !enComillas) { filas.push(fila.replace(/\r$/, '')); fila = ''; } else fila += ch;
+  }
+  if (fila) filas.push(fila.replace(/\r$/, ''));
+  return filas;
 }
 
-// incluirMigradas: el panel de migracion necesita ver tambien lo ya migrado
+// Campos de una fila tal cual (con sus comillas), para poder volver a unirla igual
+function camposFila(fila: string): string[] {
+  const campos: string[] = [];
+  let campo = '';
+  let enComillas = false;
+  for (const ch of fila) {
+    if (ch === '"') enComillas = !enComillas;
+    if (ch === ',' && !enComillas) { campos.push(campo); campo = ''; } else campo += ch;
+  }
+  campos.push(campo);
+  return campos;
+}
+
+const sinComillas = (v = '') => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"').trim();
+
+// Migracion a TooLost (empezo el 13 oct 2026): las canciones de la distribuidora anterior ya no estan
+// en las plataformas y su letra se oculta hasta volver a publicarlas (algunas cambian de cantante).
+// Una cancion cuenta como publicada otra vez si se marco subida en Admin > Migracion o si su video
+// nuevo (con fecha desde el inicio de la migracion) ya entro al catalogo. Las letras de canciones que
+// no estaban en el catalogo viejo no se tocan.
+const MIGRACION_INICIO = '2026-10-13';
+
+// "Anacronica (Corrido Tumbado)" tambien cuenta como "Anacronica"
+const clavesTitulo = (titulo: string): string[] => {
+  const completo = generateSlug(titulo);
+  const base = generateSlug(titulo.replace(/\s*[([][^)\]]*[)\]]/g, ''));
+  return [completo, base].filter((k, i, a) => k && a.indexOf(k) === i);
+};
+
+interface Vigencia { viejas: Set<string>; vigentes: Set<string> }
+let vigenciaCache: { at: number; data: Vigencia } | null = null;
+
+async function getVigencia(): Promise<Vigencia> {
+  if (vigenciaCache && Date.now() - vigenciaCache.at < 60 * 1000) return vigenciaCache.data;
+  const viejas = new Set<string>();
+  const vigentes = new Set<string>();
+  try {
+    const [dCsv, jCsv, migradas, canales] = await Promise.all([getMusicCsv('diosmasgym'), getMusicCsv('juan614'), getMigradas(), getCanales()]);
+    for (const fila of [...filasCsv(dCsv), ...filasCsv(jCsv)]) {
+      const id = fila.match(YT_ID_RE)?.[1];
+      if (!id) continue;
+      const canal = canales[id];
+      if (canal && canal !== '?' && !esCanalPropio(canal)) continue;
+      const campos = camposFila(fila);
+      const nombre = sinComillas(campos[0]);
+      if (!nombre) continue;
+      const destino = migradas.has(id) || sinComillas(campos[5]) >= MIGRACION_INICIO ? vigentes : viejas;
+      clavesTitulo(nombre).forEach(k => destino.add(k));
+    }
+  } catch (e: any) {
+    // Sin catalogo no se oculta nada: mejor una letra de mas que esconderlas todas
+    console.error('[vigencia]', e?.message);
+    if (vigenciaCache) return vigenciaCache.data;
+  }
+  vigenciaCache = { at: Date.now(), data: { viejas, vigentes } };
+  return vigenciaCache.data;
+}
+
+function letraOculta(titulo: string, v: Vigencia): boolean {
+  const claves = clavesTitulo(titulo || '');
+  return claves.some(k => v.viejas.has(k)) && !claves.some(k => v.vigentes.has(k));
+}
+
+function filtrarCatalogo(csv: string, migradas: Set<string>, canales: Record<string, string>, vigencia?: Vigencia): { csv: string; sinCanal: string[] } {
+  const sinCanal: string[] = [];
+  const filas = filasCsv(csv).flatMap(fila => {
+    const id = fila.match(YT_ID_RE)?.[1];
+    if (!id) return [fila];
+    if (migradas.has(id)) return [];
+    const canal = canales[id];
+    if (canal === undefined) sinCanal.push(id);
+    else if (canal !== '?' && !esCanalPropio(canal)) return [];
+    // Letra (columna 7) de una cancion que aun no se vuelve a publicar: se quita
+    if (vigencia) {
+      const campos = camposFila(fila);
+      if (campos.length > 6 && sinComillas(campos[6]) && letraOculta(sinComillas(campos[0]), vigencia)) {
+        campos[6] = '';
+        return [campos.join(',')];
+      }
+    }
+    return [fila];
+  });
+  return { csv: filas.join('\n'), sinCanal };
+}
+
+// incluirMigradas: el panel de migracion necesita ver tambien lo ya migrado (y todas las letras)
 async function getCatalogCsv(artist: 'diosmasgym' | 'juan614', force = false, incluirMigradas = false): Promise<string> {
-  const [csv, migradas, canales] = await Promise.all([
+  const [csv, migradas, canales, vigencia] = await Promise.all([
     getMusicCsv(artist, force), incluirMigradas ? new Set<string>() : getMigradas(), getCanales(),
+    incluirMigradas ? undefined : getVigencia(),
   ]);
-  const r = filtrarCatalogo(csv, migradas, canales);
+  const r = filtrarCatalogo(csv, migradas, canales, vigencia);
   if (r.sinCanal.length) waitUntil(completarCanales(r.sinCanal).catch(e => console.error('[canales] llenar:', e?.message)));
   return r.csv;
 }
@@ -811,8 +899,14 @@ async function getLyricsListRaw(force = false): Promise<any[]> {
   }
 }
 
+// Letras que se muestran en el sitio: sin las de canciones que aun no se vuelven a publicar
+async function getLetrasPublicas(force = false): Promise<any[]> {
+  const [lista, vigencia] = await Promise.all([getLyricsList(force), getVigencia()]);
+  return lista.filter(l => !letraOculta(String(l.title || ''), vigencia));
+}
+
 async function getStoredLyrics(): Promise<any[]> {
-  return getLyricsList();
+  return getLetrasPublicas();
 }
 
 // Hoja principal (proximos lanzamientos + filas CONFIG_ de mantenimiento y testimonios).
@@ -1418,10 +1512,12 @@ export default async function handler(
       const isRefresh = req.query.refresh === 'true' || req.query.refresh === '1';
       // Cache corta: con 1h (+24h stale) una letra recien guardada no aparecia en /letra/:id
       // hasta horas despues (el HTML del servidor la mostraba y al hidratar desaparecia).
-      const cacheHeader = isRefresh ? 'no-store, max-age=0' : 'public, s-maxage=60, stale-while-revalidate=300';
+      // ?todas=1 (solo admin) incluye las letras ocultas por la migracion, para las herramientas del panel
+      const todas = req.query.todas === '1' && verifyAdminPassword(req);
+      const cacheHeader = isRefresh || todas ? 'no-store, max-age=0' : 'public, s-maxage=60, stale-while-revalidate=300';
       try {
         // Copia rapida al instante; refresh=1 (admin) fuerza leer Google Sheets en el momento
-        const lyricsList = await getLyricsList(isRefresh);
+        const lyricsList = todas ? await getLyricsList(isRefresh) : await getLetrasPublicas(isRefresh);
         res.setHeader('Cache-Control', cacheHeader);
         return res.status(200).json({ lyrics: lyricsList });
       } catch (error: any) {
@@ -1840,6 +1936,7 @@ export default async function handler(
     try {
       await writeBlobSnapshot('migracion', { savedAt: Date.now(), body: JSON.stringify(data) });
       migradasCache = null;
+      vigenciaCache = null;
       return res.status(200).json({ success: true, updatedAt: data.updatedAt });
     } catch (e: any) {
       return res.status(500).json({ error: 'No se pudo guardar', details: e?.message });
@@ -3347,10 +3444,13 @@ ${sections}
         if (lyricsSourceAvailable) {
           const missingTitle = song?.name || matchedStored?.title ||
             slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+          // Cancion de la distribuidora anterior que aun no se vuelve a publicar: la letra regresa
+          // en esta misma URL cuando se publique otra vez
+          const enActualizacion = letraOculta(missingTitle, await getVigencia());
 
           fallbackHtml = fallbackHtml.replace(
             /<title>[^<]*<\/title>/i,
-            `<title>Letra no disponible | Dios M\u00e1s Gym</title>`
+            `<title>${enActualizacion ? 'Letra en actualizaci\u00f3n' : 'Letra no disponible'} | Diosmasgym</title>`
           );
           fallbackHtml = fallbackHtml.replace(
             /<meta\s+name=["']robots["'][^>]*>/i,
@@ -3362,8 +3462,10 @@ ${sections}
 <div id="root">
   <div style="min-height:100vh;background:linear-gradient(160deg,#020d1a 0%,#071325 50%,#0b1929 100%);color:#f8fafc;font-family:'Inter',sans-serif;padding:2rem 1rem;">
     <main style="max-width:640px;margin:0 auto;text-align:center;">
-      <h1 style="font-size:2rem;font-weight:900;margin:1rem 0;color:#fff;">Esta letra todav\u00eda no est\u00e1 disponible</h1>
-      <p style="color:#94a3b8;line-height:1.7;">A\u00fan no hemos publicado la letra de &quot;${escapeXml(missingTitle)}&quot;. Mientras tanto puedes buscar entre el resto del cat\u00e1logo.</p>
+      <h1 style="font-size:2rem;font-weight:900;margin:1rem 0;color:#fff;">${enActualizacion ? 'Esta letra se est\u00e1 actualizando' : 'Esta letra todav\u00eda no est\u00e1 disponible'}</h1>
+      <p style="color:#94a3b8;line-height:1.7;">${enActualizacion
+        ? `Estamos volviendo a publicar &quot;${escapeXml(missingTitle)}&quot;. La letra regresa aqu\u00ed en cuanto la canci\u00f3n est\u00e9 disponible otra vez.`
+        : `A\u00fan no hemos publicado la letra de &quot;${escapeXml(missingTitle)}&quot;. Mientras tanto puedes buscar entre el resto del cat\u00e1logo.`}</p>
       <p style="margin-top:2rem;">
         <a href="/buscar" style="display:inline-block;margin:0.4rem;padding:0.7rem 1.3rem;background:#2563a8;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Buscar canciones</a>
         <a href="/" style="display:inline-block;margin:0.4rem;padding:0.7rem 1.3rem;border:1px solid rgba(148,163,184,0.4);color:#e2e8f0;text-decoration:none;border-radius:6px;font-weight:bold;">Inicio</a>

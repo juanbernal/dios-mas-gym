@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMusicCatalogCompleto, fetchSavedLyrics } from '../../services/musicService';
+import { fetchMusicCatalogCompleto, fetchAllSavedLyrics } from '../../services/musicService';
 import {
   DatosDisco, Disco, ESTADOS, Estado, EstadoMigracion, GENEROS, Meta,
   armarDiscos, cargarEstado, cargarMetadatos, exportarCSV, fichaDisco, guardarEstado,
@@ -43,7 +43,7 @@ const MigracionTooLost: React.FC = () => {
     try {
       setProgreso('Leyendo catálogos…');
       const [dmg, j614, letrasWeb, est] = await Promise.all([
-        fetchMusicCatalogCompleto('diosmasgym'), fetchMusicCatalogCompleto('juan614'), fetchSavedLyrics().catch(() => []), cargarEstado(),
+        fetchMusicCatalogCompleto('diosmasgym'), fetchMusicCatalogCompleto('juan614'), fetchAllSavedLyrics().catch(() => []), cargarEstado(),
       ]);
       const canciones = [...dmg, ...j614];
       const ids = Array.from(new Set(canciones.map(c => c.url?.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/)?.[1]).filter(Boolean) as string[]));

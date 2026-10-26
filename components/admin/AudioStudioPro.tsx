@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
-import { fetchMusicCatalog, fetchSavedLyrics, saveLyricToWeb } from '../../services/musicService';
+import { fetchMusicCatalog, fetchAllSavedLyrics, saveLyricToWeb } from '../../services/musicService';
 import { MusicItem } from '../../types';
 import { syncFetch } from '../../services/adminSync';
 
@@ -1453,7 +1453,7 @@ const AudioStudioPro:React.FC=()=>{
       const [dios, juan, saved] = await Promise.all([
         fetchMusicCatalog('diosmasgym', force),
         fetchMusicCatalog('juan614', force),
-        fetchSavedLyrics(true)
+        fetchAllSavedLyrics()
       ]);
       const combined = [...(dios || []), ...(juan || [])];
       setCatalog(combined);

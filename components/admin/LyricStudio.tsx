@@ -283,7 +283,7 @@ const LyricStudio: React.FC = () => {
 
       // 1. Fetch from Website API (/api/lyrics)
       try {
-        const res = await fetch('/api/lyrics');
+        const res = await syncFetch(`/api/lyrics?todas=1&t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           const apiLyrics = (Array.isArray(data) ? data : (data?.lyrics || [])).map((l: any) => ({

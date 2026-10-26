@@ -63,6 +63,8 @@ interface Suggestion {
 
 const PROMOTED_KEY = 'content_assistant_promoted_ids';
 const SKIPS_KEY = 'content_assistant_skips_by_day';
+// Inicio de la migracion a TooLost: lo publicado desde entonces es lo que esta en las plataformas
+const MIGRACION_INICIO = '2026-10-13';
 const dayKey = () => new Date().toDateString();
 
 const HASHTAG_SETS = {
@@ -221,8 +223,10 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
 
         // Orden fijo por id y sin filtros locales: asi la eleccion depende solo de la fecha
         // y sale la misma en la PC y en el celular.
+        // Solo lo que ya se volvio a publicar con la migracion a TooLost (videos nuevos desde que
+        // empezo): lo de la distribuidora anterior ya no esta en las plataformas.
         const used = new Set(promotedIds);
-        const all = [...catalog].filter(s => s.id);
+        const all = [...catalog].filter(s => s.id && (s.date || '') >= MIGRACION_INICIO);
         const fresh = all.filter(s => !used.has(s.id));
         const pool = (fresh.length > 0 ? fresh : all).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
@@ -605,7 +609,15 @@ const WeeklyContentAssistant: React.FC<{ catalog: MusicItem[] }> = ({ catalog = 
         </div>
     );
 
-    if (!suggestion || !suggestion.song) return null;
+    if (!suggestion || !suggestion.song) {
+        if (catalog.length === 0) return null;
+        return (
+            <div className="mb-12 p-5 rounded-2xl border border-white/10 bg-white/5 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#c5a059]">Publicación Rápida del Día</p>
+                <p className="text-sm text-white/60 mt-2">Aún no hay canciones publicadas con la migración a TooLost. En cuanto salgan en YouTube aparecerán aquí.</p>
+            </div>
+        );
+    }
 
     const smartLinkUrl = `${window.location.origin}/link/${suggestion.song.id}`;
 

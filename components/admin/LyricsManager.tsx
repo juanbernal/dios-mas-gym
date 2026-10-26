@@ -216,7 +216,7 @@ const LyricsManager: React.FC = () => {
             // 1. Fetch from Website API (/api/lyrics)
             let webItems: LyricItem[] = [];
             try {
-                const res = await fetch(`/api/lyrics?refresh=1&t=${Date.now()}`, { cache: 'no-store' });
+                const res = await syncFetch(`/api/lyrics?refresh=1&todas=1&t=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
                     const data = await res.json();
                     const list = Array.isArray(data) ? data : (data?.lyrics || []);

@@ -379,6 +379,14 @@ const normalizeLyricList = (list: any[]): any[] =>
       return out;
     });
 
+// Todas las letras, tambien las ocultas mientras su cancion se vuelve a publicar en TooLost (solo admin)
+export const fetchAllSavedLyrics = async (): Promise<any[]> => {
+  const res = await syncFetch(`/api/lyrics?refresh=1&todas=1&t=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`No se pudieron leer las letras (${res.status})`);
+  const data = await res.json();
+  return normalizeLyricList(Array.isArray(data) ? data : (data?.lyrics || []));
+};
+
 export const fetchSavedLyrics = async (force = false): Promise<any[]> => {
   if (!force && lyricsCache && Date.now() - lyricsCache.at < LYRICS_TTL_MS) {
     return lyricsCache.data;
