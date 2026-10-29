@@ -92,6 +92,10 @@ const LyricsManager: React.FC = () => {
     const [showCloudExplorer, setShowCloudExplorer] = useState(false);
     const [showNewLyricModal, setShowNewLyricModal] = useState(false);
     const [newLyricTitle, setNewLyricTitle] = useState('');
+    const [newLyricArtist, setNewLyricArtist] = useState('Diosmasgym');
+    const [newLyricContent, setNewLyricContent] = useState('');
+    const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+    const [isQuickPublishing, setIsQuickPublishing] = useState(false);
     const [fullCatalog, setFullCatalog] = useState<MusicItem[]>([]);
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
     const [bulkImportText, setBulkImportText] = useState('');
@@ -573,6 +577,109 @@ const LyricsManager: React.FC = () => {
         } finally {
             setIsBulkImporting(false);
         }
+    };
+
+    // ── Subida rapida: titulo + artista + letra en una sola ventana, con o sin pista en el catalogo ──
+    const tidyLyric = (text: string) => text
+        .replace(/\r/g, '')
+        .split('\n').map(l => l.replace(/[ \t]+$/, '')).join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    const artistFromText = (text: string) => /juan\s*614/i.test(text) ? 'Juan 614' : null;
+
+    const openQuickUpload = (preset?: { title?: string; artist?: string; content?: string }) => {
+        setNewLyricTitle(preset?.title || '');
+        setNewLyricArtist(preset?.artist || 'Diosmasgym');
+        setNewLyricContent(preset?.content || '');
+        setShowTitleSuggestions(false);
+        setShowNewLyricModal(true);
+    };
+
+    const quickTitleSlug = toSlug(newLyricTitle);
+    const quickCatalogMatch = quickTitleSlug ? fullCatalog.find(s => toSlug(s.name) === quickTitleSlug) : undefined;
+    const quickExisting = quickTitleSlug ? lyrics.find(l => toSlug(l.title) === quickTitleSlug && stripHtml(l.content).trim().length > 0) : undefined;
+    const quickSuggestions = newLyricTitle.trim().length >= 2 && !quickCatalogMatch
+        ? fullCatalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.trim().toLowerCase())).slice(0, 8)
+        : [];
+
+    const pickCatalogSong = (song: MusicItem) => {
+        setNewLyricTitle(song.name);
+        setNewLyricArtist(song.artist === 'Juan 614' ? 'Juan 614' : 'Diosmasgym');
+        if (!newLyricContent.trim() && song.lyrics?.trim()) setNewLyricContent(tidyLyric(song.lyrics));
+        setShowTitleSuggestions(false);
+    };
+
+    // Si el titulo esta vacio y se pega la letra completa, la primera linea se toma como titulo
+    // (tambien entiende "Titulo - Juan 614" y el formato de DistroKid "--- Titulo ---")
+    const handleQuickPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (newLyricTitle.trim() || newLyricContent.trim()) return;
+        const lines = e.clipboardData.getData('text').replace(/\r/g, '').trim().split('\n');
+        const first = (lines[0] || '').trim();
+        const rest = lines.slice(1).join('\n').trim();
+        if (!first || !rest || first.length > 80 || lines.length < 3) return;
+        e.preventDefault();
+        let title = first.replace(/^-{3,}\s*(.+?)\s*-{3,}$/, '$1');
+        const m = title.match(/^(.+?)\s*[-|–]\s*(diosmasgym|dios\s*mas\s*gym|juan\s*614)\s*$/i);
+        if (m) title = m[1].trim();
+        setNewLyricTitle(title);
+        setNewLyricArtist(artistFromText(m ? m[2] : first) || 'Diosmasgym');
+        setNewLyricContent(tidyLyric(rest));
+    };
+
+    const handleQuickPublish = async (andAnother: boolean) => {
+        const title = newLyricTitle.trim();
+        const content = tidyLyric(newLyricContent);
+        if (!title || !content || isQuickPublishing) return;
+        if (quickExisting && quickExisting.status === 'LIVE' && tidyLyric(stripHtml(quickExisting.content)) !== content
+            && !confirm(`"${quickExisting.title}" ya tiene letra en la web. ¿Reemplazarla con esta?`)) return;
+        setIsQuickPublishing(true);
+        try {
+            const slug = toSlug(title);
+            const date = getFirstDate(title, newLyricArtist);
+            const res = await fetch('/api/lyrics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-admin-password': localStorage.getItem('admin_password') || '' },
+                body: JSON.stringify({ id: slug, title, artist: newLyricArtist, content, date, status: 'LIVE' })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (res.status === 401) { showNotification('❌ Clave de admin inválida: vuelve a iniciar sesión en el panel'); return; }
+            if (!res.ok || body.syncedToSheets === false) {
+                showNotification(`❌ ${body.sheetsError || body.error || body.message || `Error ${res.status}`}`);
+                return;
+            }
+            const item: LyricItem = { id: slug, title, artist: newLyricArtist, content, status: 'LIVE', date };
+            recordVersions([item]);
+            invalidateSavedLyricsCache();
+            setLyrics(prev => [item, ...prev.filter(l => toSlug(l.title) !== slug)]);
+            showNotification(`✅ "${title}" publicada en /letra/${slug}`);
+            if (andAnother) {
+                setNewLyricTitle('');
+                setNewLyricContent('');
+            } else {
+                setShowNewLyricModal(false);
+                selectLyric(item);
+                setViewMode('editor');
+            }
+        } catch (e: any) {
+            showNotification('❌ Error: ' + (e?.message || e));
+        } finally {
+            setIsQuickPublishing(false);
+        }
+    };
+
+    // Abre la letra en el editor completo sin publicarla (para seguir trabajandola o guardarla como borrador)
+    const handleQuickToEditor = () => {
+        const title = newLyricTitle.trim();
+        if (!title) return;
+        const item: LyricItem = quickExisting && !newLyricContent.trim()
+            ? quickExisting
+            : { id: toSlug(title), title, artist: newLyricArtist, content: tidyLyric(newLyricContent), status: 'LOCAL', date: new Date().toISOString() };
+        setSelectedLyric(item);
+        setSavedSignature(quickExisting === item ? getSignature(item) : '');
+        setPreviewMode(false);
+        setViewMode('editor');
+        setShowNewLyricModal(false);
     };
 
     const extractYoutubeId = (url: string): string => {
@@ -1169,14 +1276,12 @@ ${cleanedLyrics}`;
                                 <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">Importar Muchas</span>
                             </button>
                             <button
-                                onClick={() => {
-                                    setNewLyricTitle('');
-                                    setShowNewLyricModal(true);
-                                }}
+                                onClick={() => openQuickUpload()}
                                 className="p-2.5 md:px-6 md:py-2 bg-[#00ffcc] text-black rounded-full hover:bg-white transition-all shadow-lg shadow-[#00ffcc]/10"
+                                title="Subir una letra: con o sin pista en el catálogo"
                             >
                                 <i className="fas fa-plus md:mr-2"></i>
-                                <span className="hidden md:inline text-[10px] font-black uppercase">Nueva</span>
+                                <span className="hidden md:inline text-[10px] font-black uppercase">Subir Letra</span>
                             </button>
                         </div>
                     </div>
@@ -1875,96 +1980,122 @@ ${cleanedLyrics}`;
             </div>
         )}
 
-        {/* NEW LYRIC MODAL */}
+        {/* SUBIR LETRA (RAPIDO) */}
         {showNewLyricModal && (
-            <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-                <div className="bg-[#0a0c14] border border-white/10 rounded-3xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                    <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-gradient-to-r from-[#00ffcc]/10 to-transparent">
-                        <div className="w-12 h-12 bg-[#00ffcc]/10 rounded-2xl flex items-center justify-center text-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.1)]">
-                            <i className="fas fa-search text-xl"></i>
+            <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 md:p-4" onKeyDown={e => { if (e.key === 'Escape' && !isQuickPublishing) setShowNewLyricModal(false); }}>
+                <div className="bg-[#0a0c14] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+                    <div className="px-5 py-4 md:px-6 border-b border-white/5 flex items-center gap-4 bg-gradient-to-r from-[#00ffcc]/10 to-transparent">
+                        <div className="w-11 h-11 bg-[#00ffcc]/10 rounded-2xl flex items-center justify-center text-[#00ffcc] shrink-0">
+                            <i className="fas fa-file-lines text-lg"></i>
                         </div>
-                        <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-white">Buscar <span className="text-[#00ffcc]">Canción</span></h3>
-                            <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/40">Selecciona del catálogo</p>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-white">Subir <span className="text-[#00ffcc]">Letra</span></h3>
+                            <p className="text-[10px] text-white/40">Pega la letra completa: la primera línea se vuelve el título.</p>
                         </div>
+                        <button onClick={() => setShowNewLyricModal(false)} disabled={isQuickPublishing} className="w-9 h-9 rounded-full bg-white/5 text-white/40 hover:text-white flex items-center justify-center shrink-0" title="Cerrar">
+                            <i className="fas fa-xmark"></i>
+                        </button>
                     </div>
-                    <div className="p-8">
-                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">
-                            Buscar en el catálogo o escribir nuevo
-                        </label>
+
+                    <div className="p-5 md:p-6 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
                         <div className="relative">
-                            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2 ml-1">Título</label>
                             <input
-                                autoFocus
                                 type="text"
-                                placeholder="Escribe el nombre de la canción..."
+                                placeholder="Nombre de la canción (o pega la letra abajo)"
                                 value={newLyricTitle}
-                                onChange={(e) => setNewLyricTitle(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && newLyricTitle.trim()) {
-                                        const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Diosmasgym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
-                                        setSelectedLyric(newLyric);
-                                        setSavedSignature(getSignature(newLyric));
-                                        setPreviewMode(false);
-                                        setViewMode('editor');
-                                        setShowNewLyricModal(false);
-                                    } else if (e.key === 'Escape') {
-                                        setShowNewLyricModal(false);
-                                    }
+                                onChange={e => {
+                                    setNewLyricTitle(e.target.value);
+                                    setShowTitleSuggestions(true);
+                                    const artist = artistFromText(e.target.value);
+                                    if (artist) setNewLyricArtist(artist);
                                 }}
-                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#00ffcc]/50 focus:ring-1 focus:ring-[#00ffcc]/30 transition-all font-medium"
+                                onFocus={() => setShowTitleSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowTitleSuggestions(false), 150)}
+                                className="w-full bg-black/50 border border-white/10 rounded-2xl py-3 px-4 text-white focus:outline-none focus:border-[#00ffcc]/50 transition-all font-bold"
                             />
-                            {newLyricTitle.trim() && fullCatalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0c14] border border-white/10 rounded-xl max-h-[200px] overflow-y-auto z-50 shadow-2xl">
-                                    {fullCatalog.filter(s => s.name.toLowerCase().includes(newLyricTitle.toLowerCase()) || s.artist.toLowerCase().includes(newLyricTitle.toLowerCase())).map(song => (
+                            {showTitleSuggestions && quickSuggestions.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0a0c14] border border-white/10 rounded-xl max-h-[220px] overflow-y-auto z-50 shadow-2xl">
+                                    {quickSuggestions.map(song => (
                                         <button
                                             key={song.id + song.name}
-                                            onClick={() => {
-                                                const existing = lyrics.find(l => 
-                                                    (l.id && l.id === song.id) || 
-                                                    (l.title.toLowerCase().trim() === song.name.toLowerCase().trim() && (l.artist || '').toLowerCase().replace(/\s+/g, '').replace('á', 'a') === (song.artist || 'Diosmasgym').toLowerCase().replace(/\s+/g, '').replace('á', 'a'))
-                                                );
-                                                const newLyric = existing 
-                                                    ? existing 
-                                                    : { id: song.id, title: song.name, artist: song.artist || 'Diosmasgym', content: song.lyrics || '', status: 'LOCAL' as const, date: new Date().toISOString() };
-                                                setSelectedLyric(newLyric);
-                                                setSavedSignature(getSignature(newLyric));
-                                                setPreviewMode(false);
-                                                setViewMode('editor');
-                                                setShowNewLyricModal(false);
-                                            }}
-                                            className="w-full flex flex-col text-left px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
+                                            onMouseDown={e => e.preventDefault()}
+                                            onClick={() => pickCatalogSong(song)}
+                                            className="w-full flex items-center justify-between gap-3 text-left px-4 py-2.5 hover:bg-white/5 border-b border-white/5 last:border-0"
                                         >
-                                            <span className="text-white text-sm font-bold">{song.name}</span>
-                                            <span className="text-[#00ffcc]/60 text-[9px] uppercase tracking-wider">{song.artist}</span>
+                                            <span className="text-white text-sm font-bold truncate">{song.name}</span>
+                                            <span className="text-[#00ffcc]/60 text-[9px] uppercase tracking-wider shrink-0">{song.artist}</span>
                                         </button>
                                     ))}
                                 </div>
                             )}
+                            {newLyricTitle.trim() && (
+                                <div className="flex flex-wrap gap-2 mt-2 ml-1">
+                                    {quickCatalogMatch
+                                        ? <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400"><i className="fas fa-music mr-1"></i>Ya está en el catálogo</span>
+                                        : <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/5 text-white/50"><i className="fas fa-clock mr-1"></i>Sin pista todavía: se publica igual</span>}
+                                    {quickExisting && (
+                                        <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400">
+                                            <i className="fas fa-triangle-exclamation mr-1"></i>Ya tiene letra ({quickExisting.status}): se reemplaza
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 ml-1 mr-1">Artista</span>
+                            {['Diosmasgym', 'Juan 614'].map(a => (
+                                <button
+                                    key={a}
+                                    onClick={() => setNewLyricArtist(a)}
+                                    className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full border transition-all ${newLyricArtist === a ? 'bg-[#00ffcc] text-black border-[#00ffcc]' : 'bg-white/5 text-white/50 border-white/10 hover:text-white'}`}
+                                >
+                                    {a}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2 ml-1">
+                                <span>Letra</span>
+                                {newLyricContent.trim() && <span className="text-white/25 normal-case tracking-normal font-bold">{newLyricContent.split('\n').filter(l => l.trim()).length} líneas</span>}
+                            </label>
+                            <textarea
+                                autoFocus
+                                value={newLyricContent}
+                                onChange={e => setNewLyricContent(e.target.value)}
+                                onPaste={handleQuickPaste}
+                                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleQuickPublish(false); } }}
+                                placeholder={'Pega aquí la letra.\n\nSi el título está vacío, la primera línea se usa como título.'}
+                                className="w-full min-h-[260px] md:min-h-[320px] bg-black/50 border border-white/10 rounded-2xl p-4 text-white text-sm leading-relaxed focus:outline-none focus:border-[#00ffcc]/50 resize-y custom-scrollbar placeholder:text-white/20"
+                            />
                         </div>
                     </div>
-                    <div className="p-6 border-t border-white/5 bg-black/40 flex justify-end gap-3">
+
+                    <div className="px-5 py-4 md:px-6 border-t border-white/5 bg-black/40 flex flex-col-reverse md:flex-row md:items-center gap-2 md:gap-3">
                         <button
-                            onClick={() => setShowNewLyricModal(false)}
-                            className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                            onClick={handleQuickToEditor}
+                            disabled={!newLyricTitle.trim() || isQuickPublishing}
+                            className="px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/5 transition-all disabled:opacity-40 md:mr-auto"
                         >
-                            Cancelar
+                            <i className="fas fa-pen mr-2"></i>Abrir en editor
                         </button>
                         <button
-                            onClick={() => {
-                                if (newLyricTitle.trim()) {
-                                    const newLyric = { id: 'new', title: newLyricTitle.trim(), artist: 'Diosmasgym', content: '', status: 'LOCAL' as const, date: new Date().toISOString() };
-                                    setSelectedLyric(newLyric);
-                                    setSavedSignature(getSignature(newLyric));
-                                    setPreviewMode(false);
-                                    setViewMode('editor');
-                                    setShowNewLyricModal(false);
-                                }
-                            }}
-                            disabled={!newLyricTitle.trim()}
-                            className="px-8 py-3 bg-[#00ffcc] text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.2)]"
+                            onClick={() => handleQuickPublish(true)}
+                            disabled={!newLyricTitle.trim() || !newLyricContent.trim() || isQuickPublishing}
+                            className="px-5 py-3 bg-white/5 border border-[#00ffcc]/30 text-[#00ffcc] rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-[#00ffcc]/10 transition-all disabled:opacity-40"
                         >
-                            Crear Manual
+                            Publicar y subir otra
+                        </button>
+                        <button
+                            onClick={() => handleQuickPublish(false)}
+                            disabled={!newLyricTitle.trim() || !newLyricContent.trim() || isQuickPublishing}
+                            className="px-7 py-3 bg-[#00ffcc] text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all disabled:opacity-40 shadow-[0_0_20px_rgba(0,255,204,0.2)]"
+                            title="Ctrl + Enter"
+                        >
+                            <i className={`fas ${isQuickPublishing ? 'fa-spinner fa-spin' : 'fa-globe'} mr-2`}></i>
+                            {isQuickPublishing ? 'Publicando...' : 'Publicar en la web'}
                         </button>
                     </div>
                 </div>
