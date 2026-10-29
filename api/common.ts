@@ -1546,7 +1546,9 @@ export default async function handler(
             artist: bodyData.artist || 'Diosmasgym',
             content: bodyData.content || bodyData.lyrics || '',
             date: bodyData.date || new Date().toISOString(),
-            status: bodyData.status || 'LIVE'
+            status: bodyData.status || 'LIVE',
+            // Canciones hermanas: mismo EP o album
+            ...(bodyData.album ? { album: String(bodyData.album), track: Number(bodyData.track) || undefined } : {})
           };
           const existingIdx = currentLyrics.findIndex(l => l.id === lyricItem.id || generateSlug(l.title) === generateSlug(lyricItem.title));
           if (existingIdx >= 0) {
@@ -1586,7 +1588,8 @@ export default async function handler(
                   title: saveTitle,
                   artist: saveArtist,
                   content: saveContent,
-                  date: new Date().toISOString()
+                  date: new Date().toISOString(),
+                  ...(bodyData?.album ? { album: String(bodyData.album), track: Number(bodyData.track) || '' } : {})
                 })
               });
               const gsRawBody = await gsSaveRes.text();
