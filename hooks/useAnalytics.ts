@@ -20,28 +20,8 @@ export const useAnalytics = () => {
                 (window as any).gtag('event', eventName, eventData);
             }
 
-            const hostname = window.location.hostname;
-            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.');
-            const isVercel = hostname.endsWith('.vercel.app') || hostname.includes('vercel');
-            const isProdDomain = hostname === 'diosmasgym.com' || hostname.endsWith('.diosmasgym.com');
-            const apiBase = (isLocal || isVercel || isProdDomain) ? window.location.origin : 'https://www.diosmasgym.com';
-
-            // We use the existing sheet-proxy to send the data to Google Apps Script.
-            // The Apps Script must be updated to handle action=trackEvent
-            fetch(`${apiBase}/api/sheet-proxy?script=analytics&action=trackEvent`, {
-                method: 'POST',
-                keepalive: true,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'trackEvent',
-                    event: eventName,
-                    data: eventData,
-                    timestamp: new Date().toISOString(),
-                    userAgent: navigator.userAgent
-                })
-            }).catch(() => {
-                // Fail silently to avoid breaking the UI if tracking fails
-            });
+            // Antes tambien se mandaba cada evento a /api/sheet-proxy (Apps Script): era una funcion de Vercel
+            // por cada clic de cada visitante y nadie leia esos datos; el panel lee todo de GA4.
         } catch (error) {
             // Ignore tracking errors
         }

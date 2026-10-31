@@ -910,7 +910,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (isRefresh) {
       res.setHeader('Cache-Control', 'no-store, max-age=0');
     } else {
-      res.setHeader('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
     }
 
     return res.status(200).json({

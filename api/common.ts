@@ -1510,7 +1510,7 @@ export default async function handler(
       // hasta horas despues (el HTML del servidor la mostraba y al hidratar desaparecia).
       // ?todas=1 (solo admin) incluye las letras ocultas por la migracion, para las herramientas del panel
       const todas = req.query.todas === '1' && verifyAdminPassword(req);
-      const cacheHeader = isRefresh || todas ? 'no-store, max-age=0' : 'public, s-maxage=60, stale-while-revalidate=300';
+      const cacheHeader = isRefresh || todas ? 'no-store, max-age=0' : 'public, s-maxage=300, stale-while-revalidate=86400';
       try {
         // Copia rapida al instante; refresh=1 (admin) fuerza leer Google Sheets en el momento
         const lyricsList = todas ? await getLyricsList(isRefresh) : await getLetrasPublicas(isRefresh);
@@ -1673,8 +1673,8 @@ export default async function handler(
   // ACTION: MAINTENANCE
   // -------------------------------------------------------------
   if (action === 'maintenance') {
-    // CDN corto: cada region de Vercel guardaba el estado viejo hasta ~5 min mas
-    const MAINT_CACHE = 'public, s-maxage=10, stale-while-revalidate=20';
+    // CDN de 1 min: antes era de 10 s y cada visita casi siempre ejecutaba la funcion (gasta CPU de Vercel)
+    const MAINT_CACHE = 'public, s-maxage=60, stale-while-revalidate=60';
     const CONFIG_FILE = path.join(process.cwd(), 'data', 'maintenance.json');
     const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwg6vqZAc7VYmj3pRu85wnS7fsBWw1801ymY_XdcMBn3uShOK0k9T0rZC7SfbYxgr8R4g/exec';
 
@@ -1789,7 +1789,7 @@ export default async function handler(
     if (req.method === 'GET') {
       const all = req.query.all === '1' && isAdmin;
       const list = await readOraciones(all);
-      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=20, stale-while-revalidate=120');
+      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=600');
       return res.status(200).json(list.filter(o => all || o.status === 'aprobada').slice(0, all ? 300 : 60).map(view));
     }
 
@@ -1852,7 +1852,7 @@ export default async function handler(
       const all = req.query.all === '1';
       if (all && !isAdmin) return res.status(401).json({ error: 'No autorizado' });
       const data = await readRutinas(all);
-      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=600');
+      res.setHeader('Cache-Control', all ? 'no-store' : 'public, s-maxage=3600, stale-while-revalidate=86400');
       if (!data) return res.status(200).json({ data: null });
       return res.status(200).json({ data: all ? data : { ...data, rutinas: data.rutinas.filter((r: any) => !r.oculta) } });
     }
@@ -1962,7 +1962,7 @@ export default async function handler(
       // Si Apps Script falla o tarda, se sirve lo ultimo bueno (o vacio) con cache
       // corta, para no hacer esperar ~6 s a cada visitante.
       const serveFallback = () => {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+        res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400');
         return res.status(200).json(lastTestimonios || []);
       };
       try {
@@ -2108,7 +2108,7 @@ export default async function handler(
           // Las filas CONFIG_ (mantenimiento, testimonios) viven en la misma hoja pero no son lanzamientos
           const rows = (await getMainSheetRows(hasNoCache))
             .filter((r: any) => !String(r?.Artista || '').trim().toUpperCase().startsWith('CONFIG_'));
-          res.setHeader('Cache-Control', hasNoCache ? 'no-store, no-cache, must-revalidate' : 's-maxage=60, stale-while-revalidate=300');
+          res.setHeader('Cache-Control', hasNoCache ? 'no-store, no-cache, must-revalidate' : 's-maxage=300, stale-while-revalidate=3600');
           return res.status(200).json(rows);
         }
 
@@ -2122,7 +2122,7 @@ export default async function handler(
         } else if (hasNoCache) {
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         } else {
-          res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+          res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
         }
 
         const ct = resp.headers.get('content-type');
